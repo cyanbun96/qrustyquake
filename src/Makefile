@@ -22,6 +22,12 @@ OBJS = $(SRCS:.c=.o)
 
 BUILD_TYPE ?= release
 
+# technically for Haiku we should strip -lm since it is not needed there, but
+# they have a dummy library in its place so... shrug?
+ifeq ($(shell uname), Haiku)
+LDFLAGS+=-lnetwork
+endif
+
 ifeq ($(CC),tcc)
 CFLAGS += -DSDL_DISABLE_IMMINTRIN_H
 endif
