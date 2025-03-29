@@ -15,7 +15,9 @@
 #else
 #include <unistd.h>
 #include <sys/ipc.h>
+#ifndef __HAIKU__
 #include <sys/shm.h>
+#endif
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/time.h>
