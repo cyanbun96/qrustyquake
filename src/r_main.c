@@ -500,17 +500,17 @@ void R_RenderView() // r_refdef must be set before the first call
 		Sys_Error("R_RenderView: NULL worldmodel");
 	r_foundtranswater =  r_wateralphapass = 0; // Manoel Kasimier - translucent water
 	r_pass = 0;
-	puts("PASS1");
+	Con_DPrintf("PASS1\n");
 	R_EdgeDrawing();
 	if((s32)r_twopass.value&1){
 		r_pass = 1;
-		puts("=PASS2");
+		Con_DPrintf("=PASS2\n");
 		R_EdgeDrawing();
 	}
 	R_DrawEntitiesOnList();
 	if(r_foundtranswater && (r_twopass.value + r_entalpha.value)){
 		r_wateralphapass = 1;
-		puts("==PASS3");
+		Con_DPrintf("==PASS3\n");
 		R_EdgeDrawing ();
 	}
 	R_DrawViewModel();

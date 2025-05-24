@@ -8,6 +8,7 @@ static mvertex_t *pfrontenter, *pfrontexit;
 static bool makeclippededge;
 static f32 entity_rotation[3][3];
 static btofpoly_t *pbtofpolys;
+static s64 listframe = -1;
 static s32 efraglisti;
 static efrag_t **efraglist[MAX_EFRAGS+1];
 static s32 surflisti;
@@ -322,9 +323,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 			msurface_t *surf = cl.worldmodel->surfaces + node->firstsurface;
 			if (dot < -BACKFACE_EPSILON) {
 				do {
-					if ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
-						&& !(surf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)) {
-						R_RenderFace(surf, clipflags);
+					if ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)) {
 						surflist[surflisti] = surf;
 						surfflaglist[surflisti] = clipflags;
 						surflisti++;
@@ -333,11 +332,9 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				} while (--c);
 			} else if (dot > BACKFACE_EPSILON) {
 				do {
-					if (!(surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
-						&& !(surf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)
-						&& strncmp(surf->texinfo->texture->name, "bal_pureblack", 13)) {
+					if (!(surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)) {
 						// hardcoded texture skip fixes the black sky bottom in ad_tears
-						R_RenderFace(surf, clipflags);
+						//R_RenderFace(surf, clipflags);
 						surflist[surflisti] = surf;
 						surfflaglist[surflisti] = clipflags;
 						surflisti++;
@@ -361,8 +358,17 @@ void R_RenderWorld()
 	VectorCopy(r_origin, modelorg);
 	model_t *clmodel = currententity->model;
 	r_pcurrentvertbase = clmodel->vertexes;
-	efraglisti = 0;
-	surflisti = 0;
-	R_RecursiveWorldNode(clmodel->nodes, 15);
-	Con_DPrintf("%d\tefrags\n%d\tsurfs\n", efraglisti, surflisti);
+	if (listframe != r_framecount) {
+		listframe = r_framecount;
+		efraglisti = 0;
+		surflisti = 0;
+		R_RecursiveWorldNode(clmodel->nodes, 15);
+		Con_DPrintf("%d\tefrags\n%d\tsurfs\n", efraglisti, surflisti);
+	}
+	for(s32 i = 0; i < surflisti; ++i) {
+		if (!(surflist[i]->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)
+				&& strncmp(surflist[i]->texinfo->texture->name, "bal_pureblack", 13)) {
+			R_RenderFace(surflist[i], surfflaglist[i]);
+		}
+	}
 }
