@@ -8,6 +8,11 @@ static mvertex_t *pfrontenter, *pfrontexit;
 static bool makeclippededge;
 static f32 entity_rotation[3][3];
 static btofpoly_t *pbtofpolys;
+static s32 efraglisti;
+static efrag_t **efraglist[MAX_EFRAGS+1];
+static s32 surflisti;
+static msurface_t *surflist[NUMSTACKSURFACES+1];
+static s32 surfflaglist[NUMSTACKSURFACES+1];
 
 void R_EntityRotate(vec3_t vec)
 {
@@ -289,8 +294,11 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				mark++;
 			} while (--c);
 		}
-		if (pleaf->efrags) // deal with model fragments in this leaf
+		if (pleaf->efrags){ // deal with model fragments in this leaf
 			R_StoreEfrags(&pleaf->efrags);
+			efraglist[efraglisti] = &pleaf->efrags;
+			efraglisti++;
+		}
 		pleaf->key = r_currentkey;
 		r_currentkey++; // all bmodels in a leaf share the same key
 	} else {
@@ -317,6 +325,9 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 					if ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
 						&& !(surf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)) {
 						R_RenderFace(surf, clipflags);
+						surflist[surflisti] = surf;
+						surfflaglist[surflisti] = clipflags;
+						surflisti++;
 					}
 					surf++;
 				} while (--c);
@@ -327,6 +338,9 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 						&& strncmp(surf->texinfo->texture->name, "bal_pureblack", 13)) {
 						// hardcoded texture skip fixes the black sky bottom in ad_tears
 						R_RenderFace(surf, clipflags);
+						surflist[surflisti] = surf;
+						surfflaglist[surflisti] = clipflags;
+						surflisti++;
 					}
 					surf++;
 				} while (--c);
@@ -347,5 +361,8 @@ void R_RenderWorld()
 	VectorCopy(r_origin, modelorg);
 	model_t *clmodel = currententity->model;
 	r_pcurrentvertbase = clmodel->vertexes;
+	efraglisti = 0;
+	surflisti = 0;
 	R_RecursiveWorldNode(clmodel->nodes, 15);
+	Con_DPrintf("%d\tefrags\n%d\tsurfs\n", efraglisti, surflisti);
 }

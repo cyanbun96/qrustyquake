@@ -37,7 +37,7 @@ void R_BeginEdgeFrame()
 	surf_max = &surfaces[NUMSTACKSURFACES];
 	edge_p = r_edges;
 	edge_max = &r_edges[NUMSTACKEDGES];
-	surface_p = &surfaces[2]; // background is surface 1,
+	surface_p = &surfaces[2]; // background is surface 1
 	surfaces[1].spans = NULL; // no background spans yet
 	surfaces[1].flags = SURF_DRAWBACKGROUND;
 	if (r_draworder.value) { //put background behind everything in the world
