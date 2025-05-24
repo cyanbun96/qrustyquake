@@ -356,19 +356,20 @@ void R_RenderWorld()
 	pbtofpolys = btofpolys;
 	currententity = &cl_entities[0];
 	VectorCopy(r_origin, modelorg);
-	model_t *clmodel = currententity->model;
+	model_t *clmodel = currententity->model; // world model
 	r_pcurrentvertbase = clmodel->vertexes;
 	if (listframe != r_framecount) {
 		listframe = r_framecount;
 		efraglisti = 0;
 		surflisti = 0;
 		R_RecursiveWorldNode(clmodel->nodes, 15);
-		Con_DPrintf("%d\tefrags\n%d\tsurfs\n", efraglisti, surflisti);
+		Con_DPrintf("%d efrags\n%d surfs\n", efraglisti, surflisti);
 	}
 }
 
 void R_RenderLists()
 {
+	currententity = &cl_entities[0]; // world entity
 	for(s32 i = 0; i < surflisti; ++i) {
 		if (!(surflist[i]->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)
 				&& strncmp(surflist[i]->texinfo->texture->name, "bal_pureblack", 13)) {

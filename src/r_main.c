@@ -406,7 +406,7 @@ void R_DrawBEntitiesOnList()
 				}
 				if(r_wateralphapass)
 					cur_ent_alpha = currententity->alpha ?
-						(f32)currententity->alpha/255 : 1;
+						(f32)currententity->alpha/255:1;
 			}
 			else
 				cur_ent_alpha = 1;
