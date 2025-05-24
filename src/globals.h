@@ -492,6 +492,7 @@ void R_ClearParticles();
 void R_ReadPointFile_f();
 void R_AliasClipTriangle(mtriangle_t *ptri);
 void R_RenderWorld();
+void R_RenderLists();
 void R_StoreEfrags(efrag_t **ppefrag);
 void R_TimeRefresh_f();
 void R_AnimateLight();

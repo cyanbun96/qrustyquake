@@ -484,6 +484,7 @@ void R_EdgeDrawing()
 	R_BeginEdgeFrame();
 	if(r_dspeeds.value) rw_time1 = Sys_DoubleTime();
 	R_RenderWorld();
+	R_RenderLists();
 	if(r_dspeeds.value) db_time1 = rw_time2 = Sys_DoubleTime();
 	if(r_wateralphapass || r_pass || !((s32)r_twopass.value&1)) R_DrawBEntitiesOnList();
 	if(r_dspeeds.value) se_time2 = db_time2 = Sys_DoubleTime();

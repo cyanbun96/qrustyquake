@@ -296,7 +296,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 			} while (--c);
 		}
 		if (pleaf->efrags){ // deal with model fragments in this leaf
-			R_StoreEfrags(&pleaf->efrags);
+			//R_StoreEfrags(&pleaf->efrags);
 			efraglist[efraglisti] = &pleaf->efrags;
 			efraglisti++;
 		}
@@ -365,10 +365,17 @@ void R_RenderWorld()
 		R_RecursiveWorldNode(clmodel->nodes, 15);
 		Con_DPrintf("%d\tefrags\n%d\tsurfs\n", efraglisti, surflisti);
 	}
+}
+
+void R_RenderLists()
+{
 	for(s32 i = 0; i < surflisti; ++i) {
 		if (!(surflist[i]->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)
 				&& strncmp(surflist[i]->texinfo->texture->name, "bal_pureblack", 13)) {
 			R_RenderFace(surflist[i], surfflaglist[i]);
 		}
+	}
+	for(s32 i = 0; i < efraglisti; ++i) {
+		R_StoreEfrags(efraglist[i]);
 	}
 }
