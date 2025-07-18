@@ -5,6 +5,11 @@
 #include "quakedef.h"
 
 #ifndef AVAIL_SDL3MIXER
+static void CDAudio_NotImplemented_f(void)
+{
+	Con_Printf("not implemented in this build, sorry!\n");
+}
+
 void CDAudio_Play(SDL_UNUSED u8 track, SDL_UNUSED bool looping)
 {
 
@@ -32,6 +37,11 @@ void CDAudio_Update()
 
 bool CDAudio_Init()
 {
+	Con_Printf("Music unavailable\n");
+	Cmd_AddCommand("music", CDAudio_NotImplemented_f);
+	Cmd_AddCommand("music_stop", CDAudio_NotImplemented_f);
+	Cmd_AddCommand("music_pause", CDAudio_NotImplemented_f);
+	Cmd_AddCommand("music_resume", CDAudio_NotImplemented_f);
 	return false;
 }
 
