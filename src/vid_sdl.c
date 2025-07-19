@@ -247,10 +247,10 @@ void VID_Init(SDL_UNUSED u8 *palette)
 
 void VID_Shutdown()
 {
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	if(screen != NULL)
 		SDL_UnlockSurface(screen);
 	SDL_UnlockTexture(texture);
-	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
