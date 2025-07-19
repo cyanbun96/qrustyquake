@@ -2242,6 +2242,10 @@ void M_Video_Key(s32 key)
 	case K_ENTER:
 		S_LocalSound("misc/menu1.wav");
 		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
+		Cvar_SetValue("_vid_default_mode_win", vid_modenum);
+		Cvar_SetValue("vid_cheight", -1);
+		Cvar_SetValue("vid_cwidth", -1);
+		Cvar_SetValue("vid_cwmode", -1);
 		break;
 	case 'T':
 	case 't':
@@ -2251,16 +2255,6 @@ void M_Video_Key(s32 key)
 		vid_testendtime = realtime + 5.0;
 		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
 		printf("VID_LINE: %d\n", vid_line);
-		break;
-	case 'D':
-	case 'd':
-		S_LocalSound("misc/menu1.wav");
-		if (vid_modenum >= 0 && vid_modenum < NUM_OLDMODES) {
-			Cvar_SetValue("_vid_default_mode_win", vid_modenum);
-			Cvar_SetValue("vid_cheight", -1);
-			Cvar_SetValue("vid_cwidth", -1);
-			Cvar_SetValue("vid_cwmode", -1);
-		}
 		break;
 	default:
 		break;
