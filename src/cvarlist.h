@@ -33,4 +33,4 @@ v_centerspeed, v_gamma, net_messagetimeout, scr_uixscale, scr_uiyscale,
 yaspectscale, jlooksens, jmovesens, jdeadzone, jtriggerthresh, jmoveaxisx,
 jmoveaxisy, jlookaxisx, jlookaxisy, jtrigaxis1, jtrigaxis2, jenterbutton,
 jescapebutton, joysticknum, scr_lockuiscale, r_enableskybox, r_mipscale,
-r_fogdepthcorrection;
+r_fogdepthcorrection, lyr_main, lyr_sbar, lyr_menu, lyr_centerprint;

@@ -54,7 +54,7 @@ void SCR_DrawCenterString()
 	scr_erase_center = 0;
 	s8 *start = scr_centerstring;
 	s32 y = scr_center_lines <= 4 ? vid.height * 0.35 : 48 * uiscale;
-	drawlayer = 1;
+	drawlayer = lyr_centerprint.value;
 	do {
 		s32 l = 0;
 		for (; l < 40; l++) // scan the width of the line
@@ -63,7 +63,7 @@ void SCR_DrawCenterString()
 		s32 x = (vid.width - l * 8 * uiscale) / 2;
 		for (s32 j = 0; j < l; j++, x += 8 * uiscale) {
 			Draw_CharacterScaled(x, y, start[j], uiscale);
-			if (!remaining--) { drawlayer = 0; return; }
+			if (!remaining--) { drawlayer = lyr_main.value; return; }
 		}
 		y += 8 * uiscale;
 		while (*start && *start != '\n')
@@ -72,7 +72,7 @@ void SCR_DrawCenterString()
 			break;
 		start++; // skip the \n
 	} while (1);
-	drawlayer = 0;
+	drawlayer = lyr_main.value;
 }
 
 void SCR_CheckDrawCenterString()
@@ -498,9 +498,9 @@ void SCR_UpdateScreen() // This is called every frame,
 	if (scr_drawdialog) {
 		Sbar_Draw();
 		fadescreen = 1;
-		drawlayer = 1;
+		drawlayer = lyr_centerprint.value;
 		SCR_DrawNotifyString();
-		drawlayer = 0;
+		drawlayer = lyr_main.value;
 	} else if (scr_drawloading) {
 		SCR_DrawLoading();
 		Sbar_Draw();

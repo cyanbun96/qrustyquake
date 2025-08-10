@@ -967,10 +967,10 @@ void Sbar_Draw()
 		|| (sb_updates >= vid.numpages && !scr_hudstyle.value)
 		|| cl.intermission)
 		return;
-	drawlayer = 3;
+	drawlayer = lyr_sbar.value;
 	if (scr_hudstyle.value >= 5 && scr_hudstyle.value <= 7) {
 		Sbar_Min(scr_hudstyle.value - 5);
-		drawlayer = 0;
+		drawlayer = lyr_main.value;
 		return;
 	}
 	s32 force_vanilla = (scr_hudstyle.value == 4 && WW/SCL < 640)
@@ -997,7 +997,7 @@ void Sbar_Draw()
 	if (sb_lines/SCL > 24 && cl.maxclients != 1)
 		Sbar_DrawFrags();
 	if (force_vanilla) scr_hudstyle.value = oldhudstyle;
-	drawlayer = 0;
+	drawlayer = lyr_main.value;
 }
 
 #undef SCL

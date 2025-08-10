@@ -87,6 +87,10 @@ void R_Init()
 	Cvar_RegisterVariable(&yaspectscale);
 	Cvar_RegisterVariable(&scr_lockuiscale);
 	Cvar_RegisterVariable(&r_mipscale);
+	Cvar_RegisterVariable(&lyr_main);
+	Cvar_RegisterVariable(&lyr_sbar);
+	Cvar_RegisterVariable(&lyr_menu);
+	Cvar_RegisterVariable(&lyr_centerprint);
 	Cvar_SetCallback(&r_labmixpal, build_color_mix_lut);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
 	Cvar_SetCallback(&r_wateralpha, R_SetWateralpha_f);
