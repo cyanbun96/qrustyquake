@@ -124,6 +124,7 @@ cvar_t d_mipcap=                                        {"d_mipcap", "0", 0,ZR};
 cvar_t d_mipscale=                                    {"d_mipscale", "1", 0,ZR};
 cvar_t sv_aim=                                            {"sv_aim", "1", 0,ZR};
 cvar_t con_notifytime=                            {"con_notifytime", "3", 0,ZR};
+cvar_t con_logcenterprint=                    {"con_logcenterprint", "1", 1,ZR};
 cvar_t r_enableskybox=                            {"r_enableskybox", "1", 1,ZR};
 cvar_t r_skyfog=                                      {"r_skyfog", "0.5", 0,ZR};
 cvar_t chase_back=                                  {"chase_back", "100", 0,ZR};

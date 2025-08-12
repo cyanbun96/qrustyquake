@@ -43,7 +43,7 @@ void R_SetWateralpha_f(cvar_t *var)
 	if (cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWWATER)
 		&& var->value < 1)
-		Con_Print("Map does not appear to be water-vised\n");
+		Con_Printf("Map does not appear to be water-vised\n");
 	map_wateralpha = var->value;
 	map_fallbackalpha = var->value;
 }
@@ -53,7 +53,7 @@ void R_SetLavaalpha_f(cvar_t *var)
 	if (cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWLAVA)
 		&& var->value && var->value < 1)
-		Con_Print("Map does not appear to be lava-vised\n");
+		Con_Printf("Map does not appear to be lava-vised\n");
 	map_lavaalpha = var->value;
 }
 
@@ -62,7 +62,7 @@ void R_SetTelealpha_f(cvar_t *var)
 	if (cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWTELE)
 		&& var->value && var->value < 1)
-		Con_Print("Map does not appear to be tele-vised\n");
+		Con_Printf("Map does not appear to be tele-vised\n");
 	map_telealpha = var->value;
 }
 
@@ -71,7 +71,7 @@ void R_SetSlimealpha_f(cvar_t *var)
 	if (cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWSLIME)
 		&& var->value && var->value < 1)
-		Con_Print("Map does not appear to be slime-vised\n");
+		Con_Printf("Map does not appear to be slime-vised\n");
 	map_slimealpha = var->value;
 }
 

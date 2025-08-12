@@ -132,7 +132,7 @@ void SchedulePollProcedure(PollProcedure *pp, f64 timeOffset);
 void Con_CheckResize();                                             // console.h
 void Con_Init();
 void Con_DrawConsole(s32 lines, bool drawinput);
-void Con_Print(s8 *txt);
+void Con_Print(s8 *txt, s32 notify);
 void Con_Printf(const s8 *fmt, ...);
 void Con_DPrintf(s8 *fmt, ...);
 void Con_SafePrintf(s8 *fmt, ...);

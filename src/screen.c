@@ -24,6 +24,10 @@ void SCR_HUDStyle_f (cvar_t *cvar);
 
 void SCR_CenterPrint(const s8 *str) // Called for important messages
 { // that should stay in the center of the screen for a few moments
+	if (con_logcenterprint.value) {
+		Con_Print((s8*)str, 0);
+		Con_Print("\n", 0);
+	}
 	strncpy(scr_centerstring, str, sizeof(scr_centerstring) - 1);
 	scr_centertime_off = scr_centertime.value;
 	scr_centertime_start = cl.time;
