@@ -1873,10 +1873,10 @@ void M_Graphics_Draw()
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
 	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
 		M_Print(xoffset, 32, "Enabled:");
-		if (r_twopass.value == 0)M_Print(xoffset+64, 32, "Off (Auto)");
-		else if(r_twopass.value==1)M_Print(xoffset+64, 32, "On (Auto)");
-		else if(r_twopass.value==2)M_Print(xoffset+64, 32, "Off");
-		else M_Print(xoffset + 64, 32, "On");
+		if (r_twopass.value == 0)M_Print(xoffset+72, 32, "Off (Auto)");
+		else if(r_twopass.value==1)M_Print(xoffset+72, 32, "On (Auto)");
+		else if(r_twopass.value==2)M_Print(xoffset+72, 32, "Off");
+		else M_Print(xoffset + 72, 32, "On");
 		M_Print(xoffset, 40, "Style:");
 		M_Print(xoffset+x2, 40, r_alphastyle.value==1?"Dither":"Blend");
 		M_Print(xoffset, 48, "Water Alpha:");

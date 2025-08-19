@@ -429,7 +429,7 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 					do {
 						if (*pz <= (izi >> 16) && D_Dither(pdest, 1-opacity)) {
 							u8 pix = *(pbase + (s >> 16) + (t >> 16) * cachewidth);
-							*pdest = pix;
+							if (pix != 0xff) *pdest = pix;
 						}
 						pdest++;
 						izi += izistep;
