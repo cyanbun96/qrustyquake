@@ -69,6 +69,7 @@ void M_ToggleMenu_f();
 s32 vgatext_main(SDL_Window *window, Uint16 *screen);               // vgatext.h
 void V_Init();                                                         // view.h
 f32 V_CalcRoll(vec3_t angles, vec3_t velocity);
+EX s32 refresh_palette;
 void IN_Init();                                                       // input.h
 void IN_Shutdown();
 void IN_Move(usercmd_t *cmd);

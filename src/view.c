@@ -245,8 +245,9 @@ void V_UpdatePalette()
 	if(cl.cshifts[CSHIFT_BONUS].percent <= 0)
 		cl.cshifts[CSHIFT_BONUS].percent = 0;
 	bool force = V_CheckGamma();
-	if(!new && !force)
+	if(!new && !force && !refresh_palette)
 		return;
+	refresh_palette--;
 	u8 pal[768];
 	u8 *basepal = CURWORLDPAL;
 	u8 *newpal = pal;

@@ -214,6 +214,7 @@ u8 uipal[768];
 s8 worldpalname[MAX_OSPATH];
 s8 worldcmapname[MAX_OSPATH];
 s8 uipalname[MAX_OSPATH];
+s32 refresh_palette = 0;                                               // view.c
 vec3_t vec3_origin = {0,0,0};                                       // mathlib.h
 sspan_t spans[MAXHEIGHT + 1];                                      // d_sprite.c
 s32 r_dlightframecount;                                             // r_light.c
