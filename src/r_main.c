@@ -91,6 +91,9 @@ void R_Init()
 	Cvar_RegisterVariable(&lyr_sbar);
 	Cvar_RegisterVariable(&lyr_menu);
 	Cvar_RegisterVariable(&lyr_centerprint);
+	Cvar_RegisterVariable(&lyr_console);
+	Cvar_RegisterVariable(&lyr_notify);
+	Cvar_RegisterVariable(&lyr_crosshair);
 	Cvar_SetCallback(&r_labmixpal, build_color_mix_lut);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
 	Cvar_SetCallback(&r_wateralpha, R_SetWateralpha_f);

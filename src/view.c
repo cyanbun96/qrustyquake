@@ -454,9 +454,11 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 	if(r_reportedgeout.value && r_outofedges)
 		Con_Printf("s16 roughly %d edges\n", r_outofedges * 2 / 3);
 	if(!crosshair.value) return;
+	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
 			+ cl_crossx.value, scr_vrect.y + scr_vrect.height / 2
 			+ cl_crossy.value, cl_crosschar.value, uiscale);
+	drawlayer = lyr_main.value;
 }
 
 void V_Init()

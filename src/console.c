@@ -146,7 +146,6 @@ void Con_Print(s8 *txt, s32 notify)
 			con_x = con_x >= con_linewidth ? 0 : con_x;
 			break;
 		}
-
 	}
 }
 
@@ -225,6 +224,7 @@ void Con_DrawNotify()
 { // Draws the last few lines of output transparently over the game top
 	extern s8 chat_buffer[];
 	s32 x = 0, v = 0;
+	drawlayer = lyr_notify.value;
 	for(s32 i = con_current - NUM_CON_TIMES + 1; i <= con_current; i++){
 		if(i < 0) continue;
 		f32 time = con_times[i % NUM_CON_TIMES];
@@ -252,12 +252,14 @@ void Con_DrawNotify()
 		v += 8 * uiscale;
 	}
 	if(v > con_notifylines) con_notifylines = v;
+	drawlayer = lyr_main.value;
 }
 
 void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 { // Typing input line at the bottom should only be drawn if typing is allowed
 	s8 *text;
 	if(lines <= 0) return;
+	drawlayer = lyr_console.value;
 	Draw_ConsoleBackground(lines); // draw the background
 	con_vislines = lines; // draw the text
 	s32 rows = ((lines - 16) >> 3) * uiscale; // rows of text to draw
@@ -271,4 +273,5 @@ void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 					     text[x], uiscale);
 	} // draw the input prompt, user text and cursor if desired
 	if(drawinput) Con_DrawInput();
+	drawlayer = lyr_main.value;
 }
