@@ -12,11 +12,12 @@ u32 oldmodes[NUM_OLDMODES * 2] = {                                  // vid_sdl.c
         640, 400,       640, 480,       800, 600 };
 SDL_Window *window;
 SDL_Surface *windowSurface;
-SDL_Surface *screen; // the main video buffer, custom palette
-SDL_Surface *screentop; // top layer, always default palette
-SDL_Surface *screenui; // UI elements, custom palette
-SDL_Surface *screensbar; // HUD, custom palette
-SDL_Surface *scrbuffs[4]; // contains the above three
+// scrbuffs[0] = screen; 1 = screentop; 2 = screenui; 3 = screensbar;
+SDL_Surface *screen; // custom world palette, not scaled
+SDL_Surface *screentop; // default palette, not scaled
+SDL_Surface *screenui; // custom ui palette, scaled
+SDL_Surface *screensbar; // custom ui palette, scaled
+SDL_Surface *scrbuffs[4]; // contains the above four
 s8 modelist[NUM_OLDMODES][8]; // "320x240" etc. for menus
 u32 SDLWindowFlags;
 u32 uiscale;

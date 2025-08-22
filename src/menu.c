@@ -1701,9 +1701,21 @@ void M_Graphics_Key(s32 k)
 			r_lavaalpha.value = CLAMP(0, r_lavaalpha.value, 1);
 		} else if (graphics_cursor == 505) { r_telealpha.value-=0.1;
 			r_telealpha.value = CLAMP(0, r_telealpha.value, 1);
-		} else if (graphics_cursor == 600) { r_particlescale.value -= 1;
+		} else if (graphics_cursor == 601) { lyr_sbar.value -= 1;
+			lyr_sbar.value=CLAMP(0,lyr_sbar.value,3);
+		} else if (graphics_cursor == 602) { lyr_menu.value -= 1;
+			lyr_menu.value=CLAMP(0,lyr_menu.value,3);
+		} else if (graphics_cursor == 603) { lyr_centerprint.value -= 1;
+			lyr_centerprint.value=CLAMP(0,lyr_centerprint.value,3);
+		} else if (graphics_cursor == 604) { lyr_console.value -= 1;
+			lyr_console.value=CLAMP(0,lyr_console.value,3);
+		} else if (graphics_cursor == 605) { lyr_notify.value -= 1;
+			lyr_notify.value=CLAMP(0,lyr_notify.value,3);
+		} else if (graphics_cursor == 606) { lyr_crosshair.value -= 1;
+			lyr_crosshair.value=CLAMP(0,lyr_crosshair.value,3);
+		} else if (graphics_cursor == 700) { r_particlescale.value -= 1;
 			r_particlescale.value=CLAMP(0,r_particlescale.value,9);
-		} else if (graphics_cursor == 601) { r_mipscale.value -= 0.1;
+		} else if (graphics_cursor == 701) { r_mipscale.value -= 0.1;
 			r_mipscale.value=CLAMP(0,r_mipscale.value,99);}
 		break;
 	case K_RIGHTARROW:
@@ -1755,26 +1767,47 @@ void M_Graphics_Key(s32 k)
 			r_lavaalpha.value = CLAMP(0, r_lavaalpha.value, 1);
 		} else if (graphics_cursor == 505) { r_telealpha.value+=0.1;
 			r_telealpha.value = CLAMP(0, r_telealpha.value, 1);
-		} else if (graphics_cursor == 600) { r_particlescale.value += 1;
+		} else if (graphics_cursor == 601) { lyr_sbar.value += 1;
+			lyr_sbar.value=CLAMP(0,lyr_sbar.value,3);
+		} else if (graphics_cursor == 602) { lyr_menu.value += 1;
+			lyr_menu.value=CLAMP(0,lyr_menu.value,3);
+		} else if (graphics_cursor == 603) { lyr_centerprint.value += 1;
+			lyr_centerprint.value=CLAMP(0,lyr_centerprint.value,3);
+		} else if (graphics_cursor == 604) { lyr_console.value += 1;
+			lyr_console.value=CLAMP(0,lyr_console.value,3);
+		} else if (graphics_cursor == 605) { lyr_notify.value += 1;
+			lyr_notify.value=CLAMP(0,lyr_notify.value,3);
+		} else if (graphics_cursor == 606) { lyr_crosshair.value += 1;
+			lyr_crosshair.value=CLAMP(0,lyr_crosshair.value,3);
+		} else if (graphics_cursor == 607) {
+			lyr_main.value = 0;
+			lyr_sbar.value = 3;
+			lyr_menu.value = 2;
+			lyr_centerprint.value = 1;
+			lyr_console.value = 2;
+			lyr_notify.value = 2;
+			lyr_crosshair.value = 2;
+		} else if (graphics_cursor == 700) { r_particlescale.value += 1;
 			r_particlescale.value=CLAMP(0,r_particlescale.value,9);
-		} else if (graphics_cursor == 601) { r_mipscale.value += 0.1;
+		} else if (graphics_cursor == 701) { r_mipscale.value += 0.1;
 			r_mipscale.value=CLAMP(0,r_mipscale.value,99);}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (graphics_cursor == 0) graphics_cursor = 6;
+		if (graphics_cursor == 0) graphics_cursor = 7;
 		else if (graphics_cursor == 200) graphics_cursor = 206;
 		else if (graphics_cursor == 300) graphics_cursor = 301;
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) graphics_cursor = 505;
-		else if (graphics_cursor == 600) graphics_cursor = 601;
+		else if (graphics_cursor == 600) graphics_cursor = 607;
+		else if (graphics_cursor == 700) graphics_cursor = 701;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		if (graphics_cursor < 100) {
-			if (graphics_cursor == 6) graphics_cursor = 0;
+			if (graphics_cursor == 7) graphics_cursor = 0;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 300) {
 			if (graphics_cursor == 206) graphics_cursor = 200;
@@ -1789,7 +1822,10 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 505) graphics_cursor = 500;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 700) {
-			if (graphics_cursor == 601) graphics_cursor = 600;
+			if (graphics_cursor == 607) graphics_cursor = 600;
+			else graphics_cursor++;
+		} else if (graphics_cursor < 800) {
+			if (graphics_cursor == 701) graphics_cursor = 700;
 			else graphics_cursor++;
 		}
 		break;
@@ -1820,7 +1856,8 @@ void M_Graphics_Draw()
 	M_Print(xoffset, 56, "  Sky...");
 	M_Print(xoffset, 64, "  Lighting...");
 	M_Print(xoffset, 72, "  Translusency...");
-	M_Print(xoffset, 80, "  Misc...");
+	M_Print(xoffset, 80, "  Layers...");
+	M_Print(xoffset, 88, "  Misc...");
 	xoffset = 160;
 	s32 x2 = 104;
 	if (graphics_cursor == 0) {
@@ -1892,11 +1929,40 @@ void M_Graphics_Draw()
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_telealpha.value);
 		M_Print(xoffset + x2, 72, temp);
 	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
+		x2 += 16;
+		M_Print(xoffset, 32, "World:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_main.value);
+		M_Print(xoffset + x2, 32, temp);
+		M_Print(xoffset, 40, "Status Bar:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_sbar.value);
+		M_Print(xoffset + x2, 40, temp);
+		M_Print(xoffset, 48, "Menu:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_menu.value);
+		M_Print(xoffset + x2, 48, temp);
+		M_Print(xoffset, 56, "Centerprints:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_centerprint.value);
+		M_Print(xoffset + x2, 56, temp);
+		M_Print(xoffset, 64, "Console:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_console.value);
+		M_Print(xoffset + x2, 64, temp);
+		M_Print(xoffset, 72, "Notifications:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_notify.value);
+		M_Print(xoffset + x2, 72, temp);
+		M_Print(xoffset, 80, "Crosshair:");
+		snprintf(temp, sizeof(temp), "%d", (s32)lyr_crosshair.value);
+		M_Print(xoffset + x2, 80, temp);
+		M_Print(xoffset, 88, "Reset To Default");
+		M_DrawTextBox(4, 150, 36, 4);
+		M_Print(16, 158, "0: custom world palette, not scaled");
+		M_Print(16, 166, "1: default palette, not scaled");
+		M_Print(16, 174, "2: custom ui palette, scaled");
+		M_Print(16, 182, "3: custom ui palette, scaled");
+	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
 		x2 += 24;
-		M_Print(xoffset, 32, "Particle scale:");
+		M_Print(xoffset, 32, "Particle Scale:");
 		snprintf(temp, sizeof(temp), "x%d", (s32)r_particlescale.value);
 		M_Print(xoffset + x2, 32, r_particlescale.value ? temp:"Auto");
-		M_Print(xoffset, 40, "Mipmap distance:");
+		M_Print(xoffset, 40, "Mipmap Distance:");
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
 		M_Print(xoffset + x2, 40, temp);
 	}
