@@ -1716,7 +1716,9 @@ void M_Graphics_Key(s32 k)
 		} else if (graphics_cursor == 700) { r_particlescale.value -= 1;
 			r_particlescale.value=CLAMP(0,r_particlescale.value,9);
 		} else if (graphics_cursor == 701) { r_mipscale.value -= 0.1;
-			r_mipscale.value=CLAMP(0,r_mipscale.value,99);}
+			r_mipscale.value=CLAMP(0,r_mipscale.value,99);
+		} else if (graphics_cursor == 702) { scr_menubgstyle.value -= 1;
+			scr_menubgstyle.value=CLAMP(0,scr_menubgstyle.value,1);}
 		break;
 	case K_RIGHTARROW:
 	case K_ENTER:
@@ -1790,7 +1792,9 @@ void M_Graphics_Key(s32 k)
 		} else if (graphics_cursor == 700) { r_particlescale.value += 1;
 			r_particlescale.value=CLAMP(0,r_particlescale.value,9);
 		} else if (graphics_cursor == 701) { r_mipscale.value += 0.1;
-			r_mipscale.value=CLAMP(0,r_mipscale.value,99);}
+			r_mipscale.value=CLAMP(0,r_mipscale.value,99);
+		} else if (graphics_cursor == 702) { scr_menubgstyle.value += 1;
+			scr_menubgstyle.value=CLAMP(0,scr_menubgstyle.value,1);}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
@@ -1801,7 +1805,7 @@ void M_Graphics_Key(s32 k)
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) graphics_cursor = 505;
 		else if (graphics_cursor == 600) graphics_cursor = 607;
-		else if (graphics_cursor == 700) graphics_cursor = 701;
+		else if (graphics_cursor == 700) graphics_cursor = 702;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
@@ -1825,7 +1829,7 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 607) graphics_cursor = 600;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 800) {
-			if (graphics_cursor == 701) graphics_cursor = 700;
+			if (graphics_cursor == 702) graphics_cursor = 700;
 			else graphics_cursor++;
 		}
 		break;
@@ -1965,6 +1969,9 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 40, "Mipmap Distance:");
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
 		M_Print(xoffset + x2, 40, temp);
+		M_Print(xoffset, 48, "Menu BG Style:");
+		M_Print(xoffset + x2, 48, scr_menubgstyle.value ?
+				"DOS":"Win");
 	}
 }
 
