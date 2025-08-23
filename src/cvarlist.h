@@ -34,4 +34,4 @@ yaspectscale, jlooksens, jmovesens, jdeadzone, jtriggerthresh, jmoveaxisx,
 jmoveaxisy, jlookaxisx, jlookaxisy, jtrigaxis1, jtrigaxis2, jenterbutton,
 jescapebutton, joysticknum, scr_lockuiscale, r_enableskybox, r_mipscale,
 r_fogdepthcorrection, lyr_main, lyr_sbar, lyr_menu, lyr_centerprint,
-lyr_console, lyr_notify, lyr_crosshair, con_logcenterprint;
+lyr_console, lyr_notify, lyr_crosshair, con_logcenterprint, scr_menubgstyle;
