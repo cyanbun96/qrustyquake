@@ -128,6 +128,7 @@ void Host_WriteConfiguration()
 		Key_WriteBindings(f);
 		Cvar_WriteVariables(f);
 		fclose(f);
+		Con_SafePrintf("Wrote %s/config.cfg\n", com_gamedir);
 	}
 }
 
