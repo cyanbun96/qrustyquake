@@ -1392,6 +1392,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	com_modified = 1;
 	CL_Disconnect(); // Kill the server
 	Host_ShutdownServer(1);
+	Host_WriteConfiguration();
 	while(com_searchpaths!=com_base_searchpaths){//Kill extra game if loaded
 		if(com_searchpaths->pack) {
 			Sys_FileClose(com_searchpaths->pack->handle);

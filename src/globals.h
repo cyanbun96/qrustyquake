@@ -595,6 +595,7 @@ EX s32(*BigLong) (s32 l);
 EX s32(*LittleLong) (s32 l);
 EX f32(*BigFloat) (f32 l);
 EX f32(*LittleFloat) (f32 l);
+void Host_WriteConfiguration();
 void Q_memset(void *dest, s32 fill, size_t count);
 void Q_memmove(void *dest, const void *src, size_t count);
 void Q_memcpy(void *dest, const void *src, size_t count);
