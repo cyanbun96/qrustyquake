@@ -209,6 +209,7 @@ int main(int c, char **v)
 	}
 	host_parms.membase = malloc(host_parms.memsize);
 	host_parms.basedir = ".";
+	host_parms.userdir = ".";
 	Host_Init();
 #ifdef __EMSCRIPTEN__
 	emscripten_set_main_loop(main_loop, 0, 1);
