@@ -1669,56 +1669,64 @@ void M_Graphics_Key(s32 k)
 		break;
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		if (graphics_cursor == 200) { r_nofog.value =! r_nofog.value;
-		} else if (graphics_cursor == 201) { r_fognoise.value -= 0.1;
-		} else if (graphics_cursor == 202) { r_fogfactor.value -= 0.1;
-		} else if (graphics_cursor == 203) { r_fogscale.value -= 0.1;
-		} else if (graphics_cursor == 204) { r_fogbrightness.value-=0.1;
-		} else if (graphics_cursor == 205) { r_fogstyle.value -= 1;
-			r_fogstyle.value = CLAMP(0, r_fogstyle.value, 3);
-		} else if (graphics_cursor == 206) {
-			r_fogdepthcorrection.value=!r_fogdepthcorrection.value;
-		} else if (graphics_cursor == 300) {
-			r_enableskybox.value =! r_enableskybox.value;
-		} else if (graphics_cursor == 301) { r_skyfog.value -= 0.1;
-		} else if (graphics_cursor == 400) {
-			r_rgblighting.value =! r_rgblighting.value;
-		} else if (graphics_cursor == 401) {
-			r_litwater.value =! r_litwater.value;
-		} else if (graphics_cursor == 402) {
-			r_labmixpal.value =! r_labmixpal.value;
-		} else if (graphics_cursor == 500) {
-			if (r_twopass.value <= 0) r_twopass.value = 3;
-			else r_twopass.value -= 1;
-			Cvar_SetValue("r_entalpha", ((s32)r_twopass.value)&1);
-		} else if (graphics_cursor == 501) {
-			r_alphastyle.value =! r_alphastyle.value;
-		} else if (graphics_cursor == 502) { r_wateralpha.value-=0.1;
-			r_wateralpha.value = CLAMP(0, r_wateralpha.value, 1);
-		} else if (graphics_cursor == 503) { r_slimealpha.value-=0.1;
-			r_slimealpha.value = CLAMP(0, r_slimealpha.value, 1);
-		} else if (graphics_cursor == 504) { r_lavaalpha.value-=0.1;
-			r_lavaalpha.value = CLAMP(0, r_lavaalpha.value, 1);
-		} else if (graphics_cursor == 505) { r_telealpha.value-=0.1;
-			r_telealpha.value = CLAMP(0, r_telealpha.value, 1);
-		} else if (graphics_cursor == 601) { lyr_sbar.value -= 1;
-			lyr_sbar.value=CLAMP(0,lyr_sbar.value,3);
-		} else if (graphics_cursor == 602) { lyr_menu.value -= 1;
-			lyr_menu.value=CLAMP(0,lyr_menu.value,3);
-		} else if (graphics_cursor == 603) { lyr_centerprint.value -= 1;
-			lyr_centerprint.value=CLAMP(0,lyr_centerprint.value,3);
-		} else if (graphics_cursor == 604) { lyr_console.value -= 1;
-			lyr_console.value=CLAMP(0,lyr_console.value,3);
-		} else if (graphics_cursor == 605) { lyr_notify.value -= 1;
-			lyr_notify.value=CLAMP(0,lyr_notify.value,3);
-		} else if (graphics_cursor == 606) { lyr_crosshair.value -= 1;
-			lyr_crosshair.value=CLAMP(0,lyr_crosshair.value,3);
-		} else if (graphics_cursor == 700) { r_particlescale.value -= 1;
-			r_particlescale.value=CLAMP(0,r_particlescale.value,9);
-		} else if (graphics_cursor == 701) { r_mipscale.value -= 0.1;
-			r_mipscale.value=CLAMP(0,r_mipscale.value,99);
-		} else if (graphics_cursor == 702) { scr_menubgstyle.value -= 1;
-			scr_menubgstyle.value=CLAMP(0,scr_menubgstyle.value,1);}
+		switch (graphics_cursor) {
+		case 200: Cvar_SetValue("r_nofog",
+			!r_nofog.value); break;
+		case 201: Cvar_SetValue("r_fognoise",
+			r_fognoise.value - 0.1); break;
+		case 202: Cvar_SetValue("r_fogfactor",
+			r_fogfactor.value - 0.1); break;
+		case 203: Cvar_SetValue("r_fogscale",
+			r_fogscale.value - 0.1); break;
+		case 204: Cvar_SetValue("r_fogbrightness",
+			r_fogbrightness.value - 0.1); break;
+		case 205: Cvar_SetValue("r_fogstyle",
+			CLAMP(0, r_fogstyle.value - 1, 3)); break;
+		case 206: Cvar_SetValue("r_fogdepthcorrection",
+			!r_fogdepthcorrection.value); break;
+		case 300: Cvar_SetValue("r_enableskybox",
+			!r_enableskybox.value); break;
+		case 301: Cvar_SetValue("r_skyfog",
+			r_skyfog.value - 0.1); break;
+		case 400: Cvar_SetValue("r_rgblighting",
+			!r_rgblighting.value); break;
+		case 401: Cvar_SetValue("r_litwater",
+			!r_litwater.value); break;
+		case 402: Cvar_SetValue("r_labmixpal",
+			!r_labmixpal.value); break;
+		case 500: Cvar_SetValue("r_twopass",
+			r_twopass.value <= 0 ? 3 : r_twopass.value - 1);
+			  Cvar_SetValue("r_entalpha",
+			((s32)r_twopass.value)&1); break;
+		case 501: Cvar_SetValue("r_alphastyle",
+			!r_alphastyle.value); break;
+		case 502: Cvar_SetValue("r_wateralpha",
+			CLAMP(0, r_wateralpha.value - 0.1, 1)); break;
+		case 503: Cvar_SetValue("r_slimealpha",
+			CLAMP(0, r_slimealpha.value - 0.1, 1)); break;
+		case 504: Cvar_SetValue("r_lavaalpha",
+			CLAMP(0, r_lavaalpha.value - 0.1, 1)); break;
+		case 505: Cvar_SetValue("r_telealpha",
+			CLAMP(0, r_telealpha.value - 0.1, 1)); break;
+		case 601: Cvar_SetValue("lyr_sbar",
+			CLAMP(0, lyr_sbar.value - 1, 3)); break;
+		case 602: Cvar_SetValue("lyr_menu",
+			CLAMP(0, lyr_menu.value - 1, 3)); break;
+		case 603: Cvar_SetValue("lyr_centerprint",
+			CLAMP(0, lyr_centerprint.value - 1, 3)); break;
+		case 604: Cvar_SetValue("lyr_console",
+			CLAMP(0, lyr_console.value - 1, 3)); break;
+		case 605: Cvar_SetValue("lyr_notify",
+			CLAMP(0, lyr_notify.value - 1, 3)); break;
+		case 606: Cvar_SetValue("lyr_crosshair",
+			CLAMP(0, lyr_crosshair.value - 1, 3)); break;
+		case 700: Cvar_SetValue("r_particlescale",
+			CLAMP(0, r_particlescale.value - 1, 9)); break;
+		case 701: Cvar_SetValue("r_mipscale",
+			CLAMP(0, r_mipscale.value - 0.1, 99)); break;
+		case 702: Cvar_SetValue("scr_menubgstyle",
+			CLAMP(0, scr_menubgstyle.value - 1, 1)); break;
+		}
 		break;
 	case K_RIGHTARROW:
 	case K_ENTER:
@@ -1736,65 +1744,74 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("r_litwater", 0);
 			Cvar_SetValue("r_rgblighting", 0);
 			Cvar_SetValue("r_enableskybox", 0);
-		} else if (graphics_cursor < 100) { graphics_cursor *= 100;
-		} else if (graphics_cursor == 200){r_nofog.value=!r_nofog.value;
-		} else if (graphics_cursor == 201) { r_fognoise.value += 0.1;
-		} else if (graphics_cursor == 202) { r_fogfactor.value += 0.1;
-		} else if (graphics_cursor == 203) { r_fogscale.value += 0.1;
-		} else if (graphics_cursor == 204) { r_fogbrightness.value+=0.1;
-		} else if (graphics_cursor == 205) { r_fogstyle.value += 1;
-			r_fogstyle.value = CLAMP(0, r_fogstyle.value, 3);
-		} else if (graphics_cursor == 206) {
-			r_fogdepthcorrection.value=!r_fogdepthcorrection.value;
-		} else if (graphics_cursor == 300) {
-			r_enableskybox.value =! r_enableskybox.value;
-		} else if (graphics_cursor == 301) { r_skyfog.value += 0.1;
-		} else if (graphics_cursor == 400) {
-			r_rgblighting.value =! r_rgblighting.value;
-		} else if (graphics_cursor == 401) {
-			r_litwater.value =! r_litwater.value;
-		} else if (graphics_cursor == 402) {
-			r_labmixpal.value =! r_labmixpal.value;
-		} else if (graphics_cursor == 500) {
-			if (r_twopass.value >= 3) r_twopass.value = 0;
-			else r_twopass.value += 1;
-			Cvar_SetValue("r_entalpha", ((s32)r_twopass.value)&1);
-		} else if (graphics_cursor == 501) {
-			r_alphastyle.value =! r_alphastyle.value;
-		} else if (graphics_cursor == 502) { r_wateralpha.value+=0.1;
-			r_wateralpha.value = CLAMP(0, r_wateralpha.value, 1);
-		} else if (graphics_cursor == 503) { r_slimealpha.value+=0.1;
-			r_slimealpha.value = CLAMP(0, r_slimealpha.value, 1);
-		} else if (graphics_cursor == 504) { r_lavaalpha.value+=0.1;
-			r_lavaalpha.value = CLAMP(0, r_lavaalpha.value, 1);
-		} else if (graphics_cursor == 505) { r_telealpha.value+=0.1;
-			r_telealpha.value = CLAMP(0, r_telealpha.value, 1);
-		} else if (graphics_cursor == 601) { lyr_sbar.value += 1;
-			lyr_sbar.value=CLAMP(0,lyr_sbar.value,3);
-		} else if (graphics_cursor == 602) { lyr_menu.value += 1;
-			lyr_menu.value=CLAMP(0,lyr_menu.value,3);
-		} else if (graphics_cursor == 603) { lyr_centerprint.value += 1;
-			lyr_centerprint.value=CLAMP(0,lyr_centerprint.value,3);
-		} else if (graphics_cursor == 604) { lyr_console.value += 1;
-			lyr_console.value=CLAMP(0,lyr_console.value,3);
-		} else if (graphics_cursor == 605) { lyr_notify.value += 1;
-			lyr_notify.value=CLAMP(0,lyr_notify.value,3);
-		} else if (graphics_cursor == 606) { lyr_crosshair.value += 1;
-			lyr_crosshair.value=CLAMP(0,lyr_crosshair.value,3);
-		} else if (graphics_cursor == 607) {
-			lyr_main.value = 0;
-			lyr_sbar.value = 3;
-			lyr_menu.value = 2;
-			lyr_centerprint.value = 1;
-			lyr_console.value = 2;
-			lyr_notify.value = 2;
-			lyr_crosshair.value = 2;
-		} else if (graphics_cursor == 700) { r_particlescale.value += 1;
-			r_particlescale.value=CLAMP(0,r_particlescale.value,9);
-		} else if (graphics_cursor == 701) { r_mipscale.value += 0.1;
-			r_mipscale.value=CLAMP(0,r_mipscale.value,99);
-		} else if (graphics_cursor == 702) { scr_menubgstyle.value += 1;
-			scr_menubgstyle.value=CLAMP(0,scr_menubgstyle.value,1);}
+		} else if (graphics_cursor < 100) graphics_cursor *= 100;
+		else switch (graphics_cursor) {
+		case 200: Cvar_SetValue("r_nofog",
+			!r_nofog.value); break;
+		case 201: Cvar_SetValue("r_fognoise",
+			r_fognoise.value + 0.1); break;
+		case 202: Cvar_SetValue("r_fogfactor",
+			r_fogfactor.value + 0.1); break;
+		case 203: Cvar_SetValue("r_fogscale",
+			r_fogscale.value + 0.1); break;
+		case 204: Cvar_SetValue("r_fogbrightness",
+			r_fogbrightness.value + 0.1); break;
+		case 205: Cvar_SetValue("r_fogstyle",
+			CLAMP(0, r_fogstyle.value + 1, 3)); break;
+		case 206: Cvar_SetValue("r_fogdepthcorrection",
+			!r_fogdepthcorrection.value); break;
+		case 300: Cvar_SetValue("r_enableskybox",
+			!r_enableskybox.value); break;
+		case 301: Cvar_SetValue("r_skyfog",
+			r_skyfog.value + 0.1); break;
+		case 400: Cvar_SetValue("r_rgblighting",
+			!r_rgblighting.value); break;
+		case 401: Cvar_SetValue("r_litwater",
+			!r_litwater.value); break;
+		case 402: Cvar_SetValue("r_labmixpal",
+			!r_labmixpal.value); break;
+		case 500: Cvar_SetValue("r_twopass",
+			r_twopass.value > 2 ? 0 : r_twopass.value + 1);
+			  Cvar_SetValue("r_entalpha",
+			((s32)r_twopass.value)&1); break;
+		case 501: Cvar_SetValue("r_alphastyle",
+			!r_alphastyle.value); break;
+		case 502: Cvar_SetValue("r_wateralpha",
+			CLAMP(0, r_wateralpha.value + 0.1, 1)); break;
+		case 503: Cvar_SetValue("r_slimealpha",
+			CLAMP(0, r_slimealpha.value + 0.1, 1)); break;
+		case 504: Cvar_SetValue("r_lavaalpha",
+			CLAMP(0, r_lavaalpha.value + 0.1, 1)); break;
+		case 505: Cvar_SetValue("r_telealpha",
+			CLAMP(0, r_telealpha.value + 0.1, 1)); break;
+		case 601: Cvar_SetValue("lyr_sbar",
+			CLAMP(0, lyr_sbar.value + 1, 3)); break;
+		case 602: Cvar_SetValue("lyr_menu",
+			CLAMP(0, lyr_menu.value + 1, 3)); break;
+		case 603: Cvar_SetValue("lyr_centerprint",
+			CLAMP(0, lyr_centerprint.value + 1, 3)); break;
+		case 604: Cvar_SetValue("lyr_console",
+			CLAMP(0, lyr_console.value + 1, 3)); break;
+		case 605: Cvar_SetValue("lyr_notify",
+			CLAMP(0, lyr_notify.value + 1, 3)); break;
+		case 606: Cvar_SetValue("lyr_crosshair",
+			CLAMP(0, lyr_crosshair.value + 1, 3)); break;
+		case 607:
+			Cvar_SetValue("lyr_main", 0);
+			Cvar_SetValue("lyr_sbar", 3);
+			Cvar_SetValue("lyr_menu", 2);
+			Cvar_SetValue("lyr_centerprint", 1);
+			Cvar_SetValue("lyr_console", 2);
+			Cvar_SetValue("lyr_notify", 2);
+			Cvar_SetValue("lyr_crosshair", 2);
+			break;
+		case 700: Cvar_SetValue("r_particlescale",
+			CLAMP(0, r_particlescale.value + 1, 9)); break;
+		case 701: Cvar_SetValue("r_mipscale",
+			CLAMP(0, r_mipscale.value + 0.1, 99)); break;
+		case 702: Cvar_SetValue("scr_menubgstyle",
+			CLAMP(0, scr_menubgstyle.value + 1, 1)); break;
+		}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
