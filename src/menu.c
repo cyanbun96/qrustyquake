@@ -1684,6 +1684,16 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_fogstyle.value - 1, 3)); break;
 		case 206: Cvar_SetValue("r_fogdepthcorrection",
 			!r_fogdepthcorrection.value); break;
+		case 207: Cvar_SetValue("r_lockfog",
+			!r_lockfog.value); break;
+		case 208: Cvar_SetValue("r_lockfogd",
+			CLAMP(0, r_lockfogd.value - 0.05, 1)); break;
+		case 209: Cvar_SetValue("r_lockfogr",
+			CLAMP(0, r_lockfogr.value - 0.05, 1)); break;
+		case 210: Cvar_SetValue("r_lockfogg",
+			CLAMP(0, r_lockfogg.value - 0.05, 1)); break;
+		case 211: Cvar_SetValue("r_lockfogb",
+			CLAMP(0, r_lockfogb.value - 0.05, 1)); break;
 		case 300: Cvar_SetValue("r_enableskybox",
 			!r_enableskybox.value); break;
 		case 301: Cvar_SetValue("r_skyfog",
@@ -1760,6 +1770,16 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_fogstyle.value + 1, 3)); break;
 		case 206: Cvar_SetValue("r_fogdepthcorrection",
 			!r_fogdepthcorrection.value); break;
+		case 207: Cvar_SetValue("r_lockfog",
+			!r_lockfog.value); break;
+		case 208: Cvar_SetValue("r_lockfogd",
+			CLAMP(0, r_lockfogd.value + 0.05, 1)); break;
+		case 209: Cvar_SetValue("r_lockfogr",
+			CLAMP(0, r_lockfogr.value + 0.05, 1)); break;
+		case 210: Cvar_SetValue("r_lockfogg",
+			CLAMP(0, r_lockfogg.value + 0.05, 1)); break;
+		case 211: Cvar_SetValue("r_lockfogb",
+			CLAMP(0, r_lockfogb.value + 0.05, 1)); break;
 		case 300: Cvar_SetValue("r_enableskybox",
 			!r_enableskybox.value); break;
 		case 301: Cvar_SetValue("r_skyfog",
@@ -1817,8 +1837,10 @@ void M_Graphics_Key(s32 k)
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		if (graphics_cursor == 0) graphics_cursor = 7;
-		else if (graphics_cursor == 200) graphics_cursor = 206;
-		else if (graphics_cursor == 300) graphics_cursor = 301;
+		else if (graphics_cursor == 200) {
+			if (r_lockfog.value) graphics_cursor = 211;
+			else graphics_cursor = 207;
+		}else if(graphics_cursor == 300) graphics_cursor = 301;
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) graphics_cursor = 505;
 		else if (graphics_cursor == 600) graphics_cursor = 607;
@@ -1831,8 +1853,13 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 7) graphics_cursor = 0;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 300) {
-			if (graphics_cursor == 206) graphics_cursor = 200;
-			else graphics_cursor++;
+			if (r_lockfog.value) {
+				if (graphics_cursor==211) graphics_cursor = 200;
+				else graphics_cursor++;
+			} else {
+				if (graphics_cursor==207) graphics_cursor = 200;
+				else graphics_cursor++;
+			}
 		} else if (graphics_cursor < 400) {
 			if (graphics_cursor == 301) graphics_cursor = 300;
 			else graphics_cursor++;
@@ -1852,6 +1879,8 @@ void M_Graphics_Key(s32 k)
 		break;
 	default: break;
 	}
+	if (graphics_cursor >= 207 && graphics_cursor <= 211)
+		Fog_Update(0, 0, 0, 0);
 }
 
 void M_Menu_Graphics_f()
@@ -1916,6 +1945,23 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 80, "Depth:");
 		M_Print(xoffset + x2 - 32, 80,
 			r_fogdepthcorrection.value==1 ? "Corrected" : "Simple");
+		M_Print(xoffset, 88, "Set By Map:");
+		M_Print(xoffset + x2, 88,
+			r_lockfog.value==1 ? "Off" : "On");
+		if (r_lockfog.value) {
+			M_Print(xoffset, 96, "Density:");
+			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogd.value);
+			M_Print(xoffset + x2, 96, temp);
+			M_Print(xoffset, 104, "Red:");
+			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogr.value);
+			M_Print(xoffset + x2, 104, temp);
+			M_Print(xoffset, 112, "Green:");
+			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogg.value);
+			M_Print(xoffset + x2, 112, temp);
+			M_Print(xoffset, 120, "Blue:");
+			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogb.value);
+			M_Print(xoffset + x2, 120, temp);
+		}
 	} else if (graphics_cursor == 3 || graphics_cursor/100 == 3) {
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "On":"Off");

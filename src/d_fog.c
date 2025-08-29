@@ -24,6 +24,12 @@ void Fog_SetPalIndex(SDL_UNUSED cvar_t *cvar)
 }
 
 void Fog_Update(f32 d, f32 r, f32 g, f32 b) {
+	if(r_lockfog.value){
+		d = r_lockfogd.value;
+		r = r_lockfogr.value;
+		g = r_lockfogg.value;
+		b = r_lockfogb.value;
+	}
 	if     (d < 0.0f) d = 0.0f;
 	if     (r < 0.0f) r = 0.0f;
 	else if(r > 1.0f) r = 1.0f;
@@ -87,7 +93,14 @@ void Fog_FogCommand_f () // yanked from Quakespasm, mostly
 void Fog_ParseWorldspawn () // from Quakespasm
 { // called at map load
 	s8 key[128], value[4096];
-	fog_density = fog_red = fog_green = fog_blue = 0;
+	if(r_lockfog.value){
+		fog_density = r_lockfogd.value;
+		fog_red = r_lockfogr.value;
+		fog_green = r_lockfogg.value;
+		fog_blue = r_lockfogb.value;
+		Fog_SetPalIndex(0);
+		return;
+	} else fog_density = fog_red = fog_green = fog_blue = 0;
 	const s8 *data = COM_Parse(cl.worldmodel->entities);
 	if(!data || com_token[0] != '{') return; // error
 	while(1){

@@ -74,6 +74,11 @@ void R_Init()
 	Cvar_RegisterVariable(&r_fogfactor);
 	Cvar_RegisterVariable(&r_fogscale);
 	Cvar_RegisterVariable(&r_fognoise);
+	Cvar_RegisterVariable(&r_lockfog);
+	Cvar_RegisterVariable(&r_lockfogd);
+	Cvar_RegisterVariable(&r_lockfogr);
+	Cvar_RegisterVariable(&r_lockfogg);
+	Cvar_RegisterVariable(&r_lockfogb);
 	Cvar_RegisterVariable(&r_fogdepthcorrection);
 	Cvar_RegisterVariable(&r_fullbright_list);
 	Cvar_RegisterVariable(&r_litwater);
