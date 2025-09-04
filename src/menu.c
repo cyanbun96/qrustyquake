@@ -1587,7 +1587,7 @@ void M_Display_Draw()
 	else if(scr_hudstyle.value==3)M_Print(xoffset+204,48,"QW");
 	else if(scr_hudstyle.value==4)M_Print(xoffset+204,48,"Arcade");
 	else if(scr_hudstyle.value==5)M_Print(xoffset+204,48,"Minimalist1");
-	else if(scr_hudstyle.value==6)M_Print(xoffset+204,40,"Minimalist2");
+	else if(scr_hudstyle.value==6)M_Print(xoffset+204,48,"Minimalist2");
 	else if(scr_hudstyle.value==7)M_Print(xoffset+204,48,"Minimalist3");
 	else                          M_Print(xoffset+204,48,"Classic no BG");
 	if (crosshair.value) { temp[0] = cl_crosschar.value+128; temp[1] = 0; }
