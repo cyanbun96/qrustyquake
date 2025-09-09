@@ -1402,7 +1402,7 @@ void M_Display_Key(s32 k)
 				scr_lockuiscale.value ? 0 : 1);
 		else if (display_cursor == 2) {
 			if (scr_hudstyle.value == 0)
-				Cvar_SetValue("hudstyle", 8);
+				Cvar_SetValue("hudstyle", 9);
 			else
 				Cvar_SetValue("hudstyle", scr_hudstyle.value-1);
 		} else if (display_cursor == 3) {
@@ -1455,7 +1455,7 @@ void M_Display_Key(s32 k)
 		else if (display_cursor == 1) Cvar_SetValue("scr_lockuiscale",
 				scr_lockuiscale.value ? 0 : 1);
 		else if (display_cursor == 2) {
-			if (scr_hudstyle.value == 8)
+			if (scr_hudstyle.value == 9)
 				Cvar_SetValue("hudstyle", 0);
 			else
 				Cvar_SetValue("hudstyle", scr_hudstyle.value+1);
@@ -1589,7 +1589,8 @@ void M_Display_Draw()
 	else if(scr_hudstyle.value==5)M_Print(xoffset+204,48,"Minimalist1");
 	else if(scr_hudstyle.value==6)M_Print(xoffset+204,48,"Minimalist2");
 	else if(scr_hudstyle.value==7)M_Print(xoffset+204,48,"Minimalist3");
-	else                          M_Print(xoffset+204,48,"Classic no BG");
+	else if(scr_hudstyle.value==8)M_Print(xoffset+204,48,"Classic no BG");
+	else                          M_Print(xoffset+204,48,"EZQuake");
 	if (crosshair.value) { temp[0] = cl_crosschar.value+128; temp[1] = 0; }
 	else sprintf(temp, "Off");
 	M_Print(xoffset + 204, 56, temp);

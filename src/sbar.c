@@ -425,6 +425,13 @@ void Sbar_CalcPos()
 			npos[i][1] = HH - 24*SCL;
 		}
 		break;
+	case 9: // EZQuake
+		for (s32 i = 0; i < 4; i++) {
+			npos[i][0] = WW / 2 - 68*SCL + i*32*SCL;
+			npos[i][1] = HH - 32*SCL;
+		}
+		break;
+		break;
 	}
 	switch ((s32)scr_hudstyle.value) { // weapons
 	case 8: // classic (no bg)
@@ -436,6 +443,16 @@ void Sbar_CalcPos()
 			if (i == 9) {
 				wpos[7][0] += 8*SCL + arcade_offs_x;
 				wpos[8][0] += 8*SCL + arcade_offs_y;
+			}
+		}
+		break;
+	case 9: // EZQuake
+		for (s32 i = 0; i < 9; i++) {
+			wpos[i][0] = WW / 2 - 72*SCL + i*16*SCL;
+			wpos[i][1] = HH - 48*SCL;
+			if (i == 9) {
+				wpos[7][0] += 8*SCL;
+				wpos[8][0] += 8*SCL;
 			}
 		}
 		break;
@@ -537,6 +554,7 @@ void Sbar_ItemsModern()
 
 void Sbar_DrawInventoryBg()
 {
+	if (scr_hudstyle.value == 9) return; // EZQuake
 	qpic_t *pic = rogue ?
 		rsb_invbar[cl.stats[STAT_ACTIVEWEAPON] < RIT_LAVA_NAILGUN] :
 		sb_ibar;
@@ -640,6 +658,13 @@ void Sbar_DrawInventory()
 {
 	Sbar_DrawInventoryBg();
 	Sbar_DrawWeapons();
+	if (scr_hudstyle.value == 9) {
+    Sbar_DrawNumSmall(npos[0][0], npos[0][1], cl.stats[6], cl.stats[6] <= 10 ? 2 : 0);
+    Sbar_DrawNumSmall(npos[1][0], npos[1][1], cl.stats[7], cl.stats[7] <= 10 ? 2 : 0);
+    Sbar_DrawNumSmall(npos[2][0], npos[2][1], cl.stats[8], cl.stats[8] <= 10 ? 2 : 0);
+    Sbar_DrawNumSmall(npos[3][0], npos[3][1], cl.stats[9], cl.stats[9] <= 10 ? 2 : 0);
+		return;
+	}
 	for (s32 i = 0; i < 4; i++) // ammo counters
 		Sbar_DrawNumSmall(npos[i][0], npos[i][1], cl.stats[6 + i], 1);
 	for (s32 i = 0; i < 2; i++) { // keys
@@ -655,24 +680,42 @@ void Sbar_DrawInventory()
 
 void Sbar_DrawFace() // ...and HP
 {
-	s32 x = WW / 2 - 24*SCL; // classic, qw
-	s32 y = HH - 24*SCL;
-	if (scr_hudstyle.value == 1 || scr_hudstyle.value == 2) { // modern
+	s32 x, y;
+	switch ((s32)scr_hudstyle.value) {
+	case 1: // modern
+	case 2:
 		x = 32*SCL;
 		y = HH - 32*SCL;
-	} else if (scr_hudstyle.value == 4) { // arcade
+		break;
+	case 4: // arcade
 		x = WW / 2 - 184*SCL;
 		y = HH - 24*SCL;
+		break;
+	case 9: // EZQuake
+		x = WW / 2 + 12*SCL;
+		y = HH - 24*SCL;
+		break;
+	default: // classic, qw
+		x = WW / 2 - 24*SCL; // classic, qw
+		y = HH - 24*SCL;
+		break;
 	}
 	Sbar_DrawNum(x, y, cl.stats[STAT_HEALTH], 3, cl.stats[STAT_HEALTH]<=25);
-	x = WW / 2 - 48*SCL; // classic, qw
-	y = HH - 24*SCL;
-	if (scr_hudstyle.value == 1 || scr_hudstyle.value == 2) { // modern
+	if (scr_hudstyle.value == 9) return;
+	switch ((s32)scr_hudstyle.value) {
+	case 1: // modern
+	case 2:
 		x = 8*SCL;
 		y = HH - 32*SCL;
-	} else if (scr_hudstyle.value == 4) { // arcade
+		break;
+	case 4: // arcade
 		x = WW / 2 - 208*SCL;
 		y = HH - 24*SCL;
+		break;
+	default: // classic, qw
+		x = WW / 2 - 48*SCL; // classic, qw
+		y = HH - 24*SCL;
+		break;
 	}
 	if (rogue && cl.maxclients!=1 && teamplay.value>3 && teamplay.value<7
 			&& (!scr_hudstyle.value || scr_hudstyle.value == 3)) {
@@ -713,14 +756,25 @@ void Sbar_DrawFace() // ...and HP
 
 void Sbar_DrawArmor()
 {
-	s32 x = WW / 2 - 160*SCL; // classic, qw
-	s32 y = HH - 24*SCL;
-	if (scr_hudstyle.value == 1 || scr_hudstyle.value == 2) { // modern
-		x = 8 * SCL;
-		y = HH - 56 * SCL;
-	} else if (scr_hudstyle.value == 4) { // arcade
-		x = WW / 2 - 320*SCL;
-		y = HH - 24*SCL;
+	s32 x, y;
+	switch ((s32)scr_hudstyle.value) {
+		case 1: // modern
+		case 2:
+			x = 8 * SCL;
+			y = HH - 56 * SCL;
+			break;
+		case 4: // arcade
+			x = WW / 2 - 320*SCL;
+			y = HH - 24*SCL;
+			break;
+		case 9: // EZQuake
+			x = WW / 2 - 96*SCL;
+			y = HH - 24*SCL;
+			break;
+		default: // classic, qw
+			x = WW / 2 - 160*SCL;
+			y = HH - 24*SCL;
+			break;
 	}
 	if (cl.items & IT_INVULNERABILITY) { // armor
 		Sbar_DrawNum(24*SCL + x, y, 666, 3, 1);
@@ -987,6 +1041,9 @@ void Sbar_Draw()
 		Draw_TransPicScaled(WW/2-160*SCL, HH-24*SCL, sb_scorebar, SCL);
 		Sbar_SoloScoreboard();
 		sb_updates = 0;
+	} else if (scr_hudstyle.value == 9) { // EZQuake
+		Sbar_DrawArmor();
+		Sbar_DrawFace(); // ...no HP
 	} else { // bottom three, the big numbers
 		Sbar_DrawArmor();
 		Sbar_DrawFace(); // ...and HP
