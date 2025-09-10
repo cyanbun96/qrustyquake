@@ -8,6 +8,8 @@ static s32 menu_numcachepics;
 static u8 *draw_chars; // 8*8 graphic characters
 static qpic_t *draw_backtile;
 static f32 basemip[NUM_MIPS - 1] = { 1.0, 0.5 * 0.8, 0.25 * 0.8 };
+static u8 dos_brightness_lut[256*3];
+static s32 dos_brightness_lut_init = 0;
 static u8 brightness_lut[256*3];
 static s32 brightness_lut_init = 0;
 
@@ -390,19 +392,37 @@ void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c)
 		memset(dest, c, w); // Fast horizontal fill
 }
 
-void Draw_InitBrightnessLUT()
+void Draw_InitBrightnessDOSLUT()
 { // Used only for the DOS screen fade effect, thus the range [0x10-0x1F]
+	dos_brightness_lut_init++;
+	for(s32 i = 0; i < 256; ++i){
+		dos_brightness_lut[i] = ((host_basepal[i*3] + host_basepal[i*3+1] + 
+			host_basepal[i*3+2]) / 3) / 16 + 0x10;
+	}
+}
+
+void Draw_InitBrightnessLUT()
+{ // Mix 50-50 with black
 	brightness_lut_init++;
 	for(s32 i = 0; i < 256; ++i){
-		brightness_lut[i] = ((host_basepal[i*3] + host_basepal[i*3+1] + 
-			host_basepal[i*3+2]) / 3) / 16 + 0x10;
+		brightness_lut[i] = rgbtoi(host_basepal[i*3] / 2, 
+					host_basepal[i*3+1] / 2,
+					host_basepal[i*3+2] / 2);
 	}
 }
 
 void Draw_FadeScreen()
 {
 	fadescreen = 0;
-	if(scr_menubgstyle.value != 0) {
+	if(scr_menubgstyle.value == 1) { // DOS
+		s32 area = vid.width * vid.height;
+		u8 *pdest = (u8*)scrbuffs[0]->pixels;
+		if(!dos_brightness_lut_init) Draw_InitBrightnessDOSLUT();
+		for(s32 i = 0; i < area; ++i)
+			pdest[i] = dos_brightness_lut[pdest[i]];
+		return;
+	}
+	if(scr_menubgstyle.value == 2) { // darken
 		s32 area = vid.width * vid.height;
 		u8 *pdest = (u8*)scrbuffs[0]->pixels;
 		if(!brightness_lut_init) Draw_InitBrightnessLUT();
@@ -410,7 +430,7 @@ void Draw_FadeScreen()
 			pdest[i] = brightness_lut[pdest[i]];
 		return;
 	}
-	for (u32 y = 0; y < vid.height / uiscale; y++)
+	for (u32 y = 0; y < vid.height / uiscale; y++) // winquake
 		for (u32 i = 0; i < uiscale; i++) {
 			u8 *pbuf = (u8*)scrbuffs[0]->pixels + vid.width * y
 				* uiscale + vid.width * i;
