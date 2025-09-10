@@ -414,6 +414,7 @@ void Draw_InitBrightnessLUT()
 void Draw_FadeScreen()
 {
 	fadescreen = 0;
+	if(scr_menubgstyle.value == 3) return;
 	if(scr_menubgstyle.value == 1) { // DOS
 		s32 area = vid.width * vid.height;
 		u8 *pdest = (u8*)scrbuffs[0]->pixels;

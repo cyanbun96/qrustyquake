@@ -1736,7 +1736,7 @@ void M_Graphics_Key(s32 k)
 		case 701: Cvar_SetValue("r_mipscale",
 			CLAMP(0, r_mipscale.value - 0.1, 9.9)); break;
 		case 702: Cvar_SetValue("scr_menubgstyle",
-			CLAMP(0, scr_menubgstyle.value - 1, 2)); break;
+			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
 		}
 		break;
 	case K_RIGHTARROW:
@@ -1831,7 +1831,7 @@ void M_Graphics_Key(s32 k)
 		case 701: Cvar_SetValue("r_mipscale",
 			CLAMP(0, r_mipscale.value + 0.1, 9.9)); break;
 		case 702: Cvar_SetValue("scr_menubgstyle",
-			CLAMP(0, scr_menubgstyle.value + 1, 2)); break;
+			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
@@ -2034,8 +2034,12 @@ void M_Graphics_Draw()
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
 		M_Print(xoffset + x2, 40, temp);
 		M_Print(xoffset, 48, "Menu BG Style:");
-		M_Print(xoffset + x2, 48, scr_menubgstyle.value ?
-				scr_menubgstyle.value==2?"Dark":"DOS":"Win");
+		switch ((s32)scr_menubgstyle.value) {
+		default: case 0: M_Print(xoffset + x2, 48, "Win"); break;
+		case 1: M_Print(xoffset + x2, 48, "DOS"); break;
+		case 2: M_Print(xoffset + x2, 48, "Dark"); break;
+		case 3: M_Print(xoffset + x2, 48, "None"); break;
+		}
 	}
 }
 
