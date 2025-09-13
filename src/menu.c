@@ -1737,6 +1737,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_mipscale.value - 0.1, 9.9)); break;
 		case 702: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
+		case 703: Cvar_SetValue("r_rebuildmips",
+			!r_rebuildmips.value); break;
 		}
 		break;
 	case K_RIGHTARROW:
@@ -1832,6 +1834,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_mipscale.value + 0.1, 9.9)); break;
 		case 702: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
+		case 703: Cvar_SetValue("r_rebuildmips",
+			!r_rebuildmips.value); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
@@ -1845,7 +1849,7 @@ void M_Graphics_Key(s32 k)
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) graphics_cursor = 505;
 		else if (graphics_cursor == 600) graphics_cursor = 607;
-		else if (graphics_cursor == 700) graphics_cursor = 702;
+		else if (graphics_cursor == 700) graphics_cursor = 703;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
@@ -1874,7 +1878,7 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 607) graphics_cursor = 600;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 800) {
-			if (graphics_cursor == 702) graphics_cursor = 700;
+			if (graphics_cursor == 703) graphics_cursor = 700;
 			else graphics_cursor++;
 		}
 		break;
@@ -2034,6 +2038,14 @@ void M_Graphics_Draw()
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
 		M_Print(xoffset + x2, 40, temp);
 		M_Print(xoffset, 48, "Menu BG Style:");
+		M_Print(xoffset, 56, "Rebuild Mipmaps:");
+		M_Print(xoffset + x2, 56, !r_rebuildmips.value?" Off":" On");
+		if (graphics_cursor == 703) {
+			M_DrawTextBox(12, 150, 33, 3);
+			M_Print(16, 158, "  Enable if you see pink around");
+			M_Print(16, 166, " cutouts or fullbright reds that");
+			M_Print(16, 174, " shouldn't be there at a distance");
+		}
 		switch ((s32)scr_menubgstyle.value) {
 		default: case 0: M_Print(xoffset + x2, 48, "Win"); break;
 		case 1: M_Print(xoffset + x2, 48, "DOS"); break;

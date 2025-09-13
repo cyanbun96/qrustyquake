@@ -255,7 +255,8 @@ void D_DrawSurfacesPass2()
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
 		if(!(s->flags&SURF_DRAWCUTOUT)) continue;
-		miplevel = 0;
+		miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
+				* pface->texinfo->mipadjust);
 		if (s->insubmodel) D_SwitchSubModelOn(s);
 		D_DrawCutoutSurf(s, pface);
 		if (s->insubmodel) D_SwitchSubModelOff();

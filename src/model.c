@@ -206,6 +206,63 @@ model_t *Mod_ForName(const s8 *name, bool crash)
 	return Mod_LoadModel(mod, crash);
 }
 
+static s32 nearest_color_texture(s32 r, s32 g, s32 b) {
+    s32 best = 0;
+    s32 bestdist = 1<<30;
+    for (s32 i = 0; i < 0xE0; i++) {
+        s32 dr = r - host_basepal[i*3+0];
+        s32 dg = g - host_basepal[i*3+1];
+        s32 db = b - host_basepal[i*3+2];
+        s32 dist = dr*dr + dg*dg + db*db;
+        if (dist < bestdist) {
+            bestdist = dist;
+            best = i;
+        }
+    }
+    return best;
+}
+
+static void build_mip(const u8 *src, s32 w, s32 h, u8 *dst) {
+	for (s32 y = 0; y < h; y++) {
+	for (s32 x = 0; x < w; x++) {
+		s32 r=0, g=0, b=0, count=0;
+		s32 alpha_count = 0;
+		s32 fullbright_present = 0;
+		s32 fullbright_value = 0;
+
+		for (s32 dy=0; dy<2; dy++) {
+			for (s32 dx=0; dx<2; dx++) {
+				s32 idx = src[(y*2+dy)*(w*2) + (x*2+dx)];
+				if (idx == 0xFF) {
+					alpha_count++;
+				} else if (idx >= 0xF7 && idx <= 0xFB) {
+					fullbright_present = 1;
+					fullbright_value = idx;
+				} else if (idx < 0xE0) {
+					r += host_basepal[idx*3+0];
+					g += host_basepal[idx*3+1];
+					b += host_basepal[idx*3+2];
+					count++;
+				}
+			}
+		}
+
+		if (alpha_count >= 2) {
+			dst[y*w + x] = 0xFF; // preserve transparency
+		} else if (fullbright_present) {
+			dst[y*w + x] = fullbright_value; // preserve original fullbright
+		} else if (count == 0) {
+			dst[y*w + x] = 0; // fallback
+		} else {
+			r /= count;
+			g /= count;
+			b /= count;
+			dst[y*w + x] = nearest_color_texture(r,g,b);
+		}
+	}
+	}
+}
+
 void Mod_LoadTextures(lump_t *l)
 {
 	texture_t *anims[10];
@@ -242,6 +299,14 @@ void Mod_LoadTextures(lump_t *l)
 		memcpy(tx + 1, mt + 1, pixels);
 		if(!Q_strncmp(mt->name, "sky", 3))
 			R_InitSky(tx);
+		if (!r_rebuildmips.value) continue;
+		u8 *base = (u8 *)tx + LittleLong(tx->offsets[0]);
+		u8 *mip1 = (u8 *)tx + LittleLong(tx->offsets[1]);
+		u8 *mip2 = (u8 *)tx + LittleLong(tx->offsets[2]);
+		u8 *mip3 = (u8 *)tx + LittleLong(tx->offsets[3]);
+		build_mip(base, tx->width/2,   tx->height/2,   mip1);
+		build_mip(mip1, tx->width/4,   tx->height/4,   mip2);
+		build_mip(mip2, tx->width/8,   tx->height/8,   mip3);
 	}
 	for(s32 i = 0; i < m->nummiptex; i++){ // sequence the animations
 		texture_t *tx = loadmodel->textures[i];
