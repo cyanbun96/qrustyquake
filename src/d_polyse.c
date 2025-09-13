@@ -251,12 +251,11 @@ split: // split this edge
 	}
 	if (z >= *zbuf) {
 		*zbuf = z;
-		s32 pix = d_pcolormap[skintable[new[3] >> 16][new[2] >> 16]];
+		s32 pix;
 		if (!r_rgblighting.value || !colored_aliaslight)
 			pix = d_pcolormap[skintable[new[3] >> 16][new[2] >> 16]];
 		else
-			pix = D_GetRGBPix(d_pcolormap[skintable[new[3] >> 16]
-							[new[2] >> 16]]);
+			pix = D_GetRGBPix(((u8*)acolormap)[skintable[new[3] >> 16][new[2] >> 16]]);
 		if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
 			d_viewbuffer[d_scantable[new[1]] + new[0]] =
