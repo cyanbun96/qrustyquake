@@ -206,58 +206,63 @@ model_t *Mod_ForName(const s8 *name, bool crash)
 	return Mod_LoadModel(mod, crash);
 }
 
-static s32 nearest_color_texture(s32 r, s32 g, s32 b) {
-    s32 best = 0;
-    s32 bestdist = 1<<30;
-    for (s32 i = 0; i < 0xE0; i++) {
-        s32 dr = r - host_basepal[i*3+0];
-        s32 dg = g - host_basepal[i*3+1];
-        s32 db = b - host_basepal[i*3+2];
-        s32 dist = dr*dr + dg*dg + db*db;
-        if (dist < bestdist) {
-            bestdist = dist;
-            best = i;
-        }
-    }
-    return best;
+static u8 palette_search(u8 r, u8 g, u8 b)
+{ // qremip by erysdren (it/its), originally cc0 or public domain
+	s32 pen, dist = 9999999;
+	for (s32 i = 256 - 32; i--;) { // CyanBun96: don't check fullbrights
+		s32 rr = host_basepal[i * 3] - r;
+		s32 gg = host_basepal[i * 3 + 1] - g;
+		s32 bb = host_basepal[i * 3 + 2] - b;
+		s32 rank = rr*rr + gg*gg + bb*bb;
+		if (rank < dist) {
+			pen = i;
+			dist = rank;
+		}
+	}
+	return pen;
 }
 
-static void build_mip(const u8 *src, s32 w, s32 h, u8 *dst) {
-	for (s32 y = 0; y < h; y++) {
-	for (s32 x = 0; x < w; x++) {
-		s32 r=0, g=0, b=0, count=0;
-		s32 alpha_count = 0;
-		s32 fullbright_present = 0;
-		s32 fullbright_value = 0;
+static u8 blend4_u8(f32 alpha, f32 beta, u8 a, u8 b, u8 c, u8 d)
+{ // qremip by erysdren (it/its), originally cc0 or public domain
+	u8 *a_rgb, *b_rgb, *c_rgb, *d_rgb;
+	s32 result[3];
+	a_rgb = &host_basepal[a * 3];
+	b_rgb = &host_basepal[b * 3];
+	c_rgb = &host_basepal[c * 3];
+	d_rgb = &host_basepal[d * 3];
+	for (s32 i = 0; i < 3; i++) {
+		result[i] = (1.0 - alpha) * (1.0 - beta) * a_rgb[i] +
+				    alpha * (1.0 - beta) * b_rgb[i] +
+				    (1.0 - alpha) * beta * c_rgb[i] +
+					    alpha * beta * d_rgb[i];
+	}
+	return palette_search(result[0], result[1], result[2]);
+}
 
-		for (s32 dy=0; dy<2; dy++) {
-			for (s32 dx=0; dx<2; dx++) {
-				s32 idx = src[(y*2+dy)*(w*2) + (x*2+dx)];
-				if (idx == 0xFF) {
-					alpha_count++;
-				} else if (idx >= 0xF7 && idx <= 0xFB) {
-					fullbright_present = 1;
-					fullbright_value = idx;
-				} else if (idx < 0xE0) {
-					r += host_basepal[idx*3+0];
-					g += host_basepal[idx*3+1];
-					b += host_basepal[idx*3+2];
-					count++;
-				}
-			}
-		}
-
-		if (alpha_count >= 2) {
-			dst[y*w + x] = 0xFF; // preserve transparency
-		} else if (fullbright_present) {
-			dst[y*w + x] = fullbright_value; // preserve original fullbright
-		} else if (count == 0) {
-			dst[y*w + x] = 0; // fallback
-		} else {
-			r /= count;
-			g /= count;
-			b /= count;
-			dst[y*w + x] = nearest_color_texture(r,g,b);
+static void bilinear_u8(u8 *in, u8 *out, s32 w, s32 h, s32 new_w, s32 new_h)
+{ // qremip by erysdren (it/its), originally cc0 or public domain
+	f32 xscale = (f32)w / (f32)new_w; // get x and y scale
+	f32 yscale = (f32)h / (f32)new_h;
+	for (s32 y = 0; y < new_h; y++) { // loop over all pixels in the new mip
+	for (s32 x = 0; x < new_w; x++) {
+		f32 src_x = (f32)x * xscale; // get weights
+		f32 src_y = (f32)y * yscale;
+		s32 xlow = (s32)src_x; // get high and low pixels
+		s32 ylow = (s32)src_y;
+		s32 xhigh = (xlow + 1 < w) ? xlow + 1 : w - 1;
+		s32 yhigh = (ylow + 1 < h) ? ylow + 1 : h - 1;
+		u8 a = in[ylow * w + xlow]; // high and low pixels values
+		u8 b = in[ylow * w + xhigh];
+		u8 c = in[yhigh * w + xlow];
+		u8 d = in[yhigh * w + xhigh];
+		if (a==0xFF || b==0xFF || c==0xFF || d==0xFF) {
+			out[y * new_w + x] = 0xFF; // don't blend transparents
+		} else if (a>=0xE0 || b>=0xE0 || c>=0xE0 || d>=0xE0) {
+			out[y * new_w + x] = a; // don't blend fullbrights
+		} else { // blend color
+			f32 alpha = src_x - (f32)xlow;
+			f32 beta = src_y - (f32)ylow;
+			out[y * new_w + x] = blend4_u8(alpha, beta, a, b, c, d);
 		}
 	}
 	}
@@ -304,9 +309,9 @@ void Mod_LoadTextures(lump_t *l)
 		u8 *mip1 = (u8 *)tx + LittleLong(tx->offsets[1]);
 		u8 *mip2 = (u8 *)tx + LittleLong(tx->offsets[2]);
 		u8 *mip3 = (u8 *)tx + LittleLong(tx->offsets[3]);
-		build_mip(base, tx->width/2,   tx->height/2,   mip1);
-		build_mip(mip1, tx->width/4,   tx->height/4,   mip2);
-		build_mip(mip2, tx->width/8,   tx->height/8,   mip3);
+		bilinear_u8(base, mip1, tx->width, tx->height, tx->width/2, tx->height/2);
+		bilinear_u8(base, mip2, tx->width, tx->height, tx->width/4, tx->height/4);
+		bilinear_u8(base, mip3, tx->width, tx->height, tx->width/8, tx->height/8);
 	}
 	for(s32 i = 0; i < m->nummiptex; i++){ // sequence the animations
 		texture_t *tx = loadmodel->textures[i];
