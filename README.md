@@ -14,15 +14,7 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
 - Auto-resolution fullscreen with -fullscreen_desktop
 
-- Horizontal FOV scaling for modern widescreen resolutions (yaspectscale cvar)
-
 - Hardware-accelerated frame > screen rendering
-
-   - Boosts performance massively on systems with GPUs
-
-   - Tanks performance on machines without GPUs
-
-   - Use the new -forceoldrender flag to disable
 
 - High resolution support
 
@@ -32,11 +24,17 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
    
    - Can probably be set higher for billboard gaming
 
-- Non-square pixels for 320x200 and 640x400 modes
+- Horizontal FOV scaling for modern widescreen resolutions (yaspectscale cvar)
+
+- Non-square pixels for 320x200 and 640x400 modes and modern aspect ratios
 
    - aspectr cvar can be used for more granular adjustment
 
    - UI can be scaled independently with scr_uixscale and scr_uiyscale
+
+   - Implemented through a customizeable "layer" system
+
+   - Several independently scalable layers for different UI elements
 
 - General feature parity with the original WinQuake
 
@@ -50,13 +48,27 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
    - scr_uiscale 1 for no scaling, scr_uiscale 2 for 200% size etc.
 
-- 9 HUD styles (hudstyle 0-9)
+- 10 HUD styles (hudstyle 0-9)
 
-   - Classic, Modern, QW, Arcade, Minimalist and variations
+   - Classic, Modern, QW, Arcade, EZQuake, Minimalist and variations
 
    - Transparent UI elements for modern mods
 
 - VGA text blurbs after shutdown
+
+- Custom menu BG fading options
+
+   - DOSQuake for the DOS-styled brown fade
+
+   - WinQuake for the default dithered fade
+
+   - 50% black
+
+   - None at all (useful for graphics settings adjustment)
+
+- Modern console features
+
+   - Centerprint logging with con_logcenterprint 1
 
 - BGM support
 
@@ -81,6 +93,8 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
    - 2021 rerelease support, place QuakeEX.kpf in the base folder for working localization
 
 - Custom palette support (put the files at gfx/custompalette.lmp and gfx/palette.lmp)
+
+   - Also settable through worldspawn flags in custom maps
 
 - Software imitations of modern rendering features
 
@@ -110,6 +124,8 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
       - r_nofog 1 to disable
 
+      - r_lockfog 1 to disable forced setting by custom maps, r_lockfog{d,r,g,b} to set custom
+
       - r_fognoise to adjust noise bias level: 0 - disable, 1 - noisy
 
       - r_fogfactor to adjust fog thickness: 0.5 - lighter, 1 - full
@@ -119,6 +135,14 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
       - r_fogstyle 0/1/2/3, with 3 being the default and most "modern-looking"
 
       - r_fogbrightness (0.5 for half brightness, 2 for double), independent of the fog color dictated by the map
+      
+      - r_fogdepthcorrection (0,1) to avoid the old-style "fog moving with camera"
+
+   - Better mipmaps
+
+      - Regenerated on map load with r_rebuildmips 1
+
+      - Solves random fullbright pixels on dark textures and bright fringe around cutout textures
 
 - Miscellaneous graphics cvars
 
@@ -141,8 +165,6 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
    - More modern console
 
    - More palette options
-
-   - Better mipmaps
 
 - Probably not
 
@@ -168,7 +190,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.6.0
+- Arch Linux [HW] v0.6.1
 
    - The main platform that this port is developed on. The most likely one to work
 
@@ -179,8 +201,6 @@ VM is VirtualBox unless specified otherwise.
 - Debian 11 [VM] v0.5.1
 
    - The oldest tested distro
-
-   - Used to build the release AppImage
 
 - FreeBSD [VM] v0.4
 
@@ -210,13 +230,9 @@ VM is VirtualBox unless specified otherwise.
 
    - Dark magic performed by Erysdren, please don't ask me about it
 
-- Windows [VM, HW] v0.6.0
+- Windows [VM, HW] v0.6.1
 
    - Tested with w10 on hardware and w11 on a VM
-
-   - Has more strict surface limits and such, to prevent crashing 
-
-   - Network fails on UDP initialization, but proceeds to work fine?
 
    - Release .exes are cross-compiled
 
@@ -234,7 +250,7 @@ Atsb has also contributed some crucial fixes to long-standing issues and some ge
 
 Some code, including VGA text blurbs, has been taken from https://github.com/erysdren/sdl3quake/
 
-Big thanks to Erysdren for contributing quite a lot to the backend and makefiles to make compilation on exotic systems possible, implementinig BGM, BMP screenshots, and lots of other cool stuff.
+Big thanks to Erysdren for contributing quite a lot to the backend and makefiles to make compilation on exotic systems possible, implementinig BGM, mipmap regeneration, BMP screenshots, and lots of other cool stuff.
 
 Izhido heroically made the native windows build possible, and in process brought the windows version to the same feature level as the others.
 
