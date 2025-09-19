@@ -908,6 +908,7 @@ void Sbar_IntermissionOverlay()
 		Sbar_DeathmatchOverlay();
 		return;
 	}
+	drawlayer = lyr_sbar.value;
 	qpic_t *pic = Draw_CachePic("gfx/complete.lmp"); // plaque is 192px wide
 	Draw_TransPicScaled(WW/2 - 96*SCL, 24*SCL,pic,SCL);
 	s32 p = WW/2 - 160*SCL; // padding for scaling
@@ -925,12 +926,15 @@ void Sbar_IntermissionOverlay()
 	Sbar_DrawNum(WW/2, 144*SCL, cl.stats[STAT_MONSTERS], 3, 0);
 	Draw_TransPicScaled(WW-p-88*SCL, 144*SCL, sb_slash, SCL);
 	Sbar_DrawNum(WW-p-80*SCL, 144*SCL, cl.stats[STAT_TOTALMONSTERS], 3, 0);
+	drawlayer = lyr_main.value;
 }
 
 void Sbar_FinaleOverlay()
 {
+	drawlayer = lyr_sbar.value;
 	qpic_t *pic = Draw_CachePic("gfx/finale.lmp");
 	Draw_TransPicScaled(WW/2 - pic->width/2*SCL, 16*SCL, pic, SCL);
+	drawlayer = lyr_main.value;
 }
 
 void Sbar_DrawBg()

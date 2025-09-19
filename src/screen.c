@@ -209,7 +209,9 @@ void SCR_DrawRam()
 {
 	if (!scr_showram.value || !r_cache_thrash)
 		return;
+	drawlayer = lyr_menu.value;
 	Draw_PicScaled(scr_vrect.x + 32*uiscale, scr_vrect.y, scr_ram, uiscale);
+	drawlayer = lyr_main.value;
 }
 
 void SCR_DrawTurtle()
@@ -224,14 +226,18 @@ void SCR_DrawTurtle()
 	count++;
 	if (count < 3)
 		return;
+	drawlayer = lyr_menu.value;
 	Draw_PicScaled(scr_vrect.x, scr_vrect.y, scr_turtle, uiscale);
+	drawlayer = lyr_main.value;
 }
 
 void SCR_DrawNet()
 {
 	if (realtime - cl.last_received_message < 0.3 || cls.demoplayback)
 		return;
+	drawlayer = lyr_menu.value;
 	Draw_PicScaled(scr_vrect.x + 64*uiscale, scr_vrect.y, scr_net, uiscale);
+	drawlayer = lyr_main.value;
 }
 
 void SCR_DrawPause()
@@ -239,9 +245,11 @@ void SCR_DrawPause()
 	if (!scr_showpause.value || !cl.paused) // turn off for screenshots
 		return;
 	qpic_t *pic = Draw_CachePic("gfx/pause.lmp");
+	drawlayer = lyr_menu.value;
 	Draw_TransPicScaled((vid.width - pic->width * uiscale) / 2,
 		       (vid.height - 48 * uiscale - pic->height * uiscale) / 2,
 		       pic, uiscale);
+	drawlayer = lyr_main.value;
 }
 
 void SCR_DrawLoading()
@@ -249,9 +257,11 @@ void SCR_DrawLoading()
 	if (!scr_drawloading)
 		return;
 	qpic_t *pic = Draw_CachePic("gfx/loading.lmp");
+	drawlayer = lyr_menu.value;
 	Draw_TransPicScaled((vid.width - pic->width * uiscale) / 2,
 		       (vid.height - 48 * uiscale - pic->height * uiscale) / 2,
 		       pic, uiscale);
+	drawlayer = lyr_main.value;
 }
 
 void SCR_SetUpToDrawConsole()
@@ -344,36 +354,21 @@ void WriteBMPfile(s8 *filename, u8 *data, s32 width, s32 height,
 				  s32 rowbytes, u8 *palette)
 {
 	SDL_Surface *surface = SDL_CreateSurfaceFrom(
-		width,
-		height,
-		SDL_PIXELFORMAT_INDEX8,
-		data,
-		rowbytes
-	);
-
+		width, height, SDL_PIXELFORMAT_INDEX8, data, rowbytes);
 	SDL_Palette *surfacepalette = SDL_CreateSurfacePalette(surface);
-
-	for (s32 i = 0; i < surfacepalette->ncolors; i++)
-	{
+	for (s32 i = 0; i < surfacepalette->ncolors; i++) {
 		surfacepalette->colors[i].r = palette[i * 3 + 0];
 		surfacepalette->colors[i].g = palette[i * 3 + 1];
 		surfacepalette->colors[i].b = palette[i * 3 + 2];
 		surfacepalette->colors[i].a = 255;
 	}
-
 	size_t len_temp = width * height * 2 + 1000;
 	void *temp = Hunk_TempAlloc(len_temp);
-
 	SDL_IOStream *io = SDL_IOFromMem(temp, len_temp);
-
 	SDL_SaveBMP_IO(surface, io, false);
-
 	Sint64 length = SDL_TellIO(io);
-
 	SDL_CloseIO(io);
-
 	COM_WriteFile(filename, temp, length);
-
 	SDL_DestroySurface(surface);
 }
 
