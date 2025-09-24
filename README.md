@@ -202,9 +202,9 @@ VM is VirtualBox unless specified otherwise.
 
    - The oldest tested distro
 
-- FreeBSD [VM] v0.4
+- FreeBSD [VM] v0.6.1
 
-   - Seemingly perfect, though the audio sample rate sounds too high
+   - Seemingly perfect
 
 - OpenBSD [VM, HW] v0.4.1
 
@@ -218,7 +218,7 @@ VM is VirtualBox unless specified otherwise.
 
    - Not tested on real hardware yet, TODO
 
-- Android [HW, Termux, AARCH64, clang] v0.6.0
+- Android [HW, Termux, AARCH64, clang] v0.6.1
 
    - Ran through X11 with touch controls. *unpleasant*
 
