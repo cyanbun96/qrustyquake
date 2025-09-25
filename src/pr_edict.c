@@ -396,6 +396,8 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s)
 { // Can parse either fields or globals, returns 0 if error
 	s8 string[128];
 	void *d = (void *)((s32 *)base + key->ofs);
+	dfunction_t *func; // keep here for OpenBSD
+	ddef_t *def; // ditto
 	switch(key->type & ~DEF_SAVEGLOBAL) {
 	case ev_string: *(string_t *)d = ED_NewString(s); break;
 	case ev_float: *(f32 *)d = atof(s); break;
@@ -422,7 +424,7 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s)
 		}
 		break;
 	case ev_field:
-		ddef_t *def = ED_FindField(s);
+		def = ED_FindField(s);
 		if(!def) {
 // suppress error becuase fog/sky fields might not be mentioned in defs.qc
 			if(strncmp(s, "sky", 3) && strcmp(s, "fog"))
@@ -432,7 +434,7 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s)
 		*(s32 *)d = G_INT(def->ofs);
 		break;
 	case ev_function:
-		dfunction_t *func = ED_FindFunction(s);
+		func = ED_FindFunction(s);
 		if(!func) {
 			Con_Printf("Can't find function %s\n", s);
 			return 0;

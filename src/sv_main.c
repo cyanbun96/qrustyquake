@@ -13,12 +13,13 @@ static s32 fatpvs_capacity;
 
 void SV_Protocol_f()
 {
+	s32 i; // keep here for OpenBSD
 	switch(Cmd_Argc()) {
 	case 1:
 		Con_Printf("\"sv_protocol\" is \"%i\"\n", sv_protocol);
 		break;
 	case 2:
-		s32 i = atoi(Cmd_Argv(1));
+		i = atoi(Cmd_Argv(1));
 		if(i != PROTOCOL_NETQUAKE && i != PROTOCOL_FITZQUAKE
 				&& i != PROTOCOL_RMQ)
 			Con_Printf("sv_protocol must be %i or %i or %i\n",

@@ -771,9 +771,9 @@ const s8 *COM_ParseEx(const s8 *data, cpe_mode mode)
 {
 	s32 len = 0;
 	com_token[0] = 0;
+	s32 c; // keep here for OpenBSD
 	if(!data) return NULL;
 skipwhitespace:
-	s32 c;
 	while((c = *data) <= ' ') {
 		if(c == 0) return NULL; // end of file
 		data++;

@@ -438,6 +438,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 
 
 void VID_VidSetModeCommand_f()
 {
+	s32 custw, custh; // keep here for OpenBSD
 	switch(Cmd_Argc()){
 	default:
 	case 1:
@@ -448,8 +449,8 @@ void VID_VidSetModeCommand_f()
 		Con_Printf("          2 - borderless\n");
 		return;
 	case 4:
-		s32 custw = atoi(Cmd_Argv(1));
-		s32 custh = atoi(Cmd_Argv(2));
+		custw = atoi(Cmd_Argv(1));
+		custh = atoi(Cmd_Argv(2));
 		if(custw<320||custw>MAXWIDTH||custh<200||custh>MAXHEIGHT) {
 			Con_Printf("320 <= width <= %d\n", MAXWIDTH);
 			Con_Printf("200 <= height <= %d\n", MAXHEIGHT);

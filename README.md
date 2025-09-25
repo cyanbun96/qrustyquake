@@ -206,9 +206,9 @@ VM is VirtualBox unless specified otherwise.
 
    - Seemingly perfect
 
-- OpenBSD [VM, HW] v0.4.1
+- OpenBSD [HW] v0.6.1
 
-   - Seemingly perfect
+   - The SDL3_mixer build under "openbsd/" compiles, but doesn't support many formats
 
 - Ubuntu [HW, MangoPi MQ Pro, RISC-V] v0.3
 

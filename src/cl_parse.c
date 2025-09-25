@@ -511,6 +511,7 @@ void CL_ParseServerMessage()
 			Con_Printf("%3i:%s\n",msg_readcount-1,
 					svc_strings[cmd]);
 	}
+	s32 i, j; // keep here for OpenBSD
 	switch(cmd) { // other commands
 	default:
 		Host_Error(
@@ -528,7 +529,7 @@ void CL_ParseServerMessage()
 		CL_ParseClientdata();
 		break;
 	case svc_version:
-		s32 i = MSG_ReadLong();
+		i = MSG_ReadLong();
 		if(i!=PROTOCOL_NETQUAKE&&i!=PROTOCOL_FITZQUAKE
 				&&i!=PROTOCOL_RMQ) Host_Error(
 		   "Server returned version %i, not %i or %i or %i", i,
@@ -572,7 +573,7 @@ void CL_ParseServerMessage()
 		if(cl_lightstyle[i].length){ //save extra info
 			s32 total = 0;
 			cl_lightstyle[i].peak = 'a';
-			for(s32 j = 0; j<cl_lightstyle[i].length; j++) {
+			for(j = 0; j<cl_lightstyle[i].length; j++) {
 				total += cl_lightstyle[i].map[j] - 'a';
 				cl_lightstyle[i].peak = q_max(
 					cl_lightstyle[i].peak,
