@@ -202,7 +202,7 @@ VM is VirtualBox unless specified otherwise.
 
    - The oldest tested distro
 
-- FreeBSD [VM] v0.6.1
+- FreeBSD [HW] v0.6.1
 
    - Seemingly perfect
 
@@ -214,9 +214,11 @@ VM is VirtualBox unless specified otherwise.
 
    - Works just fine at a playable framerate (20-30~ FPS)
 
-- HaikuOS [QEMU] v0.4.3
+- HaikuOS [HW] v0.6.1
 
-   - Not tested on real hardware yet, TODO
+   - Built with cmake against SDL3 and SDL3_mixer under "haiku/"
+
+   - Default heapsize crashes on launch, works with "-heapsize 100000"
 
 - Android [HW, Termux, AARCH64, clang] v0.6.1
 
