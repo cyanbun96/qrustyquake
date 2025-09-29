@@ -352,7 +352,6 @@ cutoutpass: // TODO anything but goto
 				if (edge2->surfs[0] == surfn && (edge2->u>>20) < right)
 					right = (edge2->u>>20);
 			}
-			printf("CUTOUT %d %ld %ld\n", surfn, left, right);
 			surf_t *surf = &surfaces[surfn];
 			espan_t *span = span_p++;
 			span->u = left;
@@ -416,7 +415,6 @@ void R_ScanEdges()
 	s64 bottom = r_refdef.vrectbottom - 1; // process all scan lines
 	s64 iv = r_refdef.vrect.y;
 	for (; iv < bottom; iv++) {
-		printf("====%d\n", iv);
 		current_iv = iv;
 		fv = (f32)iv;
 		// mark that the head (background start) span is pre-included
