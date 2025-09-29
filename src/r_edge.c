@@ -326,6 +326,7 @@ void R_GenerateSpans()
 	surfaces[1].next = surfaces[1].prev = &surfaces[1];
 	surfaces[1].last_u = edge_head_u_shift20;
 	// generate spans
+	if (r_pass + r_wateralphapass == 1) goto cutoutpass; // TODO anything but goto
 	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
 		if (edge->surfs[0]) {
 			// it has a left surface, so a surface is going away for this span
@@ -337,6 +338,30 @@ void R_GenerateSpans()
 		R_LeadingEdge(edge);
 	}
 	R_CleanupSpan();
+	return;
+cutoutpass: // TODO anything but goto
+	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
+		if (surfaces[edge->surfs[1]].flags && SURF_DRAWCUTOUT) {
+			// cutout surf found, find its left and rightmost edges
+			s32 surfn = edge->surfs[1];
+			s64 left = 0;
+			s64 right = r_refdef.vrectright;
+			for (edge_t *edge2=edge_head.next; edge2!=&edge_tail; edge2=edge2->next) {
+				if (edge2->surfs[1] == surfn && (edge2->u>>20) > left)
+					left = (edge2->u>>20);
+				if (edge2->surfs[0] == surfn && (edge2->u>>20) < right)
+					right = (edge2->u>>20);
+			}
+			printf("CUTOUT %d %ld %ld\n", surfn, left, right);
+			surf_t *surf = &surfaces[surfn];
+			espan_t *span = span_p++;
+			span->u = left;
+			span->count = right - left;
+			span->v = current_iv;
+			span->pnext = surf->spans;
+			surf->spans = span;
+		}
+	}
 }
 
 void R_GenerateSpansBackward()
@@ -359,8 +384,7 @@ void R_GenerateSpansBackward()
 void R_ScanEdges()
 {
 	// Align the array itself to the cache size
-	u8 basespans[MAXSPANS * sizeof(espan_t) + CACHE_SIZE]/*
-			__attribute__((aligned(CACHE_SIZE)))*/;
+	u8 basespans[MAXSPANS * sizeof(espan_t) + CACHE_SIZE];
 	// Pointer to the aligned base of the spans
 	espan_t *basespan_p = (espan_t *) basespans;
 	// No more pointer adjustment needed because the array is aligned
@@ -392,6 +416,7 @@ void R_ScanEdges()
 	s64 bottom = r_refdef.vrectbottom - 1; // process all scan lines
 	s64 iv = r_refdef.vrect.y;
 	for (; iv < bottom; iv++) {
+		printf("====%d\n", iv);
 		current_iv = iv;
 		fv = (f32)iv;
 		// mark that the head (background start) span is pre-included
