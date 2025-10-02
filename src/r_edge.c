@@ -24,6 +24,7 @@ static edge_t ledges[NUMSTACKEDGES + ((CACHE_SIZE - 1) / sizeof(edge_t)) + 1];
 static surf_t lsurfs[NUMSTACKSURFACES + ((CACHE_SIZE - 1) / sizeof(surf_t)) +1];
 void R_GenerateSpans();
 void R_GenerateSpansBackward();
+void R_GenerateSpansCutout();
 void R_LeadingEdge(edge_t *edge);
 void R_LeadingEdgeBackwards(edge_t *edge);
 void R_TrailingEdge(surf_t *surf, edge_t *edge);
@@ -45,7 +46,8 @@ void R_BeginEdgeFrame()
 		surfaces[1].key = 0;
 		r_currentkey = 1;
 	} else {
-		pdrawfunc = R_GenerateSpans;
+		pdrawfunc = r_pass + r_wateralphapass == 1 ?
+			R_GenerateSpansCutout : R_GenerateSpans;
 		surfaces[1].key = 0x7FFFFFFF;
 		r_currentkey = 0;
 	}
@@ -320,13 +322,36 @@ gotposition:
 	}
 }
 
+void R_GenerateSpansCutout() // Generates spans for whole cutout surfaces, from
+{ // the leftmost point of each surface to the rightmost, intentional overdraw
+	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
+		if (!(surfaces[edge->surfs[1]].flags && SURF_DRAWCUTOUT))
+			continue;
+		s32 surfn = edge->surfs[1];
+		s64 left = 0;
+		s64 right = r_refdef.vrectright;
+		for (edge_t *e2=edge_head.next; e2!=&edge_tail; e2=e2->next) {
+			if (e2->surfs[1] == surfn && (e2->u>>20) > left)
+				left = (e2->u>>20);
+			if (e2->surfs[0] == surfn && (e2->u>>20) < right)
+				right = (e2->u>>20);
+		}
+		surf_t *surf = &surfaces[surfn];
+		espan_t *span = span_p++;
+		span->u = left;
+		span->count = right - left;
+		span->v = current_iv;
+		span->pnext = surf->spans;
+		surf->spans = span;
+	}
+}
+
 void R_GenerateSpans()
 {
 	// clear active surfaces to just the background surface
 	surfaces[1].next = surfaces[1].prev = &surfaces[1];
 	surfaces[1].last_u = edge_head_u_shift20;
 	// generate spans
-	if (r_pass + r_wateralphapass == 1) goto cutoutpass; // TODO anything but goto
 	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
 		if (edge->surfs[0]) {
 			// it has a left surface, so a surface is going away for this span
@@ -340,27 +365,6 @@ void R_GenerateSpans()
 	R_CleanupSpan();
 	return;
 cutoutpass: // TODO anything but goto
-	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
-		if (surfaces[edge->surfs[1]].flags && SURF_DRAWCUTOUT) {
-			// cutout surf found, find its left and rightmost edges
-			s32 surfn = edge->surfs[1];
-			s64 left = 0;
-			s64 right = r_refdef.vrectright;
-			for (edge_t *edge2=edge_head.next; edge2!=&edge_tail; edge2=edge2->next) {
-				if (edge2->surfs[1] == surfn && (edge2->u>>20) > left)
-					left = (edge2->u>>20);
-				if (edge2->surfs[0] == surfn && (edge2->u>>20) < right)
-					right = (edge2->u>>20);
-			}
-			surf_t *surf = &surfaces[surfn];
-			espan_t *span = span_p++;
-			span->u = left;
-			span->count = right - left;
-			span->v = current_iv;
-			span->pnext = surf->spans;
-			surf->spans = span;
-		}
-	}
 }
 
 void R_GenerateSpansBackward()
