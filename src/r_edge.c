@@ -364,7 +364,6 @@ void R_GenerateSpans()
 	}
 	R_CleanupSpan();
 	return;
-cutoutpass: // TODO anything but goto
 }
 
 void R_GenerateSpansBackward()
