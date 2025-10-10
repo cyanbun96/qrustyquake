@@ -209,6 +209,7 @@ void D_DrawSurfacesPass1()
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
+	s32 foundcutouts = 0;
 	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
 		if (!s->spans) continue;
 		msurface_t *pface = s->data;
@@ -238,7 +239,24 @@ void D_DrawSurfacesPass1()
 		} else if (s->flags & SURF_DRAWTURB && (!s->entity->model->haslitwater
 					|| !r_litwater.value || !((s32)r_twopass.value&1))) {
 			D_DrawUnlitWater(s, pface);
+		} else if (s->flags & SURF_DRAWCUTOUT) {
+			foundcutouts = 1;
 		} else D_DrawNormalSurf(s, pface);
+		if (s->insubmodel) D_SwitchSubModelOff();
+		if (!(s->flags & SURF_DRAWCUTOUT))
+			s->spans = NULL;
+	}
+	if (!foundcutouts) return;
+	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
+		if (!s->spans) continue;
+		msurface_t *pface = s->data;
+		d_zistepu = s->d_zistepu;
+		d_zistepv = s->d_zistepv;
+		d_ziorigin = s->d_ziorigin;
+		miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
+				* pface->texinfo->mipadjust);
+		if (s->insubmodel) D_SwitchSubModelOn(s);
+		D_DrawCutoutSurf(s, pface);
 		if (s->insubmodel) D_SwitchSubModelOff();
 	}
 }

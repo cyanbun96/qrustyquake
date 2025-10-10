@@ -46,8 +46,7 @@ void R_BeginEdgeFrame()
 		surfaces[1].key = 0;
 		r_currentkey = 1;
 	} else {
-		pdrawfunc = r_pass + r_wateralphapass == 1 ?
-			R_GenerateSpansCutout : R_GenerateSpans;
+		pdrawfunc = R_GenerateSpans;
 		surfaces[1].key = 0x7FFFFFFF;
 		r_currentkey = 0;
 	}
@@ -322,30 +321,6 @@ gotposition:
 	}
 }
 
-void R_GenerateSpansCutout() // Generates spans for whole cutout surfaces, from
-{ // the leftmost point of each surface to the rightmost, intentional overdraw
-	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
-		if (!(surfaces[edge->surfs[1]].flags && SURF_DRAWCUTOUT))
-			continue;
-		s32 surfn = edge->surfs[1];
-		s64 left = 0;
-		s64 right = r_refdef.vrectright;
-		for (edge_t *e2=edge_head.next; e2!=&edge_tail; e2=e2->next) {
-			if (e2->surfs[1] == surfn && (e2->u>>20) > left)
-				left = (e2->u>>20);
-			if (e2->surfs[0] == surfn && (e2->u>>20) < right)
-				right = (e2->u>>20);
-		}
-		surf_t *surf = &surfaces[surfn];
-		espan_t *span = span_p++;
-		span->u = left;
-		span->count = right - left;
-		span->v = current_iv;
-		span->pnext = surf->spans;
-		surf->spans = span;
-	}
-}
-
 void R_GenerateSpans()
 {
 	// clear active surfaces to just the background surface
@@ -353,14 +328,35 @@ void R_GenerateSpans()
 	surfaces[1].last_u = edge_head_u_shift20;
 	// generate spans
 	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
-		if (edge->surfs[0]) {
-			// it has a left surface, so a surface is going away for this span
-			surf_t *surf = &surfaces[edge->surfs[0]];
-			R_TrailingEdge(surf, edge);
-			if (!edge->surfs[1])
-				continue;
+		if (surfaces[edge->surfs[1]].flags & SURF_DRAWCUTOUT) {
+		// Generates spans for whole cutout surfaces, from the leftmost
+		// point of each surface to the rightmost, intentional overdraw
+			s32 surfn = edge->surfs[1];
+			s64 left = 0;
+			s64 right = r_refdef.vrectright;
+			for (edge_t *e2=edge_head.next; e2!=&edge_tail; e2=e2->next) {
+				if (e2->surfs[1] == surfn && (e2->u>>20) > left)
+					left = (e2->u>>20);
+				if (e2->surfs[0] == surfn && (e2->u>>20) < right)
+					right = (e2->u>>20);
+			}
+			surf_t *surf = &surfaces[surfn];
+			espan_t *span = span_p++;
+			span->u = left;
+			span->count = right - left;
+			span->v = current_iv;
+			span->pnext = surf->spans;
+			surf->spans = span;
+		} else { // Normal span generation that avoids overdraw
+			if (edge->surfs[0]) {
+				// it has a left surface, so a surface is going away for this span
+				surf_t *surf = &surfaces[edge->surfs[0]];
+				R_TrailingEdge(surf, edge);
+				if (!edge->surfs[1])
+					continue;
+			}
+			R_LeadingEdge(edge);
 		}
-		R_LeadingEdge(edge);
 	}
 	R_CleanupSpan();
 	return;
