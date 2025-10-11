@@ -101,41 +101,6 @@ void InsertLinkAfter(link_t *l, link_t *after)
 	l->next->prev = l;
 }
 
-void Vec_Grow(void **pvec, size_t element_size, size_t count)
-{
-	vec_header_t header;
-	if(*pvec) header = VEC_HEADER(*pvec);
-	else header.size = header.capacity = 0;
-	if(header.size + count > header.capacity) {
-		void *new_buffer;
-		size_t total_size;
-		header.capacity = header.size + count;
-		header.capacity += header.capacity >> 1;
-		if(header.capacity < 16) header.capacity = 16;
-		total_size = sizeof(vec_header_t)+header.capacity*element_size;
-		if(*pvec)
-			new_buffer=realloc(((vec_header_t*)*pvec)-1,total_size);
-		else new_buffer = malloc(total_size);
-		if(!new_buffer)
-			Sys_Error("Vec_Grow: failed to allocate %lu bytes\n",
-					(u64)total_size);
-		*pvec = 1 + (vec_header_t*)new_buffer;
-		VEC_HEADER(*pvec) = header;
-	}
-}
-
-void Vec_Append(void **pvec, size_t element_size, const void *data, size_t count)
-{
-	if(!count) return;
-	Vec_Grow(pvec, element_size, count);
-	memcpy((u8 *)*pvec + VEC_HEADER(*pvec).size * element_size, data, count * element_size);
-	VEC_HEADER(*pvec).size += count;
-}
-
-void Vec_Clear(void **pvec) { if(*pvec) VEC_HEADER(*pvec).size = 0; }
-void Vec_Free(void **pvec){if(*pvec) { free(&VEC_HEADER(*pvec)); *pvec = NULL;}}
-
-
 s32 q_strlcpy(s8 *dst, const s8 *src, size_t siz) // $OpenBSD: q_strlcpy.c,v1.11
 { // Copyright(c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
 	s8 *d = dst;

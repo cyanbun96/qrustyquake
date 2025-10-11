@@ -278,15 +278,15 @@ static void PF_traceline()
 	edict_t *ent = G_EDICT(OFS_PARM3);
 	// FIXME: Why do we hit this with certain progs.dat?
 	if(developer.value){
-		if(IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) ||
-			IS_NAN(v2[0]) || IS_NAN(v2[1]) || IS_NAN(v2[2])){
+		if(isnan(v1[0]) || isnan(v1[1]) || isnan(v1[2]) ||
+			isnan(v2[0]) || isnan(v2[1]) || isnan(v2[2])){
 	printf("NAN in traceline:\nv1(%f %f %f) v2(%f %f %f)\nentity %d\n",
 		v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], NUM_FOR_EDICT(ent));
 		}
 	}
-	if(IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]))
+	if(isnan(v1[0]) || isnan(v1[1]) || isnan(v1[2]))
 		v1[0] = v1[1] = v1[2] = 0;
-	if(IS_NAN(v2[0]) || IS_NAN(v2[1]) || IS_NAN(v2[2]))
+	if(isnan(v2[0]) || isnan(v2[1]) || isnan(v2[2]))
 		v2[0] = v2[1] = v2[2] = 0;
 	trace_t trace = SV_Move(v1,vec3_origin,vec3_origin,v2,nomonsters,ent);
 	pr_global_struct->trace_allsolid = trace.allsolid;
