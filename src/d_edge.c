@@ -222,6 +222,7 @@ void D_DrawSurfacesPass1()
 			if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
 					pface->extents[0], pface->extents[1]);
 			else Con_DPrintf("Broken surface\n");
+			s->spans = NULL;
 			continue;
 		}
 		d_zistepu = s->d_zistepu;
@@ -250,6 +251,13 @@ void D_DrawSurfacesPass1()
 	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
 		if (!s->spans) continue;
 		msurface_t *pface = s->data;
+		if (!pface || !pface->extents[0] || !pface->extents[1]) {
+			if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
+					pface->extents[0], pface->extents[1]);
+			else Con_DPrintf("Broken surface\n");
+			s->spans = NULL;
+			continue;
+		}
 		d_zistepu = s->d_zistepu;
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
