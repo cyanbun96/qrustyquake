@@ -530,7 +530,6 @@ void R_DrawBEntitiesOnList()
 
 void R_EdgeDrawingMultiPass1()
 {
-	r_foundcutouts = r_foundsubmodelcutouts = 0;
 	r_foundtranswater =  r_wateralphapass = 0;
 	r_pass = 0;
 	R_BeginEdgeFrame();
@@ -543,23 +542,6 @@ void R_EdgeDrawingMultiPass1()
 	if(r_dspeeds.value) d_times[4] = Sys_DoubleTime();
 }
 
-void R_EdgeDrawingMultiPass2()
-{
-	r_pass = 1;
-	if(!r_foundcutouts && !r_foundsubmodelcutouts){
-		if(r_dspeeds.value)
-			d_times[5]=d_times[6]=d_times[7]=Sys_DoubleTime();
-		return;
-	}
-	R_BeginEdgeFrame();
-	if(r_dspeeds.value) d_times[5] = Sys_DoubleTime();
-	R_RenderWorld();
-	if(r_dspeeds.value) d_times[6] = Sys_DoubleTime();
-	if(r_foundsubmodelcutouts)R_DrawBEntitiesOnList();
-	if(r_dspeeds.value) d_times[7] = Sys_DoubleTime();
-	R_ScanEdges();
-}
-
 void R_EdgeDrawingMultiPass3()
 {
 	if(!r_foundtranswater || !r_entalpha.value){
@@ -567,7 +549,7 @@ void R_EdgeDrawingMultiPass3()
 			d_times[10]=d_times[11]=d_times[12]=Sys_DoubleTime();
 		return;
 	}
-	r_wateralphapass = 1;
+	r_pass = r_wateralphapass = 1;
 	R_BeginEdgeFrame();
 	if(r_dspeeds.value) d_times[10] = Sys_DoubleTime();
 	R_RenderWorld();
@@ -584,7 +566,6 @@ void R_RenderViewMultiPass()
 	R_SetupFrame();
 	R_MarkLeaves(); // done here so we know if we're in water
 	R_EdgeDrawingMultiPass1();
-	R_EdgeDrawingMultiPass2();
 	if(r_dspeeds.value) d_times[8] = Sys_DoubleTime();
 	R_DrawEntitiesOnList();
 	if(r_dspeeds.value) d_times[9] = Sys_DoubleTime();

@@ -53,7 +53,6 @@ void VID_SetMode(s32 moden, s32 custw, s32 custh, s32 custwinm, u8 *pal);
 void VID_Update();
 void VID_VidSetModeCommand_f();
 EX u8 r_foundtranswater, r_wateralphapass;                           // r_main.c
-EX u8 r_foundcutouts, r_foundsubmodelcutouts;
 EX void *colormap;
 EX bool r_dowarp;
 EX refdef_t r_refdef;

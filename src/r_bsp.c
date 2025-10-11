@@ -190,10 +190,6 @@ void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel)
 	s32 numsurfaces = pmodel->nummodelsurfaces;
 	medge_t *pedges = pmodel->edges;
 	for (s32 i = 0; i < numsurfaces; i++, psurf++) {
-		if(psurf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1){
-			r_foundsubmodelcutouts = 1;
-			return;
-		}
 		mplane_t *pplane = psurf->plane; // find which side of the node we are on
 		vec_t dot = DotProduct(modelorg, pplane->normal) - pplane->dist;
 		// draw the polygon
@@ -237,10 +233,6 @@ void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags)
 	msurface_t *psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
 	s32 numsurfaces = pmodel->nummodelsurfaces;
 	for (s32 i = 0; i < numsurfaces; i++, psurf++) {
-		if (psurf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1) {
-			r_foundsubmodelcutouts = 1;
-			return;
-		}
 		// find which side of the node we are on
 		mplane_t *pplane = psurf->plane;
 		vec_t dot = DotProduct(modelorg, pplane->normal) - pplane->dist;
@@ -318,18 +310,14 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 			msurface_t *surf = cl.worldmodel->surfaces + node->firstsurface;
 			if (dot < -BACKFACE_EPSILON) {
 				do {
-					if (surf->flags&SURF_DRAWCUTOUT) r_foundcutouts = 1;
-					if ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
-						&& !(surf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)) {
+					if ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)) {
 						R_RenderFace(surf, clipflags);
 					}
 					surf++;
 				} while (--c);
 			} else if (dot > BACKFACE_EPSILON) {
 				do {
-					if (surf->flags&SURF_DRAWCUTOUT) r_foundcutouts = 1;
 					if (!(surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
-						&& !(surf->flags&SURF_DRAWCUTOUT&&!r_pass&&(s32)r_twopass.value&1)
 						&& strncmp(surf->texinfo->texture->name, "bal_pureblack", 13)) {
 						// hardcoded texture skip fixes the black sky bottom in ad_tears
 						R_RenderFace(surf, clipflags);

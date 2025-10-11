@@ -427,7 +427,6 @@ void R_ScanEdges()
 			if (r_drawflat.value) D_DrawSurfacesFlat();
 			else if((s32)r_twopass.value&1) {
 				if (r_pass + r_wateralphapass == 0) D_DrawSurfacesPass1();
-				else if (r_pass + r_wateralphapass == 1) D_DrawSurfacesPass2();
 				else if (r_pass + r_wateralphapass == 2) D_DrawSurfacesPass3();
 			}
 			else D_DrawSurfacesPass1();
@@ -452,7 +451,6 @@ void R_ScanEdges()
 	if (r_drawflat.value) D_DrawSurfacesFlat();
 	else if((s32)r_twopass.value&1) {
 		if (r_pass + r_wateralphapass == 0) D_DrawSurfacesPass1();
-		else if (r_pass + r_wateralphapass == 1) D_DrawSurfacesPass2();
 		else if (r_pass + r_wateralphapass == 2) D_DrawSurfacesPass3();
 	}
 	else D_DrawSurfacesPass1();

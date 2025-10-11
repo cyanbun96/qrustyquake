@@ -220,8 +220,6 @@ void R_EmitCachedEdge()
 
 void R_RenderFace(msurface_t *fa, s32 clipflags)
 {
-	if (!(fa->flags&SURF_DRAWCUTOUT) && r_pass==1 && r_wateralphapass==0)
-		return;
 	// Manoel Kasimier - skyboxes - begin
 	// Code taken from the ToChriS engine - Author: Vic
 	// sky surfaces encountered in the world will cause the

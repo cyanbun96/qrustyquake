@@ -261,26 +261,6 @@ void D_DrawSurfacesPass1()
 	}
 }
 
-void D_DrawSurfacesPass2()
-{
-	currententity = &cl_entities[0];
-	TransformVector(modelorg, transformed_modelorg);
-	VectorCopy(transformed_modelorg, world_transformed_modelorg);
-	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
-		if (!s->spans) continue;
-		msurface_t *pface = s->data;
-		d_zistepu = s->d_zistepu;
-		d_zistepv = s->d_zistepv;
-		d_ziorigin = s->d_ziorigin;
-		if(!(s->flags&SURF_DRAWCUTOUT)) continue;
-		miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
-				* pface->texinfo->mipadjust);
-		if (s->insubmodel) D_SwitchSubModelOn(s);
-		D_DrawCutoutSurf(s, pface);
-		if (s->insubmodel) D_SwitchSubModelOff();
-	}
-}
-
 void D_DrawSurfacesPass3()
 {
 	currententity = &cl_entities[0];
