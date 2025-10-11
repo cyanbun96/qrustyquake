@@ -114,8 +114,8 @@ void R_Init()
 		view_clipplanes[3].leftedge = 0;
 	view_clipplanes[0].rightedge = view_clipplanes[2].rightedge =
 		view_clipplanes[3].rightedge = 0;
-	r_refdef.xOrigin = XCENTERING;
-	r_refdef.yOrigin = YCENTERING;
+	r_refdef.xOrigin = 0.5;
+	r_refdef.yOrigin = 0.5;
 	R_InitParticles();
 	D_Init();
 	Sky_Init();
@@ -236,9 +236,9 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	// the polygon rasterization will never render in the first row or 
 	// column but will definately render in the [range] row and column, so
 	// adjust the buffer origin to get an exact edge to edge fill
-	xcenter = ((f32)r_refdef.vrect.width*XCENTERING)+r_refdef.vrect.x-0.5;
+	xcenter = ((f32)r_refdef.vrect.width*0.5)+r_refdef.vrect.x-0.5;
 	aliasxcenter = xcenter;
-	ycenter = ((f32)r_refdef.vrect.height*YCENTERING)+r_refdef.vrect.y-0.5;
+	ycenter = ((f32)r_refdef.vrect.height*0.5)+r_refdef.vrect.y-0.5;
 	aliasycenter = ycenter;
 	xscale = r_refdef.vrect.width / r_refdef.horizontalFieldOfView;
 	aliasxscale = xscale;
