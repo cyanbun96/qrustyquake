@@ -259,7 +259,7 @@ void Turbulent8(espan_t *pspan, f32 opacity)
 			}
 			r_turb_s = r_turb_s & ((CYCLE << 16) - 1);
 			r_turb_t = r_turb_t & ((CYCLE << 16) - 1);
-			if (r_wateralphapass)
+			if (r_alphapass)
 				D_DrawTurbulent8SpanAlpha(opacity);
 			else
 				D_DrawTurbulent8Span();

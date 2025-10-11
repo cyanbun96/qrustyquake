@@ -6,7 +6,6 @@ static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 verticalFieldOfView;
 static f32 xOrigin, yOrigin;
 static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
-void R_InitTurb();
 
 void R_InitTextures()
 { // create a simple checkerboard texture for the default
@@ -30,12 +29,20 @@ void R_InitTextures()
 	}
 }
 
+void R_InitTurb()
+{
+	for(s32 i = 0; i < (SIN_BUFFER_SIZE); i++){
+		sintable[i] = AMP + sin(i * 3.14159 * 2 / CYCLE) * AMP;
+		intsintable[i] = AMP2 + sin(i * 3.14159 * 2 / CYCLE) * AMP2;
+	}
+	r_warpbuffer = warpbuffer;
+}
+
 void R_ViewChangedCallback(SDL_UNUSED cvar_t*cvar)
 { R_ViewChanged(&r_refdef.vrect, sb_lines, pixelAspect); }
 
 void R_Init()
 {
-	R_InitTurb();
 	Cmd_AddCommand("timerefresh", R_TimeRefresh_f);
 	Cmd_AddCommand("pointfile", R_ReadPointFile_f);
 	Cmd_AddCommand("fog", Fog_FogCommand_f);
@@ -63,7 +70,6 @@ void R_Init()
 	Cvar_RegisterVariable(&r_slimealpha);
 	Cvar_RegisterVariable(&r_lavaalpha);
 	Cvar_RegisterVariable(&r_telealpha);
-	Cvar_RegisterVariable(&r_twopass);
 	Cvar_RegisterVariable(&r_fogstyle);
 	Cvar_RegisterVariable(&r_nofog);
 	Cvar_RegisterVariable(&r_alphastyle);
@@ -116,6 +122,7 @@ void R_Init()
 		view_clipplanes[3].rightedge = 0;
 	r_refdef.xOrigin = 0.5;
 	r_refdef.yOrigin = 0.5;
+	R_InitTurb();
 	R_InitParticles();
 	D_Init();
 	Sky_Init();
@@ -449,11 +456,11 @@ void R_DrawBEntitiesOnList()
 		switch(currententity->model->type){
 		case mod_brush:
 			if(r_entalpha.value == 1){
-				if(!r_wateralphapass && currententity->alpha){
+				if(!r_alphapass && currententity->alpha){
 					r_foundtranswater = 1;
 					continue;
 				}
-				if(r_wateralphapass)
+				if(r_alphapass)
 					cur_ent_alpha = currententity->alpha ?
 						(f32)currententity->alpha/255 : 1;
 			}
@@ -528,10 +535,9 @@ void R_DrawBEntitiesOnList()
 	cur_ent_alpha = 1;
 }
 
-void R_EdgeDrawingMultiPass1()
+void R_EdgeDrawing()
 {
-	r_foundtranswater =  r_wateralphapass = 0;
-	r_pass = 0;
+	r_foundtranswater =  r_alphapass = 0;
 	R_BeginEdgeFrame();
 	if(r_dspeeds.value) d_times[1] = Sys_DoubleTime();
 	R_RenderWorld();
@@ -542,84 +548,42 @@ void R_EdgeDrawingMultiPass1()
 	if(r_dspeeds.value) d_times[4] = Sys_DoubleTime();
 }
 
-void R_EdgeDrawingMultiPass3()
+void R_EdgeDrawingAlpha()
 {
 	if(!r_foundtranswater || !r_entalpha.value){
 		if(r_dspeeds.value)
-			d_times[10]=d_times[11]=d_times[12]=Sys_DoubleTime();
+			d_times[7]=d_times[8]=d_times[9]=Sys_DoubleTime();
 		return;
 	}
-	r_pass = r_wateralphapass = 1;
+	r_alphapass = 1;
 	R_BeginEdgeFrame();
-	if(r_dspeeds.value) d_times[10] = Sys_DoubleTime();
-	R_RenderWorld();
-	if(r_dspeeds.value) d_times[11] = Sys_DoubleTime();
-	R_DrawBEntitiesOnList();
-	if(r_dspeeds.value) d_times[12] = Sys_DoubleTime();
-	R_ScanEdges();
-}
-
-void R_RenderViewMultiPass()
-{
-	if(r_timegraph.value || r_speeds.value || r_dspeeds.value)
-		d_times[0] = Sys_DoubleTime();
-	R_SetupFrame();
-	R_MarkLeaves(); // done here so we know if we're in water
-	R_EdgeDrawingMultiPass1();
-	if(r_dspeeds.value) d_times[8] = Sys_DoubleTime();
-	R_DrawEntitiesOnList();
-	if(r_dspeeds.value) d_times[9] = Sys_DoubleTime();
-	R_EdgeDrawingMultiPass3();
-	if(r_dspeeds.value) d_times[13] = Sys_DoubleTime();
-	R_DrawViewModel();
-	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
-	R_DrawParticles();
-	if(r_dspeeds.value) d_times[15] = Sys_DoubleTime();
-	if(r_dowarp) D_WarpScreen();
-	if(r_dspeeds.value) d_times[16] = Sys_DoubleTime();
-        if(fog_density < 1) R_DrawFog();
-	if(r_dspeeds.value) d_times[17] = Sys_DoubleTime();
-	V_SetContentsColor(r_viewleaf->contents);
-}
-
-void R_EdgeDrawingSinglePass()
-{
-	r_foundtranswater =  r_wateralphapass = r_pass = 0;
-	R_BeginEdgeFrame();
-	if(r_dspeeds.value) d_times[1] = Sys_DoubleTime();
-	R_RenderWorld();
-	if(r_dspeeds.value) d_times[2] = Sys_DoubleTime();
-	R_DrawBEntitiesOnList();
-	if(r_dspeeds.value) d_times[3] = Sys_DoubleTime();
-	R_ScanEdges();
-}
-
-void R_RenderViewSinglePass()
-{
-	if(r_timegraph.value || r_speeds.value || r_dspeeds.value)
-		d_times[0] = Sys_DoubleTime();
-	R_SetupFrame();
-	R_MarkLeaves(); // done here so we know if we're in water
-	R_EdgeDrawingSinglePass();
-	if(r_dspeeds.value) d_times[4] = Sys_DoubleTime();
-	R_DrawEntitiesOnList();
-	if(r_dspeeds.value) d_times[5] = Sys_DoubleTime();
-	R_DrawViewModel();
-	if(r_dspeeds.value) d_times[6] = Sys_DoubleTime();
-	R_DrawParticles();
 	if(r_dspeeds.value) d_times[7] = Sys_DoubleTime();
-	if(r_dowarp) D_WarpScreen();
+	R_RenderWorld();
 	if(r_dspeeds.value) d_times[8] = Sys_DoubleTime();
-        if(fog_density < 1) R_DrawFog();
+	R_DrawBEntitiesOnList();
 	if(r_dspeeds.value) d_times[9] = Sys_DoubleTime();
-	V_SetContentsColor(r_viewleaf->contents);
+	R_ScanEdges();
 }
 
-void R_InitTurb()
+void R_RenderView()
 {
-	for(s32 i = 0; i < (SIN_BUFFER_SIZE); i++){
-		sintable[i] = AMP + sin(i * 3.14159 * 2 / CYCLE) * AMP;
-		intsintable[i] = AMP2 + sin(i * 3.14159 * 2 / CYCLE) * AMP2;
-	}
-	r_warpbuffer = warpbuffer;
+	if(r_timegraph.value || r_speeds.value || r_dspeeds.value)
+		d_times[0] = Sys_DoubleTime();
+	R_SetupFrame();
+	R_MarkLeaves(); // done here so we know if we're in water
+	R_EdgeDrawing();
+	if(r_dspeeds.value) d_times[5] = Sys_DoubleTime();
+	R_DrawEntitiesOnList();
+	if(r_dspeeds.value) d_times[6] = Sys_DoubleTime();
+	R_EdgeDrawingAlpha();
+	if(r_dspeeds.value) d_times[10] = Sys_DoubleTime();
+	R_DrawViewModel();
+	if(r_dspeeds.value) d_times[11] = Sys_DoubleTime();
+	R_DrawParticles();
+	if(r_dspeeds.value) d_times[12] = Sys_DoubleTime();
+	if(r_dowarp) D_WarpScreen();
+	if(r_dspeeds.value) d_times[13] = Sys_DoubleTime();
+        if(fog_density < 1) R_DrawFog();
+	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
+	V_SetContentsColor(r_viewleaf->contents);
 }

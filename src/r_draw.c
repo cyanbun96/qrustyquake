@@ -229,7 +229,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 		return;
 	}
 	// Manoel Kasimier - skyboxes - end
-	if ((s32)r_twopass.value&1 && fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT) {
+	if (fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT) {
 		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(fa->flags);
 		if (r_litwater.value) winquake_surface_liquid_alpha = 0.5; // FIXME properly
 	} else if (cur_ent_alpha < 1 && r_entalpha.value == 1)
@@ -239,9 +239,9 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
         if (!winquake_surface_liquid_alpha)
                 return;
         // Baker: If this is the alpha water pass and we aren't alpha water, get out!
-        if (r_wateralphapass && winquake_surface_liquid_alpha == 1)
+        if (r_alphapass && winquake_surface_liquid_alpha == 1)
                 return;
-        if (!r_wateralphapass && winquake_surface_liquid_alpha < 1) {
+        if (!r_alphapass && winquake_surface_liquid_alpha < 1) {
                 r_foundtranswater = 1;
                 return;
         }

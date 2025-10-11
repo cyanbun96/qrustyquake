@@ -102,8 +102,7 @@ void R_TimeRefresh_f()
 	f32 start = Sys_DoubleTime();
 	for (s32 i = 0; i < 128; i++) {
 		r_refdef.viewangles[1] = i / 128.0 * 360.0;
-		if((s32)r_twopass.value&1) R_RenderViewMultiPass();
-		else R_RenderViewSinglePass();
+		R_RenderView();
 		VID_Update();
 	}
 	f32 stop = Sys_DoubleTime();
@@ -171,16 +170,13 @@ void R_PrintDSpeeds()
 {
 	f64 t[17] = {0};
 	f64 r_time2 = Sys_DoubleTime();
-	for(s32 i = 0; i < ((s32)r_twopass.value&1?17:9); i++)
+	for(s32 i = 0; i < 14; i++)
 		t[i] = (d_times[i+1] - d_times[i]) * 1000000;
 	f64 tot = (r_time2 - d_times[0]) * 1000000;
-	if((s32)r_twopass.value&1){
-		Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f\n"
-			,tot,t[0],t[1],t[2],t[3], t[4], t[5], t[6], t[7], t[8]);
-		Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f\n",
-			t[9], t[10], t[11], t[12], t[13], t[14], t[15], t[16]);
-	}else Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f %0.f\n",
-		tot, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7], t[8]);
+	Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f\n"
+		,tot,t[0],t[1],t[2],t[3], t[4], t[5], t[6], t[7]);
+	Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f\n",
+		t[8], t[9], t[10], t[11], t[12], t[13], t[14]);
 }
 
 void R_PrintAliasStats()

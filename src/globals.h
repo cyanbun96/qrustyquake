@@ -52,7 +52,7 @@ void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_SetMode(s32 moden, s32 custw, s32 custh, s32 custwinm, u8 *pal);
 void VID_Update();
 void VID_VidSetModeCommand_f();
-EX u8 r_foundtranswater, r_wateralphapass;                           // r_main.c
+EX u8 r_foundtranswater, r_alphapass;                                // r_main.c
 EX void *colormap;
 EX bool r_dowarp;
 EX refdef_t r_refdef;
@@ -212,8 +212,7 @@ void SwapPic(qpic_t *pic);
 EX vec3_t r_origin, vpn, vright, vup;                                // render.h
 void R_Init();
 void R_InitTextures();
-void R_RenderViewMultiPass();
-void R_RenderViewSinglePass();
+void R_RenderView();
 void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect);
 void R_InitSky(struct texture_s *mt);
 void R_AddEfrags(entity_t *ent);
@@ -252,8 +251,8 @@ void D_ViewChanged();
 void D_SetupFrame();
 void D_WarpScreen();
 void R_DrawSurface();
-void D_DrawSurfacesPass1();
-void D_DrawSurfacesPass2();
+void D_DrawSurfaces();
+void D_DrawSurfacesAlpha();
 void D_DrawSurfacesPass3();
 void D_PolysetUpdateTables();
 EX s32 cachewidth;                                                 // r_shared.h
@@ -455,7 +454,7 @@ EX f32 r_aliastransition, r_resfudge;
 EX s32 r_outofsurfaces;
 EX s32 r_outofedges;
 EX mvertex_t *r_pcurrentvertbase;
-EX f64 d_times[32];
+EX f64 d_times[15];
 EX s32 r_maxsurfsseen, r_maxedgesseen;
 EX bool r_dowarpold, r_viewchanged;
 EX mleaf_t *r_viewleaf, *r_oldviewleaf;
@@ -464,7 +463,6 @@ EX mnode_t *r_pefragtopnode;
 EX s32 r_clipflags;
 EX s32 r_dlightframecount;
 EX bool r_fov_greater_than_90;
-EX s32 r_pass;
 void R_DrawSprite();
 void R_RenderFace(msurface_t *fa, s32 clipflags);
 void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf);

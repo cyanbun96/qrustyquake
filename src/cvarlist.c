@@ -32,7 +32,6 @@ cvar_t r_wateralpha=                                {"r_wateralpha", "1", 1,ZR};
 cvar_t r_slimealpha=                                {"r_slimealpha", "1", 1,ZR};
 cvar_t r_lavaalpha=                                  {"r_lavaalpha", "1", 1,ZR};
 cvar_t r_telealpha=                                  {"r_telealpha", "1", 1,ZR};
-cvar_t r_twopass=                                      {"r_twopass", "1", 1,ZR};
 cvar_t r_fogstyle=                                    {"r_fogstyle", "3", 1,ZR};
 cvar_t r_nofog=                                          {"r_nofog", "0", 1,ZR};
 cvar_t r_lockfog=                                     {"r_lockfog", "0", 1, ZR};

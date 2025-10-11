@@ -649,7 +649,6 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	      Con_DPrintf("%i faces exceeds standard limit of 32767.\n", count);
 	loadmodel->surfaces = out;
 	loadmodel->numsurfaces = count;
-	s32 foundcutouts = 0;
 	for(s32 surfnum = 0; surfnum < count; surfnum++, out++) {
 		if(bsp2) {
 			out->firstedge = LittleLong(inl->firstedge);
@@ -710,15 +709,10 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 			}
 		} else if(out->texinfo->texture->name[0] == '{'){//ericw--fence
 			out->flags |= SURF_DRAWCUTOUT;
-			foundcutouts = 1;
 		} else if(out->texinfo->flags & TEX_MISSING){// missing from bsp
 			if(out->samples)out->flags|=SURF_NOTEXTURE;//lightmapped
 			else out->flags|=(SURF_NOTEXTURE|SURF_DRAWTILED);//not.
 		}
-	}
-	if(r_twopass.value < 2 && !strcmp(loadmodel->name, sv.modelname)){
-		if(foundcutouts) Cvar_SetValue("r_twopass", 1);
-		else Cvar_SetValue("r_twopass", 0);
 	}
 
 }

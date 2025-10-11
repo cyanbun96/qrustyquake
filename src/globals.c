@@ -29,8 +29,7 @@ f64 vid_testendtime;
 u8 vid_curpal[256 * 3];
 viddef_t vid; // global video state
 s32 fadescreen;
-u8 r_foundtranswater, r_wateralphapass;                              // r_main.c
-s32 r_pass; // CyanBun96: 1 - cutout textures 0 - everything else
+u8 r_foundtranswater, r_alphapass;                                   // r_main.c
 void *colormap;
 s32 r_outofsurfaces;
 s32 r_outofedges;
@@ -62,7 +61,7 @@ mleaf_t *r_viewleaf, *r_oldviewleaf;
 texture_t *r_notexture_mip;
 f32 r_aliastransition, r_resfudge;
 s32 d_lightstylevalue[256]; // 8.8 fraction of base light value
-f64 d_times[32];
+f64 d_times[15];
 s32 colored_aliaslight;
 f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
 f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;

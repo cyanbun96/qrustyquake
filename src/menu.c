@@ -1705,19 +1705,15 @@ void M_Graphics_Key(s32 k)
 			!r_litwater.value); break;
 		case 402: Cvar_SetValue("r_labmixpal",
 			!r_labmixpal.value); break;
-		case 500: Cvar_SetValue("r_twopass",
-			r_twopass.value <= 0 ? 3 : r_twopass.value - 1);
-			  Cvar_SetValue("r_entalpha",
-			((s32)r_twopass.value)&1); break;
-		case 501: Cvar_SetValue("r_alphastyle",
+		case 500: Cvar_SetValue("r_alphastyle",
 			!r_alphastyle.value); break;
-		case 502: Cvar_SetValue("r_wateralpha",
+		case 501: Cvar_SetValue("r_wateralpha",
 			CLAMP(0, r_wateralpha.value - 0.1, 1)); break;
-		case 503: Cvar_SetValue("r_slimealpha",
+		case 502: Cvar_SetValue("r_slimealpha",
 			CLAMP(0, r_slimealpha.value - 0.1, 1)); break;
-		case 504: Cvar_SetValue("r_lavaalpha",
+		case 503: Cvar_SetValue("r_lavaalpha",
 			CLAMP(0, r_lavaalpha.value - 0.1, 1)); break;
-		case 505: Cvar_SetValue("r_telealpha",
+		case 504: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value - 0.1, 1)); break;
 		case 601: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value - 1, 3)); break;
@@ -1744,7 +1740,6 @@ void M_Graphics_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		if (graphics_cursor == 0) {
-			Cvar_SetValue("r_twopass", 3);
 			Cvar_SetValue("r_nofog", 0);
 			Cvar_SetValue("r_entalpha", 1);
 			Cvar_SetValue("r_litwater", 1);
@@ -1760,7 +1755,6 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("r_rebuildmips", 1);
 			Cvar_SetValue("r_mipscale", 3);
 		} else if (graphics_cursor == 1) {
-			Cvar_SetValue("r_twopass", 2);
 			Cvar_SetValue("r_nofog", 1);
 			Cvar_SetValue("r_entalpha", 0);
 			Cvar_SetValue("r_litwater", 0);
@@ -1811,19 +1805,15 @@ void M_Graphics_Key(s32 k)
 			!r_litwater.value); break;
 		case 402: Cvar_SetValue("r_labmixpal",
 			!r_labmixpal.value); break;
-		case 500: Cvar_SetValue("r_twopass",
-			r_twopass.value > 2 ? 0 : r_twopass.value + 1);
-			  Cvar_SetValue("r_entalpha",
-			((s32)r_twopass.value)&1); break;
-		case 501: Cvar_SetValue("r_alphastyle",
+		case 500: Cvar_SetValue("r_alphastyle",
 			!r_alphastyle.value); break;
-		case 502: Cvar_SetValue("r_wateralpha",
+		case 501: Cvar_SetValue("r_wateralpha",
 			CLAMP(0, r_wateralpha.value + 0.1, 1)); break;
-		case 503: Cvar_SetValue("r_slimealpha",
+		case 502: Cvar_SetValue("r_slimealpha",
 			CLAMP(0, r_slimealpha.value + 0.1, 1)); break;
-		case 504: Cvar_SetValue("r_lavaalpha",
+		case 503: Cvar_SetValue("r_lavaalpha",
 			CLAMP(0, r_lavaalpha.value + 0.1, 1)); break;
-		case 505: Cvar_SetValue("r_telealpha",
+		case 504: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value + 0.1, 1)); break;
 		case 601: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value + 1, 3)); break;
@@ -1865,7 +1855,7 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor = 207;
 		}else if(graphics_cursor == 300) graphics_cursor = 301;
 		else if (graphics_cursor == 400) graphics_cursor = 402;
-		else if (graphics_cursor == 500) graphics_cursor = 505;
+		else if (graphics_cursor == 500) graphics_cursor = 504;
 		else if (graphics_cursor == 600) graphics_cursor = 607;
 		else if (graphics_cursor == 700) graphics_cursor = 703;
 		else graphics_cursor--;
@@ -1890,7 +1880,7 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 402) graphics_cursor = 400;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 600) {
-			if (graphics_cursor == 505) graphics_cursor = 500;
+			if (graphics_cursor == 504) graphics_cursor = 500;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 700) {
 			if (graphics_cursor == 607) graphics_cursor = 600;
@@ -2003,25 +1993,20 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Color Space:");
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
 	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
-		M_Print(xoffset, 32, "Enabled:");
-		if (r_twopass.value == 0)M_Print(xoffset+72, 32, "Off (Auto)");
-		else if(r_twopass.value==1)M_Print(xoffset+72, 32, "On (Auto)");
-		else if(r_twopass.value==2)M_Print(xoffset+72, 32, "Off");
-		else M_Print(xoffset + 72, 32, "On");
-		M_Print(xoffset, 40, "Style:");
-		M_Print(xoffset+x2, 40, r_alphastyle.value==1?"Dither":"Blend");
-		M_Print(xoffset, 48, "Water Alpha:");
+		M_Print(xoffset, 32, "Style:");
+		M_Print(xoffset+x2, 32, r_alphastyle.value==1?"Dither":"Blend");
+		M_Print(xoffset, 40, "Water Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_wateralpha.value);
-		M_Print(xoffset + x2, 48, temp);
-		M_Print(xoffset, 56, "Slime Alpha:");
+		M_Print(xoffset + x2, 40, temp);
+		M_Print(xoffset, 48, "Slime Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_slimealpha.value);
-		M_Print(xoffset + x2, 56, temp);
-		M_Print(xoffset, 64, "Lava Alpha:");
+		M_Print(xoffset + x2, 48, temp);
+		M_Print(xoffset, 56, "Lava Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_lavaalpha.value);
-		M_Print(xoffset + x2, 64, temp);
-		M_Print(xoffset, 72, "Tele Alpha:");
+		M_Print(xoffset + x2, 56, temp);
+		M_Print(xoffset, 64, "Tele Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_telealpha.value);
-		M_Print(xoffset + x2, 72, temp);
+		M_Print(xoffset + x2, 64, temp);
 	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
 		x2 += 16;
 		M_Print(xoffset, 32, "World:");

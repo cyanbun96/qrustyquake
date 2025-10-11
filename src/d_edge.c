@@ -127,7 +127,7 @@ static void D_DrawUnlitWater(surf_t *s, msurface_t *pface)
 	else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 		opacity -= R_LiquidAlphaForFlags(s->flags);
 	Turbulent8(s->spans, opacity);
-	if (!r_wateralphapass) D_DrawZSpans(s->spans);
+	if (!r_alphapass) D_DrawZSpans(s->spans);
 }
 
 static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
@@ -160,7 +160,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface)
 	else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 		opacity -= R_LiquidAlphaForFlags(s->flags);
 	Turbulent8(s->spans, opacity);
-	if (!r_wateralphapass) D_DrawZSpans(s->spans);
+	if (!r_alphapass) D_DrawZSpans(s->spans);
 	lmonly = 0;
 }
 
@@ -204,7 +204,7 @@ static void D_SwitchSubModelOff()
 	R_TransformFrustum();
 }
 
-void D_DrawSurfacesPass1()
+void D_DrawSurfaces()
 {
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
@@ -237,8 +237,8 @@ void D_DrawSurfacesPass1()
 			D_DrawSky(s);
 		} else if (s->flags & SURF_DRAWSKYBOX) {
 			D_DrawSkybox(s, pface);
-		} else if (s->flags & SURF_DRAWTURB && (!s->entity->model->haslitwater
-					|| !r_litwater.value || !((s32)r_twopass.value&1))) {
+		} else if (s->flags & SURF_DRAWTURB &&
+			(!s->entity->model->haslitwater || !r_litwater.value)) {
 			D_DrawUnlitWater(s, pface);
 		} else if (s->flags & SURF_DRAWCUTOUT) {
 			foundcutouts = 1;
@@ -269,7 +269,7 @@ void D_DrawSurfacesPass1()
 	}
 }
 
-void D_DrawSurfacesPass3()
+void D_DrawSurfacesAlpha()
 {
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
