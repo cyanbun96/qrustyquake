@@ -450,9 +450,9 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 	else R_RenderViewSinglePass();
 	if(r_dspeeds.value) R_PrintDSpeeds();
 	if(r_reportsurfout.value && r_outofsurfaces)
-		Con_Printf("s16 %d surfaces\n", r_outofsurfaces);
+		Con_Printf("short %d surfaces\n", r_outofsurfaces);
 	if(r_reportedgeout.value && r_outofedges)
-		Con_Printf("s16 roughly %d edges\n", r_outofedges * 2 / 3);
+		Con_Printf("short roughly %d edges\n", r_outofedges * 2 / 3);
 	if(!crosshair.value) return;
 	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
