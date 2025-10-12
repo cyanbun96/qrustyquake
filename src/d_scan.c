@@ -374,8 +374,7 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 					s += sstep;
 					t += tstep;
 				} while (--spancount > 0);
-			}
-			if (type == SPAN_CUTOUT) {
+			} else if (type == SPAN_CUTOUT) {
 				do {
 					if (*pz <= (izi >> 16)) {
 						u8 pix = *(pbase + (s >> 16) +
@@ -392,8 +391,7 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 					s += sstep;
 					t += tstep;
 				} while (--spancount > 0);
-			}
-			else if (type == SPAN_SKYBOX) {
+			} else if (type == SPAN_SKYBOX) {
 				s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
 				do {
 					u8 pix = *(pbase + (s >> 16) +
@@ -405,8 +403,7 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 					s += sstep;
 					t += tstep;
 				} while (--spancount > 0);
-			}
-			else if (type == SPAN_TRANS) {
+			} else if (type == SPAN_TRANS) {
 				s32 foglut = opacity*FOG_LUT_LEVELS;
 				if (r_alphastyle.value == 0) {
 					if (!fog_lut_built)
