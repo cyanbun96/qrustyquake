@@ -255,7 +255,7 @@ void D_DrawSurfaces();
 void D_DrawSurfacesAlpha();
 void D_DrawSurfacesPass3();
 void D_PolysetUpdateTables();
-EX s32 cachewidth;                                                 // r_shared.h
+EX s32 cachewidth, cacheheight;                                    // r_shared.h
 EX u8 *cacheblock;
 EX f32 pixelAspect;
 EX s32 r_drawnpolycount;

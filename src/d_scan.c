@@ -367,8 +367,47 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 			}
 			if (type == SPAN_NORMAL) {
 				do {
+					/*
+					// CyanBun96: this is a working implementation of bilinear texture filtering. Don't use. 
+					int sx = s >> 16;
+					int sy = t >> 16;
+					int fracx = (s >> 8) & 0xFF;
+					int fracy = (t >> 8) & 0xFF;
+
+					// clamp to prevent out-of-bounds
+					if (sx < 0) sx = 0;
+					if (sy < 0) sy = 0;
+					if (sx >= cachewidth - 1) { sx = cachewidth - 2; fracx = 255; }
+					if (sy >= cacheheight - 1) { sy = cacheheight - 2; fracy = 255; }
+
+					u8 *row0 = pbase + sy * cachewidth;
+					u8 *row1 = row0 + cachewidth;
+
+					u8 i00 = row0[sx];
+					u8 i10 = row0[sx + 1];
+					u8 i01 = row1[sx];
+					u8 i11 = row1[sx + 1];
+
+					int lutx = fracx >> 3;   // 0..31 to fit in FOG_LUT_LEVELS
+					int luty = fracy >> 3;   // 0..31
+
+					if (!fog_lut_built)
+						build_color_mix_lut(0);
+
+					// horizontal blends
+					u8 top = color_mix_lut[i00][i10][lutx];
+					u8 bot = color_mix_lut[i01][i11][lutx];
+
+					// vertical blend
+					u8 result = color_mix_lut[top][bot][luty];
+
+					*pdest = result;
+					pdest++;
+					s += sstep;
+					t += tstep;
+					*/
 					u8 pix = *(pbase + (s >> 16) +
-						(t >> 16) * cachewidth);
+							(t >> 16) * cachewidth);
 					*pdest = pix;
 					pdest++;
 					s += sstep;

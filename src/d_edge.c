@@ -95,6 +95,7 @@ static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 	extern u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];
 	cacheblock = (u8 *)(r_skypixels[pface->texinfo->texture->offsets[0]]);
 	cachewidth = pface->texinfo->texture->width;
+	cacheheight = pface->texinfo->texture->height;
 	d_zistepu = s->d_zistepu;
 	d_zistepv = s->d_zistepv;
 	d_ziorigin = s->d_ziorigin;
@@ -120,6 +121,7 @@ static void D_DrawUnlitWater(surf_t *s, msurface_t *pface)
 { // Manoel Kasimier
 	cacheblock = (u8 *) ((u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0]);
 	cachewidth = 64;
+	cacheheight = 64;
 	D_CalcGradients(pface);
 	f32 opacity = 1;
 	if (s->entity && s->entity->alpha && r_entalpha.value == 1)
@@ -135,6 +137,7 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
+	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
 	f32 opacity = 1 - (f32)s->entity->alpha / 255;
 	D_DrawSpans(s->spans, SPAN_TRANS, opacity);
@@ -148,11 +151,13 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface)
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
+	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
 	D_DrawSpans(s->spans, SPAN_NORMAL, 0); // draw the lightmap to a separate buffer
 	miplevel = 0;
 	cacheblock = (u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0];
 	cachewidth = 64;
+	cacheheight = 64;
 	D_CalcGradients(pface);
 	f32 opacity = 1;
 	if (s->entity && s->entity->alpha && r_entalpha.value == 1)
@@ -169,6 +174,7 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
+	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
 	D_DrawSpans(s->spans, SPAN_CUTOUT, 0);
 	D_DrawZSpansTrans(s->spans);
@@ -179,6 +185,7 @@ static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
+	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
 	D_DrawSpans(s->spans, SPAN_NORMAL, 0);
 	D_DrawZSpans(s->spans);
