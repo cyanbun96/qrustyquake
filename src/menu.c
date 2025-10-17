@@ -1735,6 +1735,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
 		case 703: Cvar_SetValue("r_rebuildmips",
 			!r_rebuildmips.value); break;
+		case 704: Cvar_SetValue("r_dithertex",
+			!r_dithertex.value); break;
 		}
 		break;
 	case K_RIGHTARROW:
@@ -1844,6 +1846,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
 		case 703: Cvar_SetValue("r_rebuildmips",
 			!r_rebuildmips.value); break;
+		case 704: Cvar_SetValue("r_dithertex",
+			!r_dithertex.value); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
@@ -1857,7 +1861,7 @@ void M_Graphics_Key(s32 k)
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) graphics_cursor = 504;
 		else if (graphics_cursor == 600) graphics_cursor = 607;
-		else if (graphics_cursor == 700) graphics_cursor = 703;
+		else if (graphics_cursor == 700) graphics_cursor = 704;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
@@ -1886,7 +1890,7 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 607) graphics_cursor = 600;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 800) {
-			if (graphics_cursor == 703) graphics_cursor = 700;
+			if (graphics_cursor == 704) graphics_cursor = 700;
 			else graphics_cursor++;
 		}
 		break;
@@ -2047,6 +2051,8 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Menu BG Style:");
 		M_Print(xoffset, 56, "Rebuild Mipmaps:");
 		M_Print(xoffset + x2, 56, !r_rebuildmips.value?" Off":" On");
+		M_Print(xoffset, 64, "Textures:");
+		M_Print(xoffset+80, 64, r_dithertex.value?"Dithered":"Default");
 		if (graphics_cursor == 703) {
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "  Enable if you see pink around");
