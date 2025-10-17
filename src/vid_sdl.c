@@ -350,12 +350,12 @@ void VID_AllocBuffers()
 	s32 cachesize = D_SurfaceCacheForRes(vid.width, vid.height);
 	chunk += cachesize;
 	if(litwater_base){
-		D_FlushCaches();
+		D_FlushCaches(0);
 		Hunk_FreeToHighMark(lwmark);
 		litwater_base = NULL;
 	}
 	if(d_pzbuffer){
-		D_FlushCaches();
+		D_FlushCaches(0);
 		Hunk_FreeToHighMark(VID_highhunkmark);
 		d_pzbuffer = NULL;
 	}

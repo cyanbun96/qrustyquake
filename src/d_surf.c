@@ -38,7 +38,7 @@ void D_InitCaches(void *buffer, s32 size)
 	D_ClearCacheGuard();
 }
 
-void D_FlushCaches()
+void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 {
 	surfcache_t *c;
 	if (!sc_base)

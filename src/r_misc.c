@@ -92,7 +92,7 @@ void R_CheckVariables()
 	static f32 oldbright;
 	if (r_fullbright.value != oldbright) {
 		oldbright = r_fullbright.value;
-		D_FlushCaches(); // so all lighting changes
+		D_FlushCaches(0); // so all lighting changes
 	}
 }
 

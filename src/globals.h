@@ -229,7 +229,7 @@ void R_LavaSplash(vec3_t org);
 void R_TeleportSplash(vec3_t org);
 void R_PushDlights();
 s32 D_SurfaceCacheForRes(s32 width, s32 height);
-void D_FlushCaches();
+void D_FlushCaches(SDL_UNUSED cvar_t *cvar);
 void D_InitCaches(void *buffer, s32 size);
 void R_SetVrect(vrect_t *pvrect, vrect_t *pvrectin, s32 lineadj);
 EX affinetridesc_t r_affinetridesc;                                 // d_iface.h

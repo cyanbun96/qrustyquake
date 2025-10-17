@@ -257,7 +257,7 @@ Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
 void Host_ClearMemory() // This clears all the memory used by both the client
 { // and server, but does not reinitialize anything.
 	Con_DPrintf("Clearing memory\n");
-	D_FlushCaches();
+	D_FlushCaches(0);
 	Mod_ClearAll();
 	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
 	cls.signon = 0;
