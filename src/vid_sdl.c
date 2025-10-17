@@ -113,6 +113,18 @@ void VID_SetBorderless()
 	SDL_SetWindowFullscreen(window, 1);
 }
 
+void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
+{
+	if(vid.width / 320 >= scr_uiscale.value && scr_uiscale.value > 0){
+		uiscale = scr_uiscale.value;
+		vid.recalc_refdef = 1;
+	} else {
+		Con_Printf("Invalid UI scale value %d\n", (s32)scr_uiscale.value);
+		Con_Printf("Max %d for current resolution\n", vid.width/320);
+		Cvar_SetValue("scr_uiscale", uiscale);
+	}
+}
+
 void VID_Init(SDL_UNUSED u8 *palette)
 {
 	s32 pnum;
@@ -133,6 +145,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	Cvar_SetCallback(&aspectr, vid_callback);
 	Cvar_SetCallback(&realwidth, vid_callback);
 	Cvar_SetCallback(&realheight, vid_callback);
+	Cvar_SetCallback(&scr_uiscale, VID_UpdateUIScale);
 	// Set up display mode (width and height)
 	vid.width = 320;
 	vid.height = 240;
@@ -311,11 +324,6 @@ void VID_Update()
 	SDL_RenderClear(renderer);
 	SDL_RenderTexture(renderer, texture, NULL, &destRect);
 	SDL_RenderPresent(renderer);
-	if(uiscale != scr_uiscale.value // TODO make this a callback function
-	    && vid.width / 320 >= scr_uiscale.value && scr_uiscale.value > 0){
-		uiscale = scr_uiscale.value;
-		vid.recalc_refdef = 1;
-	}
 	if(vid_testingmode){
 		if(realtime >= vid_testendtime){
 			VID_SetMode(vid_realmode, 0, 0, 0, vid_curpal);
