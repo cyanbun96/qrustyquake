@@ -4,6 +4,7 @@
 static s32 miplevel;
 static vec3_t transformed_modelorg;
 static vec3_t world_transformed_modelorg;
+static void (*pspandrawfunc)(espan_t *pspan, s32 type, f32 opacity);
 
 s32 D_MipLevelForScale(f32 scale)
 {
@@ -101,7 +102,7 @@ static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 	d_ziorigin = s->d_ziorigin;
 	D_CalcGradients (pface);
 	if(fog_density > 0 && !fog_lut_built) build_color_mix_lut(0);
-	D_DrawSpans(s->spans, SPAN_SKYBOX, 0);
+	pspandrawfunc(s->spans, SPAN_SKYBOX, 0);
 	d_zistepu = 0; // set up gradient for background surf that places it
 	d_zistepv = 0; // effectively at infinity distance from the viewpoint
 	d_ziorigin = -0.9;
@@ -140,7 +141,7 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
 	f32 opacity = 1 - (f32)s->entity->alpha / 255;
-	D_DrawSpans(s->spans, SPAN_TRANS, opacity);
+	pspandrawfunc(s->spans, SPAN_TRANS, opacity);
 }
 
 static void D_DrawLitWater(surf_t *s, msurface_t *pface)
@@ -153,7 +154,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface)
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
-	D_DrawSpans(s->spans, SPAN_NORMAL, 0); // draw the lightmap to a separate buffer
+	pspandrawfunc(s->spans, SPAN_NORMAL, 0); // draw the lightmap to a separate buffer
 	miplevel = 0;
 	cacheblock = (u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0];
 	cachewidth = 64;
@@ -176,7 +177,7 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
-	D_DrawSpans(s->spans, SPAN_CUTOUT, 0);
+	pspandrawfunc(s->spans, SPAN_CUTOUT, 0);
 	D_DrawZSpansTrans(s->spans);
 }
 
@@ -187,7 +188,7 @@ static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface);
-	D_DrawSpans(s->spans, SPAN_NORMAL, 0);
+	pspandrawfunc(s->spans, SPAN_NORMAL, 0);
 	D_DrawZSpans(s->spans);
 }
 
@@ -213,6 +214,7 @@ static void D_SwitchSubModelOff()
 
 void D_DrawSurfaces()
 {
+	pspandrawfunc = !r_dithertex.value ? D_DrawSpans : D_DrawSpansDithered;
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);

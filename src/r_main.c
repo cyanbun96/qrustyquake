@@ -66,6 +66,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_numedges);
 	Cvar_RegisterVariable(&r_aliastransbase);
 	Cvar_RegisterVariable(&r_aliastransadj);
+	Cvar_RegisterVariable(&r_dithertex);
 	Cvar_RegisterVariable(&r_wateralpha);
 	Cvar_RegisterVariable(&r_slimealpha);
 	Cvar_RegisterVariable(&r_lavaalpha);

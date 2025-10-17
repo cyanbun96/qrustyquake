@@ -293,6 +293,7 @@ EX u8 *d_viewbuffer;
 EX f32 winquake_surface_liquid_alpha;
 EX u8 fog_pal_index;
 void D_DrawSpans(espan_t *pspans, s32 type, f32 opacity);
+void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
 void Turbulent8(espan_t *pspan, f32 opacity);

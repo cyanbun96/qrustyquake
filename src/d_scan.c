@@ -9,6 +9,18 @@ static s32 r_turb_spancount;
 static s16 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
 static u8 cutoutbuf[MAXHEIGHT*MAXWIDTH];
+static const s32 dither_s[4] = { // Unreal-style 2×2 dither matrix scaled
+	(s32)(0.25 * 65536.0f),
+	(s32)(0.50 * 65536.0f),
+	(s32)(0.75 * 65536.0f),
+	(s32)(0.00 * 65536.0f)
+};
+static const s32 dither_t[4] = {
+	(s32)(0.00 * 65536.0f),
+	(s32)(0.75 * 65536.0f),
+	(s32)(0.50 * 65536.0f),
+	(s32)(0.25 * 65536.0f)
+};
 
 void D_DrawTurbulent8Span();
 
@@ -366,90 +378,45 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 				}
 			}
 			if (type == SPAN_NORMAL) {
-				// CyanBun96: dithered sampling from Unreal
-				// Unreal-style 2×2 dither matrix scaled
-				static const s32 dither_s[4] = {
-					(s32)(0.25 * 65536.0f),
-					(s32)(0.50 * 65536.0f),
-					(s32)(0.75 * 65536.0f),
-					(s32)(0.00 * 65536.0f)
-				};
-				static const s32 dither_t[4] = {
-					(s32)(0.00 * 65536.0f),
-					(s32)(0.75 * 65536.0f),
-					(s32)(0.50 * 65536.0f),
-					(s32)(0.25 * 65536.0f)
-				};
-				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
-				s32 y = pixel_index / scr_vrect.width;
-				s32 x = pixel_index - y * scr_vrect.width;
-				s32 start_x = x;
-				s32 cur_x = start_x;
 				do {
-					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
-					// Apply dither offset
-					s32 s_d = s + dither_s[dither_idx];
-					s32 t_d = t + dither_t[dither_idx];
-					// Clamp to valid texel range
-					if (s_d < 0) s_d = 0;
-					if (t_d < 0) t_d = 0;
-					s32 s_max = (cachewidth  - 1) << 16;
-					s32 t_max = (cacheheight - 1) << 16;
-					if (s_d > s_max) s_d = s_max;
-					if (t_d > t_max) t_d = t_max;
-					u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
-					*pdest++ = pix;
+					/*
+					// CyanBun96: this is a working implementation of bilinear texture filtering. Don't use. 
+					s32 sx = s >> 16;
+					s32 sy = t >> 16;
+					s32 fracx = (s >> 8) & 0xFF;
+					s32 fracy = (t >> 8) & 0xFF;
+					// clamp to prevent out-of-bounds
+					if (sx < 0) sx = 0;
+					if (sy < 0) sy = 0;
+					if (sx >= cachewidth - 1) { sx = cachewidth - 2; fracx = 255; }
+					if (sy >= cacheheight - 1) { sy = cacheheight - 2; fracy = 255; }
+					u8 *row0 = pbase + sy * cachewidth;
+					u8 *row1 = row0 + cachewidth;
+					u8 i00 = row0[sx];
+					u8 i10 = row0[sx + 1];
+					u8 i01 = row1[sx];
+					u8 i11 = row1[sx + 1];
+					s32 lutx = fracx >> 3;   // 0..31 to fit in FOG_LUT_LEVELS
+					s32 luty = fracy >> 3;   // 0..31
+					if (!fog_lut_built)
+						build_color_mix_lut(0);
+					// horizontal blends
+					u8 top = color_mix_lut[i00][i10][lutx];
+					u8 bot = color_mix_lut[i01][i11][lutx];
+					// vertical blend
+					u8 result = color_mix_lut[top][bot][luty];
+					*pdest = result;
+					pdest++;
 					s += sstep;
 					t += tstep;
-					cur_x++;
+					*/
+					u8 pix = *(pbase + (s >> 16) +
+							(t >> 16) * cachewidth);
+					*pdest = pix;
+					pdest++;
+					s += sstep;
+					t += tstep;
 				} while (--spancount > 0);
-				//do {
-				//	/*
-				//	// CyanBun96: this is a working implementation of bilinear texture filtering. Don't use. 
-				//	s32 sx = s >> 16;
-				//	s32 sy = t >> 16;
-				//	s32 fracx = (s >> 8) & 0xFF;
-				//	s32 fracy = (t >> 8) & 0xFF;
-
-				//	// clamp to prevent out-of-bounds
-				//	if (sx < 0) sx = 0;
-				//	if (sy < 0) sy = 0;
-				//	if (sx >= cachewidth - 1) { sx = cachewidth - 2; fracx = 255; }
-				//	if (sy >= cacheheight - 1) { sy = cacheheight - 2; fracy = 255; }
-
-				//	u8 *row0 = pbase + sy * cachewidth;
-				//	u8 *row1 = row0 + cachewidth;
-
-				//	u8 i00 = row0[sx];
-				//	u8 i10 = row0[sx + 1];
-				//	u8 i01 = row1[sx];
-				//	u8 i11 = row1[sx + 1];
-
-				//	s32 lutx = fracx >> 3;   // 0..31 to fit in FOG_LUT_LEVELS
-				//	s32 luty = fracy >> 3;   // 0..31
-
-				//	if (!fog_lut_built)
-				//		build_color_mix_lut(0);
-
-				//	// horizontal blends
-				//	u8 top = color_mix_lut[i00][i10][lutx];
-				//	u8 bot = color_mix_lut[i01][i11][lutx];
-
-				//	// vertical blend
-				//	u8 result = color_mix_lut[top][bot][luty];
-
-				//	*pdest = result;
-				//	pdest++;
-				//	s += sstep;
-				//	t += tstep;
-				//	*/
-				//	u8 pix = *(pbase + (s >> 16) +
-				//			(t >> 16) * cachewidth);
-				//	*pdest = pix;
-				//	pdest++;
-				//	s += sstep;
-				//	t += tstep;
-				//} while (--spancount > 0);
 			} else if (type == SPAN_CUTOUT) {
 				do {
 					if (*pz <= (izi >> 16)) {
@@ -509,6 +476,247 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 						pz++;
 						s += sstep;
 						t += tstep;
+					} while (--spancount > 0);
+				}
+			}
+			s = snext;
+			t = tnext;
+		} while (count > 0);
+	} while ((pspan = pspan->pnext) != NULL);
+}
+
+void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
+{ // Separate from the regular function to avoid branching within the loops
+	u8 *pbase = (u8 *)cacheblock;
+	f32 sdivz8stepu = d_sdivzstepu * 8;
+	f32 tdivz8stepu = d_tdivzstepu * 8;
+	f32 zi8stepu = d_zistepu * 8;
+	izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
+	do {
+		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +
+				      (screenwidth * pspan->v) + pspan->u);
+		if (lmonly) {
+			if (!litwater_base) {
+				lwmark = Hunk_HighMark();
+				litwater_base = Hunk_HighAllocName(vid.width*vid.height, "waterlightmap");
+			}
+			pdest = (u8 *)((u8 *) litwater_base +
+				      (screenwidth * pspan->v) + pspan->u);
+		}
+		s32 count = pspan->count;
+		f32 du = (f32)pspan->u; // calculate the initial s/z, t/z,
+		f32 dv = (f32)pspan->v; // 1/z, s, and t and clamp
+		f32 sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
+		f32 tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
+		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
+		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
+		if (type == SPAN_TRANS || type == SPAN_CUTOUT) {
+			pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+			izi = (s32)(zi * 0x8000 * 0x10000);
+		}
+		s32 s = (s32)(sdivz * z) + sadjust;
+		if (s > bbextents)
+			s = bbextents;
+		else if (s < 0)
+			s = 0;
+		s32 t = (s32)(tdivz * z) + tadjust;
+		if (t > bbextentt)
+			t = bbextentt;
+		else if (t < 0)
+			t = 0;
+		do {
+			// calculate s and t at the far end of the span
+			s32 snext, tnext;
+			s32 sstep = 0; // keep compiler happy
+			s32 tstep = 0; // ditto
+			s32 spancount = count;
+			if (count >= 8)
+				spancount = 8;
+			count -= spancount;
+			if (count) {
+				// calculate s/z, t/z, zi->fixed s and t at far end of span,
+				// calculate s and t steps across span by shifting
+				sdivz += sdivz8stepu;
+				tdivz += tdivz8stepu;
+				zi += zi8stepu;
+				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
+				snext = (s32)(sdivz * z) + sadjust;
+				if (snext > bbextents)
+					snext = bbextents;
+				else if (snext < 8)
+					snext = 8; // prevent round-off error on <0 steps from
+				// from causing overstepping & running off the
+				// edge of the texture
+				tnext = (s32)(tdivz * z) + tadjust;
+				if (tnext > bbextentt)
+					tnext = bbextentt;
+				else if (tnext < 8)
+					tnext = 8; // guard against round-off error on <0 steps
+				sstep = (snext - s) >> 3;
+				tstep = (tnext - t) >> 3;
+			} else {
+				// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
+				// can't step off polygon), clamp, calculate s and t steps across
+				// span by division, biasing steps low so we don't run off the
+				// texture
+				f32 spancountminus1 = (f32)(spancount - 1);
+				sdivz += d_sdivzstepu * spancountminus1;
+				tdivz += d_tdivzstepu * spancountminus1;
+				zi += d_zistepu * spancountminus1;
+				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
+				snext = (s32)(sdivz * z) + sadjust;
+				if (snext > bbextents)
+					snext = bbextents;
+				else if (snext < 8)
+					snext = 8; // prevent round-off error on <0 steps from
+				// from causing overstepping & running off the
+				// edge of the texture
+				tnext = (s32)(tdivz * z) + tadjust;
+				if (tnext > bbextentt)
+					tnext = bbextentt;
+				else if (tnext < 8)
+					tnext = 8; // guard against round-off error on <0 steps
+				if (spancount > 1) {
+					sstep = (snext - s) / (spancount - 1);
+					tstep = (tnext - t) / (spancount - 1);
+				}
+			}
+			if (type == SPAN_NORMAL) {
+				// CyanBun96: dithered sampling from Unreal
+				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
+				s32 y = pixel_index / scr_vrect.width;
+				s32 x = pixel_index - y * scr_vrect.width;
+				s32 start_x = x;
+				s32 cur_x = start_x;
+				do {
+					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+					// Apply dither offset
+					s32 s_d = s + dither_s[dither_idx];
+					s32 t_d = t + dither_t[dither_idx];
+					// Clamp to valid texel range
+					if (s_d < 0) s_d = 0;
+					if (t_d < 0) t_d = 0;
+					s32 s_max = (cachewidth  - 1) << 16;
+					s32 t_max = (cacheheight - 1) << 16;
+					if (s_d > s_max) s_d = s_max;
+					if (t_d > t_max) t_d = t_max;
+					u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
+					*pdest++ = pix;
+					s += sstep;
+					t += tstep;
+					cur_x++;
+				} while (--spancount > 0);
+			} else if (type == SPAN_CUTOUT) {
+				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
+				s32 y = pixel_index / scr_vrect.width;
+				s32 x = pixel_index - y * scr_vrect.width;
+				s32 start_x = x;
+				s32 cur_x = start_x;
+				do {
+					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+					s32 s_d = s + dither_s[dither_idx];
+					s32 t_d = t + dither_t[dither_idx];
+					if (s_d < 0) s_d = 0;
+					if (t_d < 0) t_d = 0;
+					s32 s_max = (cachewidth  - 1) << 16;
+					s32 t_max = (cacheheight - 1) << 16;
+					if (s_d > s_max) s_d = s_max;
+					if (t_d > t_max) t_d = t_max;
+					if (*pz <= (izi >> 16)) {
+						u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
+						cutoutbuf[pdest-d_viewbuffer] = 0;
+						if (pix != 0xff) {
+							*pdest = pix;
+							cutoutbuf[pdest-d_viewbuffer] = 1;
+						}
+					}
+					pdest++;
+					izi += izistep;
+					pz++;
+					s += sstep;
+					t += tstep;
+					cur_x++;
+				} while (--spancount > 0);
+			} else if (type == SPAN_SKYBOX) {
+				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
+				s32 y = pixel_index / scr_vrect.width;
+				s32 x = pixel_index - y * scr_vrect.width;
+				s32 start_x = x;
+				s32 cur_x = start_x;
+				s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
+				do {
+					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+					s32 s_d = s + dither_s[dither_idx];
+					s32 t_d = t + dither_t[dither_idx];
+					if (s_d < 0) s_d = 0;
+					if (t_d < 0) t_d = 0;
+					s32 s_max = (cachewidth  - 1) << 16;
+					s32 t_max = (cacheheight - 1) << 16;
+					if (s_d > s_max) s_d = s_max;
+					if (t_d > t_max) t_d = t_max;
+					u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
+					if (fog_density > 0)
+						pix = color_mix_lut[pix][fog_pal_index][foglut];
+					*pdest++ = pix;
+					s += sstep;
+					t += tstep;
+					cur_x++;
+				} while (--spancount > 0);
+			} else if (type == SPAN_TRANS) {
+				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
+				s32 y = pixel_index / scr_vrect.width;
+				s32 x = pixel_index - y * scr_vrect.width;
+				s32 start_x = x;
+				s32 cur_x = start_x;
+				s32 foglut = opacity*FOG_LUT_LEVELS;
+				if (r_alphastyle.value == 0) {
+					if (!fog_lut_built)
+						build_color_mix_lut(0);
+					do {
+						s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+						s32 s_d = s + dither_s[dither_idx];
+						s32 t_d = t + dither_t[dither_idx];
+						if (s_d < 0) s_d = 0;
+						if (t_d < 0) t_d = 0;
+						s32 s_max = (cachewidth  - 1) << 16;
+						s32 t_max = (cacheheight - 1) << 16;
+						if (s_d > s_max) s_d = s_max;
+						if (t_d > t_max) t_d = t_max;
+						if (*pz <= (izi >> 16)) {
+							u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
+							if (pix != 0xff) {
+								pix = color_mix_lut[pix][*pdest][foglut];
+								*pdest = pix;
+							}
+						}
+						pdest++;
+						izi += izistep;
+						pz++;
+						s += sstep;
+						t += tstep;
+						cur_x++;
+					} while (--spancount > 0);
+				} else {
+					do {
+						s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+						s32 s_d = s + dither_s[dither_idx];
+						s32 t_d = t + dither_t[dither_idx];
+						if (s_d < 0) s_d = 0;
+						if (t_d < 0) t_d = 0;
+						s32 s_max = (cachewidth  - 1) << 16;
+						s32 t_max = (cacheheight - 1) << 16;
+						if (s_d > s_max) s_d = s_max;
+						if (t_d > t_max) t_d = t_max;
+						if (*pz <= (izi >> 16) && D_Dither(pdest, 1-opacity)) {
+							u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
+							if (pix != 0xff) *pdest = pix;
+						}
+						pdest++;
+						izi += izistep;
+						pz++;
+						s += sstep;
+						t += tstep;
+						cur_x++;
 					} while (--spancount > 0);
 				}
 			}
