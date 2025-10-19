@@ -581,13 +581,13 @@ void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 					tstep = (tnext - t) / (spancount - 1);
 				}
 			}
+			// CyanBun96: dithered sampling from Unreal
+			s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
+			s32 y = pixel_index / scr_vrect.width;
+			s32 x = pixel_index - y * scr_vrect.width;
+			s32 start_x = x;
+			s32 cur_x = start_x;
 			if (type == SPAN_NORMAL) {
-				// CyanBun96: dithered sampling from Unreal
-				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
-				s32 y = pixel_index / scr_vrect.width;
-				s32 x = pixel_index - y * scr_vrect.width;
-				s32 start_x = x;
-				s32 cur_x = start_x;
 				do {
 					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 					// Apply dither offset
@@ -607,11 +607,6 @@ void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 					cur_x++;
 				} while (--spancount > 0);
 			} else if (type == SPAN_CUTOUT) {
-				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
-				s32 y = pixel_index / scr_vrect.width;
-				s32 x = pixel_index - y * scr_vrect.width;
-				s32 start_x = x;
-				s32 cur_x = start_x;
 				do {
 					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 					s32 s_d = s + dither_s[dither_idx];
@@ -638,11 +633,6 @@ void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 					cur_x++;
 				} while (--spancount > 0);
 			} else if (type == SPAN_SKYBOX) {
-				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
-				s32 y = pixel_index / scr_vrect.width;
-				s32 x = pixel_index - y * scr_vrect.width;
-				s32 start_x = x;
-				s32 cur_x = start_x;
 				s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
 				do {
 					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
@@ -663,11 +653,6 @@ void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 					cur_x++;
 				} while (--spancount > 0);
 			} else if (type == SPAN_TRANS) {
-				s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
-				s32 y = pixel_index / scr_vrect.width;
-				s32 x = pixel_index - y * scr_vrect.width;
-				s32 start_x = x;
-				s32 cur_x = start_x;
 				s32 foglut = opacity*FOG_LUT_LEVELS;
 				if (r_alphastyle.value == 0) {
 					if (!fog_lut_built)
