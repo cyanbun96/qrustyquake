@@ -26,11 +26,12 @@ s32 VID_GetConfigCvar(const s8 *cvname)
 	// video is initialized. To avoid creating a window and textures just to
 	// destroy them right away and only then replace them with valid ones,
 	// this function reads the default mode independently of the cvar status
-	s8 line[256];
+	s8 line[256], path[MAX_OSPATH];
+	snprintf(path, sizeof(path), "%s/config.cfg", com_gamedir);
 	s32 ret = -1;
-	FILE *file = fopen("id1/config.cfg", "r");
+	FILE *file = fopen(path, "r");
 	if(!file){
-		printf("VID_GetConfigCvar: Failed to open id1/config.cfg\n");
+		printf("VID_GetConfigCvar: Failed to open %s\n", path);
 		return -2;
 	}
 	while(fgets(line, sizeof(line), file)){
@@ -49,7 +50,7 @@ s32 VID_GetConfigCvar(const s8 *cvname)
 	}
 	fclose(file);
 	if(ret != -1) printf("%s: %d\n", cvname, ret);
-	else printf("%s not found in id1/config.cfg\n", cvname);
+	else printf("%s not found in %s\n", cvname, path);
 	return ret;
 }
 
