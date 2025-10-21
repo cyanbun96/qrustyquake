@@ -118,24 +118,10 @@ static void D_DrawBackground(surf_t *s)
 	D_DrawZSpans(s->spans);
 }
 
-static void D_DrawUnlitWater(surf_t *s, msurface_t *pface)
-{ // Manoel Kasimier
-	cacheblock = (u8 *) ((u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0]);
-	cachewidth = 64;
-	cacheheight = 64;
-	D_CalcGradients(pface);
-	f32 opacity = 1;
-	if (s->entity && s->entity->alpha && r_entalpha.value == 1)
-		opacity -= (f32)s->entity->alpha/255;
-	else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
-		opacity -= R_LiquidAlphaForFlags(s->flags);
-	Turbulent8(s->spans, opacity);
-	if (!r_alphapass) D_DrawZSpans(s->spans);
-}
-
 static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
+	if (pcurrentcache == NULL) { s->spans = 0; return; }
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -144,12 +130,23 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 	pspandrawfunc(s->spans, SPAN_TRANS, opacity);
 }
 
-static void D_DrawLitWater(surf_t *s, msurface_t *pface)
+static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
+{ // Manoel Kasimier
+	cacheblock = (u8 *) ((u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0]);
+	cachewidth = 64;
+	cacheheight = 64;
+	D_CalcGradients(pface);
+	Turbulent8(s->spans, opacity);
+	if (!r_alphapass) D_DrawZSpans(s->spans);
+}
+
+static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 { // FIXME this is horrible.
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
 			* pface->texinfo->mipadjust);
 	lmonly = 1; // this is how we know it's lit water that we're drawing
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
+	if (pcurrentcache == NULL) { s->spans = 0; return; }
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -160,11 +157,6 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface)
 	cachewidth = 64;
 	cacheheight = 64;
 	D_CalcGradients(pface);
-	f32 opacity = 1;
-	if (s->entity && s->entity->alpha && r_entalpha.value == 1)
-		opacity -= (f32)s->entity->alpha/255;
-	else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
-		opacity -= R_LiquidAlphaForFlags(s->flags);
 	Turbulent8(s->spans, opacity);
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 	lmonly = 0;
@@ -173,6 +165,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface)
 static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
+	if (pcurrentcache == NULL) { s->spans = 0; return; }
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -184,6 +177,7 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
+	if (pcurrentcache == NULL) { s->spans = 0; return; }
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -246,9 +240,20 @@ void D_DrawSurfaces()
 			D_DrawSky(s);
 		} else if (s->flags & SURF_DRAWSKYBOX) {
 			D_DrawSkybox(s, pface);
-		} else if (s->flags & SURF_DRAWTURB &&
-			(!s->entity->model->haslitwater || !r_litwater.value)) {
-			D_DrawUnlitWater(s, pface);
+		} else if (s->flags & SURF_DRAWTURB) {
+			f32 opacity = 1;
+			if (s->entity && s->entity->alpha && r_entalpha.value)
+				opacity -= (f32)s->entity->alpha / 255;
+			else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
+				opacity -= R_LiquidAlphaForFlags(s->flags);
+			if (opacity != 1 && opacity) {
+				r_foundtranswater = 1;
+				continue;
+			}
+			if (!s->entity->model->haslitwater || !r_litwater.value)
+				D_DrawUnlitWater(s, pface, opacity);
+			else
+				D_DrawLitWater(s, pface, opacity);
 		} else if (s->flags & SURF_DRAWCUTOUT) {
 			foundcutouts = 1;
 		} else D_DrawNormalSurf(s, pface);
@@ -294,12 +299,18 @@ void D_DrawSurfacesAlpha()
 		d_ziorigin = s->d_ziorigin;
 		miplevel = 0;
 		if (s->insubmodel) D_SwitchSubModelOn(s);
-		if (s->flags & SURF_DRAWTURB && (!s->entity->model->haslitwater || !r_litwater.value)) {
-			D_DrawUnlitWater(s, pface);
+		if (s->flags & SURF_DRAWTURB) {
+			f32 opacity = 1;
+			if (s->entity && s->entity->alpha && r_entalpha.value)
+				opacity -= (f32)s->entity->alpha / 255;
+			else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
+				opacity -= R_LiquidAlphaForFlags(s->flags);
+			if (!s->entity->model->haslitwater || !r_litwater.value)
+				D_DrawUnlitWater(s, pface, opacity);
+			else
+				D_DrawLitWater(s, pface, opacity);
 		} else if (is_ent && s->entity->alpha && r_entalpha.value == 1) {
 			D_DrawTransSurf(s, pface);
-		} else if (s->flags & SURF_DRAWTURB && s->entity->model->haslitwater && r_litwater.value) {
-			D_DrawLitWater(s, pface);
 		}
 		if (s->insubmodel) D_SwitchSubModelOff();
 	}

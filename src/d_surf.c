@@ -54,14 +54,20 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 
 surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 {
-	if ((width < 0) || (width > 256))
-		Sys_Error("D_SCAlloc: bad cache width %d\n", width);
-	if ((size <= 0) || (size > 0x10000))
-		Sys_Error("D_SCAlloc: bad cache size %d\n", size);
+	if ((width < 0) || (width > 256)) {
+		Con_DPrintf("D_SCAlloc: bad cache width %d\n", width);
+		return NULL;
+	}
+	if ((size <= 0) || (size > 0x10000)) {
+		Con_DPrintf("D_SCAlloc: bad cache size %d\n", size);
+		return NULL;
+	}
 	size = (uintptr_t) & ((surfcache_t *) 0)->data[size];
 	size = (size + 3) & ~3;
-	if (size > sc_size)
-		Sys_Error("D_SCAlloc: %i > cache size", size);
+	if (size > sc_size) {
+		Con_DPrintf("D_SCAlloc: %i > cache size", size);
+		return NULL;
+	}
 	// if there is not size bytes after the rover, reset to the start
 	bool wrapped_this_time = 0;
 	if (!sc_rover || (u64)((u8 *) sc_rover - (u8 *) sc_base)
@@ -133,6 +139,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	{
 		cache = D_SCAlloc(r_drawsurf.surfwidth,
 				  r_drawsurf.surfwidth * r_drawsurf.surfheight);
+		if (cache == NULL) return NULL;
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
 		cache->mipscale = surfscale;

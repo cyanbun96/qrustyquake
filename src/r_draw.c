@@ -231,7 +231,6 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	// Manoel Kasimier - skyboxes - end
 	if (fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT) {
 		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(fa->flags);
-		if (r_litwater.value) winquake_surface_liquid_alpha = 0.5; // FIXME properly
 	} else if (cur_ent_alpha < 1 && r_entalpha.value == 1)
 		winquake_surface_liquid_alpha = cur_ent_alpha;
 	else winquake_surface_liquid_alpha = 1;
