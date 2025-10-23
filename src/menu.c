@@ -1394,6 +1394,11 @@ void M_Display_Key(s32 k)
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
+	case 'a':
+	case 'A':
+		if (display_cursor == 4)
+			Cvar_SetValue("aspectr", 0);
+		break;
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		if (display_cursor == 0 && scr_uiscale.value > 1)
@@ -1610,9 +1615,9 @@ void M_Display_Draw()
 	else if (newwinmode == 1) M_Print(xoffset + 204, 112, "Fullscreen");
 	else                      M_Print(xoffset + 204, 112, "Borderless");
 	if (display_cursor == 4) {
-		M_DrawTextBox(52, 166, 30, 1);
-		M_Print(64, 174, "          in console for auto");
-		M_PrintWhite(64, 174, "aspectr 0");
+		M_DrawTextBox(84, 166, 17, 1);
+		M_Print(96, 174, "Press   for auto");
+		M_PrintWhite(96, 174, "      A");
 	} else if (display_cursor == 6 && (s32)host_maxfps.value > 72) {
 		M_DrawTextBox(52, 166, 30, 1);
 		M_Print(64, 174, "Vanilla max is    expect bugs");
