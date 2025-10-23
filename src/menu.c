@@ -1443,7 +1443,7 @@ void M_Display_Key(s32 k)
 		else if (display_cursor == 8)
 			Cvar_SetValue("fov", scr_fov.value - 1);
 		else if (display_cursor == 9)
-			Cvar_SetValue("yaspectscale", yaspectscale.value-0.01);
+			Cvar_SetValue("r_fovmode",CLAMP(0,r_fovmode.value-1,2));
 		else if (display_cursor == 10) {
 			if (newwinmode == 0) newwinmode = 2;
 			else newwinmode--;
@@ -1497,7 +1497,7 @@ void M_Display_Key(s32 k)
 		else if (display_cursor == 8)
 			Cvar_SetValue("fov", scr_fov.value + 1);
 		else if (display_cursor == 9)
-			Cvar_SetValue("yaspectscale", yaspectscale.value+0.01);
+			Cvar_SetValue("r_fovmode",CLAMP(0,r_fovmode.value+1,2));
 		else if (display_cursor == 10) {
 			if (newwinmode == 2) newwinmode = 0;
 			else newwinmode++;
@@ -1609,8 +1609,15 @@ void M_Display_Draw()
 	sprintf(temp, "%0.2f\n", aspectr.value);
 	sprintf(temp, "%d\n", (s32)scr_fov.value);
 	M_Print(xoffset + 204, 96, temp);
-	sprintf(temp, "%0.2f\n", yaspectscale.value);
-	M_Print(xoffset + 204, 104, temp);
+	if (r_fovmode.value == 0)      M_Print(xoffset + 204, 104, "Classic");
+	else if (r_fovmode.value == 1) M_Print(xoffset + 204, 104, "Modern");
+	else {                   M_Print(xoffset + 204, 104, "Manual");
+		if (display_cursor == 9) {
+			M_DrawTextBox(52, 166, 25, 2);
+			M_Print(64, 174, "Set through console with");
+			M_PrintWhite(64, 182, "      yaspectscale");
+		}
+	}
 	if (newwinmode == 0)      M_Print(xoffset + 204, 112, "Windowed");
 	else if (newwinmode == 1) M_Print(xoffset + 204, 112, "Fullscreen");
 	else                      M_Print(xoffset + 204, 112, "Borderless");
@@ -1622,13 +1629,6 @@ void M_Display_Draw()
 		M_DrawTextBox(52, 166, 30, 1);
 		M_Print(64, 174, "Vanilla max is    expect bugs");
 		M_PrintWhite(64, 174, "               72");
-	} else if (display_cursor == 8 || display_cursor == 9) {
-		M_DrawTextBox(100, 166, 16, 1);
-		M_Print(112, 174, "Modern FOV:");
-		s32 modernfov = atan(vid.height*yaspectscale.value / (vid.width
-			/ tan(scr_fov.value / 360 * M_PI))) * 360 / M_PI;
-		q_snprintf(temp, 32, "            %d", modernfov);
-		M_PrintWhite(112, 174, temp);
 	}
 	if (newwinmode == 1) {
 		if (!modes) { 

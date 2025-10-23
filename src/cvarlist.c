@@ -29,6 +29,7 @@ cvar_t r_numedges=                                    {"r_numedges", "0", 0,ZR};
 cvar_t r_aliastransbase=                      {"r_aliastransbase", "200", 0,ZR};
 cvar_t r_aliastransadj=                        {"r_aliastransadj", "100", 0,ZR};
 cvar_t r_dithertex=                                  {"r_dithertex", "0", 1,ZR};
+cvar_t r_fovmode=                                      {"r_fovmode", "0", 1,ZR};
 cvar_t r_wateralpha=                                {"r_wateralpha", "1", 1,ZR};
 cvar_t r_slimealpha=                                {"r_slimealpha", "1", 1,ZR};
 cvar_t r_lavaalpha=                                  {"r_lavaalpha", "1", 1,ZR};

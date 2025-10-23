@@ -92,6 +92,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_litwater);
 	Cvar_RegisterVariable(&r_novis);
 	Cvar_RegisterVariable(&r_particlescale);
+	Cvar_RegisterVariable(&r_fovmode);
 	Cvar_RegisterVariable(&vid_cwidth);
 	Cvar_RegisterVariable(&vid_cheight);
 	Cvar_RegisterVariable(&vid_cwmode);
@@ -115,6 +116,7 @@ void R_Init()
 	Cvar_SetCallback(&r_lavaalpha, R_SetLavaalpha_f);
 	Cvar_SetCallback(&r_telealpha, R_SetTelealpha_f);
 	Cvar_SetCallback(&r_slimealpha, R_SetSlimealpha_f);
+	Cvar_SetCallback(&r_fovmode, R_ViewChangedCallback);
 	Cvar_SetCallback(&yaspectscale, R_ViewChangedCallback);
 	view_clipplanes[0].leftedge = 1;
 	view_clipplanes[1].rightedge = 1;
@@ -204,7 +206,8 @@ void R_SetVrect(vrect_t *pvrectin, vrect_t *pvrect, s32 lineadj)
 void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 { // Called every time the vid structure or r_refdef changes.
  // Guaranteed to be called before the first refresh
-	aspect *= yaspectscale.value;
+	if (r_fovmode.value == 1) aspect *= (f32)vid.width/(f32)vid.height*0.75;
+	else if (r_fovmode.value == 2) aspect *= yaspectscale.value;
 	r_viewchanged = 1;
 	R_SetVrect(pvrect, &r_refdef.vrect, lineadj);
 	r_refdef.horizontalFieldOfView = 2.0 * tan(r_refdef.fov_x / 360 * M_PI);
