@@ -1609,6 +1609,17 @@ void M_Display_Draw()
 	sprintf(temp, "%0.2f\n", aspectr.value);
 	sprintf(temp, "%d\n", (s32)scr_fov.value);
 	M_Print(xoffset + 204, 96, temp);
+	if (r_fovmode.value && display_cursor == 8) {
+		float asp = r_fovmode.value==1 ?
+			((f32)vid.width / (f32)vid.height * 0.75) :
+			yaspectscale.value;
+		f32 fov_modern = 2.0f * atan(tanf(scr_fov.value * (M_PI/360.0f))
+					/ asp) * (180.0f/M_PI);
+		M_DrawTextBox(68, 166, 19, 1);
+		M_Print(80, 174, "Modern FOV:");
+		sprintf(temp, "%0.2f\n", fov_modern);
+		M_PrintWhite(176, 174, temp);
+	}
 	if (r_fovmode.value == 0)      M_Print(xoffset + 204, 104, "Classic");
 	else if (r_fovmode.value == 1) M_Print(xoffset + 204, 104, "Modern");
 	else {                   M_Print(xoffset + 204, 104, "Manual");
@@ -2349,6 +2360,7 @@ void M_Video_Key(s32 key)
 	case K_ENTER:
 		S_LocalSound("misc/menu1.wav");
 		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
+		Cvar_SetValue("aspectr", 0);
 		break;
 	case 'T':
 	case 't':
