@@ -153,6 +153,6 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	cache->lightadj[3] = r_drawsurf.lightadj[3];
 	r_drawsurf.surf = surface; // draw and light the surface texture
 	c_surf++;
-	R_DrawSurface();
+	if (R_DrawSurface()) return NULL;
 	return surface->cachespots[miplevel];
 }

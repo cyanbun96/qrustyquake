@@ -159,7 +159,7 @@ texture_t *R_TextureAnimation(texture_t *base)
 	return base;
 }
 
-void R_DrawSurface()
+s32 R_DrawSurface()
 {
 	R_BuildLightMap(); // calculate the lightings
 	surfrowbytes = r_drawsurf.rowbytes;
@@ -179,6 +179,10 @@ void R_DrawSurface()
 	s32 smax = mt->width >> r_drawsurf.surfmip;
 	s32 twidth = texwidth;
 	s32 tmax = mt->height >> r_drawsurf.surfmip;
+	if (!smax || !tmax) {
+		Con_DPrintf("Division by 0 in R_DrawSurface\n");
+		return 1;
+	}
 	sourcetstep = texwidth;
 	r_stepback = tmax * twidth;
 	r_sourcemax = r_source + (tmax * smax);
@@ -203,6 +207,7 @@ void R_DrawSurface()
 			soffset = 0;
 		pcolumndest += horzblockstep;
 	}
+	return 0;
 }
 
 void R_DrawSurfaceBlock(s32 miplvl)
