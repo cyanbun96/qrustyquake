@@ -40,7 +40,7 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 }
 
 void D_DrawTurbulent8SpanDithered()
-{ // FIXME this doesn't get called actually. at least on id1 start.
+{
 	if (!lmonly) {
 		s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 		s32 y = pixel_index / scr_vrect.width;
@@ -85,7 +85,7 @@ void D_DrawTurbulent8SpanDithered()
 }
 
 void D_DrawTurbulent8Span()
-{ // FIXME this doesn't get called actually. at least on id1 start.
+{
 	if (!lmonly) {
 		do {
 			s32 s = ((r_turb_s + r_turb_turb[(r_turb_t >> 16) & (CYCLE - 1)]) >> 16) & 63;
