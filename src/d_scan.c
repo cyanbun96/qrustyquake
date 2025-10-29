@@ -10,18 +10,6 @@ static s32 r_turb_spancount;
 static s16 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
 static u8 cutoutbuf[MAXHEIGHT*MAXWIDTH];
-static const s32 dither_s[4] = { // Unreal-style 2×2 dither matrix scaled
-	(s32)(0.25 * 65536.0f),
-	(s32)(0.50 * 65536.0f),
-	(s32)(0.75 * 65536.0f),
-	(s32)(0.00 * 65536.0f)
-};
-static const s32 dither_t[4] = {
-	(s32)(0.00 * 65536.0f),
-	(s32)(0.75 * 65536.0f),
-	(s32)(0.50 * 65536.0f),
-	(s32)(0.25 * 65536.0f)
-};
 
 void D_WarpScreen() // this performs a slight compression of the screen at the
 { // same time as the sine warp, to keep the edges from wrapping

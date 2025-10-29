@@ -444,6 +444,96 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 	} while (pspanpackage->count != -999999);
 }
 
+void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
+{
+	do {
+		s32 lcount = d_aspancount - pspanpackage->count;
+		errorterm += erroradjustup;
+		if (errorterm >= 0) {
+			d_aspancount += d_countextrastep;
+			errorterm -= erroradjustdown;
+		} else {
+			d_aspancount += ubasestep;
+		}
+		if (lcount) {
+			u8 *lpdest = pspanpackage->pdest;
+			u8 *lptex = pspanpackage->ptex;
+			s16 *lpz = pspanpackage->pz;
+			s32 lsfrac = pspanpackage->sfrac;
+			s32 ltfrac = pspanpackage->tfrac;
+			s32 llight = pspanpackage->light;
+			s32 lzi = pspanpackage->zi;
+			if (lpz + lcount - d_pzbuffer > (s32)(vid.width * vid.height * sizeof(s16))) {
+				Con_DPrintf ("Invalid span length: %d %d\n", 
+					lpz + lcount - d_pzbuffer, vid.width * vid.height * sizeof(s16));
+				break;
+				// CyanBun96: i caused this bug and i can't be bothered to fix it. Here, have a
+				// quick non-fix to stop it from segfaulting. gl hf whoever stumbles upon this.
+			}
+			do {
+				if ((lzi >> 16) >= *lpz) {
+					// CyanBun96: dithered sampling from Unreal
+					u8 *skin_base = (u8 *)r_affinetridesc.pskin;
+					s32 skin_w = r_affinetridesc.skinwidth;
+					s32 skin_h = r_affinetridesc.skinheight;
+					ptrdiff_t ptr_off = lptex - skin_base;
+					if (ptr_off < 0) ptr_off = 0;
+					s32 base_s = (s32)(ptr_off % skin_w);
+					s32 base_t = (s32)(ptr_off / skin_w);
+					s32 abs_sfrac = (base_s << 16) | (lsfrac & 0xFFFF);
+					s32 abs_tfrac = (base_t << 16) | (ltfrac & 0xFFFF);
+					s32 pixel_index = (s32)(lpdest - (u8*)screen->pixels);
+					s32 y = pixel_index / vid.width;
+					s32 x = pixel_index - y * vid.width;
+					s32 dither_idx = (x & 1) + ((y & 1) << 1);
+					s32 s_d = abs_sfrac + dither_s[dither_idx];
+					s32 t_d = abs_tfrac + dither_t[dither_idx];
+					s32 s_max = ((skin_w  - 1) << 16);
+					s32 t_max = ((skin_h  - 1) << 16);
+					if (s_d < 0) s_d = 0;
+					if (t_d < 0) t_d = 0;
+					if (s_d > s_max) s_d = s_max;
+					if (t_d > t_max) t_d = t_max;
+					s32 final_s = s_d >> 16;
+					s32 final_t = t_d >> 16;
+					u8 texel = *(skin_base + final_s + final_t * skin_w);
+					s32 pix;
+					if (!r_rgblighting.value || !colored_aliaslight)
+						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
+					else
+						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
+					if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
+						s32 curpix = *lpdest;
+						*lpdest = color_mix_lut[curpix][pix]
+							[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+					}
+					else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
+						if (D_Dither(lpdest, 1-cur_ent_alpha))
+							*lpdest = pix;
+					}
+					else
+						*lpdest = pix;
+					*lpz = lzi >> 16;
+				}
+				lpdest++;
+				lzi += r_zistepx;
+				lpz++;
+				llight += r_lstepx;
+				lptex += a_ststepxwhole;
+				lsfrac += a_sstepxfrac;
+				lptex += lsfrac >> 16;
+				lsfrac &= 0xFFFF;
+				ltfrac += a_tstepxfrac;
+				if (ltfrac & 0x10000) {
+					lptex += r_affinetridesc.skinwidth;
+					ltfrac &= 0xFFFF;
+				}
+			} while (--lcount);
+		}
+		pspanpackage++;
+	} while (pspanpackage->count != -999999);
+}
+
 void D_RasterizeAliasPolySmooth()
 {
 	s32 *plefttop = pedgetable->pleftedgevert0;
@@ -577,7 +667,8 @@ void D_RasterizeAliasPolySmooth()
 	d_countextrastep = ubasestep + 1;
 	originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of the spanpackages
-	D_PolysetDrawSpans8(a_spans);
+	if (r_dithertex.value) D_PolysetDrawSpans8Dithered(a_spans);
+	else D_PolysetDrawSpans8(a_spans);
 	// scan out the bottom part of the right edge, if it exists
 	if (pedgetable->numrightedges == 2) {
 		spanpackage_t *pstart;
@@ -591,7 +682,8 @@ void D_RasterizeAliasPolySmooth()
 				prightbottom[0], prightbottom[1]);
 		d_countextrastep = ubasestep + 1;
 		a_spans[initialrightheight + height].count = -999999;
-		D_PolysetDrawSpans8(pstart); // mark end of the spanpackages
+		if (r_dithertex.value) D_PolysetDrawSpans8Dithered(pstart);
+		else D_PolysetDrawSpans8(pstart);//mark end of the spanpackages
 	}
 }
 

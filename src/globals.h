@@ -769,5 +769,6 @@ void CDAudio_Update();
 bool CDAudio_Init();
 void CDAudio_Shutdown();
 u8 *COM_LoadTempFile(const s8 *path, u32 *path_id);
+EX const s32 dither_s[4], dither_t[4];                               // d_scan.c
 #undef EX
 #endif

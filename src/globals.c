@@ -223,6 +223,18 @@ cmd_source_t cmd_source;                                                // cmd.c
 f32 scale_for_mip;                                                   // d_edge.c
 f32 cur_ent_alpha = 1;                                             // d_polyse.c
 vec3_t lightcolor; //johnfitz -- lit support via lordhavoc          // r_light.c
+const s32 dither_s[4] = { // Unreal-style 2×2 dither matrix scaled   // d_scan.c
+	(s32)(0.25 * 65536.0f),
+	(s32)(0.50 * 65536.0f),
+	(s32)(0.75 * 65536.0f),
+	(s32)(0.00 * 65536.0f)
+};
+const s32 dither_t[4] = {
+	(s32)(0.00 * 65536.0f),
+	(s32)(0.75 * 65536.0f),
+	(s32)(0.50 * 65536.0f),
+	(s32)(0.25 * 65536.0f)
+};
 f32 r_avertexnormals[NUMVERTEXNORMALS][3] = {                       // r_alias.c
 {-0.525731,0.0,0.850651},{-0.442863,0.238856,0.864188},
 {-0.295242,0.0,0.955423},{-0.309017,0.5,0.809017},
