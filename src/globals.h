@@ -692,6 +692,7 @@ EX bool con_initialized;
 EX s32 con_notifylines;
 void M_Menu_Main_f();
 EX f32 scale_for_mip;                                                // d_edge.c
+EX s32 miplevel;
 EX surfcache_t *d_initial_rover;                                     // d_init.c
 EX bool d_roverwrapped;
 EX s32 d_minmip;

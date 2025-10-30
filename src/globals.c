@@ -221,6 +221,7 @@ vec3_t r_pright, r_pup, r_ppn;                                       // r_part.c
 spritedesc_t r_spritedesc;                                         // r_sprite.c
 cmd_source_t cmd_source;                                                // cmd.c
 f32 scale_for_mip;                                                   // d_edge.c
+s32 miplevel;
 f32 cur_ent_alpha = 1;                                             // d_polyse.c
 vec3_t lightcolor; //johnfitz -- lit support via lordhavoc          // r_light.c
 const s32 dither_s[4] = { // Unreal-style 2×2 dither matrix scaled   // d_scan.c

@@ -330,9 +330,9 @@ void D_DrawTurbulent8SpanAlpha (f32 opacity)
 
 void Turbulent8(espan_t *pspan, f32 opacity)
 {
-	void (*pturbdrawfuncalpha)(f32 opacity) = r_dithertex.value?
+	void (*pturbdrawfuncalpha)(f32 opacity) = r_dithertex.value&&miplevel?
 		D_DrawTurbulent8SpanAlphaDithered:D_DrawTurbulent8SpanAlpha;
-	void (*pturbdrawfunc)() = r_dithertex.value?
+	void (*pturbdrawfunc)() = r_dithertex.value&&miplevel?
 		D_DrawTurbulent8SpanDithered:D_DrawTurbulent8Span;
 	r_turb_turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
 	r_turb_sstep = 0; // keep compiler happy
