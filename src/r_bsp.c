@@ -93,11 +93,14 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		mvertex_t *plastvert = pedges->v[0];
 		f32 lastdist = DotProduct(plastvert->position, tplane.normal)
 			- tplane.dist;
-		s32 lastside = lastdist > 0 ? 0 : 1;
-		mvertex_t *pvert = pedges->v[1];
-		f32 dist = DotProduct(pvert->position, tplane.normal)
-			- tplane.dist;
-		s32 side = dist > 0 ? 0 : 1;
+// CyanBun96: this 0.0f in lastside and side prevents promotion to double and
+// keeps comparisons consistent with actual stored precision, preventing
+// corruption in some edge cases (no pun intended)
+		s32 lastside = (lastdist >= 0.0f) ? 0 : 1;
+                mvertex_t *pvert = pedges->v[1];
+                f32 dist = DotProduct(pvert->position, tplane.normal)
+                        - tplane.dist;
+                s32 side = (dist >= 0.0f) ? 0 : 1;
 		if (side != lastside) {
 			if (numbverts >= MAX_BMODEL_VERTS) // clipped
 				return;
