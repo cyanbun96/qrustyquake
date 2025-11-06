@@ -451,14 +451,20 @@ s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
 	SCR_UpdateScreen();
 	scr_drawdialog = 0;
 	S_ClearBuffer(); // so dma doesn't loop current sound
+	// CyanBun96: pressing Enter in the main single player menu triggers an
+	// Enter press in this loop, that's why we have to check thrice for a
+	// single press
+	s32 pressedEnter = 0;
 	do {
+		key_lastpress = 0;
 		key_count = -1; // wait for a key down and up
 		Sys_SendKeyEvents();
+		pressedEnter += key_lastpress == K_ENTER;
 	} while (key_lastpress != 'y' && key_lastpress != 'n'
-		 && key_lastpress != K_ESCAPE);
+		 && key_lastpress != K_ESCAPE && pressedEnter < 3);
 	scr_fullupdate = 0;
 	SCR_UpdateScreen();
-	return key_lastpress == 'y';
+	return key_lastpress == 'y' || key_lastpress == K_ENTER;
 }
 
 void SCR_UpdateScreen() // This is called every frame,
