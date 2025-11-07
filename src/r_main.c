@@ -461,7 +461,8 @@ void R_DrawBEntitiesOnList()
 		switch(currententity->model->type){
 		case mod_brush:
 			if(r_entalpha.value == 1){
-				if(!r_alphapass && currententity->alpha){
+				if(!r_alphapass && currententity->alpha &&
+						currententity->alpha != 255){
 					r_foundtranswater = 1;
 					continue;
 				}
