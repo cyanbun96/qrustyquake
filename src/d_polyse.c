@@ -488,15 +488,19 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 					s32 dither_idx = (x & 1) + ((y & 1) << 1);
 					s32 s_d = abs_sfrac + dither_s[dither_idx];
 					s32 t_d = abs_tfrac + dither_t[dither_idx];
-					s32 s_max = ((skin_w  - 1) << 16);
-					s32 t_max = ((skin_h  - 1) << 16);
+					s32 s_max = ((skin_w - 1) << 16);
+					s32 t_max = ((skin_h - 1) << 16);
 					if (s_d < 0) s_d = 0;
 					if (t_d < 0) t_d = 0;
-					if (s_d > s_max) s_d = s_max;
-					if (t_d > t_max) t_d = t_max;
+					if (s_d >= s_max) s_d = s_max;
+					if (t_d >= t_max) t_d = t_max;
 					s32 final_s = s_d >> 16;
 					s32 final_t = t_d >> 16;
 					u8 texel = *(skin_base + final_s + final_t * skin_w);
+				// The single shotgun model would sometimes get
+				// bright blue texels, which should be unused as
+				// it's the "transparent" color for model skins
+					if (texel == 0xd0) texel = 0;
 					s32 pix;
 					if (!r_rgblighting.value || !colored_aliaslight)
 						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
