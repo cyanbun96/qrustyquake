@@ -59,15 +59,28 @@ void D_CalcGradients(msurface_t *pface)
 	vec3_t p_temp1;
 	VectorScale(transformed_modelorg, mipscale, p_temp1);
 	t = 0x10000 * mipscale;
-	sadjust = ((s32) (DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5)) -
-				((pface->texturemins[0] << 16) >> miplevel)
-				+ pface->texinfo->vecs[0][3] * t;
-	tadjust = ((s32) (DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
-				((pface->texturemins[1] << 16) >> miplevel)
-				+ pface->texinfo->vecs[1][3] * t;
-	// -1 (-epsilon) so we never wander off the edge of the texture
-	bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
-	bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
+	extern s32 tiledextents;
+	if (!tiledextents) {
+		sadjust = ((s32) (DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5)) -
+					((pface->texturemins[0] << 16) >> miplevel)
+					+ pface->texinfo->vecs[0][3] * t;
+		tadjust = ((s32) (DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
+					((pface->texturemins[1] << 16) >> miplevel)
+					+ pface->texinfo->vecs[1][3] * t;
+		// -1 (-epsilon) so we never wander off the edge of the texture
+		bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
+		bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
+	}
+	else {
+		sadjust = ((s32) (DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5)) -
+					((-8192 << 16) >> miplevel)
+					+ pface->texinfo->vecs[0][3] * t;
+		tadjust = ((s32) (DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
+					((-8192 << 16) >> miplevel)
+					+ pface->texinfo->vecs[1][3] * t;
+		bbextents = ((16384 << 16) >> miplevel) - 1;
+		bbextentt = ((16384 << 16) >> miplevel) - 1;
+	}
 }
 
 void D_DrawSurfacesFlat()
@@ -144,6 +157,7 @@ static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 }
 
+s32 tiledextents = 0;
 static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 { // FIXME this is horrible.
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
@@ -160,7 +174,9 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	cacheblock = (u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0];
 	cachewidth = 64;
 	cacheheight = 64;
+	tiledextents = 1;
 	D_CalcGradients(pface);
+	tiledextents = 0;
 	Turbulent8(s->spans, opacity);
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 	lmonly = 0;

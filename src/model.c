@@ -699,8 +699,6 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 			else if(!strncmp(out->texinfo->texture->name,"*tele",5))
 				out->flags |= SURF_DRAWTELE;
 			else out->flags |= SURF_DRAWWATER;
-			// polys are only created for unlit water here.
-			// lit water is handled in BuildSurfaceDisplayList
 			if(out->flags & SURF_DRAWTILED) {
 				for(i = 0; i < 2; i++){
 					out->extents[i] = 16384;
