@@ -40,7 +40,7 @@ void D_DrawSolidSurface(surf_t *surf, s32 color)
 	}
 }
 
-void D_CalcGradients(msurface_t *pface)
+void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 {
 	f32 mipscale = 1.0 / (f32)(1 << miplevel);
 	vec3_t p_saxis, p_taxis;
@@ -59,27 +59,24 @@ void D_CalcGradients(msurface_t *pface)
 	vec3_t p_temp1;
 	VectorScale(transformed_modelorg, mipscale, p_temp1);
 	t = 0x10000 * mipscale;
-	extern s32 tiledextents;
 	if (!tiledextents) {
-		sadjust = ((s32) (DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5)) -
-					((pface->texturemins[0] << 16) >> miplevel)
-					+ pface->texinfo->vecs[0][3] * t;
-		tadjust = ((s32) (DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
-					((pface->texturemins[1] << 16) >> miplevel)
-					+ pface->texinfo->vecs[1][3] * t;
+		sadjust = ((s32)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5))-
+				((pface->texturemins[0] << 16) >> miplevel)
+				+ pface->texinfo->vecs[0][3] * t;
+		tadjust = ((s32)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5))-
+				((pface->texturemins[1] << 16) >> miplevel)
+				+ pface->texinfo->vecs[1][3] * t;
 		// -1 (-epsilon) so we never wander off the edge of the texture
 		bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
 		bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
 	}
-	else {
-		sadjust = ((s32) (DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5)) -
-					((-8192 << 16) >> miplevel)
-					+ pface->texinfo->vecs[0][3] * t;
-		tadjust = ((s32) (DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
-					((-8192 << 16) >> miplevel)
-					+ pface->texinfo->vecs[1][3] * t;
-		bbextents = ((16384 << 16) >> miplevel) - 1;
-		bbextentt = ((16384 << 16) >> miplevel) - 1;
+	else { // Tiled textures (water, sky) always have miplevel of 0
+		sadjust = ((s32)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5))-
+				(-0x20000000) + pface->texinfo->vecs[0][3] * t;
+		tadjust = ((s32)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5))-
+				(-0x20000000) + pface->texinfo->vecs[1][3] * t;
+		bbextents = 0x3fffffff;
+		bbextentt = 0x3fffffff;
 	}
 }
 
@@ -111,7 +108,7 @@ static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 	d_zistepu = s->d_zistepu;
 	d_zistepv = s->d_zistepv;
 	d_ziorigin = s->d_ziorigin;
-	D_CalcGradients (pface);
+	D_CalcGradients (pface, 0);
 	if(fog_density > 0 && !fog_lut_built) build_color_mix_lut(0);
 	if (r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_SKYBOX, 0);
@@ -139,7 +136,7 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface);
+	D_CalcGradients(pface, 0);
 	f32 opacity = 1 - (f32)s->entity->alpha / 255;
 	if (r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_TRANS, opacity);
@@ -152,12 +149,11 @@ static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	cacheblock = (u8 *) ((u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0]);
 	cachewidth = 64;
 	cacheheight = 64;
-	D_CalcGradients(pface);
+	D_CalcGradients(pface, 1);
 	Turbulent8(s->spans, opacity);
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 }
 
-s32 tiledextents = 0;
 static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 { // FIXME this is horrible.
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
@@ -168,15 +164,13 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface);
+	D_CalcGradients(pface, 0);
 	D_DrawSpans(s->spans, SPAN_NORMAL, 0); // draw the lightmap to a separate buffer
 	miplevel = 0;
 	cacheblock = (u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0];
 	cachewidth = 64;
 	cacheheight = 64;
-	tiledextents = 1;
-	D_CalcGradients(pface);
-	tiledextents = 0;
+	D_CalcGradients(pface, 1);
 	Turbulent8(s->spans, opacity);
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 	lmonly = 0;
@@ -189,7 +183,7 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface);
+	D_CalcGradients(pface, 0);
 	if (r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_CUTOUT, 0);
 	else
@@ -204,7 +198,7 @@ static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface);
+	D_CalcGradients(pface, 0);
 	if (r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_NORMAL, 0);
 	else

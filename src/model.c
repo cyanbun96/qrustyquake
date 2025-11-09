@@ -699,12 +699,6 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 			else if(!strncmp(out->texinfo->texture->name,"*tele",5))
 				out->flags |= SURF_DRAWTELE;
 			else out->flags |= SURF_DRAWWATER;
-			if(out->flags & SURF_DRAWTILED) {
-				for(i = 0; i < 2; i++){
-					out->extents[i] = 16384;
-					out->texturemins[i] = -8192;
-				}
-			}
 		} else if(out->texinfo->texture->name[0] == '{'){//ericw--fence
 			out->flags |= SURF_DRAWCUTOUT;
 		} else if(out->texinfo->flags & TEX_MISSING){// missing from bsp
