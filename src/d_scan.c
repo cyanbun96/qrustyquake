@@ -41,12 +41,12 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 
 void D_DrawTurbulent8SpanDithered()
 {
+	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
+	s32 y = pixel_index / scr_vrect.width;
+	s32 x = pixel_index - y * scr_vrect.width;
+	s32 start_x = x;
+	s32 cur_x = start_x;
 	if (!lmonly) {
-		s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
-		s32 y = pixel_index / scr_vrect.width;
-		s32 x = pixel_index - y * scr_vrect.width;
-		s32 start_x = x;
-		s32 cur_x = start_x;
 		do {
 			s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
@@ -62,8 +62,11 @@ void D_DrawTurbulent8SpanDithered()
 	} else { // lit water: render first and then apply the already drawn lightmap as a filter
 		if (!lit_lut_initialized) R_BuildLitLUT();
 		do {
-			s32 s = ((r_turb_s + r_turb_turb[(r_turb_t >> 16) & (CYCLE - 1)]) >> 16) & 63;
-			s32 t = ((r_turb_t + r_turb_turb[(r_turb_s >> 16) & (CYCLE - 1)]) >> 16) & 63;
+			s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+			s32 s_d = r_turb_s + dither_s[dither_idx];
+			s32 t_d = r_turb_t + dither_t[dither_idx];
+			s32 s = ((s_d + r_turb_turb[(t_d >> 16) & (CYCLE - 1)]) >> 16) & 63;
+			s32 t = ((t_d + r_turb_turb[(s_d >> 16) & (CYCLE - 1)]) >> 16) & 63;
 			s32 pix = *(r_turb_pbase + (t << 6) + s);
 			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 			u8 rp = CURWORLDPAL[pix * 3 + 0];
@@ -150,10 +153,18 @@ void D_DrawTurbulent8SpanAlphaDithered(f32 opacity)
 	} else if (r_alphastyle.value == 0 && lmonly) {
 		if (!fog_lut_built) build_color_mix_lut(0);
 		if (!lit_lut_initialized) R_BuildLitLUT();
+		s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
+		s32 y = pixel_index / scr_vrect.width;
+		s32 x = pixel_index - y * scr_vrect.width;
+		s32 start_x = x;
+		s32 cur_x = start_x;
 		do {
 			if (*pz <= (izi >> 16)) {
-				s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-				s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+				s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+				s32 s_d = r_turb_s + dither_s[dither_idx];
+				s32 t_d = r_turb_t + dither_t[dither_idx];
+				s32 s = ((s_d + r_turb_turb[(t_d >> 16) & (CYCLE - 1)]) >> 16) & 63;
+				s32 t = ((t_d + r_turb_turb[(s_d >> 16) & (CYCLE - 1)]) >> 16) & 63;
 				s32 pix = *(r_turb_pbase + (t << 6) + s);
 				s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 				u8 rp = CURWORLDPAL[pix * 3 + 0];
@@ -203,10 +214,18 @@ void D_DrawTurbulent8SpanAlphaDithered(f32 opacity)
 			cur_x++;
 		} while (--r_turb_spancount > 0);
 	} else {
+		s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
+		s32 y = pixel_index / scr_vrect.width;
+		s32 x = pixel_index - y * scr_vrect.width;
+		s32 start_x = x;
+		s32 cur_x = start_x;
 		do {
 			if (*pz <= (izi >> 16)) {
-				s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-				s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+				s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
+				s32 s_d = r_turb_s + dither_s[dither_idx];
+				s32 t_d = r_turb_t + dither_t[dither_idx];
+				s32 s = ((s_d + r_turb_turb[(t_d >> 16) & (CYCLE - 1)]) >> 16) & 63;
+				s32 t = ((t_d + r_turb_turb[(s_d >> 16) & (CYCLE - 1)]) >> 16) & 63;
 				if (D_Dither(r_turb_pdest, 1-opacity)) {
 					s32 pix = *(r_turb_pbase + (t << 6) + s);
 					s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
@@ -330,9 +349,9 @@ void D_DrawTurbulent8SpanAlpha (f32 opacity)
 
 void Turbulent8(espan_t *pspan, f32 opacity)
 {
-	void (*pturbdrawfuncalpha)(f32 opacity) = r_dithertex.value&&miplevel?
+	void (*pturbdrawfuncalpha)(f32 opacity) = r_dithertex.value&&!miplevel?
 		D_DrawTurbulent8SpanAlphaDithered:D_DrawTurbulent8SpanAlpha;
-	void (*pturbdrawfunc)() = r_dithertex.value&&miplevel?
+	void (*pturbdrawfunc)() = r_dithertex.value&&!miplevel?
 		D_DrawTurbulent8SpanDithered:D_DrawTurbulent8Span;
 	r_turb_turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
 	r_turb_sstep = 0; // keep compiler happy
