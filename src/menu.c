@@ -2017,7 +2017,7 @@ void M_Graphics_Draw()
 		}
 	} else if (graphics_cursor == 3 || graphics_cursor/100 == 3) {
 		M_Print(xoffset, 32, "Enabled:");
-		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "On":"Off");
+		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "Off":"On");
 		M_Print(xoffset, 40, "Sky Fog:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_skyfog.value);
 		M_Print(xoffset + x2, 40, temp);
