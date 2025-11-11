@@ -149,7 +149,7 @@ void R_InitFog(f32 noisebias)
 }
 
 void R_InitFogLUT() {
-	f32 fog_scale = 18.0f * r_fogscale.value;
+	f32 fog_scale = 32.0f * r_fogscale.value;
 	f32 fog_scale_inv = 1.0f / fog_scale;
 	f32 fd_sq = (1.0f - fog_density) * (1.0f - fog_density);
 	for (s32 i = 0; i < FOG_FACTOR_LUT_SIZE; ++i) {
