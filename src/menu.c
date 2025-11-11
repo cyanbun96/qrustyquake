@@ -1928,7 +1928,7 @@ void M_Graphics_Key(s32 k)
 		break;
 	default: break;
 	}
-	if (graphics_cursor >= 207 && graphics_cursor <= 211)
+	if (graphics_cursor >= 207 && graphics_cursor <= 211 && r_lockfog.value)
 		Fog_Update(0, 0, 0, 0);
 }
 
