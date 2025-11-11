@@ -1399,6 +1399,16 @@ void M_Display_Key(s32 k)
 		if (display_cursor == 4)
 			Cvar_SetValue("aspectr", 0);
 		break;
+	case 's':
+	case 'S':
+		if (display_cursor == 5)
+			Cvar_SetValue("scr_uixscale", 0.75);
+		break;
+	case 'd':
+	case 'D':
+		if (display_cursor == 5)
+			Cvar_SetValue("scr_uixscale", 1);
+		break;
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		if (display_cursor == 0 && scr_uiscale.value > 1)
@@ -1636,6 +1646,12 @@ void M_Display_Draw()
 		M_DrawTextBox(84, 166, 17, 1);
 		M_Print(96, 174, "Press   for auto");
 		M_PrintWhite(96, 174, "      A");
+	} else if (display_cursor == 5) {
+		M_DrawTextBox(52, 166, 25, 2);
+		M_Print(64, 174, "Press   for default (1:1)");
+		M_PrintWhite(112, 174, "D");
+		M_Print(72, 182, "Or   for squished (3:4)");
+		M_PrintWhite(96, 182, "S");
 	} else if (display_cursor == 6 && (s32)host_maxfps.value > 72) {
 		M_DrawTextBox(52, 166, 30, 1);
 		M_Print(64, 174, "Vanilla max is    expect bugs");
