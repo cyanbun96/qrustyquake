@@ -1604,7 +1604,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	}
 	s32 numskins = pmodel->numskins;
 	if(pmodel->skinwidth & 0x03)
-		Host_Error("Mod_LoadAliasModel: skinwidth not multiple of 4");
+	    Con_DPrintf("Mod_LoadAliasModel: skinwidth not multiple of 4\n");
 	pheader->model = (u8 *)pmodel - (u8 *)pheader;
 	s32 skinsize = pmodel->skinheight * pmodel->skinwidth; // load the skins
 	if(numskins < 1)

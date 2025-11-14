@@ -133,7 +133,7 @@ mspriteframe_t *R_GetSpriteframe(msprite_t *psprite)
 {
 	s32 frame = currententity->frame;
 	if ((frame >= psprite->numframes) || (frame < 0)) {
-		Con_Printf("R_DrawSprite: no such frame %d\n", frame);
+		Con_DPrintf("R_DrawSprite: no such frame %d\n", frame);
 		frame = 0;
 	}
 	mspritegroup_t *pspritegroup;
