@@ -118,8 +118,6 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
    - Cutout textures (transparency)
 
-      - Very limited and glitch-prone in their current implementation
-
    - Fog (Quakespasm-like syntax "fog" command)
 
       - r_nofog 1 to disable
@@ -143,6 +141,8 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
       - Regenerated on map load with r_rebuildmips 1
 
       - Solves random fullbright pixels on dark textures and bright fringe around cutout textures
+
+   - Dithered texture filtering, Unreal-style
 
 - Miscellaneous graphics cvars
 
@@ -190,7 +190,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.6.1
+- Arch Linux [HW] v0.6.2
 
    - The main platform that this port is developed on. The most likely one to work
 
@@ -232,13 +232,7 @@ VM is VirtualBox unless specified otherwise.
 
    - Dark magic performed by Erysdren, please don't ask me about it
 
-- Windows [VM, HW] v0.6.1
-
-   - Tested with w10 on hardware and w11 on a VM
-
-   - Release .exes are cross-compiled
-
-   - Use CMakeLists.txt for native builds
+- Windows [VM, HW] v0.6.2
 
 # Credits
 
