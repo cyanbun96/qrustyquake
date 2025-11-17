@@ -1511,10 +1511,10 @@ void M_Display_Key(s32 k)
 		else if (display_cursor == 10) {
 			if (newwinmode == 2) newwinmode = 0;
 			else newwinmode++;
-		} else if (display_cursor == 11 && newwinmode == 1) {
+		} else if (display_cursor == 11 && newwinmode == 1 && moden) {
 			if (display_sel_moden == 0) display_sel_moden = moden-1;
 			else display_sel_moden--;
-		} else if (display_cursor == 12 && newwinmode == 1) {
+		} else if (display_cursor == 12 && newwinmode == 1 && moden) {
 			VID_SetMode(0,mode->w, mode->h, newwinmode, vid_curpal);
 		} else if (display_cursor == 13
 			   && Q_atoi(customwidthstr) >= 320
@@ -1660,9 +1660,13 @@ void M_Display_Draw()
 	if (newwinmode == 1) {
 		if (!modes) { 
 			modes = SDL_GetFullscreenDisplayModes(1, &moden);
-			mode = modes[0];
+			if (modes) mode = modes[0];
 		}
-		if (moden <= 0) return;
+		if (moden <= 0) {
+			M_Print(xoffset + 204, 120, "No Fullscreen");
+			M_Print(xoffset + 204, 128, "Modes Detected");
+			return;
+		}
 		mode = modes[display_sel_moden];
 		M_Print(xoffset, 120, "                  Mode");
 		q_snprintf(temp, 16, "%dx%d@%d", mode->w, mode->h,
