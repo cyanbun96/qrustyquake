@@ -290,7 +290,7 @@ static void Host_AdvanceTime(f64 dt)
 		host_frametime *= host_timescale.value;
 	else if(host_framerate.value > 0)
 		host_frametime = host_framerate.value;
-	else if(host_maxfps.value)// don't allow really s64 or s16 frames
+	else if(host_maxfps.value)// don't allow really long or short frames
 		host_frametime = CLAMP(0.0001, host_frametime, 0.1);
 }
 
