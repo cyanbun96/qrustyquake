@@ -130,7 +130,8 @@ void CDAudio_Update()
 
 bool CDAudio_Init()
 {
-	if (safemode || COM_CheckParm("-nosound")) return 0;
+	if (safemode || COM_CheckParm("-nosound") || COM_CheckParm("-nomusic"))
+		return 0;
 	MIX_Init();
 	mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
 	if (mixer) Con_Printf("SDL Mixer initialized\n");
