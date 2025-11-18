@@ -360,6 +360,8 @@ void VID_AllocBuffers()
 	uipixels = realloc(uipixels, area);
 	sbarpixels = realloc(sbarpixels, area);
 	argbpixels = realloc(argbpixels, area);
+	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!argbpixels)
+		Sys_Error("Not enough memory for video mode");
 	screen->pixels = vid.buffer = screenpixels;
 	screentop->pixels = uipixels;
 	screenui->pixels = uipixels;
