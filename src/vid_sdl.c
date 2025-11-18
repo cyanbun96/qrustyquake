@@ -7,11 +7,11 @@ static SDL_Rect blitRect;
 static SDL_FRect destRect;
 static SDL_Rect scRect;
 static s32 VID_highhunkmark;
-static u8 screenpixels[MAXWIDTH*MAXHEIGHT];
-static u8 toppixels[MAXWIDTH*MAXHEIGHT];
-static u8 uipixels[MAXWIDTH*MAXHEIGHT];
-static u8 sbarpixels[MAXWIDTH*MAXHEIGHT];
-static u8 argbpixels[MAXWIDTH*MAXHEIGHT];
+static u8 *screenpixels;
+static u8 *toppixels;
+static u8 *uipixels;
+static u8 *sbarpixels;
+static u8 *argbpixels;
 static SDL_PixelFormat window_format;
 static SDL_Palette *sdlworldpal;
 static SDL_Palette *sdltoppal;
@@ -354,6 +354,17 @@ s8 *VID_GetModeDescription(s32 mode)
 
 void VID_AllocBuffers()
 {
+	s32 area = vid.width * vid.height;
+	screenpixels = realloc(screenpixels, area);
+	toppixels = realloc(toppixels, area);
+	uipixels = realloc(uipixels, area);
+	sbarpixels = realloc(sbarpixels, area);
+	argbpixels = realloc(argbpixels, area);
+	screen->pixels = vid.buffer = screenpixels;
+	screentop->pixels = uipixels;
+	screenui->pixels = uipixels;
+	screensbar->pixels = sbarpixels;
+	argbbuffer->pixels = argbpixels;
 	// allocate z buffer and surface cache
 	s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
 	s32 cachesize = D_SurfaceCacheForRes(vid.width, vid.height);
