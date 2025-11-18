@@ -365,12 +365,11 @@ void VID_AllocBuffers()
 	screenui->pixels = uipixels;
 	screensbar->pixels = sbarpixels;
 	argbbuffer->pixels = argbpixels;
-	if(litwater_base){
-		Hunk_FreeToHighMark(lwmark);
+	if(litwater_base){ // gets malloced as needed
+		free(litwater_base);
 		litwater_base = NULL;
 	}
-	VID_highhunkmark = Hunk_HighMark();
-	d_pzbuffer_size = 0; // reallocate
+	d_pzbuffer_size = 0; // reallocate caches
 	D_AllocCaches();
 }
 
