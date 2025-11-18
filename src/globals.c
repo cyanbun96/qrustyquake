@@ -29,6 +29,7 @@ f64 vid_testendtime;
 u8 vid_curpal[256 * 3];
 viddef_t vid; // global video state
 s32 fadescreen;
+u64 d_pzbuffer_size;
 u8 r_foundtranswater, r_alphapass;                                   // r_main.c
 void *colormap;
 s32 r_outofsurfaces;

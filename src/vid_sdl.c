@@ -365,27 +365,13 @@ void VID_AllocBuffers()
 	screenui->pixels = uipixels;
 	screensbar->pixels = sbarpixels;
 	argbbuffer->pixels = argbpixels;
-	// allocate z buffer and surface cache
-	s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
-	s32 cachesize = D_SurfaceCacheForRes(vid.width, vid.height);
-	chunk += cachesize;
 	if(litwater_base){
-		D_FlushCaches(0);
 		Hunk_FreeToHighMark(lwmark);
 		litwater_base = NULL;
 	}
-	if(d_pzbuffer){
-		D_FlushCaches(0);
-		Hunk_FreeToHighMark(VID_highhunkmark);
-		d_pzbuffer = NULL;
-	}
 	VID_highhunkmark = Hunk_HighMark();
-	d_pzbuffer = Hunk_HighAllocName(chunk, "video");
-	if(d_pzbuffer == NULL)
-		Sys_Error("Not enough memory for video mode\n");
-	u8 *cache = (u8 *) d_pzbuffer
-	    + vid.width * vid.height * sizeof(*d_pzbuffer);
-	D_InitCaches(cache, cachesize);
+	d_pzbuffer_size = 0; // reallocate
+	D_AllocCaches();
 }
 
 void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 *palette)

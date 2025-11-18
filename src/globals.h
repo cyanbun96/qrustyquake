@@ -44,6 +44,7 @@ EX cvar_t scr_uiscale;
 EX cvar_t newoptions;
 EX cvar_t sensitivityyscale;
 EX s32 fadescreen;
+EX u64 d_pzbuffer_size;
 s8 *VID_GetModeDescription(s32 mode);
 void VID_SetPalette(u8 *palette, SDL_Surface *dest);
 void VID_Init(u8 *palette);
@@ -232,6 +233,7 @@ s32 D_SurfaceCacheForRes(s32 width, s32 height);
 void D_FlushCaches(SDL_UNUSED cvar_t *cvar);
 void D_InitCaches(void *buffer, s32 size);
 void R_SetVrect(vrect_t *pvrect, vrect_t *pvrectin, s32 lineadj);
+void D_AllocCaches();
 EX affinetridesc_t r_affinetridesc;                                 // d_iface.h
 EX spritedesc_t r_spritedesc;
 EX void *acolormap;

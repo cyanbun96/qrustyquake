@@ -303,6 +303,7 @@ void R_SetupFrame()
 	VectorCopy(modelorg, base_modelorg);
 	R_SetSkyFrame();
 	R_SetUpFrustumIndexes();
+	if(r_cache_thrash) D_AllocCaches(); // allocate a bigger one
 	r_cache_thrash = 0;
 	c_faceclip = 0; // clear frame counts
 	r_polycount = 0;

@@ -36,6 +36,7 @@ void D_InitCaches(void *buffer, s32 size)
 	sc_base->owner = NULL;
 	sc_base->size = sc_size;
 	D_ClearCacheGuard();
+	d_pzbuffer_size = size;
 }
 
 void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
@@ -50,6 +51,19 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 	sc_base->next = NULL;
 	sc_base->owner = NULL;
 	sc_base->size = sc_size;
+}
+
+void D_AllocCaches() // allocate z buffer and surface cache
+{ // CyanBun96: reallocs the cache if it's too small
+	s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
+	s32 cachesize = d_pzbuffer_size + 
+		D_SurfaceCacheForRes(vid.width, vid.height);
+	chunk += cachesize;
+	D_FlushCaches(0);
+	d_pzbuffer = realloc(d_pzbuffer, chunk);
+	if(d_pzbuffer == NULL) Sys_Error("Not enough memory for surf cache\n");
+	u8 *cache = (u8*)d_pzbuffer+vid.width*vid.height*sizeof(*d_pzbuffer);
+	D_InitCaches(cache, cachesize);
 }
 
 surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
