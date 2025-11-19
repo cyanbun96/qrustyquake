@@ -362,14 +362,16 @@ bool Cvar_Command();
 void Cvar_WriteVariables(FILE *f);
 cvar_t *Cvar_FindVar(const s8 *var_name);
 const s8 *Cvar_CompleteVariable(const s8 *partial);
-void Memory_Init(void *buf, s32 size);                                 // zone.h
+void *Q_Malloc(u64 size, cache_user_t *cache_user, s8 *name);          // zone.h
+void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s8 *name);
+void Mem_Journal_Show();
 void Z_Free(void *ptr);
 void *Z_Malloc(s32 size);
 void *Z_Realloc(void *ptr, s32 size);
 s8 *Z_Strdup(const s8 *s);
 void *Hunk_Alloc(s32 size);
-void *Hunk_AllocName(s32 size, const s8 *name);
-void *Hunk_HighAllocName(s32 size, const s8 *name);
+void *Hunk_AllocName(s32 size, s8 *name);
+void *Hunk_HighAllocName(s32 size, s8 *name);
 s32 Hunk_LowMark();
 void Hunk_FreeToLowMark(s32 mark);
 s32 Hunk_HighMark();
@@ -378,7 +380,7 @@ void *Hunk_TempAlloc(s32 size);
 void Hunk_Check();
 void Cache_Flush();
 void *Cache_Check(cache_user_t *c);
-void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name);
+void *Cache_Alloc(cache_user_t *c, s32 size, s8 *name);
 void Cache_Report();
 EX cmd_source_t cmd_source;                                             // cmd.h
 void Cmd_Init();
@@ -677,7 +679,8 @@ s32 COM_OpenFile(const s8 *filename, s32 *handle, u32 *path_id);
 s32 COM_FOpenFile(const s8 *filename, FILE **file, u32 *path_id);
 u8 *COM_LoadStackFile(const s8 *path, void *buffer, s32 bufsize, u32 *path_id);
 u8 *COM_LoadHunkFile(const s8 *path, u32 *path_id);
-void COM_LoadCacheFile(const s8 *path, struct cache_user_s *cu, u32 *path_id);
+void COM_LoadCacheFile(const s8 *path, cache_user_t *cu, u32 *path_id);
+u8 *COM_LoadFile(const s8 *path, s32 usehunk, u32 *path_id);
 u8 *COM_LoadMallocFile(const s8 *path, u32 *path_id);
 size_t FS_fread(void *ptr, size_t size, size_t nmemb, fshandle_t *fh);
 s32 FS_fseek(fshandle_t *fh, s64 offset, s32 whence);

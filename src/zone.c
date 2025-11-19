@@ -4,18 +4,87 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-void Z_Free(void *ptr) { free(ptr); }
+static mem_journal_t *journal_head = 0;
+static mem_journal_t *journal_tail = 0;
+
+void *Q_Malloc(u64 size, cache_user_t *cache_user, s8 *name)
+{
+	mem_journal_t *entry = malloc(sizeof(mem_journal_t));
+	if(journal_tail) {
+		journal_tail->next = entry;
+	}
+	journal_tail = entry;
+	if(!journal_head) journal_head = entry;
+	void *ptr = malloc(size);
+	entry->addr = (u64)ptr;
+	entry->size = size;
+	entry->cache_user = cache_user;
+	Q_strncpy(entry->name, name?name:"Unknown", 15);
+	entry->next = 0;
+	return ptr;
+}
+
+void Q_Free(void *ptr)
+{
+	mem_journal_t *entry = 0;
+	mem_journal_t *last = 0;
+	for(mem_journal_t *search = journal_head; search; search =search->next){
+		if(search->addr == (u64)ptr) {
+			entry = search;
+			break;
+		}
+		last = search;
+	}
+	if(!entry) Sys_Error("Q_Free: called on an unknown allocation");
+	free((void*)(entry->addr));
+	if(entry == journal_tail) {
+		journal_tail = last;
+		last->next = 0;
+	} else last->next = entry->next;
+	free(entry);
+}
+
+void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s8 *name)
+{
+	if(!ptr) return Q_Malloc(size, cache_user, name);
+	mem_journal_t *entry = 0;
+	for(mem_journal_t *search = journal_head; search; search =search->next){
+		if(search->addr == (u64)ptr) {
+			entry = search;
+			break;
+		}
+	}
+	if(!entry) Sys_Error("Q_Realloc: called on an unknown allocation");
+	ptr = realloc(ptr, size);
+	entry->addr = (u64)ptr;
+	entry->size = size;
+	entry->cache_user = cache_user;
+	if(name)Q_strncpy(entry->name, name, 15);
+	return ptr;
+}
+
+void Mem_Journal_Show() {
+	u64 total = 0;
+	for(mem_journal_t *entry = journal_head; entry; entry = entry->next) {
+		Con_Printf("%x %u %x %s\n", entry->addr, entry->size,
+				entry->cache_user, entry->name);
+		total += entry->size;
+	}
+	Con_Printf("Total: %d\n", total);
+}
+
+void Z_Free(void *ptr) { Q_Free(ptr); }
 
 void *Z_Malloc(s32 size)
 {
-	void *ptr = malloc(size);
+	void *ptr = Q_Malloc(size, 0, 0);
 	memset(ptr, 0, size);
 	return ptr;
 }
 
 void *Z_Realloc(void *ptr, s32 size)
 { //FIXME this does not zero out the new memory
-	return realloc(ptr, size);
+	return Q_Realloc(ptr, size, 0, 0);
 	if(!ptr) return Z_Malloc(size);
 }
 
@@ -29,10 +98,10 @@ s8 *Z_Strdup(const s8 *s)
 
 void Hunk_Print_f() { return; }
 
-void *Hunk_AllocName(s32 size, const s8 *name)
+void *Hunk_AllocName(s32 size, s8 *name)
 {
 	size = sizeof(hunk_t) + ((size+15)&~15);
-	void *p = malloc(size);
+	void *p = Q_Malloc(size, 0, name);
 	memset(p, 0, size);
 	return p;
 }
@@ -47,16 +116,16 @@ s32 Hunk_LowMark() { return 0; }
 void Hunk_FreeToLowMark(s32 mark) { }
 s32 Hunk_HighMark() { return 0; }
 void Hunk_FreeToHighMark(SDL_UNUSED s32 mark) { }
-void *Hunk_HighAllocName(SDL_UNUSED s32 size, SDL_UNUSED const s8 *name) { }
+void *Hunk_HighAllocName(SDL_UNUSED s32 size, SDL_UNUSED s8 *name) { }
 void Cache_Report() { }
 
 void *Hunk_TempAlloc(s32 size)
 {
 	size = (size+15)&~15;
-	return malloc(size);
+	return Q_Malloc(size, 0, 0);
 }
 
-s8 *Hunk_Strdup(const s8 *s, const s8 *name)
+s8 *Hunk_Strdup(const s8 *s, s8 *name)
 {
 	size_t sz = strlen(s) + 1;
 	s8 *ptr = (s8 *) Hunk_AllocName(sz, name);
@@ -64,35 +133,30 @@ s8 *Hunk_Strdup(const s8 *s, const s8 *name)
 	return ptr;
 }
 
-cache_system_t *Cache_TryAlloc(s32 size, SDL_UNUSED bool nobottom)
+void Cache_Free(cache_user_t *c, SDL_UNUSED bool freetextures)
 {
-	cache_system_t *p = malloc(size);
-	if(!p) Sys_Error("Cache_TryAlloc: failed to allocate %d\n", size);
-	return p;
+	if(!c->data) Sys_Error("Cache_Free: not allocated");
+	Q_Free(c->data);
+	c->data = NULL;
 }
 
 void Cache_Flush()
 { // Throw everything out, so new data will be demand cached
-	return; //FIXME this is particularly bad
-}
-
-void Cache_Init()
-{
-	Cmd_AddCommand("flush", Cache_Flush);
-}
-
-void Cache_Free(cache_user_t *c, SDL_UNUSED bool freetextures)
-{ // Frees the memory
-	if(!c->data) Sys_Error("Cache_Free: not allocated");
-	free(c->data);
-	c->data = NULL;
+	mem_journal_t *last = 0;
+	for(mem_journal_t *entry = journal_head; entry;) {
+		mem_journal_t *next = entry->next;
+		if(entry->cache_user) {
+			Cache_Free(entry->cache_user, 0);
+		}
+		entry = next;
+	}
 }
 
 void *Cache_Check(cache_user_t *c) { return c->data; }
 
-void *Cache_Alloc(cache_user_t *c, s32 size, SDL_UNUSED const s8 *name)
+void *Cache_Alloc(cache_user_t *c, s32 size, s8 *name)
 {
 	if(c->data) Sys_Error("Cache_Alloc: already allocated");
-	c->data = malloc(size);
+	c->data = Q_Malloc(size, c, name);
 	return c->data;
 }

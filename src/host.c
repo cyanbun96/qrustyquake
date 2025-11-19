@@ -431,6 +431,8 @@ void Host_Init()
 {
 	com_argc = host_parms.argc;
 	com_argv = (s8 **)host_parms.argv;
+	Cmd_AddCommand("mem_journal_show", Mem_Journal_Show);
+	Cmd_AddCommand("cache_flush", Cache_Flush);
 	Cbuf_Init();
 	Cmd_Init();
 	V_Init();

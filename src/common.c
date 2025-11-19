@@ -1071,7 +1071,7 @@ u8 *COM_LoadZoneFile(const s8 *path, u32 *path_id)
 u8 *COM_LoadTempFile(const s8 *path, u32 *path_id)
 { return COM_LoadFile(path, LOADFILE_TEMPHUNK, path_id); }
 
-void COM_LoadCacheFile(const s8 *path, struct cache_user_s *cu, u32 *path_id)
+void COM_LoadCacheFile(const s8 *path, cache_user_t *cu, u32 *path_id)
 {
 	loadcache = cu;
 	COM_LoadFile(path, LOADFILE_CACHE, path_id);

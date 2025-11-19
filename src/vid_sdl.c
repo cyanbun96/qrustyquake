@@ -355,11 +355,11 @@ s8 *VID_GetModeDescription(s32 mode)
 void VID_AllocBuffers()
 {
 	s32 area = vid.width * vid.height;
-	screenpixels = realloc(screenpixels, area);
-	toppixels = realloc(toppixels, area);
-	uipixels = realloc(uipixels, area);
-	sbarpixels = realloc(sbarpixels, area);
-	argbpixels = realloc(argbpixels, area);
+	screenpixels = Q_Realloc(screenpixels, area, 0, "screenpixels");
+	toppixels = Q_Realloc(toppixels, area, 0, "toppixels");
+	uipixels = Q_Realloc(uipixels, area, 0, "uipixels");
+	sbarpixels = Q_Realloc(sbarpixels, area, 0, "sbarpixels");
+	argbpixels = Q_Realloc(argbpixels, area, 0, "argbpixels");
 	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!argbpixels)
 		Sys_Error("Not enough memory for video mode");
 	screen->pixels = vid.buffer = screenpixels;

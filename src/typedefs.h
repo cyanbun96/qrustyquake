@@ -394,6 +394,14 @@ typedef struct cache_user_s                                            // zone.h
 	void *data;
 } cache_user_t;
 
+typedef struct mem_journal_s {
+	u64 addr;
+	u64 size;
+	cache_user_t *cache_user;
+	s8 name[16];
+	struct mem_journal_s *next;
+} mem_journal_t;
+
 typedef struct {                                                   // protocol.h
 	vec3_t  origin;
 	vec3_t  angles;
