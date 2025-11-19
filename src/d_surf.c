@@ -28,7 +28,7 @@ void D_ClearCacheGuard()
 
 void D_InitCaches(void *buffer, s32 size)
 {
-	Con_Printf("%ik surface cache\n", size / 1024);
+	Con_DPrintf("%ik surface cache\n", size / 1024);
 	sc_size = size - GUARDSIZE;
 	sc_base = (surfcache_t *) buffer;
 	sc_rover = sc_base;

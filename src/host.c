@@ -431,7 +431,6 @@ void Host_Init()
 {
 	com_argc = host_parms.argc;
 	com_argv = (s8 **)host_parms.argv;
-	Memory_Init(host_parms.membase, host_parms.memsize);
 	Cbuf_Init();
 	Cmd_Init();
 	V_Init();
@@ -448,7 +447,6 @@ void Host_Init()
 	NET_Init();
 	SV_Init();
 	Con_Printf("Exe: " __TIME__ " " __DATE__ "\n");
-	Con_Printf("%4.1f megabyte heap\n", host_parms.memsize / (1024*1024.0));
 	R_InitTextures(); // needed even for dedicated servers
 	if(cls.state != ca_dedicated){
 		FILE *f; // Custom palettes

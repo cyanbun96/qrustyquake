@@ -6,6 +6,8 @@
 #include "quakedef.h"
 
 static aliashdr_t *pheader;
+static void *aliasbuf;
+static void *aliasp;
 // pose is a single set of vertexes. frame may be an animating sequence of poses
 static trivertx_t *poseverts[MAXALIASFRAMES];
 static s32 posenum;
@@ -1385,7 +1387,8 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 		frame->bboxmax.v[i] = pdaliasframe->bboxmax.v[i];
 	}
 	trivertx_t *pinframe = (trivertx_t *) (pdaliasframe + 1);
-	trivertx_t *pframe = Hunk_AllocName(numv * sizeof(*pframe), loadname);
+	trivertx_t *pframe = aliasp;
+	aliasp += numv * sizeof(*pframe);
 	*pframeindex = (u8 *) pframe - (u8 *) pheader;
 	poseverts[posenum] = pinframe;
 	posenum++;
@@ -1405,8 +1408,9 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
 	s32 numframes = LittleLong(pingroup->numframes);
 	frame->firstpose = posenum;
-	maliasgroup_t *paliasgroup = Hunk_AllocName(sizeof(maliasgroup_t) +
-		(numframes - 1) * sizeof(paliasgroup->frames[0]), loadname);
+	maliasgroup_t *paliasgroup = aliasp;
+	aliasp += sizeof(maliasgroup_t) + (numframes - 1)
+		* sizeof(paliasgroup->frames[0]);
 	paliasgroup->numframes = frame->numposes = numframes;
 	for(s32 i = 0; i < 3; i++){
 		frame->bboxmin.v[i] = pingroup->bboxmin.v[i];
@@ -1415,7 +1419,8 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	*pframeindex = (u8 *) paliasgroup - (u8 *) pheader;
 	daliasinterval_t *pin_intervals = (daliasinterval_t *) (pingroup + 1);
 	frame->interval = LittleFloat(pin_intervals->interval);
-	f32 *poutintervals = Hunk_AllocName(numframes*sizeof(f32),loadname);
+	f32 *poutintervals = aliasp;
+	aliasp += numframes*sizeof(f32);
 	paliasgroup->intervals = (u8 *) poutintervals - (u8 *) pheader;
 	for(s32 i = 0; i < numframes; i++){
 		*poutintervals = LittleFloat(pin_intervals->interval);
@@ -1497,7 +1502,8 @@ void Mod_SetExtraFlags(model_t *mod)
 void *Mod_LoadAliasSkin(void *pin, s32 *pskinindex, s32 skinsize,
 		aliashdr_t *pheader)
 {
-	u8 *pskin = Hunk_AllocName(skinsize, loadname);
+	u8 *pskin = aliasp;
+	aliasp += skinsize;
 	u8 *pinskin = (u8 *)pin;
 	*pskinindex = (u8 *)pskin - (u8 *)pheader;
 	memcpy(pskin, pinskin, skinsize);
@@ -1510,14 +1516,15 @@ void *Mod_LoadAliasSkinGroup(void *pin, s32 *pskinindex, s32 skinsize,
 {
 	daliasskingroup_t *pinskingroup = (daliasskingroup_t *) pin;
 	s32 numskins = LittleLong(pinskingroup->numskins);
-	maliasskingroup_t *paliasskingroup =
-		Hunk_AllocName(sizeof(maliasskingroup_t) + (numskins - 1) *
-				sizeof(paliasskingroup->skindescs[0]),loadname);
+	maliasskingroup_t *paliasskingroup = aliasp;
+	aliasp += sizeof(maliasskingroup_t) + (numskins - 1) *
+				sizeof(paliasskingroup->skindescs[0]);
 	paliasskingroup->numskins = numskins;
 	*pskinindex = (u8 *) paliasskingroup - (u8 *) pheader;
 	daliasskininterval_t *pinskinintervals =
 		(daliasskininterval_t *) (pinskingroup + 1);
-	f32 *poutskinintervals = Hunk_AllocName(numskins*sizeof(f32), loadname);
+	f32 *poutskinintervals = aliasp;
+	aliasp += numskins*sizeof(f32);
 	paliasskingroup->intervals = (u8*)poutskinintervals - (u8*)pheader;
 	for(s32 i = 0; i < numskins; i++){
 		*poutskinintervals = LittleFloat(pinskinintervals->interval);
@@ -1541,7 +1548,9 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	daliasframetype_t *pframetype;
 	daliasskintype_t *pskintype;
 	maliasskindesc_t *pskindesc;
-	s32 start = Hunk_LowMark();
+	aliasbuf = malloc(8192*8192); //FIXME this could easily overflow and die
+	memset(aliasbuf, 0, 8192*8192);
+	aliasp = aliasbuf;
 	mdl_t *pinmodel = buffer;
 	mod_base = (u8 *)buffer; //johnfitz
 	s32 version = LittleLong(pinmodel->version);
@@ -1555,7 +1564,8 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 		+ sizeof(mdl_t) + LittleLong(pinmodel->numverts)
 		* sizeof(stvert_t)
 		+ LittleLong(pinmodel->numtris) * sizeof(mtriangle_t) ;
-	pheader = (aliashdr_t *)Hunk_AllocName(size, loadname);
+	pheader = (aliashdr_t *)aliasp;
+	aliasp += size;
 	mdl_t *pmodel = (mdl_t*)((u8*)&pheader[1]+(LittleLong(
 			pinmodel->numframes)-1)*sizeof(pheader->frames[0]));
 	pheader->flags = mod->flags = LittleLong(pinmodel->flags);
@@ -1610,7 +1620,8 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	if(numskins < 1)
 	     Host_Error("Mod_LoadAliasModel: Invalid # of skins: %d", numskins);
 	pskintype = (daliasskintype_t *)&pinmodel[1];
-	pskindesc = Hunk_AllocName(numskins*sizeof(maliasskindesc_t), loadname);
+	pskindesc = aliasp;
+	aliasp += numskins*sizeof(maliasskindesc_t);
 	pheader->skindesc = (u8 *)pskindesc - (u8 *)pheader;
 	for(s32 i = 0; i < numskins; i++) {
 		aliasskintype_t skintype;
@@ -1664,12 +1675,11 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	Mod_SetExtraFlags(mod); //johnfitz
 	Mod_CalcAliasBounds(pheader); //johnfitz
 	// move the complete, relocatable alias model to the cache
-	s32 end = Hunk_LowMark();
-	s32 total = end - start;
+	s32 total = aliasp - aliasbuf;
 	Cache_Alloc(&mod->cache, total, loadname);
 	if(!mod->cache.data) return;
 	memcpy(mod->cache.data, pheader, total);
-	Hunk_FreeToLowMark(start);
+	free(aliasbuf);
 }
 
 void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)

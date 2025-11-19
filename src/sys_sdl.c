@@ -29,6 +29,7 @@ void Sys_Quit()
 
 void Sys_Error(const s8 *error, ...)
 {
+	__asm__("int3");
 	va_list argptr;
 	s8 str[1024];
 	CDAudio_Stop();
@@ -202,12 +203,6 @@ int main(int c, char **v)
 	host_parms.argc = c;
 	host_parms.argv = (s8**)v;
 	COM_InitArgv(host_parms.argc, (s8**)host_parms.argv);
-	host_parms.memsize = DEFAULT_MEMORY;
-	if(COM_CheckParm("-heapsize")){
-		s32 t = COM_CheckParm("-heapsize") + 1;
-		if(t < c) host_parms.memsize = Q_atoi(v[t]) * 1024;
-	}
-	host_parms.membase = malloc(host_parms.memsize);
 	host_parms.basedir = ".";
 	host_parms.userdir = ".";
 	Host_Init();

@@ -13,7 +13,7 @@ wavinfo_t GetWavinfo(const s8 *name, u8 *wav, s32 wavlength);
 
 static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 {
-	sfxcache_t *sc = (sfxcache_t *) Cache_Check(&sfx->cache);
+	sfxcache_t *sc = sfx->cache.data;
 	if(!sc) return;
 	f32 stepscale = (f32)inrate / shm->speed; //this is usually 0.5, 1, or 2
 	s32 outcount = sc->length / stepscale;
