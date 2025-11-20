@@ -183,11 +183,11 @@ void Key_SetBinding(s32 keynum, s8 *binding)
 {
 	if(keynum == -1) return;
 	if(keybindings[keynum]){ // free old bindings
-		Z_Free(keybindings[keynum]);
+		Q_Free(keybindings[keynum]);
 		keybindings[keynum] = NULL;
 	}
 	s32 l = Q_strlen(binding); // allocate memory for new binding
-	s8 *new = Z_Malloc(l + 1);
+	s8 *new = Q_Malloc(l + 1, 0, 0, "keybind");
 	Q_strcpy(new, binding);
 	new[l] = 0;
 	keybindings[keynum] = new;

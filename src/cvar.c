@@ -203,8 +203,8 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 		var->flags |= CVAR_CHANGED;
 		s32 len = strlen(value);
 		if((u64)len != strlen(var->string)) {
-			Z_Free((void *)var->string);
-			var->string = (s8 *) Z_Malloc(len + 1);
+			Q_Free((void *)var->string);
+			var->string = (s8 *) Q_Malloc(len+1, 0, 0, "quickcvar");
 		}
 		memcpy((s8 *)var->string, value, len + 1);
 	}
@@ -215,7 +215,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 	else if(!host_initialized) {
 		Con_DPrintf("changing default of %s: %s -> %s\n", var->name,
 				var->default_string, var->string);
-		Z_Free((void *)var->default_string);
+		Q_Free((void *)var->default_string);
 		var->default_string = Z_Strdup(var->string);
 	}
 	if(var->callback) var->callback(var);
@@ -303,7 +303,7 @@ void Cvar_RegisterVariable(cvar_t *variable)
 		prev->next = variable;
 	} //johnfitz
 	variable->flags |= CVAR_REGISTERED;
-	// copy the value off, because future sets will Z_Free it
+	// copy the value off, because future sets will Q_Free it
 	q_strlcpy(value, variable->string, sizeof(value));
 	variable->string = NULL;
 	variable->default_string = NULL;

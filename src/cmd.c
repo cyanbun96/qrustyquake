@@ -41,14 +41,14 @@ void Cbuf_InsertText(s8 *text)
 	s8 *temp = NULL; // copy off any commands still remaining
 	s32 templen = cmd_text.cursize; // in the exec buffer
 	if(templen){
-		temp = Z_Malloc(templen);
+		temp = Q_Malloc(templen, 0, 0, "insert_text");
 		Q_memcpy(temp, cmd_text.data, templen);
 		SZ_Clear(&cmd_text);
 	} 
 	Cbuf_AddText(text); // add the entire text of the file
 	if(templen){ // add the copied off data
 		SZ_Write(&cmd_text, temp, templen);
-		Z_Free(temp);
+		Q_Free(temp);
 	}
 }
 
@@ -136,7 +136,7 @@ void Cmd_Echo_f()
 
 s8 *CopyString(s8 *in)
 {
-	s8 *out = Z_Malloc(strlen(in) + 1);
+	s8 *out = Q_Malloc(strlen(in) + 1, 0, 0, "copystring");
 	strcpy(out, in);
 	return out;
 }
@@ -168,12 +168,12 @@ void Cmd_Alias_f() // johnfitz -- rewritten
 		}
 		for(a = cmd_alias; a; a = a->next){ // if alias exists, reuse it
 			if(!strcmp(s, a->name)){
-				Z_Free(a->value);
+				Q_Free(a->value);
 				break;
 			}
 		}
 		if(!a){
-			a = Z_Malloc(sizeof(cmdalias_t));
+			a = Q_Malloc(sizeof(cmdalias_t), 0, 0, "aliasstring");
 			a->next = cmd_alias;
 			cmd_alias = a;
 		}
@@ -203,8 +203,8 @@ void Cmd_Unalias_f() // -- johnfitz
 		for(prev = a = cmd_alias; a; a = a->next){
 			if(!strcmp(Cmd_Argv(1), a->name)){
 				prev->next = a->next;
-				Z_Free(a->value);
-				Z_Free(a);
+				Q_Free(a->value);
+				Q_Free(a);
 				prev = a;
 				return;
 			}
@@ -218,8 +218,8 @@ void Cmd_Unaliasall_f() // -- johnfitz
 {
 	while(cmd_alias){
 		cmdalias_t *blah = cmd_alias->next;
-		Z_Free(cmd_alias->value);
-		Z_Free(cmd_alias);
+		Q_Free(cmd_alias->value);
+		Q_Free(cmd_alias);
 		cmd_alias = blah;
 	}
 }

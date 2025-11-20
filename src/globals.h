@@ -368,8 +368,6 @@ void *Q_Malloc(u64 size, cache_user_t *cache_user, s32 type, s8 *name);
 void Q_Free(void *ptr);
 void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user,s32 type,s8*name);
 void Mem_Journal_Show();
-void Z_Free(void *ptr);
-void *Z_Malloc(s32 size);
 void *Z_Realloc(void *ptr, s32 size);
 s8 *Z_Strdup(const s8 *s);
 void *Hunk_Alloc(s32 size);

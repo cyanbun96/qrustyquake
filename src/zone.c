@@ -81,25 +81,16 @@ void Mem_Journal_Show() {
 	Con_Printf("Mallocs: %d\n", mallocs);
 }
 
-void Z_Free(void *ptr) { Q_Free(ptr); }
-
-void *Z_Malloc(s32 size)
-{
-	void *ptr = Q_Malloc(size, 0, 0, 0);
-	memset(ptr, 0, size);
-	return ptr;
-}
-
 void *Z_Realloc(void *ptr, s32 size)
 {
 	return Q_Realloc(ptr, size, 0, 0, 0);
-	if(!ptr) return Z_Malloc(size);
+	if(!ptr) return Q_Malloc(size, 0, 0, "z_realloc");
 }
 
 s8 *Z_Strdup(const s8 *s)
 {
 	size_t sz = strlen(s) + 1;
-	s8 *ptr = (s8 *) Z_Malloc(sz);
+	s8 *ptr = (s8 *) Q_Malloc(sz, 0, 0, "z_strdup");
 	memcpy(ptr, s, sz);
 	return ptr;
 }

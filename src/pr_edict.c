@@ -674,7 +674,7 @@ void PR_LoadProgs()
 	pr_maxknownstrings = 0;
 	pr_stringssize = progs->numstrings;
 	if(pr_knownstrings)
-		Z_Free((void *)pr_knownstrings);
+		Q_Free((void *)pr_knownstrings);
 	pr_knownstrings = NULL;
 	PR_SetEngineString("");
 	pr_globaldefs = (ddef_t *)((u8 *)progs + progs->ofs_globaldefs);

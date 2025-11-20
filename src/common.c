@@ -619,7 +619,7 @@ void SZ_Alloc(sizebuf_t *buf, s32 startsize)
 	buf->cursize = 0;
 }
 
-void SZ_Free(sizebuf_t *buf) { buf->cursize = 0; }
+void SQ_Free(sizebuf_t *buf) { buf->cursize = 0; }
 void SZ_Clear(sizebuf_t *buf) { buf->cursize = 0; }
 
 void *SZ_GetSpace(sizebuf_t *buf, s32 length)
@@ -1046,7 +1046,7 @@ u8 *COM_LoadFile(const s8 *path, s32 usehunk, u32 *path_id)
 	switch(usehunk) {
 	case LOADFILE_HUNK: buf = (u8 *) Hunk_AllocName(len+1, base); break;
 	case LOADFILE_TEMPHUNK: buf = (u8 *) Hunk_TempAlloc(len+1); break;
-	case LOADFILE_ZONE: buf = (u8 *) Z_Malloc(len+1); break;
+	case LOADFILE_ZONE: buf = (u8 *) Q_Malloc(len+1, 0, 0, base); break;
 	case LOADFILE_CACHE: buf = (u8*)Cache_Alloc(loadcache,len+1,base);break;
 	case LOADFILE_STACK: if(len < loadsize) buf = loadbuf;
 			else buf = (u8 *) Hunk_TempAlloc(len+1);
@@ -1164,7 +1164,8 @@ static pack_t *COM_LoadPackFile(const s8 *packfile)
 		Sys_Error("%s has %i files", packfile, numpackfiles);
 	if(numpackfiles != PAK0_COUNT)
 		com_modified = 1; // not the original file
-	packfile_t *newf=(packfile_t*)Z_Malloc(numpackfiles*sizeof(packfile_t));
+	packfile_t *newf=(packfile_t*)Q_Malloc(
+			numpackfiles*sizeof(packfile_t), 0, 0, (s8*)packfile);
 	Sys_FileSeek(packhandle, header.dirofs);
 	if(Sys_FileRead(packhandle, info, header.dirlen) != header.dirlen)
 		Sys_Error("Error reading %s", packfile);
@@ -1179,7 +1180,7 @@ static pack_t *COM_LoadPackFile(const s8 *packfile)
 		newf[i].filepos = LittleLong(info[i].filepos);
 		newf[i].filelen = LittleLong(info[i].filelen);
 	}
-	pack_t *pack = (pack_t *) Z_Malloc(sizeof(pack_t));
+	pack_t *pack = (pack_t *) Q_Malloc(sizeof(pack_t), 0, 0, (s8*)packfile);
 	q_strlcpy(pack->filename, packfile, sizeof(pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = numpackfiles;
@@ -1193,7 +1194,8 @@ static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
 	bool been_here = 0;
 	q_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
 	u32 path_id = com_searchpaths ? com_searchpaths->path_id << 1 : 1U;
-	searchpath_t *search = (searchpath_t *) Z_Malloc(sizeof(searchpath_t));
+	searchpath_t *search = (searchpath_t *) Q_Malloc(
+			sizeof(searchpath_t), 0, 0, com_gamedir);
 	search->path_id = path_id;
 	q_strlcpy(search->filename, com_gamedir, sizeof(search->filename));
 	search->next = com_searchpaths;
@@ -1212,14 +1214,16 @@ static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
 			com_modified = old;
 		}
 		if(pak){
-			search = (searchpath_t*) Z_Malloc(sizeof(searchpath_t));
+			search = (searchpath_t*) Q_Malloc(sizeof(searchpath_t),
+					0, 0, pakfile);
 			search->path_id = path_id;
 			search->pack = pak;
 			search->next = com_searchpaths;
 			com_searchpaths = search;
 		}
 		if(qspak){
-			search = (searchpath_t*) Z_Malloc(sizeof(searchpath_t));
+			search = (searchpath_t*) Q_Malloc(sizeof(searchpath_t),
+					0, 0, pakfile);
 			search->path_id = path_id;
 			search->pack = qspak;
 			search->next = com_searchpaths;
@@ -1361,11 +1365,11 @@ Con_Printf("You must have the registered version to use modified games\n");
 	while(com_searchpaths!=com_base_searchpaths){//Kill extra game if loaded
 		if(com_searchpaths->pack) {
 			Sys_FileClose(com_searchpaths->pack->handle);
-			Z_Free(com_searchpaths->pack->files);
-			Z_Free(com_searchpaths->pack);
+			Q_Free(com_searchpaths->pack->files);
+			Q_Free(com_searchpaths->pack);
 		}
 		search = com_searchpaths->next;
-		Z_Free(com_searchpaths);
+		Q_Free(com_searchpaths);
 		com_searchpaths = search;
 	}
 	hipnotic = 0;
