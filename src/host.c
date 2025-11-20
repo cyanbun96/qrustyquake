@@ -262,7 +262,6 @@ void Host_ClearMemory() // This clears all the memory used by both the client
 	mem_journal_t *entry = 0;
 	for(mem_journal_t *search = journal_head; search; search =search->next){
 		if(!strncmp(search->name, "-HOST_HUNKLEVEL-", 15)) {
-			puts("FOUNDFOUNDFOUND");
 			entry = search;
 			break;
 		}

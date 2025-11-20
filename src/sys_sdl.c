@@ -29,7 +29,6 @@ void Sys_Quit()
 
 void Sys_Error(const s8 *error, ...)
 {
-	__asm__("int3");
 	va_list argptr;
 	s8 str[1024];
 	CDAudio_Stop();
