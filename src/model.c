@@ -387,14 +387,13 @@ static void Mod_LoadLighting(lump_t *l)
 	q_strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
 	COM_StripExtension(litfilename, litfilename, sizeof(litfilename));
 	q_strlcat(litfilename, ".lit", sizeof(litfilename));
-	s32 mark = Hunk_LowMark();
 	u32 path_id;
 	u8 *data = COM_LoadHunkFile(litfilename, &path_id);
 	if(data){
 		// use lit file only from the same gamedir as the map
 		// itself or from a searchpath with higher priority.
 		if(path_id < loadmodel->path_id){
-			Hunk_FreeToLowMark(mark);
+			Q_Free(data);
 		  Con_DPrintf("ignored %s from a gamedir with lower priority\n",
 				litfilename);
 		}
@@ -403,17 +402,17 @@ static void Mod_LoadLighting(lump_t *l)
 			if(i == 1){
 				if(8+l->filelen*3 == com_filesize){
 					lit_loaded = 1;
-					printf("%s loaded\n", litfilename);
+					Con_Printf("%s loaded\n", litfilename);
 					loadmodel->lightdata = data + 8;
 					return;
 				}
-				Hunk_FreeToLowMark(mark);
+				Q_Free(data);
 		Con_Printf("Outdated .lit file(%s should be %u bytes, not %u)\n"
 				, litfilename, 8+l->filelen*3, com_filesize);
 			}
-			else { Hunk_FreeToLowMark(mark);
+			else { Q_Free(data);
 			Con_Printf("Unknown .lit file version(%d)\n",i); }
-		} else { Hunk_FreeToLowMark(mark);
+		} else { Q_Free(data);
 		Con_Printf("Corrupt .lit file(old version?), ignoring\n");}
 	} // LordHavoc: no .lit found, expand the white lighting data to color
 	if(!l->filelen) return;
@@ -495,7 +494,6 @@ static void Mod_LoadEntities(lump_t *l)
 	s8 basemapname[MAX_QPATH];
 	s8 entfilename[MAX_QPATH+16];
 	if(!external_ents.value) goto _load_embedded;
-	s32 mark = Hunk_LowMark();
 	u32 crc = 0;
 	if(l->filelen > 0) crc = CRC_Block(mod_base+l->fileofs, l->filelen-1);
 	q_strlcpy(basemapname, loadmodel->name, sizeof(basemapname));
@@ -511,7 +509,7 @@ static void Mod_LoadEntities(lump_t *l)
 		// use ent file only from the same gamedir as the map
 		// itself or from a searchpath with higher priority.
 		if(path_id < loadmodel->path_id) {
-			Hunk_FreeToLowMark(mark);
+			Q_Free(ents);
     Con_DPrintf("ignored %s from a gamedir with lower priority\n", entfilename);
 		} else {
 			loadmodel->entities = ents;
@@ -524,7 +522,7 @@ _load_embedded:
 		loadmodel->entities = NULL;
 		return;
 	}
-	loadmodel->entities = (s8 *) Hunk_AllocName( l->filelen, loadname);
+	loadmodel->entities = (s8 *) Hunk_AllocName(l->filelen, loadname);
 	memcpy(loadmodel->entities, mod_base + l->fileofs, l->filelen);
 }
 
@@ -1258,7 +1256,10 @@ static u8 *Mod_LoadVisibilityExternal(FILE *f)
 	if(filelen <= 0) return NULL;
 	Con_DPrintf("...%d bytes visibility data\n", filelen);
 	u8 *visdata = (u8 *) Hunk_AllocName(filelen, "EXT_VIS");
-	if(!fread(visdata, filelen, 1, f)) return NULL;
+	if(!fread(visdata, filelen, 1, f)) {
+		Q_Free(visdata);
+		return NULL;
+	}
 	return visdata;
 }
 
@@ -1272,6 +1273,7 @@ static void Mod_LoadLeafsExternal(FILE *f)
 	void *in = Hunk_AllocName(filelen, "EXT_LEAF");
 	if(!fread(in, filelen, 1, f)) return;
 	Mod_ProcessLeafs_S((dleaf_t *)in, filelen);
+	Q_Free(in);
 }
 
 static void Mod_LoadBrushModel(model_t *mod, void *buffer)
@@ -1308,18 +1310,15 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 		Con_DPrintf("trying to open external vis file\n");
 		FILE *fvis = Mod_FindVisibilityExternal();
 		if(fvis){
-			s32 mark = Hunk_LowMark();
 			loadmodel->leafs = NULL;
 			loadmodel->numleafs = 0;
 			Con_DPrintf("found valid external .vis file for map\n");
 			loadmodel->visdata = Mod_LoadVisibilityExternal(fvis);
-			if(loadmodel->visdata){
+			if(loadmodel->visdata)
 				Mod_LoadLeafsExternal(fvis);
-			}
 			fclose(fvis);
 			if(loadmodel->visdata && loadmodel->leafs
 				&& loadmodel->numleafs) goto visdone;
-			Hunk_FreeToLowMark(mark);
 		 Con_DPrintf("External VIS data failed, using standard vis.\n");
 		}
 	}
