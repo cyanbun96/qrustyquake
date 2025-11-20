@@ -69,13 +69,15 @@ void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s8 *name)
 }
 
 void Mem_Journal_Show() {
-	u64 total = 0;
+	u64 tot = 0, mallocs = 0;
 	for(mem_journal_t *entry = journal_head; entry; entry = entry->next) {
 		Con_Printf("%x %u %x %s\n", entry->addr, entry->size,
 				entry->cache_user, entry->name);
-		total += entry->size;
+		tot += entry->size;
+		mallocs++;
 	}
-	Con_Printf("Total: %d\n", total);
+	Con_Printf("Total: %d.%d.%d\n", tot/1000000, (tot/1000)%1000, tot%1000);
+	Con_Printf("Mallocs: %d\n", mallocs);
 }
 
 void Z_Free(void *ptr) { Q_Free(ptr); }
