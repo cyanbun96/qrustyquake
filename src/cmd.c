@@ -117,7 +117,6 @@ void Cmd_Exec_f()
 		Con_Printf("exec <filename> : execute a script file\n");
 		return;
 	}
-	s32 mark = Hunk_LowMark();
 	s8 *f = (s8 *)COM_LoadHunkFile(Cmd_Argv(1), NULL);
 	if(!f){
 		Con_Printf("couldn't exec %s\n", Cmd_Argv(1));
@@ -125,7 +124,7 @@ void Cmd_Exec_f()
 	}
 	Con_Printf("execing %s\n", Cmd_Argv(1));
 	Cbuf_InsertText(f);
-	Hunk_FreeToLowMark(mark);
+	Q_Free(f);
 }
 
 void Cmd_Echo_f()

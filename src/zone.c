@@ -124,16 +124,8 @@ void Hunk_FreeToLowMark(s32 mark)
 	//if(sv_cheats.value == 9) __asm__("int3");
 }
 
-void Hunk_FreeToHighMark(SDL_UNUSED s32 mark)
-{
-	Con_DPrintf("NOT FREEING (HIGHMARK)\n");
-}
-
 s32 Hunk_LowMark() { Con_DPrintf("Hunk_LowMark DEPRECATED\n"); return 0; }
 
-s32 Hunk_HighMark() { Con_DPrintf("Hunk_HighMark DEPRECATED\n"); return 0; }
-
-void *Hunk_HighAllocName(SDL_UNUSED s32 size, SDL_UNUSED s8 *name) { }
 void Cache_Report() { }
 
 void *Hunk_TempAlloc(s32 size)
