@@ -260,7 +260,7 @@ void Cmd_Init()
 void Cmd_TokenizeString(const s8 *text)
 { // Parses the given string into command line tokens.
 	for(s32 i = 0; i < cmd_argc; i++)
-		Z_Free(cmd_argv[i]); // clear the args from the last string
+		cmd_argv[i][0] = 0; // clear the args from the last string
 	cmd_argc = 0;
 	cmd_args = NULL;
 	while(1){
@@ -275,7 +275,8 @@ void Cmd_TokenizeString(const s8 *text)
 		text = COM_Parse(text);
 		if(!text) return;
 		if(cmd_argc < MAX_ARGS){
-			cmd_argv[cmd_argc] = Z_Malloc(Q_strlen(com_token) + 1);
+			cmd_argv[cmd_argc] = Q_Realloc(cmd_argv[cmd_argc],
+					Q_strlen(com_token)+1, 0, "cmd_token");
 			Q_strcpy(cmd_argv[cmd_argc], com_token);
 			cmd_argc++;
 		}

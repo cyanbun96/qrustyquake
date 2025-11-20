@@ -9,6 +9,7 @@ static mem_journal_t *journal_tail = 0;
 
 void *Q_Malloc(u64 size, cache_user_t *cache_user, s8 *name)
 {
+	if(sv_cheats.value == 8) Con_DPrintf("malloc %d\n", size);
 	mem_journal_t *entry = malloc(sizeof(mem_journal_t));
 	if(journal_tail) {
 		journal_tail->next = entry;
@@ -26,6 +27,7 @@ void *Q_Malloc(u64 size, cache_user_t *cache_user, s8 *name)
 
 void Q_Free(void *ptr)
 {
+	if(sv_cheats.value == 8) Con_DPrintf("free\n");
 	mem_journal_t *entry = 0;
 	mem_journal_t *last = 0;
 	for(mem_journal_t *search = journal_head; search; search =search->next){
@@ -46,6 +48,8 @@ void Q_Free(void *ptr)
 
 void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s8 *name)
 {
+	//if(sv_cheats.value == 9) __asm__("int3");
+	//if(sv_cheats.value == 8) Con_DPrintf("realloc\n");
 	if(!ptr) return Q_Malloc(size, cache_user, name);
 	mem_journal_t *entry = 0;
 	for(mem_journal_t *search = journal_head; search; search =search->next){
@@ -112,11 +116,21 @@ void Hunk_Check() { return; /*check passed ok!*/ }
 void *Hunk_Alloc(s32 size)
 { return Hunk_AllocName(size, "unknown"); }
 
-s32 Hunk_LowMark() { return 0; }
+void Hunk_FreeToLowMark(s32 mark)
+{
+	Con_DPrintf("NOT FREEING (LOWMARK)\n");
+	//if(sv_cheats.value == 9) __asm__("int3");
+}
 
-void Hunk_FreeToLowMark(s32 mark) { }
-s32 Hunk_HighMark() { return 0; }
-void Hunk_FreeToHighMark(SDL_UNUSED s32 mark) { }
+void Hunk_FreeToHighMark(SDL_UNUSED s32 mark)
+{
+	Con_DPrintf("NOT FREEING (HIGHMARK)\n");
+}
+
+s32 Hunk_LowMark() { Con_DPrintf("Hunk_LowMark DEPRECATED\n"); return 0; }
+
+s32 Hunk_HighMark() { Con_DPrintf("Hunk_HighMark DEPRECATED\n"); return 0; }
+
 void *Hunk_HighAllocName(SDL_UNUSED s32 size, SDL_UNUSED s8 *name) { }
 void Cache_Report() { }
 

@@ -16,6 +16,9 @@
 // flying/floating monsters are SOLID_SLIDEBOX and MOVETYPE_FLY
 // solid_edge items only clip against bsp models.
 
+static edict_t **moved_edict;
+static vec3_t *moved_from;
+
 void SV_Physics_Toss(edict_t *ent);
 
 void SV_CheckAllEnts()
@@ -232,8 +235,6 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 	vec3_t entorig, pushorig;
 	f32 solid_backup;
 	s32 num_moved;
-	edict_t **moved_edict; //johnfitz -- dynamically allocate
-	vec3_t *moved_from; //johnfitz -- dynamically allocate
 	s32 mark; //johnfitz
 	if(!pusher->v.velocity[0] && !pusher->v.velocity[1] && !pusher->v.velocity[2])
 	{
@@ -252,9 +253,10 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 	pusher->v.ltime += movetime;
 	SV_LinkEdict(pusher, 0);
 	//johnfitz -- dynamically allocate
-	mark = Hunk_LowMark();
-	moved_edict = (edict_t **) Hunk_Alloc(sv.num_edicts*sizeof(edict_t *));
-	moved_from = (vec3_t *) Hunk_Alloc(sv.num_edicts*sizeof(vec3_t));
+	moved_edict = Q_Realloc(moved_edict, sv.num_edicts*sizeof(edict_t *),
+							0, "moved_edict");
+	moved_from = Q_Realloc(moved_from, sv.num_edicts*sizeof(vec3_t),
+							0, "moved_from");
 	//johnfitz
 	// see if any solid entities are inside the final position
 	num_moved = 0;
@@ -331,11 +333,9 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 				VectorCopy(moved_from[i], moved_edict[i]->v.origin);
 				SV_LinkEdict(moved_edict[i], 0);
 			}
-			Hunk_FreeToLowMark(mark); //johnfitz
 			return;
 		}
 	}
-	Hunk_FreeToLowMark(mark); //johnfitz
 }
 
 void SV_Physics_Pusher(edict_t *ent)
