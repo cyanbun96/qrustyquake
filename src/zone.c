@@ -14,6 +14,7 @@ void *Q_Malloc(u64 size, cache_user_t *cache_user, s32 type, s8 *name)
 	journal_tail = entry;
 	if(!journal_head) journal_head = entry;
 	void *ptr = malloc(size);
+	memset(ptr, 0, size);
 	entry->addr = (u64)ptr;
 	entry->size = size;
 	entry->cache_user = cache_user;
@@ -60,6 +61,7 @@ void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s32 type,s8*name)
 	if(!entry) return Q_Malloc(size, cache_user, type, name);
 	if(entry->size == size) return ptr;
 	ptr = realloc(ptr, size);
+	if(entry->size < size) memset(ptr + entry->size, 0, size - entry->size);
 	entry->addr = (u64)ptr;
 	entry->size = size;
 	entry->cache_user = cache_user;
@@ -89,7 +91,7 @@ void *Z_Malloc(s32 size)
 }
 
 void *Z_Realloc(void *ptr, s32 size)
-{ //FIXME this does not zero out the new memory
+{
 	return Q_Realloc(ptr, size, 0, 0, 0);
 	if(!ptr) return Z_Malloc(size);
 }
