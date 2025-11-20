@@ -64,6 +64,7 @@ void D_AllocCaches() // allocate z buffer and surface cache
 	if(d_pzbuffer == NULL) Sys_Error("Not enough memory for surf cache\n");
 	u8 *cache = (u8*)d_pzbuffer+vid.width*vid.height*sizeof(*d_pzbuffer);
 	D_InitCaches(cache, cachesize);
+	vid.recalc_refdef = 1;
 }
 
 surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
