@@ -254,9 +254,9 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 	SV_LinkEdict(pusher, 0);
 	//johnfitz -- dynamically allocate
 	moved_edict = Q_Realloc(moved_edict, sv.num_edicts*sizeof(edict_t *),
-							0, "moved_edict");
+							0, 1, "moved_edict");
 	moved_from = Q_Realloc(moved_from, sv.num_edicts*sizeof(vec3_t),
-							0, "moved_from");
+							0, 1, "moved_from");
 	//johnfitz
 	// see if any solid entities are inside the final position
 	num_moved = 0;

@@ -398,6 +398,7 @@ typedef struct mem_journal_s {
 	u64 addr;
 	u64 size;
 	cache_user_t *cache_user;
+	s32 type; // 0 - normal, 1 - temporary
 	s8 name[16];
 	struct mem_journal_s *next;
 } mem_journal_t;

@@ -153,6 +153,8 @@ s32 key_count; // incremented every key event
 s8 *keybindings[256];
 s8 chat_buffer[32];
 bool team_message = 0;
+mem_journal_t *journal_head = 0;                                       // zone.c
+mem_journal_t *journal_tail = 0;
 s32 lwmark = 0;                                                      // d_scan.c
 u8 *litwater_base;
 bool pr_trace;                                                      // pr_exec.c

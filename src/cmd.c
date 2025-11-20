@@ -275,7 +275,7 @@ void Cmd_TokenizeString(const s8 *text)
 		if(!text) return;
 		if(cmd_argc < MAX_ARGS){
 			cmd_argv[cmd_argc] = Q_Realloc(cmd_argv[cmd_argc],
-					Q_strlen(com_token)+1, 0, "cmd_token");
+				Q_strlen(com_token)+1, 0, 0, "cmd_token");
 			Q_strcpy(cmd_argv[cmd_argc], com_token);
 			cmd_argc++;
 		}

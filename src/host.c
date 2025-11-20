@@ -259,7 +259,25 @@ void Host_ClearMemory() // This clears all the memory used by both the client
 	Con_DPrintf("Clearing memory\n");
 	D_FlushCaches(0);
 	Mod_ClearAll();
-	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
+	mem_journal_t *entry = 0;
+	for(mem_journal_t *search = journal_head; search; search =search->next){
+		if(!strncmp(search->name, "-HOST_HUNKLEVEL-", 15)) {
+			puts("FOUNDFOUNDFOUND");
+			entry = search;
+			break;
+		}
+	}
+	if(!entry) Sys_Error("Host_ClearMemory: Couldn't find HOST_HUNKLEVEL");
+	mem_journal_t *free_entry = entry->next;
+	for(; free_entry;) {
+		mem_journal_t *next = free_entry->next;
+		if(free_entry->type == 1){
+			if(free_entry->cache_user)
+				free_entry->cache_user->data = 0;
+			Q_Free((void *)(free_entry->addr));
+		}
+		free_entry = next;
+	}
 	cls.signon = 0;
 	memset(&sv, 0, sizeof(sv));
 	memset(&cl, 0, sizeof(cl));
@@ -480,7 +498,6 @@ void Host_Init()
 	Cbuf_InsertText("exec quake.rc\n");
 	IN_MLookDown();
 	Hunk_AllocName(0, "-HOST_HUNKLEVEL-");
-	host_hunklevel = Hunk_LowMark();
 	host_initialized = 1;
 	Sys_Printf("========Quake Initialized=========\n");
 }

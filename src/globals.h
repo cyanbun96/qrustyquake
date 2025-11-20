@@ -362,9 +362,11 @@ bool Cvar_Command();
 void Cvar_WriteVariables(FILE *f);
 cvar_t *Cvar_FindVar(const s8 *var_name);
 const s8 *Cvar_CompleteVariable(const s8 *partial);
-void *Q_Malloc(u64 size, cache_user_t *cache_user, s8 *name);          // zone.h
+EX mem_journal_t *journal_head;                                        // zone.c
+EX mem_journal_t *journal_tail;
+void *Q_Malloc(u64 size, cache_user_t *cache_user, s32 type, s8 *name);
 void Q_Free(void *ptr);
-void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s8 *name);
+void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user,s32 type,s8*name);
 void Mem_Journal_Show();
 void Z_Free(void *ptr);
 void *Z_Malloc(s32 size);

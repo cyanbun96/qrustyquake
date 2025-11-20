@@ -169,7 +169,7 @@ void SV_TouchLinks(edict_t *ent)
 {
 	s32 old_self, old_other;
 	edict_list = Q_Realloc(edict_list, sv.num_edicts*sizeof(edict_t*),
-				0, "edict_list");
+				0, 1, "edict_list");
 	s32 listcount = 0;
 	SV_AreaTriggerEdicts(ent, sv_areanodes, edict_list,
 				&listcount,sv.num_edicts);
