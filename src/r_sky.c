@@ -96,7 +96,7 @@ u8 *Upscale_NearestNeighbor(u8 *src, s32 width, s32 height, s32 *new_width,
 		return src;
 	s32 scale_x = *new_width / width;
 	s32 scale_y = *new_height / height;
-	u8 *dest = malloc((*new_width) * (*new_height));
+	u8 *dest = Q_Malloc((*new_width) * (*new_height), 0, "sky_upscale");
 	if (!dest) return 0;
 	for (s32 y = 0; y < *new_height; ++y) {
 		for (s32 x = 0; x < *new_width; ++x) {
@@ -115,7 +115,6 @@ s32 R_LoadSkybox (const s8 *name)
 	if (!strcmp (name, skybox_name)) // the same skybox we are using now
 		return 1;
 	q_strlcpy (skybox_name, name, sizeof(skybox_name));
-	s32 mark = Hunk_LowMark ();
 	for (s32 i = 0 ; i < 6 ; i++) {
 		s8 pathname[1024];
 		s8 *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
@@ -151,9 +150,9 @@ s32 R_LoadSkybox (const s8 *name)
 			default: // We aren't good
 				Con_Printf ("skybox width (%d) for %s must be 256, 512, 1024", width, pathname);
 				pic = origpic;
-				Hunk_FreeToLowMark (mark);
+				Q_Free(pic);
 				if (final_pic != origpic)
-					free(final_pic);
+					Q_Free(final_pic);
 				return 0;
 		}
 		switch (height) {
@@ -164,9 +163,9 @@ s32 R_LoadSkybox (const s8 *name)
 			default:
 				Con_Printf ("skybox height (%d) for %s must be 256, 512, 1024", height, pathname);
 				pic = origpic;
-				Hunk_FreeToLowMark (mark);
+				Q_Free(pic);
 				if (final_pic != origpic)
-					free(final_pic);
+					Q_Free(final_pic);
 				return 0;
 		}
 		r_skytexinfo[i].texture = &r_skytextures[i];
@@ -193,9 +192,9 @@ s32 R_LoadSkybox (const s8 *name)
 		else Con_DPrintf ("Warning: No surface to load yet for WinQuake skybox");
 		memcpy (r_skypixels[i], pic, width*height);
 		pic = origpic;
-		Hunk_FreeToLowMark (mark);
+		Q_Free(pic);
 		if (final_pic != origpic)
-			free(final_pic);
+			Q_Free(final_pic);
 	}
 	return 1;
 }
