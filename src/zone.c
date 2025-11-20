@@ -55,6 +55,7 @@ void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s8 *name)
 		}
 	}
 	if(!entry) Sys_Error("Q_Realloc: called on an unknown allocation");
+	if(entry->size == size) return ptr;
 	ptr = realloc(ptr, size);
 	entry->addr = (u64)ptr;
 	entry->size = size;

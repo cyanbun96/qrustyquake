@@ -13,6 +13,7 @@ static mclipnode_t box_clipnodes[6]; //johnfitz -- was dclipnode_t
 static mplane_t box_planes[6];
 static areanode_t sv_areanodes[AREA_NODES];
 static s32 sv_numareanodes;
+static edict_t **edict_list;
 
 s32 SV_HullPointContents(hull_t *hull, s32 num, vec3_t p);
 
@@ -167,12 +168,13 @@ static void SV_AreaTriggerEdicts(edict_t *ent, areanode_t *node, edict_t **list,
 void SV_TouchLinks(edict_t *ent)
 {
 	s32 old_self, old_other;
-	s32 mark = Hunk_LowMark();
-	edict_t **list = (edict_t **)Hunk_Alloc(sv.num_edicts*sizeof(edict_t*));
+	edict_list = Q_Realloc(edict_list, sv.num_edicts*sizeof(edict_t*),
+				0, "edict_list");
 	s32 listcount = 0;
-	SV_AreaTriggerEdicts(ent, sv_areanodes, list, &listcount,sv.num_edicts);
+	SV_AreaTriggerEdicts(ent, sv_areanodes, edict_list,
+				&listcount,sv.num_edicts);
 	for(s32 i = 0; i < listcount; i++) {
-		edict_t *touch = list[i];
+		edict_t *touch = edict_list[i];
 		// re-validate in case of PR_ExecuteProgram having side effects
 		// that make edicts later in the list no longer touch
 		if(touch == ent) continue;
@@ -192,7 +194,6 @@ void SV_TouchLinks(edict_t *ent)
 		pr_global_struct->self = old_self;
 		pr_global_struct->other = old_other;
 	}
-	Hunk_FreeToLowMark(mark); // free hunk-allocated edicts array
 }
 
 void SV_FindTouchedLeafs(edict_t *ent, mnode_t *node)
