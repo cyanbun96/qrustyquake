@@ -113,15 +113,17 @@ static void S_MakeBlackmanWindowKernel(f32 *kernel, s32 M, f32 f_c)
 static void S_UpdateFilter(filter_t *filter, s32 M, f32 f_c)
 {
 	if(filter->f_c != f_c || filter->M != M) {
-		if(filter->memory != NULL) free(filter->memory);
-		if(filter->kernel != NULL) free(filter->kernel);
+		if(filter->memory != NULL) Q_Free(filter->memory);
+		if(filter->kernel != NULL) Q_Free(filter->kernel);
 		filter->M = M;
 		filter->f_c = f_c;
 		filter->parity = 0;
 		// M + 1 rounded up to the next multiple of 16
 		filter->kernelsize = (M + 1) + 16 - ((M + 1) % 16);
-		filter->memory = (f32 *)calloc(filter->kernelsize, sizeof(f32));
-		filter->kernel = (f32 *)calloc(filter->kernelsize, sizeof(f32));
+		filter->memory = Q_Malloc(filter->kernelsize*sizeof(f32), 0, 0,
+					"snd_filter_mem");
+		filter->kernel = Q_Malloc(filter->kernelsize*sizeof(f32), 0, 0,
+					"snd_filter_kernel");
 		S_MakeBlackmanWindowKernel(filter->kernel, M, f_c);
 	}
 }
@@ -135,7 +137,8 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 {
 	const s32 kernelsize = filter->kernelsize;
 	const f32 *kernel = filter->kernel;
-	f32 *input = (f32 *) malloc(sizeof(f32) * (filter->kernelsize + count));
+	f32 *input = Q_Malloc(sizeof(f32) * (filter->kernelsize + count), 0, 0,
+				"snd_filter");
 	// set up the input buffer
 	// memory holds the previous filter->kernelsize samples of input.
 	memcpy(input, filter->memory, filter->kernelsize * sizeof(f32));
@@ -160,7 +163,7 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 		parity = (parity + 1) % 4;
 	}
 	filter->parity = parity;
-	free(input);
+	Q_Free(input);
 }
 
 // lowpass filters 24-bit integer samples in 'data' (stored in 32-bit ints).

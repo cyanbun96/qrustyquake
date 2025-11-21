@@ -113,7 +113,7 @@ void CDAudio_Play(u8 track, bool looping)
 void CDAudio_Stop()
 {
 	MIX_StopAllTracks(mixer, 0);
-	if (loaded_file) free(loaded_file);
+	if (loaded_file) Q_Free(loaded_file);
 	loaded_file = NULL;
 	memset(current_name, 0, sizeof(current_name));
 	current_music = NULL;

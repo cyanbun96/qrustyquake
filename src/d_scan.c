@@ -461,9 +461,10 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 				      (screenwidth * pspan->v) + pspan->u);
 		if (lmonly) {
 			if (!litwater_base) {
-				litwater_base = malloc(vid.width * vid.height);
+				litwater_base = Q_Malloc(vid.width * vid.height,
+							0, 0, "litwater_buf");
 				if (!litwater_base)
-					Sys_Error("Not enough memory for lit water");
+				   Sys_Error("Not enough memory for lit water");
 			}
 			pdest = (u8 *)((u8 *) litwater_base +
 				      (screenwidth * pspan->v) + pspan->u);
@@ -666,9 +667,10 @@ void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 				      (screenwidth * pspan->v) + pspan->u);
 		if (lmonly) {
 			if (!litwater_base) {
-				litwater_base = malloc(vid.width * vid.height);
+				litwater_base = Q_Malloc(vid.width * vid.height,
+							0, 0, "litwater_buf");
 				if (!litwater_base)
-					Sys_Error("Not enough memory for lit water");
+				   Sys_Error("Not enough memory for lit water");
 			}
 			pdest = (u8 *)((u8 *) litwater_base +
 				      (screenwidth * pspan->v) + pspan->u);

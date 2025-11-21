@@ -31,7 +31,7 @@ void W_CleanupName(const s8 *in, s8 *out)
 void W_LoadWadFile()
 { //johnfitz -- filename is now hard-coded for honesty
 	const s8 *filename = WADFILENAME;
-	if(wad_base) free(wad_base);
+	if(wad_base) Q_Free(wad_base);
 	wad_base = COM_LoadMallocFile(filename, NULL);
 	if(!wad_base)
 		Sys_Error("W_LoadWadFile: couldn't load %s\n\n"
@@ -118,7 +118,7 @@ static wad_t *W_AddWadFile(const s8 *name, fshandle_t *fh)
 		printf("WAD file %s has no lumps, ignored\n", name);
 		return NULL;
 	}
-	lumpinfo_t *lumps = (lumpinfo_t *)malloc(numlumps * sizeof(lumpinfo_t));
+	lumpinfo_t *lumps = Q_Malloc(numlumps * sizeof(lumpinfo_t), 0, 0, name);
 	FS_fseek(fh, infotableofs, SEEK_SET);
 	FS_fread(lumps, 1, numlumps * sizeof(lumpinfo_t), fh);
 	// parse the directory
@@ -151,7 +151,7 @@ printf( "WAD file %s lump \"%.16s\" extends %li bytes beyond end of WAD(lump siz
 			}
 		}
 	}
-	wad_t *wad = (wad_t *)malloc(sizeof(wad_t));
+	wad_t *wad = Q_Malloc(sizeof(wad_t), 0, 0, name);
 	q_strlcpy(wad->name, name, sizeof(wad->name));
 	wad->id = id;
 	wad->fh = *fh;
@@ -189,7 +189,7 @@ wad_t *W_LoadWadList(const s8 *names)
 		} else FS_fclose(&fh);
 		name = e;
 	}
-	free(newnames);
+	Q_Free(newnames);
 	return wads;
 }
 
@@ -197,9 +197,9 @@ void W_FreeWadList(wad_t *wads)
 {
 	while(wads) {
 		FS_fclose(&wads->fh);
-		free(wads->lumps);
+		Q_Free(wads->lumps);
 		wad_t *next = wads->next;
-		free(wads);
+		Q_Free(wads);
 		wads = next;
 	}
 }

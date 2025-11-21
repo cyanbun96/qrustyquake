@@ -1090,31 +1090,6 @@ u8 *COM_LoadStackFile(const s8 *path, void *buffer, s32 bufsize, u32 *path_id)
 u8 *COM_LoadMallocFile(const s8 *path, u32 *path_id) // returns malloc'd memory
 { return COM_LoadFile(path, LOADFILE_MALLOC, path_id); }
 
-u8 *COM_LoadMallocFile_TextMode_OSPath(const s8 *path, s64 *len_out)
-{
-// ericw -- this is used by Host_Loadgame_f. Translate CRLF to LF on load games,
-// othewise multiline messages have a garbage character at the end of each line.
-// TODO: could handle in a way that allows loading CRLF savegames on mac/linux
-// without the junk characters appearing.
-	FILE *f = fopen(path, "rt");
-	if(f == NULL) return NULL;
-	s64 len = COM_filelength(f);
-	if(len < 0) { fclose(f); return NULL; }
-	u8 *data = (u8 *) malloc(len + 1);
-	if(data == NULL) { fclose(f); return NULL; }
-	// (actuallen < len) if CRLF to LF translation was performed
-	s64 actuallen = fread(data, 1, len, f);
-	if(ferror(f)) {
-		fclose(f);
-		free(data);
-		return NULL;
-	}
-	data[actuallen] = '\0';
-	if(len_out != NULL) *len_out = actuallen;
-	fclose(f);
-	return data;
-}
-
 const s8 *COM_ParseIntNewline(const s8 *buffer, s32 *value)
 {
 	s32 consumed = 0;

@@ -818,7 +818,7 @@ void SV_SpawnServer(const s8 *server)
 	PR_LoadProgs(); // load progs to get entity field count
 	// allocate server memory
 	sv.max_edicts = CLAMP(MIN_EDICTS,(s32)max_edicts.value,MAX_EDICTS);
-	sv.edicts = (edict_t *) malloc(sv.max_edicts*pr_edict_size);
+	sv.edicts = Q_Malloc(sv.max_edicts*pr_edict_size, 0, 0, "edicts");
 	sv.datagram.maxsize = sizeof(sv.datagram_buf);
 	sv.datagram.cursize = 0;
 	sv.datagram.data = sv.datagram_buf;

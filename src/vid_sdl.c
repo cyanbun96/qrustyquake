@@ -368,7 +368,7 @@ void VID_AllocBuffers()
 	screensbar->pixels = sbarpixels;
 	argbbuffer->pixels = argbpixels;
 	if(litwater_base){ // gets malloced as needed
-		free(litwater_base);
+		Q_Free(litwater_base);
 		litwater_base = NULL;
 	}
 	d_pzbuffer_size = 0; // reallocate caches
