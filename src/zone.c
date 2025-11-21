@@ -81,21 +81,13 @@ void Mem_Journal_Show() {
 	Con_Printf("Mallocs: %d\n", mallocs);
 }
 
-void *Z_Realloc(void *ptr, s32 size)
-{
-	return Q_Realloc(ptr, size, 0, 0, 0);
-	if(!ptr) return Q_Malloc(size, 0, 0, "z_realloc");
-}
-
-s8 *Z_Strdup(const s8 *s)
+s8 *Q_Strdup(const s8 *s)
 {
 	size_t sz = strlen(s) + 1;
 	s8 *ptr = (s8 *) Q_Malloc(sz, 0, 0, "z_strdup");
 	memcpy(ptr, s, sz);
 	return ptr;
 }
-
-void Hunk_Print_f() { return; }
 
 void *Hunk_AllocName(s32 size, s8 *name)
 {
@@ -105,33 +97,13 @@ void *Hunk_AllocName(s32 size, s8 *name)
 	return p;
 }
 
-void Hunk_Check() { return; /*check passed ok!*/ }
-
 void *Hunk_Alloc(s32 size)
 { return Hunk_AllocName(size, "unknown"); }
-
-void Hunk_FreeToLowMark(s32 mark)
-{
-	Con_DPrintf("NOT FREEING (LOWMARK)\n");
-	//if(sv_cheats.value == 9) __asm__("int3");
-}
-
-s32 Hunk_LowMark() { Con_DPrintf("Hunk_LowMark DEPRECATED\n"); return 0; }
-
-void Cache_Report() { }
 
 void *Hunk_TempAlloc(s32 size)
 {
 	size = (size+15)&~15;
 	return Q_Malloc(size, 0, 1, 0);
-}
-
-s8 *Hunk_Strdup(const s8 *s, s8 *name)
-{
-	size_t sz = strlen(s) + 1;
-	s8 *ptr = (s8 *) Hunk_AllocName(sz, name);
-	memcpy(ptr, s, sz);
-	return ptr;
 }
 
 void Cache_Free(cache_user_t *c, SDL_UNUSED bool freetextures)

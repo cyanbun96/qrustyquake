@@ -197,7 +197,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 {
 	if(var->flags & (CVAR_ROM|CVAR_LOCKED)) return;
 	if(!(var->flags & CVAR_REGISTERED)) return;
-	if(!var->string) var->string = Z_Strdup(value);
+	if(!var->string) var->string = Q_Strdup(value);
 	else {
 		if(!strcmp(var->string, value)) return; // no change
 		var->flags |= CVAR_CHANGED;
@@ -210,13 +210,13 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 	}
 	var->value = Q_atof(var->string);
 	//johnfitz -- save initial value for "reset" command
-	if(!var->default_string) var->default_string = Z_Strdup(var->string);
+	if(!var->default_string) var->default_string = Q_Strdup(var->string);
 	//johnfitz -- during initialization, update default too
 	else if(!host_initialized) {
 		Con_DPrintf("changing default of %s: %s -> %s\n", var->name,
 				var->default_string, var->string);
 		Q_Free((void *)var->default_string);
-		var->default_string = Z_Strdup(var->string);
+		var->default_string = Q_Strdup(var->string);
 	}
 	if(var->callback) var->callback(var);
 }

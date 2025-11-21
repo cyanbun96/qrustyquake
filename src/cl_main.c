@@ -85,7 +85,6 @@ void CL_SignonReply()
 	case 3:
 		MSG_WriteByte(&cls.message, clc_stringcmd);
 		MSG_WriteString(&cls.message, "begin");
-		Cache_Report(); // print remaining memory
 		break;
 	case 4:
 		SCR_EndLoadingPlaque(); // allow normal screen updates

@@ -242,7 +242,6 @@ void CL_ParseServerInfo()
 	}
 	cl_entities[0].model = cl.worldmodel = cl.model_precache[1];
 	R_NewMap();
-	Hunk_Check(); // make sure nothing is hurt
 	noclip_anglehack = 0; // noclip is turned off at start
 }
 

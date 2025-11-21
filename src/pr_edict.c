@@ -768,8 +768,8 @@ s32 NUM_FOR_EDICT(edict_t *e)
 static void PR_AllocStringSlots()
 {
 	pr_maxknownstrings += PR_STRING_ALLOCSLOTS;
-	pr_knownstrings = (const s8 **) Z_Realloc((void *)pr_knownstrings,
-					pr_maxknownstrings * sizeof(s8 *));
+	pr_knownstrings = (const s8 **) Q_Realloc((void *)pr_knownstrings,
+		pr_maxknownstrings * sizeof(s8 *), 0, 0, "pr_stringslots");
 }
 
 const s8 *PR_GetString(s32 num)
