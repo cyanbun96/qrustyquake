@@ -6,13 +6,13 @@
 static f32 fog_red; // CyanBun96: we store the actual RGB values in these,
 static f32 fog_green; // but they get quantized to a single index in the color
 static f32 fog_blue; // palette before use, stored in fog_pal_index
-static f32 randarr[RANDARR_SIZE];
+static f32 *randarr = 0;
 static u32 lfsr = 0x1337; // non-zero seed
-static float fog_factor_lut[FOG_FACTOR_LUT_SIZE];
+static float *fog_factor_lut = 0;
 static f32 old_r_fogscale = -1234;
 static f32 old_fog_density = -1234;
 static f32 old_noisebias = -1234;
-static f32 zadjarr[MAXWIDTH*MAXHEIGHT];
+static f32 *zadjarr = 0;
 static s32 zadjarr_w = -1;
 static s32 zadjarr_h = -1;
 
@@ -122,6 +122,9 @@ void Fog_ParseWorldspawn () // from Quakespasm
 
 static void R_InitDepthCorrection()
 { // the array is normalized to [0.8,1] with 0.8 in center and 1 in corners
+	if(!zadjarr|| zadjarr_w!=scr_vrect.width|| zadjarr_h!=scr_vrect.height)
+		zadjarr = Q_Realloc(zadjarr, scr_vrect.width*scr_vrect.height*
+				sizeof(f32), 0, 0, "fog_depth_corr");
 	if(zadjarr_w==scr_vrect.width&&zadjarr_h==scr_vrect.height) return;
 	zadjarr_w = scr_vrect.width; zadjarr_h = scr_vrect.height;
 	s32 xmid = scr_vrect.width/2;
@@ -138,6 +141,8 @@ u32 lfsr_random() {lfsr^=lfsr>>7; lfsr^=lfsr<<9; lfsr^=lfsr>>13; return lfsr;}
 
 void R_InitFog(f32 noisebias)
 {
+	if(!randarr)
+		randarr = Q_Malloc(RANDARR_SIZE*sizeof(f32),0,0,"fog_randarr");
 	for(s32 i = 0; i < RANDARR_SIZE; ++i) { // fog bias array
 		randarr[i] = (lfsr_random() & 0xFFFF) / 65535.0f; // == [0,1]
 		randarr[i] *= noisebias;
@@ -149,6 +154,9 @@ void R_InitFog(f32 noisebias)
 }
 
 void R_InitFogLUT() {
+	if(!fog_factor_lut)
+		fog_factor_lut = Q_Malloc(FOG_FACTOR_LUT_SIZE*sizeof(f32), 0, 0,
+						"fog_factor_lut");
 	f32 fog_scale = 32.0f * r_fogscale.value;
 	f32 fog_scale_inv = 1.0f / fog_scale;
 	f32 fd_sq = (1.0f - fog_density) * (1.0f - fog_density);
