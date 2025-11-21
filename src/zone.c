@@ -4,9 +4,13 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+// Zone/Hunk/Cache have been replaced with Q_Malloc
+// Zone: allocated with 0 for cache_user and 0 for type
+// Hunk: allocated with 0 for cache_user and 1 for type
+// Cache: allocated and managed through Cache_ functions
+
 void *Q_Malloc(u64 size, cache_user_t *cache_user, s32 type, s8 *name)
 {
-	if(sv_cheats.value == 8) Con_DPrintf("malloc %d\n", size);
 	mem_journal_t *entry = malloc(sizeof(mem_journal_t));
 	if(journal_tail) {
 		journal_tail->next = entry;
@@ -27,7 +31,6 @@ void *Q_Malloc(u64 size, cache_user_t *cache_user, s32 type, s8 *name)
 
 void Q_Free(void *ptr)
 {
-	if(sv_cheats.value == 8) Con_DPrintf("free\n");
 	mem_journal_t *entry = 0;
 	mem_journal_t *last = 0;
 	for(mem_journal_t *search = journal_head; search; search =search->next){
@@ -48,8 +51,6 @@ void Q_Free(void *ptr)
 
 void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user, s32 type,s8*name)
 {
-	//if(sv_cheats.value == 9) __asm__("int3");
-	//if(sv_cheats.value == 8) Con_DPrintf("realloc\n");
 	if(!ptr) return Q_Malloc(size, cache_user, type, name);
 	mem_journal_t *entry = 0;
 	for(mem_journal_t *search = journal_head; search; search =search->next){
