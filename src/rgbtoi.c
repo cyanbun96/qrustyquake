@@ -79,6 +79,8 @@ u8 rgbtoi(u8 r, u8 g, u8 b)
 
 void build_color_mix_lut(SDL_UNUSED cvar_t *cvar)
 {
+	if(!color_mix_lut)
+	    color_mix_lut=Q_Malloc(256*256*FOG_LUT_LEVELS,0,0,"color_mix_lut");
 	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	for(s32 c1 = 0; c1 < 256; c1++){
 	for(s32 c2 = 0; c2 < 256; c2++){
@@ -101,6 +103,8 @@ void build_color_mix_lut(SDL_UNUSED cvar_t *cvar)
 
 void R_BuildLitLUT()
 {
+	if(!lit_lut)
+	    lit_lut=Q_Malloc(LIT_LUT_RES*LIT_LUT_RES*LIT_LUT_RES,0,0,"lit_lut");
 	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	s32 lr = LIT_LUT_RES;
 	for(s32 r = 0; r < lr; ++r){

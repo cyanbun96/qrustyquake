@@ -2,8 +2,8 @@
 #ifndef QGLOBALS_
 #define QGLOBALS_
 #define EX extern
-EX u8 color_mix_lut[256][256][FOG_LUT_LEVELS];                       // rgbtoi.c
-EX u8 lit_lut[LIT_LUT_RES*LIT_LUT_RES*LIT_LUT_RES];
+EX u8 (*color_mix_lut)[256][FOG_LUT_LEVELS];                         // rgbtoi.c
+EX u8 *lit_lut;
 EX u8 lit_lut_initialized;
 EX s32 fog_lut_built;
 void build_color_mix_lut(cvar_t *cvar);
