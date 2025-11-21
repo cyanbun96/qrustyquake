@@ -118,7 +118,7 @@ static wad_t *W_AddWadFile(const s8 *name, fshandle_t *fh)
 		printf("WAD file %s has no lumps, ignored\n", name);
 		return NULL;
 	}
-	lumpinfo_t *lumps = Q_Malloc(numlumps * sizeof(lumpinfo_t), 0, 0, name);
+	lumpinfo_t *lumps = Q_Malloc(numlumps*sizeof(lumpinfo_t),0,0,(s8*)name);
 	FS_fseek(fh, infotableofs, SEEK_SET);
 	FS_fread(lumps, 1, numlumps * sizeof(lumpinfo_t), fh);
 	// parse the directory
@@ -151,7 +151,7 @@ printf( "WAD file %s lump \"%.16s\" extends %li bytes beyond end of WAD(lump siz
 			}
 		}
 	}
-	wad_t *wad = Q_Malloc(sizeof(wad_t), 0, 0, name);
+	wad_t *wad = Q_Malloc(sizeof(wad_t), 0, 0, (s8*)name);
 	q_strlcpy(wad->name, name, sizeof(wad->name));
 	wad->id = id;
 	wad->fh = *fh;
