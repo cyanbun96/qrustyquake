@@ -175,6 +175,10 @@ void *Mod_Extradata(model_t *mod);
 void Mod_TouchModel(const s8 *name);
 mleaf_t *Mod_PointInLeaf(vec3_t p, model_t *model);
 u8 *Mod_LeafPVS(mleaf_t *leaf, model_t *model);
+EX s32 ledges_num;                                                   // r_edge.c
+EX edge_t *ledges;
+EX s32 lsurfs_num;
+EX surf_t *lsurfs;
 void SCR_Init();                                                     // screen.h
 void SCR_UpdateScreen();
 void SCR_CenterPrint(const s8 *str);

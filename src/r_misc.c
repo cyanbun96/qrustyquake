@@ -239,7 +239,7 @@ void R_SetupFrame()
 			r_maxedgesseen = edgecount;
 
 		Con_Printf("Used %d of %d edges; %d max\n", edgecount,
-				NUMSTACKEDGES, r_maxedgesseen);
+				ledges_num, r_maxedgesseen);
 	}
 	r_refdef.ambientlight = r_ambient.value;
 	if (r_refdef.ambientlight < 0)
@@ -304,6 +304,18 @@ void R_SetupFrame()
 	R_SetSkyFrame();
 	R_SetUpFrustumIndexes();
 	if(r_cache_thrash) D_AllocCaches(); // allocate a bigger one
+	if(r_outofsurfaces) {
+		lsurfs_num += MINSURFACES;
+		Con_DPrintf("Reallocing surfaces to %d\n", lsurfs_num);
+		lsurfs = Q_Realloc(lsurfs, sizeof(surf_t)*(lsurfs_num+
+			((CACHE_SIZE-1)/ sizeof(surf_t))+1), 0, 0, "lsurfs");
+	}
+	if(r_outofedges) {
+		ledges_num += MINEDGES;
+		Con_DPrintf("Reallocing edges to %d\n", ledges_num);
+		ledges = Q_Realloc(ledges, sizeof(edge_t)*(ledges_num+
+			((CACHE_SIZE-1)/ sizeof(edge_t))+1), 0, 0, "ledges");
+	}
 	r_cache_thrash = 0;
 	c_faceclip = 0; // clear frame counts
 	r_polycount = 0;

@@ -468,7 +468,6 @@
 #define FITZQUAKE_VERSION 0.85
 #define GAMENAME "id1"
 #define CMDLINE_LENGTH 256
-#define DEFAULT_MEMORY (2 * 1000 * 1000 * 1000)
 #define CACHE_SIZE 32 // used to align key data structures
 #define MAX_NUM_ARGVS 50
 #define PITCH 0 // up / down
@@ -585,10 +584,8 @@
 #define MAXDIMENSION ((MAXHEIGHT > MAXWIDTH) ? MAXHEIGHT : MAXWIDTH)
 #define SIN_BUFFER_SIZE (MAXDIMENSION+CYCLE)
 #define INFINITE_DISTANCE 0x10000 // distance that's always guaranteed to be farther away than anything in the scene
-#define NUMSTACKEDGES 262144 // CyanBun96: expanding limits
-#define MINEDGES NUMSTACKEDGES
-#define NUMSTACKSURFACES 32768 // CyanBun96: expanding limits
-#define MINSURFACES NUMSTACKSURFACES
+#define MINEDGES 2400
+#define MINSURFACES 800
 #define MAXSPANS 32768 // CyanBun96: expanding limits
 #define ALIAS_LEFT_CLIP 0x0001 // flags in finalvert_t.flags
 #define ALIAS_TOP_CLIP 0x0002

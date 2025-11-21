@@ -176,6 +176,10 @@ surf_t *surfaces, *surface_p, *surf_max;
 edge_t **newedges;
 edge_t **removeedges;
 s32 r_currentkey;
+s32 ledges_num = 0;
+edge_t *ledges;
+s32 lsurfs_num = 0;
+surf_t *lsurfs;
 u32 scr_fullupdate;                                                  // screen.c
 u32 clearnotify;
 vrect_t scr_vrect;

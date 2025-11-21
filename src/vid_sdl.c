@@ -368,6 +368,12 @@ void VID_AllocBuffers()
 	d_scantable = Q_Realloc(d_scantable, vid.height*sizeof(s32),
 						0, 0, "d_scantable");
 	zspantable = Q_Realloc(zspantable, size2, 0, 0, "zspantable");
+	ledges_num = MINEDGES;
+	ledges = Q_Realloc(ledges, sizeof(edge_t)*(ledges_num+((CACHE_SIZE-1)/
+					sizeof(edge_t))+1), 0, 0, "ledges");
+	lsurfs_num = MINSURFACES;
+	lsurfs = Q_Realloc(lsurfs, sizeof(surf_t)*(lsurfs_num+((CACHE_SIZE-1)/
+					sizeof(surf_t))+1), 0, 0, "lsurfs");
 	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!argbpixels)
 		Sys_Error("Not enough memory for video mode");
 	screen->pixels = vid.buffer = screenpixels;
