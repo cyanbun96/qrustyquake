@@ -361,6 +361,7 @@ void VID_AllocBuffers()
 	uipixels = Q_Realloc(uipixels, area, 0, 0, "uipixels");
 	sbarpixels = Q_Realloc(sbarpixels, area, 0, 0, "sbarpixels");
 	argbpixels = Q_Realloc(argbpixels, area, 0, 0, "argbpixels");
+	cutoutbuf = Q_Realloc(cutoutbuf, area, 0, 0, "cutoutbuf");
 	last_pcheck = Q_Realloc(last_pcheck, size2, 0, 0, "last_pcheck");
 	newedges = Q_Realloc(newedges, size2, 0, 0, "newedges");
 	removeedges = Q_Realloc(removeedges, size2, 0, 0, "removeedges");

@@ -734,6 +734,7 @@ EX s8 *keybindings[256];
 EX s8 chat_buffer[32];
 EX s32 lwmark;                                                       // d_scan.c
 EX u8 *litwater_base;
+EX u8 *cutoutbuf;
 void R_SetWateralpha_f(cvar_t *var);                                 // r_misc.c
 void R_SetLavaalpha_f(cvar_t *var);
 void R_SetTelealpha_f(cvar_t *var);

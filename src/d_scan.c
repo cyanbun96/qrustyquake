@@ -9,7 +9,6 @@ static s32 *r_turb_turb;
 static s32 r_turb_spancount;
 static s16 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
-static u8 cutoutbuf[MAXHEIGHT*MAXWIDTH];
 
 void D_WarpScreen() // this performs a slight compression of the screen at the
 { // same time as the sine warp, to keep the edges from wrapping
