@@ -40,7 +40,8 @@ static efrag_t *R_GetEfrag () // based on RMQEngine
                 return ef;
         }
         else {
-                cl.free_efrags = (efrag_t *) Hunk_AllocName (EXTRA_EFRAGS * sizeof (efrag_t), "efrags");
+                cl.free_efrags = Q_Malloc(EXTRA_EFRAGS*sizeof(efrag_t), 0, 1,
+								"efrags");
 		s32 i = 0;
                 for (; i < EXTRA_EFRAGS - 1; i++)
                         cl.free_efrags[i].leafnext = &cl.free_efrags[i + 1];

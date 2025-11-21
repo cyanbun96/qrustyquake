@@ -36,10 +36,10 @@ void Mod_Init()
 	Cvar_RegisterVariable(&external_ents);
 	Cvar_RegisterVariable(&external_textures);
 	Cmd_AddCommand("mcache", Mod_Print);
-	r_notexture_mip = Hunk_AllocName(sizeof(texture_t), "r_notexture_mip");
+	r_notexture_mip = Q_Malloc(sizeof(texture_t), 0, 1, "r_notexture_mip");
 	strcpy(r_notexture_mip->name, "notexture");
 	r_notexture_mip->height = r_notexture_mip->width = 32;
-	r_notexture_mip2 = Hunk_AllocName(sizeof(texture_t),"r_notexture_mip2");
+	r_notexture_mip2 = Q_Malloc(sizeof(texture_t), 0, 1,"r_notexture_mip2");
 	strcpy(r_notexture_mip2->name, "notexture2");
 	r_notexture_mip2->height = r_notexture_mip2->width = 32;
 }
@@ -281,8 +281,8 @@ void Mod_LoadTextures(lump_t *l)
 	dmiptexlump_t *m = (dmiptexlump_t *) (mod_base + l->fileofs);
 	m->nummiptex = LittleLong(m->nummiptex);
 	loadmodel->numtextures = m->nummiptex;
-	loadmodel->textures = Hunk_AllocName(m->nummiptex *
-			sizeof(*loadmodel->textures), loadname);
+	loadmodel->textures = Q_Malloc(m->nummiptex *
+			sizeof(*loadmodel->textures), 0, 1, loadname);
 	for(s32 i = 0; i < m->nummiptex; i++){
 		m->dataofs[i] = LittleLong(m->dataofs[i]);
 		if(m->dataofs[i] == -1) continue;
@@ -294,7 +294,7 @@ void Mod_LoadTextures(lump_t *l)
 		if((mt->width & 15) || (mt->height & 15))
 			Sys_Error("Texture %s is not 16 aligned", mt->name);
 		s32 pixels = mt->width * mt->height / 64 * 85;
-		texture_t *tx=Hunk_AllocName(sizeof(texture_t)+pixels,loadname);
+		texture_t *tx = Q_Malloc(sizeof(texture_t)+pixels,0,1,loadname);
 		loadmodel->textures[i] = tx;
 		memcpy(tx->name, mt->name, sizeof(tx->name));
 		tx->width = mt->width;
@@ -416,7 +416,7 @@ static void Mod_LoadLighting(lump_t *l)
 		Con_Printf("Corrupt .lit file(old version?), ignoring\n");}
 	} // LordHavoc: no .lit found, expand the white lighting data to color
 	if(!l->filelen) return;
-	loadmodel->lightdata = (u8 *)Hunk_AllocName( l->filelen*3, litfilename);
+	loadmodel->lightdata = Q_Malloc(l->filelen*3, 0, 1, litfilename);
 	u8 *in = loadmodel->lightdata + l->filelen*2; // place the file at the
 		// end, so it will not be overwritten until the very last write
 	u8 *out = loadmodel->lightdata;
@@ -435,7 +435,7 @@ static void Mod_LoadVisibility(lump_t *l)
 		loadmodel->visdata = NULL;
 		return;
 	}
-	loadmodel->visdata = (u8 *) Hunk_AllocName(l->filelen, loadname);
+	loadmodel->visdata = Q_Malloc(l->filelen, 0, 1, loadname);
 	memcpy(loadmodel->visdata, mod_base + l->fileofs, l->filelen);
 }
 
@@ -446,8 +446,8 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 		if(l->filelen % sizeof(*in))
 	Sys_Error("MOD_LoadEdges: funny lump size in %s",loadmodel->name);
 		s32 count = l->filelen / sizeof(*in);
-		medge_t *out = (medge_t *)Hunk_AllocName((count + 13)
-				* sizeof(*out), loadname);
+		medge_t *out = Q_Malloc((count + 13) * sizeof(*out),
+							0, 1, loadname);
 		loadmodel->edges = out;
 		loadmodel->numedges = count;
 		for(s32 i = 0; i < count; i++, in++, out++){
@@ -459,8 +459,8 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 		if(l->filelen % sizeof(*in))
 	Sys_Error("MOD_LoadEdges: funny lump size in %s",loadmodel->name);
 		s32 count = l->filelen / sizeof(*in);
-		medge_t *out = (medge_t *) Hunk_AllocName
-			((count + 13) * sizeof(*out), loadname);
+		medge_t *out = Q_Malloc((count + 13) * sizeof(*out),
+						0, 1, loadname);
 		loadmodel->edges = out;
 		loadmodel->numedges = count;
 		for(s32 i = 0; i<count; i++, in++, out++){
@@ -478,8 +478,7 @@ static void Mod_LoadVertexes(lump_t *l)
 	s32 count = l->filelen / sizeof(*in);
 	// Manoel Kasimier - skyboxes - extra for skybox 
 	// Code taken from the ToChriS engine - Author: Vic
-	mvertex_t *out = 
-		(mvertex_t*)Hunk_AllocName((count+8)*sizeof(*out),loadname);
+	mvertex_t *out = Q_Malloc((count+8)*sizeof(*out), 0, 1, loadname);
 	loadmodel->vertexes = out;
 	loadmodel->numvertexes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -522,7 +521,7 @@ _load_embedded:
 		loadmodel->entities = NULL;
 		return;
 	}
-	loadmodel->entities = (s8 *) Hunk_AllocName(l->filelen, loadname);
+	loadmodel->entities = Q_Malloc(l->filelen, 0, 1, loadname);
 	memcpy(loadmodel->entities, mod_base + l->fileofs, l->filelen);
 }
 
@@ -532,7 +531,7 @@ static void Mod_LoadTexinfo(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	   Sys_Error("MOD_LoadTexinfo: funny lump size in %s", loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	mtexinfo_t *out = Hunk_AllocName((count+6) * sizeof(*out), loadname);
+	mtexinfo_t *out = Q_Malloc((count+6) * sizeof(*out), 0, 1, loadname);
 	loadmodel->texinfo = out;
 	loadmodel->numtexinfo = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -644,7 +643,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	     Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 		count = l->filelen / sizeof(*ins);
 	}
-	msurface_t *out = Hunk_AllocName((count+6)*sizeof(*out), loadname);
+	msurface_t *out = Q_Malloc((count+6)*sizeof(*out), 0, 1, loadname);
 	if(count > 32767 && !bsp2)
 	      Con_DPrintf("%i faces exceeds standard limit of 32767.\n", count);
 	loadmodel->surfaces = out;
@@ -723,7 +722,7 @@ static void Mod_LoadNodes_S(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	    Sys_Error("MOD_LoadNodes_S: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	mnode_t *out = Hunk_AllocName( count*sizeof(*out), loadname);
+	mnode_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	if(count > 32767) //johnfitz -- warn mappers about exceeding old limits
 	      Con_DPrintf("%i nodes exceeds standard limit of 32767.\n", count);
 	loadmodel->nodes = out;
@@ -762,7 +761,7 @@ static void Mod_LoadNodes_L1(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	      Sys_Error("Mod_LoadNodes: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	mnode_t *out = (mnode_t *)Hunk_AllocName( count*sizeof(*out), loadname);
+	mnode_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	loadmodel->nodes = out;
 	loadmodel->numnodes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -800,7 +799,7 @@ static void Mod_LoadNodes_L2(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	      Sys_Error("Mod_LoadNodes: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	mnode_t *out = (mnode_t *)Hunk_AllocName( count*sizeof(*out), loadname);
+	mnode_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	loadmodel->nodes = out;
 	loadmodel->numnodes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -845,7 +844,7 @@ static void Mod_ProcessLeafs_S(dleaf_t *in, s32 filelen)
 	if(filelen % sizeof(*in))
 	  Sys_Error("Mod_ProcessLeafs: funny lump size in %s", loadmodel->name);
 	s32 count = filelen / sizeof(*in);
-	mleaf_t *out = (mleaf_t *)Hunk_AllocName( count*sizeof(*out), loadname);
+	mleaf_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	if(count > 32767) // johnfitz
 	   Host_Error("Mod_LoadLeafs: %i leafs exceeds limit of 32767.", count);
 	loadmodel->leafs = out;
@@ -874,7 +873,7 @@ static void Mod_ProcessLeafs_L1(dl1leaf_t *in, s32 filelen)
 	if(filelen % sizeof(*in))
 	   Sys_Error("Mod_ProcessLeafs: funny lump size in %s",loadmodel->name);
 	s32 count = filelen / sizeof(*in);
-	mleaf_t *out = (mleaf_t *) Hunk_AllocName(count*sizeof(*out), loadname);
+	mleaf_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	loadmodel->leafs = out;
 	loadmodel->numleafs = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -901,7 +900,7 @@ static void Mod_ProcessLeafs_L2(dl2leaf_t *in, s32 filelen)
 	if(filelen % sizeof(*in))
 	  Sys_Error("Mod_ProcessLeafs: funny lump size in %s", loadmodel->name);
 	s32 count = filelen / sizeof(*in);
-	mleaf_t *out = (mleaf_t *) Hunk_AllocName(count*sizeof(*out), loadname);
+	mleaf_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	loadmodel->leafs = out;
 	loadmodel->numleafs = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -1033,8 +1032,7 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 	  Sys_Error("Mod_LoadClipnodes: funny lump size in %s",loadmodel->name);
 		count = l->filelen / sizeof(*ins);
 	}
-	mclipnode_t *out;
-	out = (mclipnode_t *) Hunk_AllocName( count*sizeof(*out), loadname);
+	mclipnode_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	if(count > 32767 && !bsp2) //johnfitz -- warn about exceeding old limits
 	  Con_DPrintf("%i clipnodes exceeds standard limit of 32767.\n", count);
 	loadmodel->clipnodes = out;
@@ -1084,7 +1082,7 @@ static void Mod_MakeHull0()
 	hull_t *hull = &loadmodel->hulls[0];
 	mnode_t *in = loadmodel->nodes;
 	s32 count = loadmodel->numnodes;
-	mclipnode_t *out = Hunk_AllocName(count*sizeof(*out), loadname);
+	mclipnode_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	hull->clipnodes = out;
 	hull->firstclipnode = 0;
 	hull->lastclipnode = count-1;
@@ -1106,7 +1104,7 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 		if(l->filelen % sizeof(*in))
       Host_Error("Mod_LoadMarksurfaces: funny lump size in %s",loadmodel->name);
 		s32 count = l->filelen / sizeof(*in);
-		msurface_t **out = Hunk_AllocName(count*sizeof(*out), loadname);
+		msurface_t **out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 		loadmodel->marksurfaces = out;
 		loadmodel->nummarksurfaces = count;
 		for(s32 i = 0; i < count; i++){
@@ -1120,7 +1118,7 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 		if(l->filelen % sizeof(*in))
       Host_Error("Mod_LoadMarksurfaces: funny lump size in %s",loadmodel->name);
 		s32 count = l->filelen / sizeof(*in);
-		msurface_t **out = Hunk_AllocName(count*sizeof(*out), loadname);
+		msurface_t **out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 		loadmodel->marksurfaces = out;
 		loadmodel->nummarksurfaces = count;
 		if(count > 32767)
@@ -1140,7 +1138,7 @@ static void Mod_LoadSurfedges(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	  Sys_Error("MOD_LoadSurfedges: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	s32 *out = (s32 *) Hunk_AllocName( (count+24)*sizeof(*out), loadname);
+	s32 *out = Q_Malloc((count+24)*sizeof(*out), 0, 1, loadname);
 	loadmodel->surfedges = out;
 	loadmodel->numsurfedges = count;
 	for(s32 i = 0; i < count; i++)
@@ -1154,7 +1152,7 @@ static void Mod_LoadPlanes(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	     Sys_Error("MOD_LoadPlanes: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	mplane_t *out = Hunk_AllocName( (count+6)*2*sizeof(*out), loadname);
+	mplane_t *out = Q_Malloc((count+6)*2*sizeof(*out), 0, 1, loadname);
 	loadmodel->planes = out;
 	loadmodel->numplanes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -1184,7 +1182,7 @@ static void Mod_LoadSubmodels(lump_t *l)
 	if(l->filelen % sizeof(*in))
 	  Sys_Error("MOD_LoadSubmodels: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
-	dmodel_t *out = Hunk_AllocName(count*sizeof(*out), loadname);
+	dmodel_t *out = Q_Malloc(count*sizeof(*out), 0, 1, loadname);
 	loadmodel->submodels = out;
 	loadmodel->numsubmodels = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
@@ -1255,7 +1253,7 @@ static u8 *Mod_LoadVisibilityExternal(FILE *f)
 	filelen = LittleLong(filelen);
 	if(filelen <= 0) return NULL;
 	Con_DPrintf("...%d bytes visibility data\n", filelen);
-	u8 *visdata = (u8 *) Hunk_AllocName(filelen, "EXT_VIS");
+	u8 *visdata = Q_Malloc(filelen, 0, 1, "EXT_VIS");
 	if(!fread(visdata, filelen, 1, f)) {
 		Q_Free(visdata);
 		return NULL;
@@ -1270,7 +1268,7 @@ static void Mod_LoadLeafsExternal(FILE *f)
 	filelen = LittleLong(filelen);
 	if(filelen <= 0) return;
 	Con_DPrintf("...%d bytes leaf data\n", filelen);
-	void *in = Hunk_AllocName(filelen, "EXT_LEAF");
+	void *in = Q_Malloc(filelen, 0, 1, "EXT_LEAF");
 	if(!fread(in, filelen, 1, f)) return;
 	Mod_ProcessLeafs_S((dleaf_t *)in, filelen);
 	Q_Free(in);
@@ -1547,7 +1545,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	daliasframetype_t *pframetype;
 	daliasskintype_t *pskintype;
 	maliasskindesc_t *pskindesc;
-	aliasbuf = malloc(8192*8192); //FIXME this could easily overflow and die
+	aliasbuf = Q_Malloc(8192*8192, 0, 1, "asliasbuf"); //FIXME this could easily overflow and die
 	memset(aliasbuf, 0, 8192*8192);
 	aliasp = aliasbuf;
 	mdl_t *pinmodel = buffer;
@@ -1678,7 +1676,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	Cache_Alloc(&mod->cache, total, loadname);
 	if(!mod->cache.data) return;
 	memcpy(mod->cache.data, pheader, total);
-	free(aliasbuf);
+	Q_Free(aliasbuf);
 }
 
 void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
@@ -1688,8 +1686,8 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 	width = LittleLong(pinframe->width);
 	height = LittleLong(pinframe->height);
 	size = width * height;
-	mspriteframe_t *pspriteframe = Hunk_AllocName(sizeof(mspriteframe_t) +
-			size, loadname);
+	mspriteframe_t *pspriteframe = Q_Malloc(sizeof(mspriteframe_t) + size,
+						0, 1, loadname);
 	Q_memset(pspriteframe, 0, sizeof(mspriteframe_t) + size);
 	*ppframe = pspriteframe;
 	pspriteframe->width = width;
@@ -1708,12 +1706,12 @@ void *Mod_LoadSpriteGroup(void *pin, mspriteframe_t **ppframe)
 {
 	dspritegroup_t *pingroup = (dspritegroup_t *) pin;
 	s32 numframes = LittleLong(pingroup->numframes);
-	mspritegroup_t *pspritegroup = Hunk_AllocName(sizeof(mspritegroup_t) +
-		(numframes - 1) * sizeof(pspritegroup->frames[0]), loadname);
+	mspritegroup_t *pspritegroup = Q_Malloc(sizeof(mspritegroup_t) +
+		(numframes-1)*sizeof(pspritegroup->frames[0]), 0, 1, loadname);
 	pspritegroup->numframes = numframes;
 	*ppframe = (mspriteframe_t *) pspritegroup;
 	dspriteinterval_t *pin_intervals = (dspriteinterval_t *) (pingroup + 1);
-	f32 *poutintervals = Hunk_AllocName(numframes*sizeof(f32),loadname);
+	f32 *poutintervals = Q_Malloc(numframes*sizeof(f32), 0, 1, loadname);
 	pspritegroup->intervals = poutintervals;
 	for(s32 i = 0; i < numframes; i++){
 		*poutintervals = LittleFloat(pin_intervals->interval);
@@ -1739,7 +1737,7 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 	s32 numframes = LittleLong(pin->numframes);
 	msprite_t *psprite;
 	s32 size = sizeof(msprite_t) + (numframes - 1)*sizeof(psprite->frames);
-	psprite = Hunk_AllocName(size, loadname);
+	psprite = Q_Malloc(size, 0, 1, loadname);
 	mod->cache.data = psprite;
 	psprite->type = LittleLong(pin->type);
 	psprite->maxwidth = LittleLong(pin->width);

@@ -506,7 +506,7 @@ void NET_Init()
 		listening = 1;
 	SetNetTime();
 	for (i = 0; i < net_numsockets; i++) {
-		s = (qsocket_t *) Hunk_AllocName(sizeof(qsocket_t), "qsocket");
+		s = Q_Malloc(sizeof(qsocket_t), 0, 1, "qsocket");
 		s->next = net_freeSockets;
 		net_freeSockets = s;
 		s->disconnected = 1;

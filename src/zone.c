@@ -89,14 +89,6 @@ s8 *Q_Strdup(const s8 *s)
 	return ptr;
 }
 
-void *Hunk_AllocName(s32 size, s8 *name)
-{
-	size = sizeof(hunk_t) + ((size+15)&~15);
-	void *p = Q_Malloc(size, 0, 1, name);
-	memset(p, 0, size);
-	return p;
-}
-
 void Cache_Free(cache_user_t *c, SDL_UNUSED bool freetextures)
 {
 	if(!c->data) Sys_Error("Cache_Free: not allocated");

@@ -19,8 +19,7 @@ void R_InitParticles()
 			r_numparticles = ABSOLUTE_MIN_PARTICLES;
 	} else
 		r_numparticles = MAX_PARTICLES;
-	particles = (particle_t *)
-		Hunk_AllocName(r_numparticles*sizeof(particle_t), "particles");
+	particles = Q_Malloc(r_numparticles*sizeof(particle_t),0,1,"particles");
 }
 
 void R_EntityParticles(entity_t *ent)

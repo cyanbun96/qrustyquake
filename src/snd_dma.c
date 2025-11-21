@@ -98,7 +98,7 @@ void S_Init()
 	Cvar_SetCallback(&sfxvolume, SND_Callback_sfxvolume);
 	Cvar_SetCallback(&snd_filterquality, &SND_Callback_snd_filterquality);
 	SND_InitScaletable();
-	known_sfx = (sfx_t *) Hunk_AllocName(MAX_SFX*sizeof(sfx_t), "sfx_t");
+	known_sfx = Q_Malloc(MAX_SFX*sizeof(sfx_t), 0, 1, "sfx_t");
 	num_sfx = 0;
 	snd_initialized = 1;
 	S_Startup();

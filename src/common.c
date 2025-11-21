@@ -614,7 +614,7 @@ f32 MSG_ReadAngle16(u32 flags)
 void SZ_Alloc(sizebuf_t *buf, s32 startsize)
 {
 	if(startsize < 256) startsize = 256;
-	buf->data = (u8 *) Hunk_AllocName(startsize, "sizebuf");
+	buf->data = Q_Malloc(startsize, 0, 1, "sizebuf");
 	buf->maxsize = startsize;
 	buf->cursize = 0;
 }
@@ -1044,14 +1044,14 @@ u8 *COM_LoadFile(const s8 *path, s32 usehunk, u32 *path_id)
 	// extract the filename base name for hunk tag
 	COM_FileBase(path, base, sizeof(base));
 	switch(usehunk) {
-	case LOADFILE_HUNK: buf = (u8 *) Hunk_AllocName(len+1, base); break;
-	case LOADFILE_TEMPHUNK: buf = (u8 *) Q_Malloc(len+1, 0, 1, base); break;
-	case LOADFILE_ZONE: buf = (u8 *) Q_Malloc(len+1, 0, 0, base); break;
-	case LOADFILE_CACHE: buf = (u8*)Cache_Alloc(loadcache,len+1,base);break;
+	case LOADFILE_HUNK: buf = Q_Malloc(len+1, 0, 1, base); break;
+	case LOADFILE_TEMPHUNK: buf = Q_Malloc(len+1, 0, 1, base); break;
+	case LOADFILE_ZONE: buf = Q_Malloc(len+1, 0, 0, base); break;
+	case LOADFILE_CACHE: buf = Cache_Alloc(loadcache, len+1, base); break;
 	case LOADFILE_STACK: if(len < loadsize) buf = loadbuf;
-			else buf = (u8 *) Q_Malloc(len+1, 0, 1, base);
+			else buf = Q_Malloc(len+1, 0, 1, base);
 			break;
-	case LOADFILE_MALLOC: buf = (u8 *) malloc(len+1); break;
+	case LOADFILE_MALLOC: buf = Q_Malloc(len+1, 0, 0, base); break;
 	default: Sys_Error("COM_LoadFile: bad usehunk");
 	}
 	if(!buf) Sys_Error("COM_LoadFile: not enough space for %s", path);

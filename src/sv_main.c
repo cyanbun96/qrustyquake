@@ -676,7 +676,7 @@ static void SV_AddSignonBuffer()
 {
 	if(sv.num_signon_buffers >= MAX_SIGNON_BUFFERS)
 		Host_Error("SV_AddSignonBuffer overflow\n");
-	sizebuf_t *sb = Hunk_AllocName(sizeof(sizebuf_t)+SIGNON_SIZE,"signon");
+	sizebuf_t *sb = Q_Malloc(sizeof(sizebuf_t)+SIGNON_SIZE, 0, 1, "signon");
 	sb->data = (u8 *)(sb + 1);
 	sb->maxsize = SIGNON_SIZE;
 	sv.signon_buffers[sv.num_signon_buffers++] = sb;

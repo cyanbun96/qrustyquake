@@ -190,8 +190,7 @@ void CL_ParseServerInfo()
 	cl.maxclients = MSG_ReadByte(); // parse maxclients
 	if(cl.maxclients < 1 || cl.maxclients > MAX_SCOREBOARD)
 		Host_Error("Bad maxclients (%u) from server", cl.maxclients);
-	cl.scores =(scoreboard_t *) Hunk_AllocName
-		(cl.maxclients*sizeof(*cl.scores), "scores");
+	cl.scores = Q_Malloc(cl.maxclients*sizeof(*cl.scores), 0, 1, "scores");
 	cl.gametype = MSG_ReadByte(); // parse gametype
 	const s8 *str = MSG_ReadString(); // parse signon message
 	q_strlcpy(cl.levelname, str, sizeof(cl.levelname));

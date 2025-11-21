@@ -80,7 +80,8 @@ void Host_FindMaxClients()
 	else if(svs.maxclients > MAX_SCOREBOARD)svs.maxclients = MAX_SCOREBOARD;
 	svs.maxclientslimit = svs.maxclients;
 	if(svs.maxclientslimit < 4) svs.maxclientslimit = 4;
-svs.clients = Hunk_AllocName(svs.maxclientslimit * sizeof(client_t), "clients");
+		svs.clients = Q_Malloc(svs.maxclientslimit * sizeof(client_t),
+					0, 1, "clients");
 	if(svs.maxclients > 1) Cvar_SetValue("deathmatch", 1.0);
 	else Cvar_SetValue("deathmatch", 0.0);
 }
@@ -472,14 +473,14 @@ void Host_Init()
 		COM_FOpenFile("gfx/custompalette.lmp", &f, NULL);
 		if(!f) COM_FOpenFile("gfx/palette.lmp", &f, NULL);
 		if(!f) Sys_Error("Couldn't load gfx/palette.lmp");
-		host_basepal = (u8 *) Hunk_AllocName(768, "basepal");
+		host_basepal = Q_Malloc(768, 0, 1, "basepal");
 		if(fread(host_basepal, 768, 1, f) != 1)
 			Sys_Error("Failed reading gfx/palette.lmp");
 		fclose(f);
 		COM_FOpenFile("gfx/customcolormap.lmp", &f, NULL);
 		if(!f) COM_FOpenFile("gfx/colormap.lmp", &f, NULL);
 		if(!f) Sys_Error("Couldn't load gfx/colormap.lmp");
-		host_colormap = (u8 *) Hunk_AllocName(256 * 64, "colormap");
+		host_colormap = Q_Malloc(256 * 64, 0, 1, "colormap");
 		if(fread(host_colormap, 256 * 64, 1, f) != 1)
 			Sys_Error("TexMgr_LoadPalette: colormap read error");
 		fclose(f);
@@ -496,7 +497,7 @@ void Host_Init()
 	LOC_Init(); // for 2021 rerelease support.
 	Cbuf_InsertText("exec quake.rc\n");
 	IN_MLookDown();
-	Hunk_AllocName(0, "-HOST_HUNKLEVEL-");
+	Q_Malloc(0, 0, 1, "-HOST_HUNKLEVEL-");
 	host_initialized = 1;
 	Sys_Printf("========Quake Initialized=========\n");
 }

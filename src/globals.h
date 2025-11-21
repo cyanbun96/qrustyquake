@@ -369,7 +369,6 @@ void Q_Free(void *ptr);
 void *Q_Realloc(void *ptr, u64 size, cache_user_t *cache_user,s32 type,s8*name);
 void Mem_Journal_Show();
 s8 *Q_Strdup(const s8 *s);
-void *Hunk_AllocName(s32 size, s8 *name);
 void Cache_Flush();
 void *Cache_Check(cache_user_t *c);
 void *Cache_Alloc(cache_user_t *c, s32 size, s8 *name);

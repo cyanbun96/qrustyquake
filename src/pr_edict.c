@@ -812,7 +812,7 @@ s32 PR_AllocString(s32 size, s8 **ptr)
 		if(!pr_knownstrings[i]) break;
 	if(i >= pr_maxknownstrings) PR_AllocStringSlots();
 	pr_numknownstrings++;
-	pr_knownstrings[i] = (s8 *)Hunk_AllocName(size, "string");
+	pr_knownstrings[i] = Q_Malloc(size, 0, 1, "string");
 	if(ptr) *ptr = (s8 *) pr_knownstrings[i];
 	return -1 - i;
 }

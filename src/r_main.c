@@ -9,8 +9,8 @@ static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 
 void R_InitTextures()
 { // create a simple checkerboard texture for the default
-	r_notexture_mip = Hunk_AllocName(sizeof(texture_t)
-			+ 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2, "notexture");
+	r_notexture_mip = Q_Malloc(sizeof(texture_t)
+			+ 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2, 0, 1, "notexture");
 	r_notexture_mip->width = r_notexture_mip->height = 16;
 	r_notexture_mip->offsets[0] = sizeof(texture_t);
 	r_notexture_mip->offsets[1] = r_notexture_mip->offsets[0] + 16 * 16;
