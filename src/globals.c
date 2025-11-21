@@ -124,8 +124,8 @@ s32 d_minmip;
 f32 d_scalemip[NUM_MIPS - 1];
 s32 d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;           // d_modech.c
 s32 d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
-s32 d_scantable[MAXHEIGHT];
-s16 *zspantable[MAXHEIGHT];
+s32 *d_scantable;
+s16 **zspantable;
 u32 sb_updates; // if >= vid.numpages, no update needed                // sbar.c
 s32 sb_lines; // scan lines to draw
 bool r_cache_thrash; // set if surface cache is thrashing            // d_surf.c
@@ -170,11 +170,11 @@ clipplane_t view_clipplanes[4];
 s32 sintable[SIN_BUFFER_SIZE];
 s32 intsintable[SIN_BUFFER_SIZE];
 f32 winquake_surface_liquid_alpha;
-edge_t *last_pcheck[MAXHEIGHT]; // indexed by scanline v
+edge_t **last_pcheck; // indexed by scanline v
 edge_t *r_edges, *edge_p, *edge_max;                                 // r_edge.c
 surf_t *surfaces, *surface_p, *surf_max;
-edge_t *newedges[MAXHEIGHT];
-edge_t *removeedges[MAXHEIGHT];
+edge_t **newedges;
+edge_t **removeedges;
 s32 r_currentkey;
 u32 scr_fullupdate;                                                  // screen.c
 u32 clearnotify;
@@ -218,7 +218,7 @@ s8 worldcmapname[MAX_OSPATH];
 s8 uipalname[MAX_OSPATH];
 s32 refresh_palette = 0;                                               // view.c
 vec3_t vec3_origin = {0,0,0};                                       // mathlib.h
-sspan_t spans[MAXHEIGHT + 1];                                      // d_sprite.c
+sspan_t *spans;                                                    // d_sprite.c
 s32 r_dlightframecount;                                             // r_light.c
 vec3_t r_pright, r_pup, r_ppn;                                       // r_part.c
 spritedesc_t r_spritedesc;                                         // r_sprite.c

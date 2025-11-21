@@ -441,8 +441,8 @@ EX finalvert_t *pfinalverts;
 EX auxvert_t *pauxverts;
 EX s32 r_amodels_drawn;
 EX edge_t *r_edges, *edge_p, *edge_max;
-EX edge_t *newedges[MAXHEIGHT];
-EX edge_t *removeedges[MAXHEIGHT];
+EX edge_t **newedges;
+EX edge_t **removeedges;
 EX s32 screenwidth;
 EX f32 aliasxscale, aliasyscale, aliasxcenter, aliasycenter;
 EX f32 r_aliastransition, r_resfudge;
@@ -694,13 +694,13 @@ EX s32 d_minmip;
 EX f32 d_scalemip[NUM_MIPS - 1];
 EX s32 d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;        // d_modech.c
 EX s32 d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
-EX s32 d_scantable[MAXHEIGHT];
-EX s16 *zspantable[MAXHEIGHT];
+EX s32 *d_scantable;
+EX s16 **zspantable;
 EX bool r_cache_thrash;                                              // d_surf.c
 EX surfcache_t *sc_rover;
 EX s32 lmonly;
 EX s32 drawlayer;                                                      // draw.c
-EX edge_t *last_pcheck[MAXHEIGHT];
+EX edge_t **last_pcheck;
 EX quakeparms_t host_parms;                                            // host.c
 EX bool host_initialized;
 EX bool isDedicated;
@@ -748,7 +748,7 @@ EX s8 uipalname[MAX_OSPATH];
 EX void SetWorldPal(s8 *path, s8 *cmappath);
 EX vec3_t vec3_origin;                                              // mathlib.c
 EX f32 cur_ent_alpha;                                              // d_polyse.c
-EX sspan_t spans[MAXHEIGHT + 1];                                   // d_sprite.c
+EX sspan_t *spans;                                                 // d_sprite.c
 EX vec3_t lightcolor;                                               // r_light.c
 EX f32 r_avertexnormals[NUMVERTEXNORMALS][3];                       // r_alias.c
 EX vec3_t r_pright, r_pup, r_ppn;                                    // r_part.c
