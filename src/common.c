@@ -1045,11 +1045,11 @@ u8 *COM_LoadFile(const s8 *path, s32 usehunk, u32 *path_id)
 	COM_FileBase(path, base, sizeof(base));
 	switch(usehunk) {
 	case LOADFILE_HUNK: buf = (u8 *) Hunk_AllocName(len+1, base); break;
-	case LOADFILE_TEMPHUNK: buf = (u8 *) Hunk_TempAlloc(len+1); break;
+	case LOADFILE_TEMPHUNK: buf = (u8 *) Q_Malloc(len+1, 0, 1, base); break;
 	case LOADFILE_ZONE: buf = (u8 *) Q_Malloc(len+1, 0, 0, base); break;
 	case LOADFILE_CACHE: buf = (u8*)Cache_Alloc(loadcache,len+1,base);break;
 	case LOADFILE_STACK: if(len < loadsize) buf = loadbuf;
-			else buf = (u8 *) Hunk_TempAlloc(len+1);
+			else buf = (u8 *) Q_Malloc(len+1, 0, 1, base);
 			break;
 	case LOADFILE_MALLOC: buf = (u8 *) malloc(len+1); break;
 	default: Sys_Error("COM_LoadFile: bad usehunk");

@@ -299,7 +299,7 @@ void Cmd_AddCommand(s8 *cmd_name, xcommand_t function)
 			return;
 		}
 	}
-	cmd = Hunk_Alloc(sizeof(cmd_function_t));
+	cmd = Q_Malloc(sizeof(cmd_function_t), 0, 1, "command");
 	cmd->name = cmd_name;
 	cmd->function = function;
 	// johnfitz -- insert each entry in alphabetical order

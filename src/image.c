@@ -52,7 +52,7 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 	s32 rows = targa_header.height;
 	s32 numPixels = columns * rows;
 	bool upside_down = !(targa_header.attributes & 0x20); //johnfitz -- fix
-	u8 *targa_rgba = (u8 *) Hunk_Alloc(numPixels*4);
+	u8 *targa_rgba = (u8 *)Q_Malloc(numPixels*4, 0, 1, loadfilename);
 	if(targa_header.id_length != 0)
 		fseek(fin, targa_header.id_length, SEEK_CUR); // skip comment
 	stdio_buffer_t *buf = Buf_Alloc(fin);

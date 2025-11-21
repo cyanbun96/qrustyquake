@@ -306,7 +306,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	s32 i = 0;
 	for(; i < MAX_LIGHTSTYLES; i++){ // load the light styles
 		fscanf(f, "%s\n", str);
-		s8 *dst = Hunk_Alloc(strlen(str) + 1);
+		s8 *dst = Q_Malloc(strlen(str) + 1, 0, 1, "loadgame");
 		strcpy(dst, str);
 		sv.lightstyles[i] = dst;
 	}

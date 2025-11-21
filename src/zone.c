@@ -97,15 +97,6 @@ void *Hunk_AllocName(s32 size, s8 *name)
 	return p;
 }
 
-void *Hunk_Alloc(s32 size)
-{ return Hunk_AllocName(size, "unknown"); }
-
-void *Hunk_TempAlloc(s32 size)
-{
-	size = (size+15)&~15;
-	return Q_Malloc(size, 0, 1, 0);
-}
-
 void Cache_Free(cache_user_t *c, SDL_UNUSED bool freetextures)
 {
 	if(!c->data) Sys_Error("Cache_Free: not allocated");
