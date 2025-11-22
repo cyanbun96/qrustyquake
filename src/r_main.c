@@ -5,7 +5,7 @@ static vec3_t viewlightvec;
 static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 verticalFieldOfView;
 static f32 xOrigin, yOrigin;
-static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
+static u8 *warpbuffer = 0;
 
 void R_InitTextures()
 { // create a simple checkerboard texture for the default
@@ -31,6 +31,7 @@ void R_InitTextures()
 
 void R_InitTurb()
 {
+	warpbuffer=Q_Realloc(warpbuffer,vid.width*vid.height,0,0,"warpbuffer");
         s32 sintablesize = (vid.height>vid.width?vid.height:vid.width) + CYCLE;
 	sintable = Q_Realloc(sintable, sintablesize*sizeof(s32),
 				0, 0, "sintable");
