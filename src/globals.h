@@ -62,6 +62,7 @@ EX s32 r_wholepolycount;
 EX s32 modcount;
 EX texture_t *r_notexture_mip;
 EX s32 colored_aliaslight;
+void R_InitTurb();
 void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();
@@ -265,8 +266,8 @@ EX s32 cachewidth, cacheheight;                                    // r_shared.h
 EX u8 *cacheblock;
 EX f32 pixelAspect;
 EX s32 r_drawnpolycount;
-EX s32 sintable[SIN_BUFFER_SIZE];
-EX s32 intsintable[SIN_BUFFER_SIZE];
+EX s32 *sintable;
+EX s32 *intsintable;
 EX vec3_t base_vup;
 EX vec3_t base_vpn;
 EX vec3_t base_vright;

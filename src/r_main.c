@@ -31,7 +31,12 @@ void R_InitTextures()
 
 void R_InitTurb()
 {
-	for(s32 i = 0; i < (SIN_BUFFER_SIZE); i++){
+        s32 sintablesize = (vid.height>vid.width?vid.height:vid.width) + CYCLE;
+	sintable = Q_Realloc(sintable, sintablesize*sizeof(s32),
+				0, 0, "sintable");
+        intsintable = Q_Realloc(intsintable, sintablesize*sizeof(s32),
+				0, 0, "intsintable");
+	for(s32 i = 0; i < sintablesize; i++){
 		sintable[i] = AMP + sin(i * 3.14159 * 2 / CYCLE) * AMP;
 		intsintable[i] = AMP2 + sin(i * 3.14159 * 2 / CYCLE) * AMP2;
 	}
@@ -126,7 +131,6 @@ void R_Init()
 		view_clipplanes[3].rightedge = 0;
 	r_refdef.xOrigin = 0.5;
 	r_refdef.yOrigin = 0.5;
-	R_InitTurb();
 	R_InitParticles();
 	D_Init();
 	Sky_Init();

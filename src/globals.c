@@ -167,8 +167,8 @@ vec3_t r_entorigin; // the currently rendering entity in world coordinates
 s32 r_currentbkey;
 s32 c_faceclip; // number of faces clipped                           // r_draw.c
 clipplane_t view_clipplanes[4];
-s32 sintable[SIN_BUFFER_SIZE];
-s32 intsintable[SIN_BUFFER_SIZE];
+s32 *sintable = 0;
+s32 *intsintable = 0;
 f32 winquake_surface_liquid_alpha;
 edge_t **last_pcheck; // indexed by scanline v
 edge_t *r_edges, *edge_p, *edge_max;                                 // r_edge.c

@@ -375,6 +375,7 @@ void VID_AllocBuffers()
 	lsurfs_num = MINSURFACES;
 	lsurfs = Q_Realloc(lsurfs, sizeof(surf_t)*(lsurfs_num+((CACHE_SIZE-1)/
 					sizeof(surf_t))+1), 0, 0, "lsurfs");
+	R_InitTurb();
 	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!argbpixels)
 		Sys_Error("Not enough memory for video mode");
 	screen->pixels = vid.buffer = screenpixels;
