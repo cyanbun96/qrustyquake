@@ -233,7 +233,8 @@ void SCR_DrawTurtle()
 
 void SCR_DrawNet()
 {
-	if (realtime - cl.last_received_message < 0.3 || cls.demoplayback)
+	if (realtime - cl.last_received_message < 0.3 || cls.demoplayback ||
+			cls.state == ca_disconnected)
 		return;
 	drawlayer = lyr_menu.value;
 	Draw_PicScaled(scr_vrect.x + 64*uiscale, scr_vrect.y, scr_net, uiscale);
