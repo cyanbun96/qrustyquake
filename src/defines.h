@@ -482,7 +482,7 @@
 #define MAX_EDICTS 32000
 #define MIN_EDICTS 256 // johnfitz -- lowest allowed value for max_edicts cvar
 #define MAX_LIGHTSTYLES 64
-#define MAX_MODELS 32768 // these are sent over the net as bytes
+#define MAX_MODELS 4096 // these are sent over the net as bytes
 #define MAX_SOUNDS 2048 // so they cannot be blindly increased
 #define SAVEGAME_COMMENT_LENGTH 39
 #define MAX_STYLESTRING 64
@@ -765,7 +765,7 @@
 #define GUARDSIZE 4 // d_surf.c
 
 #define ANIM_CYCLE 2 // model.c
-#define MAX_MOD_KNOWN 32768 // johnfitz -- was 512
+#define MAX_MOD_KNOWN 4096 // johnfitz -- was 512
 #define NL_PRESENT 0 // values for model_t's needload
 #define NL_NEEDS_LOADED 1
 #define NL_UNREFERENCED 2
