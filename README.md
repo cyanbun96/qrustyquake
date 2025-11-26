@@ -224,9 +224,9 @@ VM is VirtualBox unless specified otherwise.
 
    - Ran through X11 with touch controls. *unpleasant*
 
-- macOS [HW] v0.6.0
+- macOS [HW] v0.6.2
 
-   - Several successes were reported with the default Makefile and SDL3 from brew
+   - Built without SDL3_mixer, with cmake and SDL3 from brew, on 14.6.1
 
 - Emscripten [Browsers with WebAssembly] v0.6.0
 
