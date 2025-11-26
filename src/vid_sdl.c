@@ -363,7 +363,7 @@ void VID_AllocBuffers()
 	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!argbpixels)
 		Sys_Error("Not enough memory for video mode");
 	screen->pixels = vid.buffer = screenpixels;
-	screentop->pixels = uipixels;
+	screentop->pixels = toppixels;
 	screenui->pixels = uipixels;
 	screensbar->pixels = sbarpixels;
 	argbbuffer->pixels = argbpixels;
