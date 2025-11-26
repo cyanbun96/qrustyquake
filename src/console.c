@@ -258,7 +258,7 @@ void Con_DrawNotify()
 void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 { // Typing input line at the bottom should only be drawn if typing is allowed
 	s8 *text;
-	if(lines <= 0) return;
+	if(lines <= 0 || key_dest == key_menu) return;
 	drawlayer = lyr_console.value;
 	Draw_ConsoleBackground(lines); // draw the background
 	con_vislines = lines; // draw the text
