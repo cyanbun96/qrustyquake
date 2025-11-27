@@ -239,7 +239,7 @@ void R_SetupFrame()
 			r_maxedgesseen = edgecount;
 
 		Con_Printf("Used %d of %d edges; %d max\n", edgecount,
-				NUMSTACKEDGES, r_maxedgesseen);
+				r_ledges_size, r_maxedgesseen);
 	}
 	r_refdef.ambientlight = r_ambient.value;
 	if (r_refdef.ambientlight < 0)

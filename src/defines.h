@@ -585,10 +585,8 @@
 #define MAXDIMENSION ((MAXHEIGHT > MAXWIDTH) ? MAXHEIGHT : MAXWIDTH)
 #define SIN_BUFFER_SIZE (MAXDIMENSION+CYCLE)
 #define INFINITE_DISTANCE 0x10000 // distance that's always guaranteed to be farther away than anything in the scene
-#define NUMSTACKEDGES 262144 // CyanBun96: expanding limits
-#define MINEDGES NUMSTACKEDGES
-#define NUMSTACKSURFACES 32768 // CyanBun96: expanding limits
-#define MINSURFACES NUMSTACKSURFACES
+#define NUMSTACKEDGES 2400 // CyanBun96: gets realloced dynamically
+#define NUMSTACKSURFACES 800 // CyanBun96: gets realloced dynamically
 #define MAXSPANS 32768 // CyanBun96: expanding limits
 #define ALIAS_LEFT_CLIP 0x0001 // flags in finalvert_t.flags
 #define ALIAS_TOP_CLIP 0x0002

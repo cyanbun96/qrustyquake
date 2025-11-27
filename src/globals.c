@@ -169,7 +169,11 @@ s32 sintable[SIN_BUFFER_SIZE];
 s32 intsintable[SIN_BUFFER_SIZE];
 f32 winquake_surface_liquid_alpha;
 edge_t *last_pcheck[MAXHEIGHT]; // indexed by scanline v
-edge_t *r_edges, *edge_p, *edge_max;                                 // r_edge.c
+edge_t *ledges;                                                      // r_edge.c
+surf_t *lsurfs;
+s32 r_ledges_size = 0;
+s32 r_lsurfs_size = 0;
+edge_t *r_edges, *edge_p, *edge_max;
 surf_t *surfaces, *surface_p, *surf_max;
 edge_t *newedges[MAXHEIGHT];
 edge_t *removeedges[MAXHEIGHT];

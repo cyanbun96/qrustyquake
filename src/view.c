@@ -431,7 +431,26 @@ void V_CalcRefdef()
 	if(chase_active.value) Chase_Update();
 }
 
+void V_AllocLedges()
+{
+	r_ledges_size *= 1.2;
+	r_ledges_size += NUMSTACKEDGES;
+	Con_DPrintf("Reallocing ledges %d\n", r_ledges_size);
+	s32 alloc_sz = (r_ledges_size+((CACHE_SIZE-1)/sizeof(edge_t))+1)
+				* sizeof(edge_t);
+	ledges = realloc(ledges, alloc_sz);
 
+}
+
+void V_AllocLsurfs()
+{
+	r_lsurfs_size *= 1.2;
+	r_lsurfs_size += NUMSTACKSURFACES;
+	Con_DPrintf("Reallocing lsurfs %d\n", r_lsurfs_size);
+	s32 alloc_sz = (r_lsurfs_size+((CACHE_SIZE-1)/sizeof(surf_t))+1)
+				* sizeof(surf_t);
+	lsurfs = realloc(lsurfs, alloc_sz);
+}
 
 void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 {// 16 32) from the entity origin so any view position inside that will be valid
@@ -452,6 +471,8 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 		Con_Printf("short %d surfaces\n", r_outofsurfaces);
 	if(r_reportedgeout.value && r_outofedges)
 		Con_Printf("short roughly %d edges\n", r_outofedges * 2 / 3);
+	if(r_outofedges) V_AllocLedges();
+	if(r_outofsurfaces) V_AllocLsurfs();
 	if(!crosshair.value) return;
 	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
@@ -492,4 +513,6 @@ void V_Init()
 	Cvar_RegisterVariable(&v_kickpitch);
 	BuildGammaTable(1.0); // no gamma yet
 	Cvar_RegisterVariable(&v_gamma);
+	V_AllocLedges();
+	V_AllocLsurfs();
 }

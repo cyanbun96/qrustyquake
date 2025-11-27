@@ -20,8 +20,6 @@ static edge_t edge_head, edge_tail;
 static edge_t edge_aftertail;
 static f32 fv;
 static void (*pdrawfunc)();
-static edge_t ledges[NUMSTACKEDGES + ((CACHE_SIZE - 1) / sizeof(edge_t)) + 1];
-static surf_t lsurfs[NUMSTACKSURFACES + ((CACHE_SIZE - 1) / sizeof(surf_t)) +1];
 void R_GenerateSpans();
 void R_GenerateSpansBackward();
 void R_GenerateSpansCutout();
@@ -35,9 +33,9 @@ void R_BeginEdgeFrame()
 	// surface 0 doesn't really exist; it's just a dummy because
 	// index 0 is used to indicate no edge attached to surface
 	surfaces = &lsurfs[1]; // Point to the first "real" surface
-	surf_max = &surfaces[NUMSTACKSURFACES];
+	surf_max = &surfaces[r_lsurfs_size];
 	edge_p = r_edges;
-	edge_max = &r_edges[NUMSTACKEDGES];
+	edge_max = &r_edges[r_ledges_size];
 	surface_p = &surfaces[2]; // background is surface 1,
 	surfaces[1].spans = NULL; // no background spans yet
 	surfaces[1].flags = SURF_DRAWBACKGROUND;

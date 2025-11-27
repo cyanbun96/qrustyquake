@@ -693,6 +693,10 @@ EX s32 con_backscroll;
 EX bool con_initialized;
 EX s32 con_notifylines;
 void M_Menu_Main_f();
+EX edge_t *ledges;                                                   // r_edge.c
+EX surf_t *lsurfs;
+EX s32 r_ledges_size;
+EX s32 r_lsurfs_size;
 EX f32 scale_for_mip;                                                // d_edge.c
 EX s32 miplevel;
 EX surfcache_t *d_initial_rover;                                     // d_init.c
