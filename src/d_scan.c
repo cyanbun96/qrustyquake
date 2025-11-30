@@ -87,6 +87,72 @@ void D_DrawTurbulent8SpanDithered()
 	}
 }
 
+#define TW 64.0f
+#define TH 64.0f
+
+static const f32 HL_TextureToWaveScale = 1.5f;
+static const f32 HL_RippleScale = 1.5f;
+
+static void HLWarp(f32 *u, f32 *v, f32 time)
+{ // Warp A: classic  cos(y), cos(x)
+	f32 x = *u;
+	f32 y = *v;
+	f32 waveSize = (1.0f / 8.0f) * HL_TextureToWaveScale;
+	f32 waveStrength = 0.01f * HL_RippleScale;
+	f32 t = time * 3.0f;
+	f32 xu = x + cosf(y * (1.0f / waveSize) + t) * waveStrength;
+	f32 yv = y + cosf(x * (1.0f / waveSize) + t) * waveStrength;
+	*u = xu;
+	*v = yv;
+}
+
+static void HLSingleRipple(f32 *outx, f32 *outy, f32 u, f32 v, f32 px, f32 py,
+				f32 size, f32 freq, f32 strength, f32 t)
+{ // Ripple helper
+	f32 dx = u - px;
+	f32 dy = v - py;
+	f32 dist = sqrtf(dx*dx + dy*dy);
+	f32 wave = cosf(sqrtf(dist) * freq - t);
+	f32 decay = 1.0f - dist / size;
+	if (decay < 0.0f)
+		decay = 0.0f;
+	wave *= decay;
+	*outx += dx * wave * strength;
+	*outy += dy * wave * strength;
+}
+
+
+// Ripple B: HL three-point ripple, tiled
+static void HLRipple(f32 *u, f32 *v, f32 time)
+{
+	static const f32 px[3] = {0.2f, 0.1f, 0.7f};
+	static const f32 py[3] = {0.8f, 0.2f, 0.5f};
+	static const f32 tile[8][2] = {
+		{ 1,  0}, { 1,  1}, { 0,  1}, {-1,  1},
+		{-1,  0}, {-1, -1}, { 0, -1}, { 1, -1}
+	};
+	f32 iu = floorf(*u);
+	f32 iv = floorf(*v);
+	f32 baseu = *u;
+	f32 basev = *v;
+	f32 ox = 0.0f;
+	f32 oy = 0.0f;
+	f32 size = 0.8f;
+	f32 freq = 200.0f;
+	f32 strength = 0.02f * HL_RippleScale;
+	f32 t = time * 20.0f;
+	for (s32 i = 0; i < 3; i++) // main tile
+		HLSingleRipple(&ox, &oy, baseu, basev, iu + px[i], iv + py[i],
+				size, freq, strength, t);
+	for (s32 ti = 0; ti < 8; ti += 2) // surrounding tiles
+	for (s32 i = 0; i < 3; i++)
+		HLSingleRipple(&ox, &oy, baseu+tile[ti][0], basev+tile[ti][1],
+				iu+px[i], iv+py[i], size, freq, strength, t);
+
+	*u = baseu + ox;
+	*v = basev + oy;
+}
+
 void D_DrawTurbulent8Span()
 {
 	if (!lmonly) {
@@ -98,6 +164,17 @@ void D_DrawTurbulent8Span()
 			r_turb_s += r_turb_sstep;
 			r_turb_t += r_turb_tstep;
 		} while (--r_turb_spancount > 0);
+		/* HL1-style ripple effect TODO optimize and make togglable do {
+			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
+			f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
+			HLWarp(&u, &v, cl.time);
+			HLRipple(&u, &v, cl.time);
+			s32 su = ((s32)(u * 64.0f)) & 63;
+			s32 tv = ((s32)(v * 64.0f)) & 63;
+			*r_turb_pdest++ = r_turb_pbase[(tv << 6) + su];
+			r_turb_s += r_turb_sstep;
+			r_turb_t += r_turb_tstep;
+		} while (--r_turb_spancount > 0);*/
 	} else { // lit water: render first and then apply the already drawn lightmap as a filter
 		if (!lit_lut_initialized) R_BuildLitLUT();
 		do {
