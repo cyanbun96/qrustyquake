@@ -87,6 +87,47 @@ void D_DrawTurbulent8SpanDithered()
 	}
 }
 
+#define DIST_LUT_SIZE 1024
+#define COS_LUT_SIZE 2048
+
+static float dist_lut[DIST_LUT_SIZE];
+static float cos_lut[COS_LUT_SIZE];
+
+static float dist_lut_max = 8.0f; // max dx*dx + dy*dy
+static float cos_lut_period = 2.0f * M_PI;
+
+static inline float fast_sqrt_dist(float x)
+{ // x in [0, 8]
+    float f = x * (float)(DIST_LUT_SIZE - 1) / dist_lut_max;
+    int i = (int)f;
+    if (i < 0) i = 0;
+    if (i >= DIST_LUT_SIZE - 1) i = DIST_LUT_SIZE - 1;
+    return dist_lut[i];
+}
+
+static inline float fast_cos(float theta)
+{ // wrap manually
+    float n = theta * (float)COS_LUT_SIZE / cos_lut_period;
+    int i = (int)n;
+    i &= (COS_LUT_SIZE - 1); // requires power of two table
+    return cos_lut[i];
+}
+
+static int HLWaterLutInited = 0;
+static void InitHLWaterLUT()
+{
+	if(HLWaterLutInited) return;
+	for (int i = 0; i < DIST_LUT_SIZE; i++) { // sqrt LUT for x in [0, 8]
+		float x = (float)i * (dist_lut_max / (DIST_LUT_SIZE - 1));
+		dist_lut[i] = sqrtf(x);
+	}
+	for (int i = 0; i < COS_LUT_SIZE; i++) { // cos LUT for θ in [0, 2π]
+		float t = (float)i * (cos_lut_period / COS_LUT_SIZE);
+		cos_lut[i] = cosf(t);
+	}
+	HLWaterLutInited = 1;
+}
+
 #define TW 64.0f
 #define TH 64.0f
 
@@ -100,8 +141,10 @@ static void HLWarp(f32 *u, f32 *v, f32 time)
 	f32 waveSize = (1.0f / 8.0f) * HL_TextureToWaveScale;
 	f32 waveStrength = 0.01f * HL_RippleScale;
 	f32 t = time * 3.0f;
-	f32 xu = x + cosf(y * (1.0f / waveSize) + t) * waveStrength;
-	f32 yv = y + cosf(x * (1.0f / waveSize) + t) * waveStrength;
+	f32 arg1 = y * (1.0f / waveSize) + t;
+	f32 arg2 = x * (1.0f / waveSize) + t;
+	f32 xu = x + fast_cos(arg1) * waveStrength;
+	f32 yv = y + fast_cos(arg2) * waveStrength;
 	*u = xu;
 	*v = yv;
 }
@@ -109,10 +152,12 @@ static void HLWarp(f32 *u, f32 *v, f32 time)
 static void HLSingleRipple(f32 *outx, f32 *outy, f32 u, f32 v, f32 px, f32 py,
 				f32 size, f32 freq, f32 strength, f32 t)
 { // Ripple helper
-	f32 dx = u - px;
-	f32 dy = v - py;
-	f32 dist = sqrtf(dx*dx + dy*dy);
-	f32 wave = cosf(sqrtf(dist) * freq - t);
+	f32 dx = u - px; // [-2, 2]
+	f32 dy = v - py; // [-2, 2]
+	f32 r2 = dx*dx + dy*dy; // [0, 8]
+	f32 dist = fast_sqrt_dist(r2);
+	f32 f = fast_sqrt_dist(dist) * freq - t;
+	f32 wave = fast_cos(f);
 	f32 decay = 1.0f - dist / size;
 	if (decay < 0.0f)
 		decay = 0.0f;
@@ -164,7 +209,7 @@ void D_DrawTurbulent8Span()
 			r_turb_s += r_turb_sstep;
 			r_turb_t += r_turb_tstep;
 		} while (--r_turb_spancount > 0);
-		/* HL1-style ripple effect TODO optimize and make togglable do {
+		/*do {
 			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
 			f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
 			HLWarp(&u, &v, cl.time);
@@ -426,6 +471,7 @@ void D_DrawTurbulent8SpanAlpha (f32 opacity)
 
 void Turbulent8(espan_t *pspan, f32 opacity)
 {
+	InitHLWaterLUT();
 	void (*pturbdrawfuncalpha)(f32 opacity) = r_dithertex.value&&!miplevel?
 		D_DrawTurbulent8SpanAlphaDithered:D_DrawTurbulent8SpanAlpha;
 	void (*pturbdrawfunc)() = r_dithertex.value&&!miplevel?
