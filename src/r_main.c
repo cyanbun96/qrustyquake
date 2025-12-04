@@ -93,6 +93,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_novis);
 	Cvar_RegisterVariable(&r_particlescale);
 	Cvar_RegisterVariable(&r_fovmode);
+	Cvar_RegisterVariable(&r_hlwater);
 	Cvar_RegisterVariable(&vid_cwidth);
 	Cvar_RegisterVariable(&vid_cheight);
 	Cvar_RegisterVariable(&vid_cwmode);
