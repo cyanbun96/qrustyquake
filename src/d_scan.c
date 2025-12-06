@@ -202,17 +202,6 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 	*u = baseu + ox;
 	*v = basev + oy;
 }
-	/*do {
-		f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-		f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-		HLWarp(&u, &v, cl.time);
-		HLRipple(&u, &v, cl.time);
-		s32 su = ((s32)(u * 64.0f)) & 63;
-		s32 tv = ((s32)(v * 64.0f)) & 63;
-		*r_turb_pdest++ = r_turb_pbase[(tv << 6) + su];
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);*/
 
 static void D_DrawTurbulentSpan()
 {
