@@ -474,7 +474,7 @@ static void D_DrawTurbulentSpanFilteredDithered()
 	s32 start_x = x;
 	s32 cur_x = start_x;
 	do {
-		if (*pz <= (izi>>16))&&(D_Dither(r_turb_pdest, 1-turb_opacity)){
+		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
 			s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
@@ -499,28 +499,27 @@ static void D_DrawTurbulentSpanLitFilteredDithered()
 	s32 start_x = x;
 	s32 cur_x = start_x;
 	do {
-		if (*pz <= (izi>>16) && (D_Dither(r_turb_pdest,1-turb_opacity)){
+		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
 			s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
 			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
 			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
-				s32 pix = *(r_turb_pbase + (t << 6) + s);
-				s32 lit = *(litwater_base+
-						(r_turb_pdest-d_viewbuffer));
-				u8 rp = CURWORLDPAL[pix * 3 + 0];
-				u8 gp = CURWORLDPAL[pix * 3 + 1];
-				u8 bp = CURWORLDPAL[pix * 3 + 2];
-				u8 rl = CURWORLDPAL[lit * 3 + 0];
-				u8 gl = CURWORLDPAL[lit * 3 + 1];
-				u8 bl = CURWORLDPAL[lit * 3 + 2];
-				s32 r = rp * rl / 255;
-				s32 g = gp * gl / 255;
-				s32 b = bp * bl / 255;
-				*r_turb_pdest = lit_lut[QUANT(r)
-					+ QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
-			}
+			s32 pix = *(r_turb_pbase + (t << 6) + s);
+			s32 lit = *(litwater_base+
+					(r_turb_pdest-d_viewbuffer));
+			u8 rp = CURWORLDPAL[pix * 3 + 0];
+			u8 gp = CURWORLDPAL[pix * 3 + 1];
+			u8 bp = CURWORLDPAL[pix * 3 + 2];
+			u8 rl = CURWORLDPAL[lit * 3 + 0];
+			u8 gl = CURWORLDPAL[lit * 3 + 1];
+			u8 bl = CURWORLDPAL[lit * 3 + 2];
+			s32 r = rp * rl / 255;
+			s32 g = gp * gl / 255;
+			s32 b = bp * bl / 255;
+			*r_turb_pdest = lit_lut[QUANT(r)
+				+ QUANT(g)*LIT_LUT_RES
+				+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
 		}
 		r_turb_pdest++;
 		izi += izistep;
