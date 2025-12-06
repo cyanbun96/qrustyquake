@@ -12,32 +12,32 @@
 #define DIST_LUT_SIZE 1024
 #define COS_LUT_SIZE 2048
 
-void D_DrawTurbulentSpan();
-void D_DrawTurbulentSpanMixed();
-void D_DrawTurbulentSpanDithered();
-void D_DrawTurbulentSpanFiltered();
-void D_DrawTurbulentSpanFilteredMixed();
-void D_DrawTurbulentSpanFilteredDithered();
-void D_DrawTurbulentSpanLit();
-void D_DrawTurbulentSpanLitMixed();
-void D_DrawTurbulentSpanLitDithered();
-void D_DrawTurbulentSpanLitFiltered();
-void D_DrawTurbulentSpanLitFilteredMixed();
-void D_DrawTurbulentSpanLitFilteredDithered();
-void D_DrawTurbulentSpanHL();
-void D_DrawTurbulentSpanMixedHL();
-void D_DrawTurbulentSpanDitheredHL();
-void D_DrawTurbulentSpanFilteredHL();
-void D_DrawTurbulentSpanFilteredMixedHL();
-void D_DrawTurbulentSpanFilteredDitheredHL();
-void D_DrawTurbulentSpanLitHL();
-void D_DrawTurbulentSpanLitMixedHL();
-void D_DrawTurbulentSpanLitDitheredHL();
-void D_DrawTurbulentSpanLitFilteredHL();
-void D_DrawTurbulentSpanLitFilteredMixedHL();
-void D_DrawTurbulentSpanLitFilteredDitheredHL();
+static void D_DrawTurbulentSpan();
+static void D_DrawTurbulentSpanMixed();
+static void D_DrawTurbulentSpanDithered();
+static void D_DrawTurbulentSpanFiltered();
+static void D_DrawTurbulentSpanFilteredMixed();
+static void D_DrawTurbulentSpanFilteredDithered();
+static void D_DrawTurbulentSpanLit();
+static void D_DrawTurbulentSpanLitMixed();
+static void D_DrawTurbulentSpanLitDithered();
+static void D_DrawTurbulentSpanLitFiltered();
+static void D_DrawTurbulentSpanLitFilteredMixed();
+static void D_DrawTurbulentSpanLitFilteredDithered();
+static void D_DrawTurbulentSpanHL();
+static void D_DrawTurbulentSpanMixedHL();
+static void D_DrawTurbulentSpanDitheredHL();
+static void D_DrawTurbulentSpanFilteredHL();
+static void D_DrawTurbulentSpanFilteredMixedHL();
+static void D_DrawTurbulentSpanFilteredDitheredHL();
+static void D_DrawTurbulentSpanLitHL();
+static void D_DrawTurbulentSpanLitMixedHL();
+static void D_DrawTurbulentSpanLitDitheredHL();
+static void D_DrawTurbulentSpanLitFilteredHL();
+static void D_DrawTurbulentSpanLitFilteredMixedHL();
+static void D_DrawTurbulentSpanLitFilteredDitheredHL();
 
-void (*turbdrawfunc[24])() = {
+static void (*turbdrawfunc[24])() = {
 D_DrawTurbulentSpan,
 D_DrawTurbulentSpanMixed,
 D_DrawTurbulentSpanDithered,
@@ -75,8 +75,8 @@ static f32 dist_lut[DIST_LUT_SIZE];
 static f32 cos_lut[COS_LUT_SIZE];
 static f32 dist_lut_max = 8.0f; // max dx*dx + dy*dy
 static f32 cos_lut_period = 2.0f * M_PI;
-static const f32 HL_TextureToWaveScale = 1.5f;
-static const f32 HL_RippleScale = 1.5f;
+static f32 HL_TextureToWaveScale = 1.5f;
+static f32 HL_RippleScale = 1.5f;
 static s32 HLWaterLutInited = 0;
 static f32 turb_opacity = 0;
 
@@ -214,7 +214,7 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 		r_turb_t += r_turb_tstep;
 	} while (--r_turb_spancount > 0);*/
 
-void D_DrawTurbulentSpan()
+static void D_DrawTurbulentSpan()
 {
 	do {
 		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
@@ -226,7 +226,7 @@ void D_DrawTurbulentSpan()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLit()
+static void D_DrawTurbulentSpanLit()
 {
 	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
@@ -251,7 +251,7 @@ void D_DrawTurbulentSpanLit()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanFiltered()
+static void D_DrawTurbulentSpanFiltered()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -272,7 +272,7 @@ void D_DrawTurbulentSpanFiltered()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitFiltered()
+static void D_DrawTurbulentSpanLitFiltered()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -305,15 +305,15 @@ void D_DrawTurbulentSpanLitFiltered()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanMixed()
+static void D_DrawTurbulentSpanMixed()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	do {
 		if (*pz <= (izi >> 16)) {
 		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
 		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
-		*r_turb_pdest = color_mix_lut[*(r_turb_pbase + (t << 6) + s)]
-			[*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
+			*r_turb_pdest = color_mix_lut[*(r_turb_pbase+(t<<6)+s)]
+			    [*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
 		r_turb_pdest++;
 		izi += izistep;
@@ -323,7 +323,7 @@ void D_DrawTurbulentSpanMixed()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitMixed()
+static void D_DrawTurbulentSpanLitMixed()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	if (!lit_lut_initialized) R_BuildLitLUT();
@@ -355,7 +355,7 @@ void D_DrawTurbulentSpanLitMixed()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanFilteredMixed()
+static void D_DrawTurbulentSpanFilteredMixed()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
@@ -382,7 +382,7 @@ void D_DrawTurbulentSpanFilteredMixed()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitFilteredMixed()
+static void D_DrawTurbulentSpanLitFilteredMixed()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	if (!lit_lut_initialized) R_BuildLitLUT();
@@ -422,13 +422,12 @@ void D_DrawTurbulentSpanLitFilteredMixed()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanDithered()
+static void D_DrawTurbulentSpanDithered()
 {
 	do {
-		if (*pz <= (izi >> 16)) {
+		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
 		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
 		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
-			if(D_Dither(r_turb_pdest, 1-turb_opacity))
 				*r_turb_pdest = *(r_turb_pbase + (t << 6) + s);
 		}
 		r_turb_pdest++;
@@ -439,7 +438,7 @@ void D_DrawTurbulentSpanDithered()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitDithered()
+static void D_DrawTurbulentSpanLitDithered()
 {
 	do {
 		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
@@ -467,7 +466,7 @@ void D_DrawTurbulentSpanLitDithered()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanFilteredDithered()
+static void D_DrawTurbulentSpanFilteredDithered()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -475,13 +474,12 @@ void D_DrawTurbulentSpanFilteredDithered()
 	s32 start_x = x;
 	s32 cur_x = start_x;
 	do {
-		if (*pz <= (izi >> 16)) {
+		if (*pz <= (izi>>16))&&(D_Dither(r_turb_pdest, 1-turb_opacity)){
 			s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
 			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
 			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
-			if (D_Dither(r_turb_pdest, 1-turb_opacity))
 				*r_turb_pdest = *(r_turb_pbase + (t << 6) + s);
 		}
 		r_turb_pdest++;
@@ -493,7 +491,7 @@ void D_DrawTurbulentSpanFilteredDithered()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitFilteredDithered()
+static void D_DrawTurbulentSpanLitFilteredDithered()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -501,13 +499,12 @@ void D_DrawTurbulentSpanLitFilteredDithered()
 	s32 start_x = x;
 	s32 cur_x = start_x;
 	do {
-		if (*pz <= (izi >> 16)) {
+		if (*pz <= (izi>>16) && (D_Dither(r_turb_pdest,1-turb_opacity)){
 			s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
 			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
 			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
-			if (D_Dither(r_turb_pdest, 1-turb_opacity)) {
 				s32 pix = *(r_turb_pbase + (t << 6) + s);
 				s32 lit = *(litwater_base+
 						(r_turb_pdest-d_viewbuffer));
@@ -533,7 +530,7 @@ void D_DrawTurbulentSpanLitFilteredDithered()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanHL()
+static void D_DrawTurbulentSpanHL()
 {
 	do {
 		f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
@@ -548,7 +545,7 @@ void D_DrawTurbulentSpanHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitHL()
+static void D_DrawTurbulentSpanLitHL()
 {
 	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
@@ -577,7 +574,7 @@ void D_DrawTurbulentSpanLitHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanFilteredHL()
+static void D_DrawTurbulentSpanFilteredHL()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -603,7 +600,7 @@ void D_DrawTurbulentSpanFilteredHL()
 
 }
 
-void D_DrawTurbulentSpanLitFilteredHL()
+static void D_DrawTurbulentSpanLitFilteredHL()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -640,7 +637,7 @@ void D_DrawTurbulentSpanLitFilteredHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanMixedHL()
+static void D_DrawTurbulentSpanMixedHL()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	do {
@@ -662,7 +659,7 @@ void D_DrawTurbulentSpanMixedHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitMixedHL()
+static void D_DrawTurbulentSpanLitMixedHL()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	if (!lit_lut_initialized) R_BuildLitLUT();
@@ -698,7 +695,7 @@ void D_DrawTurbulentSpanLitMixedHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanFilteredMixedHL()
+static void D_DrawTurbulentSpanFilteredMixedHL()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
@@ -729,7 +726,7 @@ void D_DrawTurbulentSpanFilteredMixedHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitFilteredMixedHL()
+static void D_DrawTurbulentSpanLitFilteredMixedHL()
 {
 	if (!fog_lut_built) build_color_mix_lut(0);
 	if (!lit_lut_initialized) R_BuildLitLUT();
@@ -773,7 +770,7 @@ void D_DrawTurbulentSpanLitFilteredMixedHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanDitheredHL()
+static void D_DrawTurbulentSpanDitheredHL()
 {
 	do {
 		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
@@ -793,7 +790,7 @@ void D_DrawTurbulentSpanDitheredHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitDitheredHL()
+static void D_DrawTurbulentSpanLitDitheredHL()
 {
 	do {
 		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
@@ -825,7 +822,7 @@ void D_DrawTurbulentSpanLitDitheredHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanFilteredDitheredHL()
+static void D_DrawTurbulentSpanFilteredDitheredHL()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
@@ -854,7 +851,7 @@ void D_DrawTurbulentSpanFilteredDitheredHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void D_DrawTurbulentSpanLitFilteredDitheredHL()
+static void D_DrawTurbulentSpanLitFilteredDitheredHL()
 {
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
