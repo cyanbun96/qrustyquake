@@ -1,7 +1,7 @@
 #include "quakedef.h"
 u8 color_mix_lut[256][256][FOG_LUT_LEVELS];                          // rgbtoi.c
 s32 fog_lut_built = 0;
-u8 lit_lut[LIT_LUT_RES*LIT_LUT_RES*LIT_LUT_RES];
+u8 lit_lut[LIT_LUT_RES][LIT_LUT_RES][LIT_LUT_RES];
 u8 lit_lut_initialized = 0;
 s32 fog_initialized = 0;                                              // d_fog.c
 f32 fog_density;

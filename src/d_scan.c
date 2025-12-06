@@ -243,9 +243,7 @@ static void D_DrawTurbulentSpanLit()
 		s32 r = rp * rl / 255;
 		s32 g = gp * gl / 255;
 		s32 b = bp * bl / 255;
-		*r_turb_pdest++ = lit_lut[QUANT(r)
-					+ QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+		*r_turb_pdest++ = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		r_turb_s += r_turb_sstep;
 		r_turb_t += r_turb_tstep;
 	} while (--r_turb_spancount > 0);
@@ -297,9 +295,7 @@ static void D_DrawTurbulentSpanLitFiltered()
 		s32 r = rp * rl / 255;
 		s32 g = gp * gl / 255;
 		s32 b = bp * bl / 255;
-		*r_turb_pdest++ = lit_lut[QUANT(r)
-					+ QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+		*r_turb_pdest++ = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		r_turb_s += r_turb_sstep;
 		r_turb_t += r_turb_tstep;
 	} while (--r_turb_spancount > 0);
@@ -342,8 +338,7 @@ static void D_DrawTurbulentSpanLitMixed()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			pix = lit_lut[QUANT(r) + QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			pix = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
 					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
@@ -409,8 +404,7 @@ static void D_DrawTurbulentSpanLitFilteredMixed()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			pix = lit_lut[QUANT(r) + QUANT(g)*LIT_LUT_RES
-				+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			pix = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
 					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
@@ -455,8 +449,7 @@ static void D_DrawTurbulentSpanLitDithered()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			*r_turb_pdest = lit_lut[QUANT(r) + QUANT(g)*LIT_LUT_RES
-				+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			*r_turb_pdest = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		}
 		r_turb_pdest++;
 		izi += izistep;
@@ -517,9 +510,7 @@ static void D_DrawTurbulentSpanLitFilteredDithered()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			*r_turb_pdest = lit_lut[QUANT(r)
-				+ QUANT(g)*LIT_LUT_RES
-				+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			*r_turb_pdest = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		}
 		r_turb_pdest++;
 		izi += izistep;
@@ -565,9 +556,7 @@ static void D_DrawTurbulentSpanLitHL()
 		s32 r = rp * rl / 255;
 		s32 g = gp * gl / 255;
 		s32 b = bp * bl / 255;
-		*r_turb_pdest++ = lit_lut[QUANT(r)
-					+ QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+		*r_turb_pdest++ = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		r_turb_s += r_turb_sstep;
 		r_turb_t += r_turb_tstep;
 	} while (--r_turb_spancount > 0);
@@ -628,9 +617,7 @@ static void D_DrawTurbulentSpanLitFilteredHL()
 		s32 r = rp * rl / 255;
 		s32 g = gp * gl / 255;
 		s32 b = bp * bl / 255;
-		*r_turb_pdest++ = lit_lut[QUANT(r)
-					+ QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+		*r_turb_pdest++ = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		r_turb_s += r_turb_sstep;
 		r_turb_t += r_turb_tstep;
 	} while (--r_turb_spancount > 0);
@@ -681,8 +668,7 @@ static void D_DrawTurbulentSpanLitMixedHL()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			pix = lit_lut[QUANT(r) + QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			pix = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
 					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
@@ -756,8 +742,7 @@ static void D_DrawTurbulentSpanLitFilteredMixedHL()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			pix = lit_lut[QUANT(r) + QUANT(g)*LIT_LUT_RES
-				+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			pix = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
 					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
@@ -810,8 +795,7 @@ static void D_DrawTurbulentSpanLitDitheredHL()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			*r_turb_pdest = lit_lut[QUANT(r) + QUANT(g)*LIT_LUT_RES
-				+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			*r_turb_pdest = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		}
 		r_turb_pdest++;
 		izi += izistep;
@@ -879,9 +863,7 @@ static void D_DrawTurbulentSpanLitFilteredDitheredHL()
 			s32 r = rp * rl / 255;
 			s32 g = gp * gl / 255;
 			s32 b = bp * bl / 255;
-			*r_turb_pdest = lit_lut[QUANT(r)
-					+ QUANT(g)*LIT_LUT_RES
-					+ QUANT(b)*LIT_LUT_RES*LIT_LUT_RES];
+			*r_turb_pdest = lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 		}
 		r_turb_pdest++;
 		izi += izistep;

@@ -62,9 +62,7 @@ static inline s32 D_GetRGBPix(s32 pix)
 	u8 rr = (tr * lightcolor[0]) / 255.0f;
 	u8 gg = (tg * lightcolor[1]) / 255.0f;
 	u8 bb = (tb * lightcolor[2]) / 255.0f;
-	return lit_lut[QUANT(rr)
-		+ QUANT(gg)*LIT_LUT_RES
-		+ QUANT(bb)*LIT_LUT_RES*LIT_LUT_RES];
+	return lit_lut[QUANT(rr)][QUANT(gg)][QUANT(bb)];
 }
 
 void D_PolysetDraw()

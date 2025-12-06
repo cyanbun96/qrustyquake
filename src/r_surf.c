@@ -330,9 +330,7 @@ void R_DrawSurfaceBlockRGB(s32 miplvl)
 				u8 r_ = CURWORLDPAL[ir * 3 + 0];
 				u8 g_ = CURWORLDPAL[ig * 3 + 1];
 				u8 b_ = CURWORLDPAL[ib * 3 + 2];
-				prowdest[b] = lit_lut[ QUANT(r_)
-					+ QUANT(g_)*LIT_LUT_RES
-					+ QUANT(b_)*LIT_LUT_RES*LIT_LUT_RES ];
+				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)][QUANT(b_)];
 				light += lightstep;
 				light_g += lightstep_g;
 				light_b += lightstep_b;
@@ -344,9 +342,7 @@ void R_DrawSurfaceBlockRGB(s32 miplvl)
 				u8 r_ = CURWORLDPAL[ir * 3 + 0];
 				u8 g_ = CURWORLDPAL[ig * 3 + 1];
 				u8 b_ = CURWORLDPAL[ib * 3 + 2];
-				prowdest[b] = lit_lut[ QUANT(r_)
-					+ QUANT(g_)*LIT_LUT_RES
-					+ QUANT(b_)*LIT_LUT_RES*LIT_LUT_RES ];
+				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)][QUANT(b_)];
 				light += lightstep;
 				light_g += lightstep_g;
 				light_b += lightstep_b;

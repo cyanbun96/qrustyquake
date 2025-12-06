@@ -102,14 +102,13 @@ void build_color_mix_lut(SDL_UNUSED cvar_t *cvar)
 void R_BuildLitLUT()
 {
 	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
-	s32 lr = LIT_LUT_RES;
-	for(s32 r = 0; r < lr; ++r){
-	for(s32 g = 0; g < lr; ++g){
-	for(s32 b = 0; b < lr; ++b){
-		s32 rr = (r * 255) / (lr - 1);
-		s32 gg = (g * 255) / (lr - 1);
-		s32 bb = (b * 255) / (lr - 1);
-		lit_lut[r+g*lr+b*lr*lr] = convfunc(rr,gg,bb);
+	for(s32 r = 0; r < LIT_LUT_RES; ++r){
+	for(s32 g = 0; g < LIT_LUT_RES; ++g){
+	for(s32 b = 0; b < LIT_LUT_RES; ++b){
+		s32 rr = (r * 255) / (LIT_LUT_RES - 1);
+		s32 gg = (g * 255) / (LIT_LUT_RES - 1);
+		s32 bb = (b * 255) / (LIT_LUT_RES - 1);
+		lit_lut[r][g][b] = convfunc(rr,gg,bb);
 	}}}
 	lit_lut_initialized = 1;
 }
