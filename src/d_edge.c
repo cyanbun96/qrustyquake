@@ -95,7 +95,7 @@ void D_DrawSurfacesFlat()
 static void D_DrawSky(surf_t *s)
 {
 	if (!r_skymade) R_MakeSky();
-	D_DrawSkyScans8(s->spans);
+	D_DrawSkyScans(s->spans);
 	D_DrawZSpans(s->spans);
 }
 
@@ -150,7 +150,7 @@ static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	cachewidth = 64;
 	cacheheight = 64;
 	D_CalcGradients(pface, 1);
-	Turbulent8(s->spans, opacity);
+	Turbulent(s->spans, opacity);
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 }
 
@@ -171,7 +171,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	cachewidth = 64;
 	cacheheight = 64;
 	D_CalcGradients(pface, 1);
-	Turbulent8(s->spans, opacity);
+	Turbulent(s->spans, opacity);
 	if (!r_alphapass) D_DrawZSpans(s->spans);
 	lmonly = 0;
 }

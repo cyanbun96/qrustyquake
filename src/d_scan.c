@@ -701,7 +701,7 @@ static void D_DrawTurbulentSpanLitFilteredDitheredHL()
 	} while (--r_turb_spancount > 0);
 }
 
-void Turbulent8(espan_t *pspan, f32 opacity)
+void Turbulent(espan_t *pspan, f32 opacity)
 {
 	turb_opacity = opacity;
 	s32 turb_func_n = r_alphapass ? (r_alphastyle.value ? 2 : 1) : 0;

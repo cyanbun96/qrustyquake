@@ -18,7 +18,7 @@ void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 	*t = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[1]) * 0x10000);
 }
 
-void D_DrawSkyScans8(espan_t *pspan)
+void D_DrawSkyScans(espan_t *pspan)
 {
 	do {
 		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +

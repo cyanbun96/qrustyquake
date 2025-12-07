@@ -298,8 +298,8 @@ void D_DrawSpans(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
-void Turbulent8(espan_t *pspan, f32 opacity);
-void D_DrawSkyScans8(espan_t *pspan);
+void Turbulent(espan_t *pspan, f32 opacity);
+void D_DrawSkyScans(espan_t *pspan);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 s32 D_Dither(u8 *pos, f32 opacity);
 EX s32 DEFAULTnet_hostport;                                             // net.h
