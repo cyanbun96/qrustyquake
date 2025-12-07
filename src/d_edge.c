@@ -109,7 +109,7 @@ static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 	d_zistepv = s->d_zistepv;
 	d_ziorigin = s->d_ziorigin;
 	D_CalcGradients (pface, 0);
-	if(fog_density > 0 && !fog_lut_built) build_color_mix_lut(0);
+	if(fog_density > 0 && !fog_lut_built) R_BuildColorMixLUT(0);
 	if (r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_SKYBOX, 0);
 	else

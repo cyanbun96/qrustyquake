@@ -68,7 +68,7 @@ static inline s32 D_GetRGBPix(s32 pix)
 void D_PolysetDraw()
 {
 	if (r_alphastyle.value == 0 && cur_ent_alpha != 1 && !fog_lut_built)
-		build_color_mix_lut(0);
+		R_BuildColorMixLUT(0);
 	spanpackage_t spans[DPS_MAXSPANS + 1 +
 		((CACHE_SIZE - 1) / sizeof(spanpackage_t)) + 1];
 	a_spans = (spanpackage_t *)

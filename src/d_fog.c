@@ -145,7 +145,7 @@ void R_InitFog(f32 noisebias)
 		randarr[i] *= noisebias;
 	}
 	old_noisebias = noisebias;
-	if(!fog_lut_built) build_color_mix_lut(0);
+	if(!fog_lut_built) R_BuildColorMixLUT(0);
 	Fog_SetPalIndex(0);
 	fog_initialized = 1;
 }

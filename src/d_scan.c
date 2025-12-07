@@ -217,7 +217,6 @@ static void D_DrawTurbulentSpan()
 
 static void D_DrawTurbulentSpanLit()
 {
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
 		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
 		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
@@ -266,7 +265,6 @@ static void D_DrawTurbulentSpanLitFiltered()
 	s32 x = pixel_index - y * scr_vrect.width;
 	s32 start_x = x;
 	s32 cur_x = start_x;
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
 		s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 		s32 s_d = r_turb_s + dither_s[dither_idx];
@@ -292,7 +290,6 @@ static void D_DrawTurbulentSpanLitFiltered()
 
 static void D_DrawTurbulentSpanMixed()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
 	do {
 		if (*pz <= (izi >> 16)) {
 		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
@@ -310,8 +307,6 @@ static void D_DrawTurbulentSpanMixed()
 
 static void D_DrawTurbulentSpanLitMixed()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
 		if (*pz <= (izi >> 16)) {
 		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
@@ -341,7 +336,6 @@ static void D_DrawTurbulentSpanLitMixed()
 
 static void D_DrawTurbulentSpanFilteredMixed()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
 	s32 x = pixel_index - y * scr_vrect.width;
@@ -368,8 +362,6 @@ static void D_DrawTurbulentSpanFilteredMixed()
 
 static void D_DrawTurbulentSpanLitFilteredMixed()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
 	s32 x = pixel_index - y * scr_vrect.width;
@@ -526,7 +518,6 @@ static void D_DrawTurbulentSpanHL()
 
 static void D_DrawTurbulentSpanLitHL()
 {
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
 		f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
 		f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
@@ -584,7 +575,6 @@ static void D_DrawTurbulentSpanLitFilteredHL()
 	s32 x = pixel_index - y * scr_vrect.width;
 	s32 start_x = x;
 	s32 cur_x = start_x;
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
 		s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 		s32 s_d = r_turb_s + dither_s[dither_idx];
@@ -614,7 +604,6 @@ static void D_DrawTurbulentSpanLitFilteredHL()
 
 static void D_DrawTurbulentSpanMixedHL()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
 	do {
 		if (*pz <= (izi >> 16)) {
 			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
@@ -636,8 +625,6 @@ static void D_DrawTurbulentSpanMixedHL()
 
 static void D_DrawTurbulentSpanLitMixedHL()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	do {
 		if (*pz <= (izi >> 16)) {
 			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
@@ -671,7 +658,6 @@ static void D_DrawTurbulentSpanLitMixedHL()
 
 static void D_DrawTurbulentSpanFilteredMixedHL()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
 	s32 x = pixel_index - y * scr_vrect.width;
@@ -702,8 +688,6 @@ static void D_DrawTurbulentSpanFilteredMixedHL()
 
 static void D_DrawTurbulentSpanLitFilteredMixedHL()
 {
-	if (!fog_lut_built) build_color_mix_lut(0);
-	if (!lit_lut_initialized) R_BuildLitLUT();
 	s32 pixel_index = (s32)(r_turb_pdest - (u8*)screen->pixels);
 	s32 y = pixel_index / scr_vrect.width;
 	s32 x = pixel_index - y * scr_vrect.width;
@@ -870,6 +854,8 @@ void Turbulent8(espan_t *pspan, f32 opacity)
 	turb_func_n += r_dithertex.value ? 3 : 0;
 	turb_func_n += r_hlwater.value ? 12 : 0;
 	if(r_hlwater.value) InitHLWaterLUT();
+	if(lmonly) R_BuildLitLUT();
+	if(r_alphastyle.value == 0) R_BuildColorMixLUT(0);
 	void (*pturbdrawfunc)() = turbdrawfunc[turb_func_n];
 	r_turb_turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
 	r_turb_sstep = 0; // keep compiler happy
@@ -1083,7 +1069,7 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 					s32 lutx = fracx >> 3;   // 0..31 to fit in FOG_LUT_LEVELS
 					s32 luty = fracy >> 3;   // 0..31
 					if (!fog_lut_built)
-						build_color_mix_lut(0);
+						R_BuildColorMixLUT(0);
 					// horizontal blends
 					u8 top = color_mix_lut[i00][i10][lutx];
 					u8 bot = color_mix_lut[i01][i11][lutx];
@@ -1134,7 +1120,7 @@ void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 				s32 foglut = opacity*FOG_LUT_LEVELS;
 				if (r_alphastyle.value == 0) {
 					if (!fog_lut_built)
-						build_color_mix_lut(0);
+						R_BuildColorMixLUT(0);
 					do {
 						if (*pz <= (izi >> 16)) {
 							u8 pix = *(pbase + (s >> 16) + (t >> 16) * cachewidth);
@@ -1341,7 +1327,7 @@ void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 				s32 foglut = opacity*FOG_LUT_LEVELS;
 				if (r_alphastyle.value == 0) {
 					if (!fog_lut_built)
-						build_color_mix_lut(0);
+						R_BuildColorMixLUT(0);
 					do {
 						s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
 						s32 s_d = s + dither_s[dither_idx];

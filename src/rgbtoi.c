@@ -77,8 +77,9 @@ u8 rgbtoi(u8 r, u8 g, u8 b)
 	return besti;
 }
 
-void build_color_mix_lut(SDL_UNUSED cvar_t *cvar)
+void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 {
+	if(fog_lut_built) return;
 	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	for(s32 c1 = 0; c1 < 256; c1++){
 	for(s32 c2 = 0; c2 < 256; c2++){
@@ -101,6 +102,7 @@ void build_color_mix_lut(SDL_UNUSED cvar_t *cvar)
 
 void R_BuildLitLUT()
 {
+	if(lit_lut_initialized) return;
 	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	for(s32 r = 0; r < LIT_LUT_RES; ++r){
 	for(s32 g = 0; g < LIT_LUT_RES; ++g){
