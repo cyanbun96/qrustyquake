@@ -75,8 +75,6 @@ static f32 dist_lut[DIST_LUT_SIZE];
 static f32 cos_lut[COS_LUT_SIZE];
 static f32 dist_lut_max = 8.0f; // max dx*dx + dy*dy
 static f32 cos_lut_period = 2.0f * M_PI;
-static f32 HL_TextureToWaveScale = 1.5f;
-static f32 HL_RippleScale = 1.5f;
 static s32 HLWaterLutInited = 0;
 static f32 turb_opacity = 0;
 static s32 flt_y = 0;
@@ -147,8 +145,8 @@ static void HLWarp(f32 *u, f32 *v, f32 time)
 { // classic warp cos(y), cos(x)
 	f32 x = *u;
 	f32 y = *v;
-	f32 waveSize = (1.0f / 8.0f) * HL_TextureToWaveScale;
-	f32 waveStrength = 0.01f * HL_RippleScale;
+	f32 waveSize = (1.0f / 4.0f) * r_hlwavescale.value;
+	f32 waveStrength = 0.02f * r_hlripplescale.value;
 	f32 t = time * 3.0f;
 	f32 arg1 = y * (1.0f / waveSize) + t;
 	f32 arg2 = x * (1.0f / waveSize) + t;
@@ -175,8 +173,6 @@ static void HLSingleRipple(f32 *outx, f32 *outy, f32 u, f32 v, f32 px, f32 py,
 	*outy += dy * wave * strength;
 }
 
-
-
 static void HLRipple(f32 *u, f32 *v, f32 time)
 { // HL three-point ripple, tiled
 	static const f32 px[3] = {0.2f, 0.1f, 0.7f};
@@ -193,11 +189,12 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 	f32 oy = 0.0f;
 	f32 size = 0.8f;
 	f32 freq = 200.0f;
-	f32 strength = 0.02f * HL_RippleScale;
+	f32 strength = 0.04f * r_hlripplescale.value;
 	f32 t = time * 20.0f;
 	for (s32 i = 0; i < 3; i++) // main tile
 		HLSingleRipple(&ox, &oy, baseu, basev, iu + px[i], iv + py[i],
 				size, freq, strength, t);
+	if (r_hlwaterquality.value)
 	for (s32 ti = 0; ti < 8; ti += 2) // surrounding tiles
 	for (s32 i = 0; i < 3; i++)
 		HLSingleRipple(&ox, &oy, baseu+tile[ti][0], basev+tile[ti][1],
