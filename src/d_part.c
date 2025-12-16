@@ -23,82 +23,23 @@ void D_DrawParticle(particle_t *pparticle)
 	u8 *pdest = d_viewbuffer + d_scantable[v] + u;
 	s32 izi = (s32)(zi * 0x8000);
 	s32 pix;
-	if (r_particlescale.value) pix = r_particlescale.value;
-	else {
+	if (r_particlescale.value) {
+		pix = r_particlescale.value;
+	} else {
 		pix = izi >> d_pix_shift;
 		if (pix < d_pix_min) pix = d_pix_min;
 		else if (pix > d_pix_max) pix = d_pix_max;
 	}
-	switch (pix) {
-	case 1:
-		for (s32 count = 1 << d_y_aspect_shift; count;
-				count--, pz += d_zwidth, pdest += screenwidth)
-			if (pz[0] <= izi) {
-				pz[0] = izi;
-				pdest[0] = pparticle->color;
-			}
-		break;
-	case 2:
-		for (s32 count = 2 << d_y_aspect_shift; count;
-				count--, pz += d_zwidth, pdest += screenwidth) {
-			if (pz[0] <= izi) {
-				pz[0] = izi;
-				pdest[0] = pparticle->color;
-			}
-			if (pz[1] <= izi) {
-				pz[1] = izi;
-				pdest[1] = pparticle->color;
+	s32 pix_y = (pdest - d_viewbuffer) / scr_vrect.width;
+	s32 pix_x = (pdest - d_viewbuffer) - (pix_y * scr_vrect.width);
+	s32 pix_w = pix_x + pix >= screenwidth ? screenwidth-pix_x : pix;
+	if (pix_y+pix >= scr_vrect.height) pix = scr_vrect.height - pix_y;
+	for (s32 count=pix; count; count--, pz+=d_zwidth, pdest+=screenwidth) {
+		for (s32 i = 0; i < pix_w; i++) {
+			if (pz[i] <= izi) {
+				pz[i] = izi;
+				pdest[i] = pparticle->color;
 			}
 		}
-		break;
-	case 3:
-		for (s32 count = 3 << d_y_aspect_shift; count;
-				count--, pz += d_zwidth, pdest += screenwidth) {
-			if (pz[0] <= izi) {
-				pz[0] = izi;
-				pdest[0] = pparticle->color;
-			}
-			if (pz[1] <= izi) {
-				pz[1] = izi;
-				pdest[1] = pparticle->color;
-			}
-			if (pz[2] <= izi) {
-				pz[2] = izi;
-				pdest[2] = pparticle->color;
-			}
-		}
-		break;
-	case 4:
-		for (s32 count = 4 << d_y_aspect_shift; count;
-				count--, pz += d_zwidth, pdest += screenwidth) {
-			if (pz[0] <= izi) {
-				pz[0] = izi;
-				pdest[0] = pparticle->color;
-			}
-			if (pz[1] <= izi) {
-				pz[1] = izi;
-				pdest[1] = pparticle->color;
-			}
-			if (pz[2] <= izi) {
-				pz[2] = izi;
-				pdest[2] = pparticle->color;
-			}
-			if (pz[3] <= izi) {
-				pz[3] = izi;
-				pdest[3] = pparticle->color;
-			}
-		}
-		break;
-	default:
-		for (s32 count = pix << d_y_aspect_shift; count;
-				count--, pz += d_zwidth, pdest += screenwidth) {
-			for (s32 i = 0; i < pix; i++) {
-				if (pz[i] <= izi) {
-					pz[i] = izi;
-					pdest[i] = pparticle->color;
-				}
-			}
-		}
-		break;
 	}
 }
