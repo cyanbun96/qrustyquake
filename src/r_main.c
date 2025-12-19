@@ -317,7 +317,8 @@ void R_DrawEntitiesOnList()
 		return;
 	for(s32 i = 0; i < cl_numvisedicts; i++){
 		currententity = cl_visedicts[i];
-		if(currententity == &cl_entities[cl.viewentity])
+		if(currententity == &cl_entities[cl.viewentity]
+			&& !chase_active.value)
 			continue; // don't draw the player
 		switch(currententity->model->type){
 		case mod_sprite:
@@ -376,7 +377,8 @@ void R_DrawViewModel()
 {
 	f32 lightvec[3] = { -1, 0, 0 }; // FIXME: remove and do real lighting
 	if(!r_drawviewmodel.value || cl.items & IT_INVISIBILITY
-		|| cl.stats[STAT_HEALTH] <= 0 || !cl.viewent.model)
+		|| cl.stats[STAT_HEALTH] <= 0 || !cl.viewent.model
+		|| chase_active.value)
 		return;
 	currententity = &cl.viewent;
 	VectorCopy(currententity->origin, r_entorigin);
