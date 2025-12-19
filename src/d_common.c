@@ -52,11 +52,7 @@ void D_SetupFrame()
 
 void D_ViewChanged()
 {
-	s32 rowbytes;
-	if (r_dowarp)
-		rowbytes = WARP_WIDTH;
-	else
-		rowbytes = vid.width;
+	s32 rowbytes = vid.width;
 	scale_for_mip = xscale;
 	if (yscale > xscale)
 		scale_for_mip = yscale;
