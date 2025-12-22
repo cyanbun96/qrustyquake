@@ -707,7 +707,7 @@ void Turbulent(espan_t *pspan, f32 opacity)
 	turb_func_n += r_hlwater.value ? 12 : 0;
 	if(r_hlwater.value) InitHLWaterLUT();
 	if(lmonly) R_BuildLitLUT();
-	if(r_alphastyle.value == 0) R_BuildColorMixLUT(0);
+	if(r_alphastyle.value==0 && opacity!=1 && opacity)R_BuildColorMixLUT(0);
 	void (*pturbdrawfunc)() = turbdrawfunc[turb_func_n];
 	r_turb_turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
 	r_turb_sstep = 0; // keep compiler happy
