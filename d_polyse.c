@@ -388,7 +388,7 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 		} else {
 			d_aspancount += ubasestep;
 		}
-		if (lcount) {
+		if (lcount > 0) { // Check lcount > 0 explicitly
 			u8 *lpdest = pspanpackage->pdest;
 			u8 *lptex = pspanpackage->ptex;
 			s16 *lpz = pspanpackage->pz;
@@ -396,13 +396,26 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 			s32 ltfrac = pspanpackage->tfrac;
 			s32 llight = pspanpackage->light;
 			s32 lzi = pspanpackage->zi;
-			if (lpz + lcount - d_pzbuffer > (s32)(vid.width * vid.height * sizeof(s16))) {
-				Con_DPrintf ("Invalid span length: %d %d\n", 
-					lpz + lcount - d_pzbuffer, vid.width * vid.height * sizeof(s16));
-				break;
-				// CyanBun96: i caused this bug and i can't be bothered to fix it. Here, have a
-				// quick non-fix to stop it from segfaulting. gl hf whoever stumbles upon this.
+
+			// --- FIX BEGINS HERE ---
+			// Calculate the maximum number of pixels the buffer can hold
+			s32 max_pixels = vid.width * vid.height;
+			
+			// Calculate where we are currently trying to draw (index)
+			s32 current_index = lpz - d_pzbuffer;
+
+			// Safety Check 1: If we are starting past the end of the buffer, skip entirely.
+			if (current_index >= max_pixels) {
+				pspanpackage++;
+				continue;
 			}
+			
+			// Safety Check 2: If the line extends past the buffer, trim it (Clamp).
+			if (current_index + lcount > max_pixels) {
+				lcount = max_pixels - current_index;
+			}
+			// --- FIX ENDS HERE ---
+
 			do {
 				if ((lzi >> 16) >= *lpz) {
 					s32 pix;
@@ -453,7 +466,7 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 		} else {
 			d_aspancount += ubasestep;
 		}
-		if (lcount) {
+		if (lcount > 0) {
 			u8 *lpdest = pspanpackage->pdest;
 			u8 *lptex = pspanpackage->ptex;
 			s16 *lpz = pspanpackage->pz;
@@ -461,13 +474,21 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 			s32 ltfrac = pspanpackage->tfrac;
 			s32 llight = pspanpackage->light;
 			s32 lzi = pspanpackage->zi;
-			if (lpz + lcount - d_pzbuffer > (s32)(vid.width * vid.height * sizeof(s16))) {
-				Con_DPrintf ("Invalid span length: %d %d\n", 
-					lpz + lcount - d_pzbuffer, vid.width * vid.height * sizeof(s16));
-				break;
-				// CyanBun96: i caused this bug and i can't be bothered to fix it. Here, have a
-				// quick non-fix to stop it from segfaulting. gl hf whoever stumbles upon this.
+
+			// --- FIX BEGINS HERE ---
+			s32 max_pixels = vid.width * vid.height;
+			s32 current_index = lpz - d_pzbuffer;
+
+			// Safety Check: Clip against buffer bounds
+			if (current_index >= max_pixels) {
+				pspanpackage++;
+				continue;
 			}
+			if (current_index + lcount > max_pixels) {
+				lcount = max_pixels - current_index;
+			}
+			// --- FIX ENDS HERE ---
+
 			do {
 				if ((lzi >> 16) >= *lpz) {
 					// CyanBun96: dithered sampling from Unreal
