@@ -6,7 +6,7 @@ static SDL_Texture *texture;
 static SDL_Rect blitRect;
 static SDL_FRect destRect;
 static SDL_Rect scRect;
-static s32 VID_highhunkmark;
+// static s32 VID_highhunkmark; // allegedly unused, says gcc
 static u8 *screenpixels;
 static u8 *toppixels;
 static u8 *uipixels;
@@ -16,6 +16,9 @@ static SDL_PixelFormat window_format;
 static SDL_Palette *sdlworldpal;
 static SDL_Palette *sdltoppal;
 static SDL_Palette *sdluipal;
+
+extern u8 *d_viewbuffer;
+extern short *d_pzbuffer;
 
 void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_AllocBuffers();
@@ -205,7 +208,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	aspectr.value = 1.333333;
 	realwidth.value = vid.width;
 	realheight.value = (s32)(vid.width / aspectr.value + 0.5);
-	window = SDL_CreateWindow("QrustyQuake",realwidth.value,realheight.value,SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow(PROJECTNAME,realwidth.value,realheight.value,SDL_WINDOW_RESIZABLE);
 	SDL_SetWindowMinimumSize(window, 320, 200);
 	screen = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlworldpal = SDL_CreateSurfacePalette(screen);
@@ -240,7 +243,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	if(!texture){printf("%s\n", SDL_GetError());}
 	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 	windowSurface = SDL_GetWindowSurface(window);
-	sprintf(caption, "QrustyQuake - Version %4.2f", VERSION);
+	sprintf(caption, PROJECTNAME " - Version %4.2f", VERSION);
 	SDL_SetWindowTitle(window, (const s8 *)&caption);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	vid.numpages = 1;
@@ -262,6 +265,9 @@ void VID_Init(SDL_UNUSED u8 *palette)
 
 void VID_Shutdown()
 {
+	d_viewbuffer = NULL;
+	d_pzbuffer = NULL;
+
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -354,6 +360,9 @@ s8 *VID_GetModeDescription(s32 mode)
 
 void VID_AllocBuffers()
 {
+	d_viewbuffer = NULL;
+	d_pzbuffer = NULL;
+
 	s32 area = vid.width * vid.height;
 	screenpixels = realloc(screenpixels, area);
 	toppixels = realloc(toppixels, area);

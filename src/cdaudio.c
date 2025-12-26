@@ -44,6 +44,7 @@ static struct music_format {
 
 static MIX_Mixer *mixer = NULL;
 static MIX_Audio *current_music = NULL;
+static MIX_Track *bgm_track = NULL;
 static s8 current_name[MAX_OSPATH];
 static u8 *loaded_file = NULL;
 static float last_volume = -1;
@@ -54,11 +55,14 @@ void BGM_Play(s8 *musicname, bool looping)
 	u8 *file = NULL;
 	SDL_IOStream *io = NULL;
 	MIX_Audio *music = NULL;
+
 	if(!musicname || !*musicname) {
 		Con_DPrintf("null music file name\n");
 		return;
 	}
+
 	CDAudio_Stop();
+
 	for(s32 i = 0; i < Q_COUNTOF(music_formats); i++) {
 		for(s32 j = 0; j < music_formats[i].num_extensions; j++) {
 			q_snprintf(filename, sizeof(filename), "music/%s%s",
@@ -67,28 +71,53 @@ void BGM_Play(s8 *musicname, bool looping)
 			if(file) goto found;
 		}
 	}
+
 	if(!file) {
 		Con_Printf("file for %s not found\n", filename);
 		return;
 	}
+
 found:
 	loaded_file = file;
 	io = SDL_IOFromConstMem(file, com_filesize);
 	if(!io) {
 		Con_Printf("failed to create IOStream for %s: %s\n", filename, SDL_GetError());
+		CDAudio_Stop();
 		return;
 	}
+
 	music = MIX_LoadAudio_IO(mixer, io, true, true);
+
 	if (!music) {
 		Con_Printf("failed to load %s: %s\n", filename, SDL_GetError());
+		CDAudio_Stop();
 		return;
 	}
-	CDAudio_Stop();
+
 	current_music = music;
-	if (!MIX_PlayAudio(mixer, current_music)) {
-		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
+	bgm_track = MIX_CreateTrack(mixer);
+
+	if (!bgm_track) {
+		Con_Printf("failed to create track for %s: %s\n", filename, SDL_GetError());
+		CDAudio_Stop();
 		return;
 	}
+
+	MIX_SetTrackAudio(bgm_track, music);
+
+	SDL_PropertiesID props = SDL_CreateProperties();
+	// if looping, use -1, else use 1
+	int loop_count = looping ? -1 : 1;
+	SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, loop_count);
+
+	if (!MIX_PlayTrack(bgm_track, props)) {
+		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
+		SDL_DestroyProperties(props);
+		CDAudio_Stop();
+		return;
+	}
+
+	SDL_DestroyProperties(props);
 	q_strlcpy(current_name, musicname, MAX_OSPATH);
 }
 
@@ -99,7 +128,8 @@ static void BGM_Play_f()
 	else {
 		if(current_music) {
 			Con_Printf("Playing %s, use 'music <musicfile>' to change\n", current_name);
-		} else Con_Printf("music <musicfile>\n");
+		}
+		else Con_Printf("music <musicfile>\n");
 	}
 }
 
@@ -112,11 +142,15 @@ void CDAudio_Play(u8 track, bool looping)
 
 void CDAudio_Stop()
 {
+	if (bgm_track) {MIX_DestroyTrack(bgm_track);bgm_track = NULL;}
+	if (current_music) {MIX_DestroyAudio(current_music);current_music = NULL;}
 	MIX_StopAllTracks(mixer, 0);
-	if (loaded_file) free(loaded_file);
-	loaded_file = NULL;
+
+	if (loaded_file) {
+		free(loaded_file);
+		loaded_file = NULL;
+	}
 	memset(current_name, 0, sizeof(current_name));
-	current_music = NULL;
 }
 void CDAudio_Update()
 {

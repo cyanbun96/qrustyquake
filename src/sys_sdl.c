@@ -39,7 +39,7 @@ void Sys_Error(const s8 *error, ...)
 #ifdef DEBUG
 	__asm__("int3");
 #endif
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "QrustyQuake", str, 0);
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PROJECTNAME, str, 0);
 	Host_Shutdown();
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();

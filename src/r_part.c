@@ -375,8 +375,19 @@ void R_RocketTrail(vec3_t start, vec3_t end, s32 type)
 	}
 }
 
+// [FIX] Add these externs so we can check the buffers
+extern unsigned char *d_viewbuffer;
+extern short *d_pzbuffer;
+
 void R_DrawParticles()
 {
+	// [FIX] CRITICAL SAFETY CHECK
+	// If the screen is resizing, these might be NULL. 
+	// Drawing now would cause a Segfault.
+	if (!d_viewbuffer || !d_pzbuffer) {
+		return;
+	}
+
 	VectorScale(vright, xscaleshrink, r_pright);
 	VectorScale(vup, yscaleshrink, r_pup);
 	VectorCopy(vpn, r_ppn);
@@ -386,72 +397,78 @@ void R_DrawParticles()
 	f32 time1 = frametime * 5;
 	f32 grav = frametime * sv_gravity.value * 0.05;
 	f32 dvel = 4 * frametime;
-	particle_t *kill;
-	for (;;) {
-		kill = active_particles;
-		if (kill && kill->die < cl.time) {
-			active_particles = kill->next;
-			kill->next = free_particles;
-			free_particles = kill;
+	
+	particle_t **prev = &active_particles;
+	particle_t *p;
+	s32 loop_safety = 0;
+
+	// Calculate valid heap range for the Ghost Particle Check
+	uintptr_t pool_start = (uintptr_t)particles;
+	uintptr_t pool_end   = (uintptr_t)(particles + r_numparticles);
+
+	while ((p = *prev)) {
+		// 1. INFINITE LOOP CHECK
+		if (loop_safety++ > r_numparticles + 1024) {
+			Con_Printf("R_DrawParticles: Infinite loop detected. Resetting.\n");
+			R_ClearParticles();
+			return;
+		}
+
+		// 2. GHOST PARTICLE CHECK
+		uintptr_t p_addr = (uintptr_t)p;
+		if (p_addr < pool_start || p_addr >= pool_end) {
+			*prev = NULL; 
+			return; 
+		}
+
+		// 3. REMOVE EXPIRED OR BROKEN PARTICLES
+		if (p->die < cl.time ||
+			p->org[0] > 50000 || p->org[0] < -50000 || 
+			p->org[1] > 50000 || p->org[1] < -50000 ||
+			p->org[2] > 50000 || p->org[2] < -50000) {
+			
+			*prev = p->next;
+			p->next = free_particles;
+			free_particles = p;
 			continue;
 		}
-		break;
-	}
-	for (particle_t *p = active_particles; p; p = p->next) {
-		for (;;) {
-			kill = p->next;
-			if (kill && kill->die < cl.time) {
-				p->next = kill->next;
-				kill->next = free_particles;
-				free_particles = kill;
-				continue;
-			}
-			break;
-		}
+
+		// [FIX] The Safety Check at the top protects this call
 		D_DrawParticle(p);
+
+		// Physics updates
 		p->org[0] += p->vel[0] * frametime;
 		p->org[1] += p->vel[1] * frametime;
 		p->org[2] += p->vel[2] * frametime;
+
 		switch (p->type) {
-		case pt_static:
-			break;
+		case pt_static: break;
 		case pt_fire:
 			p->ramp += time1;
-			if (p->ramp >= 6)
-				p->die = -1;
-			else
-				p->color = ramp3[(s32)p->ramp];
+			if (p->ramp >= 6) p->die = -1;
+			else p->color = ramp3[(s32)p->ramp];
 			p->vel[2] += grav;
 			break;
-
 		case pt_explode:
 			p->ramp += time2;
-			if (p->ramp >= 8)
-				p->die = -1;
-			else
-				p->color = ramp1[(s32)p->ramp];
-			for (s32 i = 0; i < 3; i++)
-				p->vel[i] += p->vel[i] * dvel;
+			if (p->ramp >= 8) p->die = -1;
+			else p->color = ramp1[(s32)p->ramp];
+			for (s32 i = 0; i < 3; i++) p->vel[i] += p->vel[i] * dvel;
 			p->vel[2] -= grav;
 			break;
 		case pt_explode2:
 			p->ramp += time3;
-			if (p->ramp >= 8)
-				p->die = -1;
-			else
-				p->color = ramp2[(s32)p->ramp];
-			for (s32 i = 0; i < 3; i++)
-				p->vel[i] -= p->vel[i] * frametime;
+			if (p->ramp >= 8) p->die = -1;
+			else p->color = ramp2[(s32)p->ramp];
+			for (s32 i = 0; i < 3; i++) p->vel[i] -= p->vel[i] * frametime;
 			p->vel[2] -= grav;
 			break;
 		case pt_blob:
-			for (s32 i = 0; i < 3; i++)
-				p->vel[i] += p->vel[i] * dvel;
+			for (s32 i = 0; i < 3; i++) p->vel[i] += p->vel[i] * dvel;
 			p->vel[2] -= grav;
 			break;
 		case pt_blob2:
-			for (s32 i = 0; i < 2; i++)
-				p->vel[i] -= p->vel[i] * dvel;
+			for (s32 i = 0; i < 2; i++) p->vel[i] -= p->vel[i] * dvel;
 			p->vel[2] -= grav;
 			break;
 		case pt_grav:
@@ -459,5 +476,6 @@ void R_DrawParticles()
 			p->vel[2] -= grav;
 			break;
 		}
+		prev = &p->next;
 	}
 }

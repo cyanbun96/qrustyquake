@@ -56,8 +56,7 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 void D_AllocCaches() // allocate z buffer and surface cache
 { // CyanBun96: reallocs the cache if it's too small
 	s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
-	s32 cachesize = d_pzbuffer_size + 
-		D_SurfaceCacheForRes(vid.width, vid.height);
+	s32 cachesize = d_pzbuffer_size + D_SurfaceCacheForRes(vid.width, vid.height);
 	chunk += cachesize;
 	D_FlushCaches(0);
 	d_pzbuffer = realloc(d_pzbuffer, chunk);

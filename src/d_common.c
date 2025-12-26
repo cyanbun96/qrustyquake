@@ -290,7 +290,7 @@ void Draw_ConsoleBackground(s32 lines)
 	s8 ver[100];
 	qpic_t *conback = Draw_CachePic("gfx/conback.lmp");
 	// hack the version number directly into the pic
-	sprintf(ver, "(QrustyQuake) %4.2f", (f32)VERSION);
+	sprintf(ver, "%4.2f", (f32)VERSION);
 	s32 scale = conback->width / 320;
 	u8 *dest = conback->data + conback->width*(conback->height-14*scale)
 		+ conback->width - 11*scale - 8*scale * strlen(ver);

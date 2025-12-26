@@ -379,7 +379,12 @@ void Sbar_SoloScoreboard()
 	s32 units = seconds - 10 * tens;
 	sprintf(str, "Time :%3i:%i%i", minutes, tens, units);
 	Draw_StringScaled(WW/2+24*SCL, HH-20*SCL, str, SCL);
-	Draw_StringScaled(WW/2+24*SCL, HH-12*SCL, cl.levelname, SCL);
+
+	// Fixed to resemble DOS positioning - Aerox Software
+
+
+	Draw_StringScaled((WW/2) + (72 * SCL) - (strlen(cl.levelname) *  4 * SCL),
+			 HH-12*SCL, cl.levelname, SCL);
 }
 
 void Sbar_CalcPos()
