@@ -1,6 +1,7 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // d_surf.c: rasterization driver surface heap manager
 #include "quakedef.h"
+#include <stddef.h> // Required for offsetof
 
 static f32 surfscale;                                           
 static u64 sc_size;
@@ -54,76 +55,114 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 }
 
 void D_AllocCaches() // allocate z buffer and surface cache
-{ // CyanBun96: reallocs the cache if it's too small
-	s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
-	s32 cachesize = d_pzbuffer_size + D_SurfaceCacheForRes(vid.width, vid.height);
-	chunk += cachesize;
-	D_FlushCaches(0);
-	d_pzbuffer = realloc(d_pzbuffer, chunk);
-	if(d_pzbuffer == NULL) Sys_Error("Not enough memory for surf cache\n");
-	u8 *cache = (u8*)d_pzbuffer+vid.width*vid.height*sizeof(*d_pzbuffer);
-	D_InitCaches(cache, cachesize);
-	vid.recalc_refdef = 1;
+{
+    // CyanBun96: reallocs the cache if it's too small
+    s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
+    s32 cachesize = d_pzbuffer_size + D_SurfaceCacheForRes(vid.width, vid.height);
+    chunk += cachesize;
+
+    D_FlushCaches(0);
+
+    // FIX: Standard safe realloc pattern
+    void *tmp_ptr = realloc(d_pzbuffer, chunk);
+    if (tmp_ptr == NULL) {
+        Sys_Error("Not enough memory for surf cache\n");
+    }
+    d_pzbuffer = tmp_ptr;
+
+    u8 *cache = (u8*)d_pzbuffer + vid.width * vid.height * sizeof(*d_pzbuffer);
+    D_InitCaches(cache, cachesize);
+    vid.recalc_refdef = 1;
 }
 
-surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
+surfcache_t *D_SCAlloc(s32 width, uintptr_t data_size)
 {
-	if ((width < 0) || (width > 256)) {
-		Con_DPrintf("D_SCAlloc: bad cache width %d\n", width);
-		return NULL;
-	}
-	if ((size <= 0) || (size > 0x10000)) {
-		Con_DPrintf("D_SCAlloc: bad cache size %d\n", size);
-		return NULL;
-	}
-	size = (uintptr_t) & ((surfcache_t *) 0)->data[size];
-	size = (size + 3) & ~3;
-	if (size > sc_size) {
-		Con_DPrintf("D_SCAlloc: %i > cache size", size);
-		return NULL;
-	}
-	// if there is not size bytes after the rover, reset to the start
-	bool wrapped_this_time = 0;
-	if (!sc_rover || (u64)((u8 *) sc_rover - (u8 *) sc_base)
-			> sc_size - size) {
-		if (sc_rover) {
-			wrapped_this_time = 1;
-		}
-		sc_rover = sc_base;
-	}
-	// colect and free surfcache_t blocks until rover block is large enough
-	surfcache_t *new = sc_rover;
-	if (sc_rover->owner)
-		*sc_rover->owner = NULL;
-	while (new->size < (s32)size) {
-		sc_rover = sc_rover->next; // free another
-		if (!sc_rover)
-			Sys_Error("D_SCAlloc: hit the end of memory");
-		if (sc_rover->owner)
-			*sc_rover->owner = NULL;
+    // 1. Sanity Checks
+    if ((width < 0) || (width > 256)) {
+        Con_DPrintf("D_SCAlloc: bad cache width %d\n", width);
+        return NULL;
+    }
+    if ((data_size <= 0) || (data_size > 0x10000)) {
+        Con_DPrintf("D_SCAlloc: bad cache size %d\n", data_size);
+        return NULL;
+    }
 
-		new->size += sc_rover->size;
-		new->next = sc_rover->next;
-	}
-	if (new->size - size > 256) { // create a fragment out of any leftovers
-		sc_rover = (surfcache_t *) ((u8 *) new + size);
-		sc_rover->size = new->size - size;
-		sc_rover->next = new->next;
-		sc_rover->width = 0;
-		sc_rover->owner = NULL;
-		new->next = sc_rover;
-		new->size = size;
-	} else
-		sc_rover = new->next;
-	new->width = width;
-	if (width > 0) // DEBUG
-		new->height = (size - sizeof(*new) + sizeof(new->data)) / width;
-	new->owner = NULL; // should be set properly after return
-	if (d_roverwrapped && (wrapped_this_time || sc_rover >=d_initial_rover))
-			r_cache_thrash = 1;
-	else if (wrapped_this_time)
-		d_roverwrapped = 1;
-	return new;
+    // 2. Calculate total block size (Header + Data + Alignment)
+    // FIX: Use offsetof for clean calculation of struct overhead
+    uintptr_t total_size = offsetof(surfcache_t, data) + data_size;
+    total_size = (total_size + 3) & ~3; // Align to 4 bytes
+
+    if (total_size > sc_size) {
+        Con_DPrintf("D_SCAlloc: %i > cache size", total_size);
+        return NULL;
+    }
+
+    // 3. Rover Management (Ring Buffer Logic)
+    // If there is not enough space after the rover, wrap to the start.
+    bool wrapped_this_time = 0;
+    if (!sc_rover || (u64)((u8 *) sc_rover - (u8 *) sc_base) > sc_size - total_size) {
+        if (sc_rover) {
+            wrapped_this_time = 1;
+        }
+        sc_rover = sc_base;
+    }
+
+    // 4. Allocation Loop
+    // Collect and free surfcache_t blocks until the rover block is large enough
+    // FIX: Renamed 'new' to 'block' for C++ compatibility
+    surfcache_t *block = sc_rover;
+    
+    if (sc_rover->owner)
+        *sc_rover->owner = NULL;
+
+    while (block->size < (s32)total_size) {
+        sc_rover = sc_rover->next; // free the next block in line
+        if (!sc_rover)
+            Sys_Error("D_SCAlloc: hit the end of memory");
+        
+        if (sc_rover->owner)
+            *sc_rover->owner = NULL;
+
+        block->size += sc_rover->size;
+        block->next = sc_rover->next;
+    }
+
+    // 5. Fragmentation
+    // If the found block is significantly larger than needed, split it.
+    if (block->size - total_size > 256) { 
+        sc_rover = (surfcache_t *) ((u8 *) block + total_size);
+        sc_rover->size = block->size - total_size;
+        sc_rover->next = block->next;
+        sc_rover->width = 0; // 0 width marks this as an empty fragment
+        sc_rover->owner = NULL;
+        
+        block->next = sc_rover;
+        block->size = total_size;
+    } else {
+        sc_rover = block->next;
+    }
+
+    // 6. Finalize Block
+    block->width = width;
+    block->owner = NULL; // should be set properly by caller
+
+    // FIX: Cleaned up the "DEBUG" calculation.
+    // We only calculate height if width > 0 (to avoid Div/0 on fragments).
+    // Using offsetof ensures we accurately calculate available data payload.
+    if (width > 0) {
+        size_t available_payload = block->size - offsetof(surfcache_t, data);
+        block->height = available_payload / width;
+    } else {
+        block->height = 0;
+    }
+
+    // 7. Thrashing Detection
+    if (d_roverwrapped && (wrapped_this_time || sc_rover >= d_initial_rover))
+        r_cache_thrash = 1;
+    else if (wrapped_this_time)
+        d_roverwrapped = 1;
+
+    return block;
 }
 
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
