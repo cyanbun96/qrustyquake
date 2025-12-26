@@ -1,4 +1,4 @@
-// d_part.c - particle drawing logic
+// d_part.c: software driver module for drawing particles
 
 #include "quakedef.h"
 

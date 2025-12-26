@@ -45,3 +45,8 @@ Native Build:
 # Credits
 
 All credit goes to the original authors of QrustyQuake, their credits list is fully available on their repo page.
+
+Copyright(C) 1996-2001 Id Software, Inc.
+Copyright(C) 2002-2009 John Fitzgibbons and others
+Copyright(C) 2010-2014 QuakeSpasm developers
+Copyright(C) 2024-2025 QrustyQuake developers

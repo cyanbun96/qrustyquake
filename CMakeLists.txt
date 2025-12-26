@@ -20,8 +20,8 @@ else()
 	find_package(SDL3_mixer REQUIRED CONFIG)
 endif()
 
-file(GLOB QRUSTYQUAKE_HEADERS "${PROJECT_SOURCE_DIR}/src/*.h")
-file(GLOB QRUSTYQUAKE_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c")
+file(GLOB QRUSTYQUAKE_HEADERS "${PROJECT_SOURCE_DIR}/*.h")
+file(GLOB QRUSTYQUAKE_SOURCES "${PROJECT_SOURCE_DIR}/*.c")
 
 add_executable(qrustyquake)
 

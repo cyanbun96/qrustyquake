@@ -1,3 +1,8 @@
+#Game directory for dev/debugging.
 id1/
+
+#Compiled & Unlinked Object Files
 *.o
+
+#Compiled Executable (Linux/*nix)
 qrustyquake

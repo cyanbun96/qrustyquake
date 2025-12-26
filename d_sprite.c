@@ -118,97 +118,107 @@ NextSpan:
 	} while (pspan->count != DS_SPAN_LIST_END);
 }
 
-// CyanBun96: TODO these two look similar enough to combine, at least partially
-void D_SpriteScanLeftEdge()
-{ 
-	sspan_t *pspan = sprite_spans;
-	s32 i = minindex;
-	if (i == 0)
-		i = r_spritedesc.nump;
-	s32 lmaxindex = maxindex;
-	if (lmaxindex == 0)
-		lmaxindex = r_spritedesc.nump;
-	f32 vtop = ceil(r_spritedesc.pverts[i].v);
-	do {
-		emitpoint_t *pvert = &r_spritedesc.pverts[i];
-		emitpoint_t *pnext = pvert - 1;
-		f32 vbottom = ceil(pnext->v);
-		if (vtop < vbottom) {
-			f32 du = pnext->u - pvert->u;
-			f32 dv = pnext->v - pvert->v;
-			f32 slope = du / dv;
-			s32 u_step = (s32)(slope * 0x10000);
-			// adjust u to ceil the integer portion
-			s32 u = (s32)((pvert->u + (slope *
-				(vtop - pvert->v))) * 0x10000) + (0x10000 - 1);
-			s32 itop = (s32)vtop;
-			s32 ibottom = (s32)vbottom;
-			for (s32 v = itop; v < ibottom; v++) {
-				pspan->u = u >> 16;
-				pspan->v = v;
-				u += u_step;
-				pspan++;
-			}
-		}
-		vtop = vbottom;
-		i--;
-		if (i == 0)
-			i = r_spritedesc.nump;
-	} while (i != lmaxindex);
+// hacked up test dual-function for Sprite Edge Scanning - Aerox Software
+// step = -1 for Left Edge, 1 for Right Edge
+void D_SpriteScanEdge(s32 step, s32 stop_index, bool is_right_edge)
+{
+    sspan_t *pspan = sprite_spans;
+    s32 i = minindex;
+
+    // Handle wrapping for the "backward" scan (Left Edge)
+    if (step < 0 && i == 0)
+        i = r_spritedesc.nump;
+
+    f32 vvert = r_spritedesc.pverts[i].v;
+
+    // CLIP V: Safe to apply to both edges
+    if (vvert < r_refdef.fvrecty_adj) vvert = r_refdef.fvrecty_adj;
+    if (vvert > r_refdef.fvrectbottom_adj) vvert = r_refdef.fvrectbottom_adj;
+
+    f32 vtop = ceil(vvert);
+
+    do {
+        emitpoint_t *pvert = &r_spritedesc.pverts[i];
+        emitpoint_t *pnext = pvert + step; // Abstracted step
+
+        f32 vnext = pnext->v;
+
+        // CLIP V (Next): Safe to apply to both
+        if (vnext < r_refdef.fvrecty_adj) vnext = r_refdef.fvrecty_adj;
+        if (vnext > r_refdef.fvrectbottom_adj) vnext = r_refdef.fvrectbottom_adj;
+
+        f32 vbottom = ceil(vnext);
+
+        if (vtop < vbottom) {
+            f32 uvert = pvert->u;
+            f32 unext = pnext->u;
+
+            // CLIP U: CRITICAL FIX
+            // Previously only in RightEdge. Now applied to both.
+            // This prevents 'u' (Screen X) from going negative or exceeding width.
+            if (uvert < r_refdef.fvrectx_adj) uvert = r_refdef.fvrectx_adj;
+            if (uvert > r_refdef.fvrectright_adj) uvert = r_refdef.fvrectright_adj;
+            if (unext < r_refdef.fvrectx_adj) unext = r_refdef.fvrectx_adj;
+            if (unext > r_refdef.fvrectright_adj) unext = r_refdef.fvrectright_adj;
+
+            f32 du = unext - uvert;
+            f32 dv = vnext - vvert;
+            
+            // Safety check: Avoid divide-by-zero if vertical clip crushed the segment
+            // (Though vtop < vbottom usually prevents this, fp errors can be tricky)
+            f32 slope = (dv > 0.001f) ? (du / dv) : 0;
+
+            s32 u_step = (s32)(slope * 0x10000);
+            s32 u = (s32)((uvert + (slope * (vtop - vvert))) * 0x10000) + (0x10000 - 1);
+            
+            s32 itop = (s32)vtop;
+            s32 ibottom = (s32)vbottom;
+
+            for (s32 v = itop; v < ibottom; v++) {
+                if (!is_right_edge) {
+                    // LEFT: Set start X
+                    pspan->u = u >> 16;
+                    pspan->v = v;
+                } else {
+                    // RIGHT: Calculate width (End X - Start X)
+                    pspan->count = (u >> 16) - pspan->u;
+                    
+                    // Sanity Clamp: Ensure count doesn't go negative if right < left
+                    // (Can happen with sub-pixel clipping artifacts)
+                    if (pspan->count < 0) pspan->count = 0;
+                }
+                
+                u += u_step;
+                pspan++;
+            }
+        }
+
+        vtop = vbottom;
+        vvert = vnext;
+        
+        // Advance index
+        i += step;
+        if (step < 0 && i == 0) i = r_spritedesc.nump;
+        else if (step > 0 && i == r_spritedesc.nump) i = 0;
+
+    } while (i != stop_index);
+
+    if (is_right_edge) {
+        pspan->count = DS_SPAN_LIST_END;
+    }
 }
 
-void D_SpriteScanRightEdge(void)
+// Consolidated Function, kept dummy funcs in place for stability.
+void D_SpriteScanLeftEdge()
 {
-	sspan_t *pspan = sprite_spans;
-	s32 i = minindex;
-	f32 vvert = r_spritedesc.pverts[i].v;
-	if (vvert < r_refdef.fvrecty_adj)
-		vvert = r_refdef.fvrecty_adj;
-	if (vvert > r_refdef.fvrectbottom_adj)
-		vvert = r_refdef.fvrectbottom_adj;
-	f32 vtop = ceil(vvert);
-	do {
-		emitpoint_t *pvert = &r_spritedesc.pverts[i];
-		emitpoint_t *pnext = pvert + 1;
-		f32 vnext = pnext->v;
-		if (vnext < r_refdef.fvrecty_adj)
-			vnext = r_refdef.fvrecty_adj;
-		if (vnext > r_refdef.fvrectbottom_adj)
-			vnext = r_refdef.fvrectbottom_adj;
-		f32 vbottom = ceil(vnext);
-		if (vtop < vbottom) {
-			f32 uvert = pvert->u;
-			if (uvert < r_refdef.fvrectx_adj)
-				uvert = r_refdef.fvrectx_adj;
-			if (uvert > r_refdef.fvrectright_adj)
-				uvert = r_refdef.fvrectright_adj;
-			f32 unext = pnext->u;
-			if (unext < r_refdef.fvrectx_adj)
-				unext = r_refdef.fvrectx_adj;
-			if (unext > r_refdef.fvrectright_adj)
-				unext = r_refdef.fvrectright_adj;
-			f32 du = unext - uvert;
-			f32 dv = vnext - vvert;
-			f32 slope = du / dv;
-			s32 u_step = (s32)(slope * 0x10000);
-			// adjust u to ceil the integer portion
-			s32 u = (s32)((uvert + (slope * (vtop - vvert)))
-					* 0x10000)+ (0x10000 - 1);
-			s32 itop = (s32)vtop;
-			s32 ibottom = (s32)vbottom;
-			for (s32 v = itop; v < ibottom; v++) {
-				pspan->count = (u >> 16) - pspan->u;
-				u += u_step;
-				pspan++;
-			}
-		}
-		vtop = vbottom;
-		vvert = vnext;
-		i++;
-		if (i == r_spritedesc.nump)
-			i = 0;
-	} while (i != maxindex);
-	pspan->count = DS_SPAN_LIST_END; // mark the end of the span list 
+    // step -1, stop at maxindex (or lmaxindex), is_right = false
+    D_SpriteScanEdge(-1, maxindex, false); 
+}
+
+void D_SpriteScanRightEdge()
+{
+    // step +1, stop at maxindex, is_right = true
+    D_SpriteScanEdge(1, maxindex, true);
 }
 
 void D_SpriteCalculateGradients()
