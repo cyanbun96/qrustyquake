@@ -125,6 +125,11 @@ void D_SpriteScanEdge(s32 step, s32 stop_index, bool is_right_edge)
     sspan_t *pspan = sprite_spans;
     s32 i = minindex;
 
+    // Fixes edge case error where viewing sprites at a specific angle or OOB
+    // could cause sprite_spans to write past its memory limit.
+    if (step < 0 && stop_index == 0)
+	stop_index = r_spritedesc.nump;
+
     // Handle wrapping for the "backward" scan (Left Edge)
     if (step < 0 && i == 0)
         i = r_spritedesc.nump;

@@ -63,8 +63,10 @@ void BGM_Play(s8 *musicname, bool looping)
 
 	CDAudio_Stop();
 
-	for(s32 i = 0; i < Q_COUNTOF(music_formats); i++) {
-		for(s32 j = 0; j < music_formats[i].num_extensions; j++) {
+	// Changing i & j from s32 to size_t matches the types of Q_COUNTOF
+	// and num_extensions, preventing the -Wsign-compare warning. -Aerox
+	for(size_t i = 0; i < Q_COUNTOF(music_formats); i++) {
+		for(size_t j = 0; j < music_formats[i].num_extensions; j++) {
 			q_snprintf(filename, sizeof(filename), "music/%s%s",
 				musicname, music_formats[i].extensions[j]);
 			file = COM_LoadMallocFile(filename, NULL);
