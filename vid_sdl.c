@@ -29,7 +29,7 @@ s32 VID_GetConfigCvar(const s8 *cvname)
 	// video is initialized. To avoid creating a window and textures just to
 	// destroy them right away and only then replace them with valid ones,
 	// this function reads the default mode independently of the cvar status
-	s8 line[256], path[MAX_OSPATH];
+	s8 line[256], path[256];
 	snprintf(path, sizeof(path), "%s/config.cfg", com_gamedir);
 	s32 ret = -1;
 	FILE *file = fopen(path, "r");
