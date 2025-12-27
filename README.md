@@ -12,6 +12,8 @@ This fork mainly exists to create a branch for submitting improvments as pull re
 
 - Fixed problem of BGM track not looping/repeating during map play.
 
+- Fixed edge case crash where D_SpriteScanEdge could let sprite_spans write past its memory limit.
+
 # Planned
 
 - Exploration into overhaul of progs commands, maybe customizing available functions?
