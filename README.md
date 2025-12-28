@@ -14,6 +14,8 @@ This fork mainly exists to create a branch for submitting improvments as pull re
 
 - Fixed edge case crash where D_SpriteScanEdge could let sprite_spans write past its memory limit.
 
+- Fixed edge case crash where game would randomly freeze due to drawspan overflow. (could not reproduce error, was never constant during testing)
+
 # Planned
 
 - Exploration into overhaul of progs commands, maybe customizing available functions?

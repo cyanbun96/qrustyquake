@@ -1,5 +1,5 @@
 # Executable Filename
-TARGET = qrustyquake-puppy
+TARGET = qrustyquake-$(BUILD_TYPE)
 
 #Install Path (Development Path)
 INSTDIR ?= ~/Quake
