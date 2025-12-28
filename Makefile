@@ -1,7 +1,8 @@
 # Executable Filename
-TARGET = qrustyquake
-#Install Path
-INSTDIR = ~/Quake
+TARGET = qrustyquake-puppy
+
+#Install Path (Development Path)
+INSTDIR ?= ~/Quake
 
 PKGCONFIG ?= pkg-config
 CC = gcc
@@ -73,5 +74,6 @@ release:
 clean:
 	rm -f $(OBJS) $(TARGET)
 
+# Phony Development SysTarget
 install:
 	mv $(TARGET) $(INSTDIR)

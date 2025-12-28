@@ -379,7 +379,20 @@ void D_PolysetCalcGradients(s32 skinwidth)
 
 void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 {
+	// SAFETY FUSE: Stop the loop if it runs wild (prevent freeze)
+	int safety_fuse = 0;
+	const int MAX_SPANS = 100000; 
+
+	// Calculate the strict limit of the Z-Buffer in pixels (not bytes!)
+	s32 max_pixels = vid.width * vid.height;
+	s16 *zbuf_end = d_pzbuffer + max_pixels;
+
 	do {
+		// 1. Fuse Check: If we've drawn too much, the list is corrupt. ABORT.
+		if (++safety_fuse > MAX_SPANS) {
+			break; 
+		}
+
 		s32 lcount = d_aspancount - pspanpackage->count;
 		errorterm += erroradjustup;
 		if (errorterm >= 0) {
@@ -388,7 +401,8 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 		} else {
 			d_aspancount += ubasestep;
 		}
-		if (lcount > 0) { // Check lcount > 0 explicitly
+
+		if (lcount > 0) {
 			u8 *lpdest = pspanpackage->pdest;
 			u8 *lptex = pspanpackage->ptex;
 			s16 *lpz = pspanpackage->pz;
@@ -397,24 +411,34 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 			s32 llight = pspanpackage->light;
 			s32 lzi = pspanpackage->zi;
 
-			// --- FIX BEGINS HERE ---
-			// Calculate the maximum number of pixels the buffer can hold
-			s32 max_pixels = vid.width * vid.height;
+			// --- FIX: POINTER VALIDATION ---
 			
-			// Calculate where we are currently trying to draw (index)
-			s32 current_index = lpz - d_pzbuffer;
-
-			// Safety Check 1: If we are starting past the end of the buffer, skip entirely.
-			if (current_index >= max_pixels) {
+			// A. Sanity Check: Is the pointer address crazy? (NULL or before buffer)
+			if (lpz < d_pzbuffer) {
 				pspanpackage++;
 				continue;
 			}
-			
-			// Safety Check 2: If the line extends past the buffer, trim it (Clamp).
-			if (current_index + lcount > max_pixels) {
-				lcount = max_pixels - current_index;
+
+			// B. Overflow Check: Is the start already outside the screen?
+			// Use pointer comparison, not subtraction, to avoid math overflows
+			if (lpz >= zbuf_end) {
+				pspanpackage++;
+				continue;
 			}
-			// --- FIX ENDS HERE ---
+
+			// C. Clamp: If the line goes off the screen, trim the count.
+			// Calculate how many pixels we have left from lpz to the end
+			long pixels_left = zbuf_end - lpz;
+			if (lcount > pixels_left) {
+				lcount = (s32)pixels_left;
+			}
+			
+			// D. Zero Check: If clamping made it 0 or negative, skip
+			if (lcount <= 0) {
+				pspanpackage++;
+				continue;
+			}
+			// --- END FIX ---
 
 			do {
 				if ((lzi >> 16) >= *lpz) {
@@ -457,7 +481,17 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 
 void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 {
+	int safety_fuse = 0;
+	const int MAX_SPANS = 100000;
+
+	s32 max_pixels = vid.width * vid.height;
+	s16 *zbuf_end = d_pzbuffer + max_pixels;
+
 	do {
+		if (++safety_fuse > MAX_SPANS) {
+			break;
+		}
+
 		s32 lcount = d_aspancount - pspanpackage->count;
 		errorterm += erroradjustup;
 		if (errorterm >= 0) {
@@ -466,6 +500,7 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 		} else {
 			d_aspancount += ubasestep;
 		}
+
 		if (lcount > 0) {
 			u8 *lpdest = pspanpackage->pdest;
 			u8 *lptex = pspanpackage->ptex;
@@ -475,19 +510,24 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 			s32 llight = pspanpackage->light;
 			s32 lzi = pspanpackage->zi;
 
-			// --- FIX BEGINS HERE ---
-			s32 max_pixels = vid.width * vid.height;
-			s32 current_index = lpz - d_pzbuffer;
-
-			// Safety Check: Clip against buffer bounds
-			if (current_index >= max_pixels) {
+			// --- FIX: POINTER VALIDATION ---
+			if (lpz < d_pzbuffer) {
 				pspanpackage++;
 				continue;
 			}
-			if (current_index + lcount > max_pixels) {
-				lcount = max_pixels - current_index;
+			if (lpz >= zbuf_end) {
+				pspanpackage++;
+				continue;
 			}
-			// --- FIX ENDS HERE ---
+			long pixels_left = zbuf_end - lpz;
+			if (lcount > pixels_left) {
+				lcount = (s32)pixels_left;
+			}
+			if (lcount <= 0) {
+				pspanpackage++;
+				continue;
+			}
+			// --- END FIX ---
 
 			do {
 				if ((lzi >> 16) >= *lpz) {
