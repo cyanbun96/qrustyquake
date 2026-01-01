@@ -154,7 +154,6 @@ void CL_AdjustAngles ()
 void CL_BaseMove (usercmd_t *cmd)
 { // Send the intended movement message to the server
 	if(cls.signon != SIGNONS) return;
-	CL_AdjustAngles ();
 	Q_memset (cmd, 0, sizeof(*cmd));
 	if(in_strafe.state & 1){
 		cmd->sidemove += cl_sidespeed.value * CL_KeyState (&in_right);
