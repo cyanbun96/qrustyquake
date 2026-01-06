@@ -713,6 +713,7 @@ EX s32 lmonly;
 EX s32 drawlayer;                                                      // draw.c
 EX edge_t *last_pcheck[MAXHEIGHT];
 EX quakeparms_t host_parms;                                            // host.c
+EX f32 host_netinterval;
 EX bool host_initialized;
 EX bool isDedicated;
 EX f64 host_frametime;

@@ -171,7 +171,7 @@ void CL_DecayLights()
 f32 CL_LerpPoint() // Determines the fraction between the last two messages
 { // that the objects should be put at.
 	f32 f = cl.mtime[0] - cl.mtime[1];
-	if (!f || cl_nolerp.value || cls.timedemo || sv.active) {
+	if (!f || cls.timedemo || (sv.active && !host_netinterval)) {
 		cl.time = cl.mtime[0];
 		return 1;
 	}
@@ -187,6 +187,7 @@ f32 CL_LerpPoint() // Determines the fraction between the last two messages
 		if (frac > 1.01) cl.time = cl.mtime[0];
 		frac = 1;
 	}
+	if (cl_nolerp.value) return 1; //johnfitz -- better nolerp behavior
 	return frac;
 }
 

@@ -3,7 +3,6 @@
 #include "quakedef.h"
 
 static f64 host_rawframetime;
-static f32 host_netinterval;
 static f64 host_time;
 static f64 oldrealtime; // last frame run
 static s32 host_hunklevel;

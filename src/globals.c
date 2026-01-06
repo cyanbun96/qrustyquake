@@ -134,6 +134,7 @@ s32 lmonly; // render lightmap only, for lit water
 s32 drawlayer = 0;                                                     // draw.c
 qpic_t *draw_disc;
 quakeparms_t host_parms;                                               // host.c
+f32 host_netinterval;
 bool host_initialized; // 1 if into command execution
 bool isDedicated;
 f64 host_frametime;
