@@ -70,9 +70,6 @@ void D_ViewChanged()
 		d_y_aspect_shift = 0;
 	d_vrectx = r_refdef.vrect.x;
 	d_vrecty = r_refdef.vrect.y;
-	d_vrectright_particle = r_refdef.vrectright - d_pix_max;
-	d_vrectbottom_particle =
-	    r_refdef.vrectbottom - (d_pix_max << d_y_aspect_shift);
 	for (u32 i = 0; i < vid.height; i++) {
 		d_scantable[i] = i * rowbytes;
 		zspantable[i] = d_pzbuffer + i * d_zwidth;

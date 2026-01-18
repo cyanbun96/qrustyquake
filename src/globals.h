@@ -704,7 +704,7 @@ EX bool d_roverwrapped;
 EX s32 d_minmip;
 EX f32 d_scalemip[NUM_MIPS - 1];
 EX s32 d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;        // d_modech.c
-EX s32 d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
+EX s32 d_vrectx, d_vrecty;
 EX s32 d_scantable[MAXHEIGHT];
 EX s16 *zspantable[MAXHEIGHT];
 EX bool r_cache_thrash;                                              // d_surf.c

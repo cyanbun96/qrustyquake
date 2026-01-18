@@ -14,13 +14,8 @@ void D_DrawParticle(particle_t *pparticle)
 	if (transformed[2] < PARTICLE_Z_CLIP)
 		return;
 	f32 zi = 1.0 / transformed[2]; // project the point
-	s32 u = (s32)(xcenter + zi * transformed[0] + 0.5); // FIXME: preadjust xcenter and ycenter
+	s32 u = (s32)(xcenter + zi * transformed[0] + 0.5);
 	s32 v = (s32)(ycenter - zi * transformed[1] + 0.5);
-	if ((v > d_vrectbottom_particle) || (u > d_vrectright_particle)
-		|| (v < d_vrecty) || (u < d_vrectx)) 
-		return;
-	s16 *pz = d_pzbuffer + (d_zwidth * v) + u;
-	u8 *pdest = d_viewbuffer + d_scantable[v] + u;
 	s32 izi = (s32)(zi * 0x8000);
 	s32 pix;
 	if (r_particlescale.value) {
@@ -30,12 +25,24 @@ void D_DrawParticle(particle_t *pparticle)
 		if (pix < d_pix_min) pix = d_pix_min;
 		else if (pix > d_pix_max) pix = d_pix_max;
 	}
-	s32 pix_y = (pdest - d_viewbuffer) / scr_vrect.width;
-	s32 pix_x = (pdest - d_viewbuffer) - (pix_y * scr_vrect.width);
-	s32 pix_w = pix_x + pix >= screenwidth ? screenwidth-pix_x : pix;
-	if (pix_y+pix >= scr_vrect.height) pix = scr_vrect.height - pix_y;
-	for (s32 count=pix; count; count--, pz+=d_zwidth, pdest+=screenwidth) {
-		for (s32 i = 0; i < pix_w; i++) {
+	s32 half = pix >> 1;
+	s32 x0 = u - half;
+	s32 y0 = v - half;
+	s32 x1 = x0 + pix;
+	s32 y1 = y0 + pix;
+	if (x1 <= d_vrectx || x0 >= r_refdef.vrectright ||
+			y1 <= d_vrecty || y0 >= r_refdef.vrectbottom)
+		return;
+	s32 cx0 = x0 < d_vrectx ? d_vrectx : x0;
+	s32 cy0 = y0 < d_vrecty ? d_vrecty : y0;
+	s32 cx1 = x1 > r_refdef.vrectright ? r_refdef.vrectright : x1;
+	s32 cy1 = y1 > r_refdef.vrectbottom ? r_refdef.vrectbottom : y1;
+	s32 draw_w = cx1 - cx0;
+	s32 draw_h = cy1 - cy0;
+	s16 *pz = d_pzbuffer + (d_zwidth * cy0) + cx0;
+	u8 *pdest = d_viewbuffer + d_scantable[cy0] + cx0;
+	for (s32 count=draw_h; count; count--,pz+=d_zwidth,pdest+=screenwidth) {
+		for (s32 i = 0; i < draw_w; i++) {
 			if (pz[i] <= izi) {
 				pz[i] = izi;
 				pdest[i] = pparticle->color;
