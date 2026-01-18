@@ -39,7 +39,6 @@ SIL void TransformVector(vec3_t in, vec3_t out)
 	out[2] = DotProduct(in, vpn);
 }
 
-
 SIL f32 VectorNormalize(vec3_t v)
 {
 	f32 length = VectorLength(v);
@@ -63,6 +62,20 @@ SIL void ProjectPointOnPlane(vec3_t dst, const vec3_t p, const vec3_t normal)
 	dst[0] = p[0] - d * n[0];
 	dst[1] = p[1] - d * n[1];
 	dst[2] = p[2] - d * n[2];
+}
+
+// johnfitz -- the opposite of AngleVectors.
+// this takes forward and generates pitch yaw roll
+// TODO: take right and up vectors to properly set yaw and roll
+SIL void VectorAngles(const vec3_t forward, vec3_t angles)
+{
+    vec3_t temp;
+    temp[0] = forward[0];
+    temp[1] = forward[1];
+    temp[2] = 0;
+    angles[PITCH] = -atan2(forward[2], VectorLength(temp)) / (M_PI/180.0);
+    angles[YAW] = atan2(forward[1], forward[0]) / (M_PI/180.0);
+    angles[ROLL] = 0;
 }
 
 SIL void VectorMA(vec3_t veca, f32 scale, vec3_t vecb, vec3_t vecc)

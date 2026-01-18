@@ -1,8 +1,8 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright (C) 2002-2009 John Fitzgibbons and others
+// Copyright (C) 2010-2014 QuakeSpasm developers
 // chase.c -- chase camera code
 #include "quakedef.h"
-
-static vec3_t chase_dest;
 
 void Chase_Init()
 {
@@ -21,22 +21,27 @@ void TraceLine(vec3_t start, vec3_t end, vec3_t impact)
 }
 
 void Chase_Update()
-{
-	vec3_t forward, up, right, dest, stop;
-	// if can't see player, reset
+{ // TODO: stay at least 8 units away from all walls in this leaf
+	vec3_t forward, up, right;
+	vec3_t ideal, crosshair, temp;
 	AngleVectors(cl.viewangles, forward, right, up);
-	for(s32 i = 0; i < 3; i++) // calc exact destination
-		chase_dest[i] = r_refdef.vieworg[i]
-		    - forward[i] * chase_back.value
-		    - right[i] * chase_right.value;
-	chase_dest[2] = r_refdef.vieworg[2] + chase_up.value;
+	// calc ideal camera location before checking for walls
+	for(s32 i = 0; i < 3; i++)
+		ideal[i] = cl.viewent.origin[i]
+			- forward[i]*chase_back.value
+			+ right[i]*chase_right.value;
+	ideal[2] = cl.viewent.origin[2] + chase_up.value;
+	// make sure camera is not in or behind a wall
+	TraceLine(r_refdef.vieworg, ideal, temp);
+	if(VectorLength(temp)) VectorCopy(temp, ideal);
+	// place camera
+	VectorCopy(ideal, r_refdef.vieworg);
 	// find the spot the player is looking at
-	VectorMA(r_refdef.vieworg, 4096, forward, dest);
-	TraceLine(r_refdef.vieworg, dest, stop);
-	// calculate pitch to look at the same spot from camera
-	VectorSubtract(stop, r_refdef.vieworg, stop);
-	f32 dist = DotProduct(stop, forward);
-	if(dist < 1) dist = 1;
-	r_refdef.viewangles[PITCH] = -atan(stop[2] / dist) / M_PI * 180;
-	VectorCopy(chase_dest, r_refdef.vieworg); // move towards destination
+	VectorMA(cl.viewent.origin, 1<<20, forward, temp);
+	TraceLine(cl.viewent.origin, temp, crosshair);
+	// calculate camera angles to look at the same spot
+	VectorSubtract(crosshair, r_refdef.vieworg, temp);
+	VectorAngles(temp, r_refdef.viewangles);
+	if(r_refdef.viewangles[PITCH]==90 || r_refdef.viewangles[PITCH]==-90)
+		r_refdef.viewangles[YAW] = cl.viewangles[YAW];
 }
