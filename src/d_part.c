@@ -4,6 +4,10 @@
 
 void D_DrawParticle(particle_t *pparticle)
 {
+	s32 part_alpha = r_particlealpha.value * FOG_LUT_LEVELS;
+	if(part_alpha <= 0)
+		return;
+	part_alpha = part_alpha > FOG_LUT_LEVELS ? FOG_LUT_LEVELS : part_alpha;
 	vec3_t local, transformed;
 	VectorSubtract(pparticle->org, r_origin, local); // transform point
 	transformed[0] = DotProduct(local, r_pright);
@@ -41,7 +45,7 @@ void D_DrawParticle(particle_t *pparticle)
 	s32 draw_h = cy1 - cy0;
 	s16 *pz = d_pzbuffer +(d_zwidth * cy0) + cx0;
 	u8 *pdest = d_viewbuffer + d_scantable[cy0] + cx0;
-	if(r_particlestyle.value == 1){ // circle
+	if(r_particlestyle.value == 1 && part_alpha == FOG_LUT_LEVELS){// circle
 		s32 cy = cy0;
 		s32 dy = cy - v;
 		s32 err = dy*dy;
@@ -63,13 +67,52 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	} else { // square
+	} else if(part_alpha == FOG_LUT_LEVELS) { // square
 		for(s32 count = draw_h;
 		    count; count--, pz += d_zwidth, pdest += screenwidth){
 			for(s32 i = 0; i < draw_w; i++){
 				if(pz[i] <= izi){
 					pz[i] = izi;
 					pdest[i] = pparticle->color;
+				}
+			}
+		}
+	}
+	else if(r_particlestyle.value == 1){ // circle (alpha)
+		if (!fog_lut_built)
+			R_BuildColorMixLUT(0);
+		s32 cy = cy0;
+		s32 dy = cy - v;
+		s32 err = dy*dy;
+		s32 rr = half*half;
+		for(s32 count = draw_h; count;
+		    count--, cy++, pz += d_zwidth, pdest += screenwidth){
+			dy = cy - v;
+			err = dy*dy;
+			if(err > rr) continue;
+			s32 dx = (s32)(sqrtf((f32)(rr - err)));
+			s32 sx = u - dx;
+			s32 ex = u + dx + 1;
+			if(sx < cx0) sx = cx0;
+			if(ex > cx1) ex = cx1;
+			for(s32 x = sx - cx0; x < ex - cx0; x++){
+				if(pz[x] <= izi){
+					pz[x] = izi;
+					pdest[x] = color_mix_lut[pdest[x]]
+					    [(s32)pparticle->color][part_alpha];
+				}
+			}
+		}
+	} else { // square (alpha)
+		if (!fog_lut_built)
+			R_BuildColorMixLUT(0);
+		for(s32 count = draw_h;
+		    count; count--, pz += d_zwidth, pdest += screenwidth){
+			for(s32 i = 0; i < draw_w; i++){
+				if(pz[i] <= izi){
+					pz[i] = izi;
+					pdest[i] = color_mix_lut[pdest[i]]
+					    [(s32)pparticle->color][part_alpha];
 				}
 			}
 		}

@@ -94,6 +94,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_particlescale);
 	Cvar_RegisterVariable(&r_particlestyle);
 	Cvar_RegisterVariable(&r_particlesize);
+	Cvar_RegisterVariable(&r_particlealpha);
 	Cvar_RegisterVariable(&r_fovmode);
 	Cvar_RegisterVariable(&r_hlwater);
 	Cvar_RegisterVariable(&r_hlripplescale);

@@ -201,6 +201,7 @@ cvar_t r_novis=                                           {"r_novis","0", 1,ZR};
 cvar_t r_particlescale=                           {"r_particlescale","0", 1,ZR};
 cvar_t r_particlestyle=                           {"r_particlestyle","0", 1,ZR};
 cvar_t r_particlesize=                             {"r_particlesize","0", 1,ZR};
+cvar_t r_particlealpha=                           {"r_particlealpha","1", 1,ZR};
 cvar_t r_mipscale=                                    {"r_mipscale", "1", 1,ZR};
 cvar_t scr_uixscale=                                 {"scr_uixscale","1", 1,ZR};
 cvar_t scr_uiyscale=                                 {"scr_uiyscale","1", 1,ZR};
