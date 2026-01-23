@@ -8,6 +8,7 @@ void D_DrawParticle(particle_t *pparticle)
 	if(part_alpha <= 0)
 		return;
 	part_alpha = part_alpha > FOG_LUT_LEVELS ? FOG_LUT_LEVELS : part_alpha;
+	f32 p_alpha_f = (f32)part_alpha / FOG_LUT_LEVELS;
 	vec3_t local, transformed;
 	VectorSubtract(pparticle->org, r_origin, local); // transform point
 	transformed[0] = DotProduct(local, r_pright);
@@ -78,7 +79,40 @@ void D_DrawParticle(particle_t *pparticle)
 			}
 		}
 	}
-	else if(r_particlestyle.value == 1){ // circle (alpha)
+	else if(r_particlestyle.value == 1 && r_alphastyle.value) {
+		s32 cy = cy0; // circle (dither alpha)
+		s32 dy = cy - v;
+		s32 err = dy*dy;
+		s32 rr = half*half;
+		for(s32 count = draw_h; count;
+		    count--, cy++, pz += d_zwidth, pdest += screenwidth){
+			dy = cy - v;
+			err = dy*dy;
+			if(err > rr) continue;
+			s32 dx = (s32)(sqrtf((f32)(rr - err)));
+			s32 sx = u - dx;
+			s32 ex = u + dx + 1;
+			if(sx < cx0) sx = cx0;
+			if(ex > cx1) ex = cx1;
+			for(s32 x = sx - cx0; x < ex - cx0; x++){
+				if(pz[x]<=izi && D_Dither(&pdest[x],p_alpha_f)){
+					pz[x] = izi;
+					pdest[x] = pparticle->color;
+				}
+			}
+		}
+	} else if (r_alphastyle.value) { // square (dither alpha)
+		for(s32 count = draw_h;
+		    count; count--, pz += d_zwidth, pdest += screenwidth){
+			for(s32 i = 0; i < draw_w; i++){
+				if(pz[i]<=izi && D_Dither(&pdest[i],p_alpha_f)){
+					pz[i] = izi;
+					pdest[i] = pparticle->color;
+				}
+			}
+		}
+	}
+	else if(r_particlestyle.value == 1){ // circle (mix alpha)
 		if (!fog_lut_built)
 			R_BuildColorMixLUT(0);
 		s32 cy = cy0;
@@ -103,7 +137,7 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	} else { // square (alpha)
+	} else { // square (mix alpha)
 		if (!fog_lut_built)
 			R_BuildColorMixLUT(0);
 		for(s32 count = draw_h;
