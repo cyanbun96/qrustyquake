@@ -1741,8 +1741,8 @@ void M_Graphics_Key(s32 k)
 			!r_litwater.value); break;
 		case 402: Cvar_SetValue("r_labmixpal",
 			!r_labmixpal.value); break;
-		case 500: Cvar_SetValue("r_alphastyle",
-			!r_alphastyle.value); break;
+		case 500: Cvar_SetValue("r_hlwater",
+			!r_hlwater.value); break;
 		case 501: Cvar_SetValue("r_wateralpha",
 			CLAMP(0, r_wateralpha.value - 0.1, 1)); break;
 		case 502: Cvar_SetValue("r_slimealpha",
@@ -1751,28 +1751,40 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_lavaalpha.value - 0.1, 1)); break;
 		case 504: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value - 0.1, 1)); break;
-		case 601: Cvar_SetValue("lyr_sbar",
+		case 505: Cvar_SetValue("r_hlwaterquality",
+			!r_hlwaterquality.value); break;
+		case 506: Cvar_SetValue("r_hlripplescale",
+			CLAMP(0, r_hlripplescale.value - 0.1, 5)); break;
+		case 507: Cvar_SetValue("r_hlwavescale",
+			CLAMP(0, r_hlwavescale.value - 0.1, 5)); break;
+		case 600: Cvar_SetValue("r_particlescale",
+			CLAMP(0, r_particlescale.value - 0.1, 9)); break;
+		case 601: Cvar_SetValue("r_particlesize",
+			CLAMP(0, r_particlesize.value - 1, 9)); break;
+		case 602: Cvar_SetValue("r_particlestyle",
+			!r_particlestyle.value); break;
+		case 701: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value - 1, 3)); break;
-		case 602: Cvar_SetValue("lyr_menu",
+		case 702: Cvar_SetValue("lyr_menu",
 			CLAMP(0, lyr_menu.value - 1, 3)); break;
-		case 603: Cvar_SetValue("lyr_centerprint",
+		case 703: Cvar_SetValue("lyr_centerprint",
 			CLAMP(0, lyr_centerprint.value - 1, 3)); break;
-		case 604: Cvar_SetValue("lyr_console",
+		case 704: Cvar_SetValue("lyr_console",
 			CLAMP(0, lyr_console.value - 1, 3)); break;
-		case 605: Cvar_SetValue("lyr_notify",
+		case 705: Cvar_SetValue("lyr_notify",
 			CLAMP(0, lyr_notify.value - 1, 3)); break;
-		case 606: Cvar_SetValue("lyr_crosshair",
+		case 706: Cvar_SetValue("lyr_crosshair",
 			CLAMP(0, lyr_crosshair.value - 1, 3)); break;
-		case 700: Cvar_SetValue("r_particlescale",
-			CLAMP(0, r_particlescale.value - 1, 9)); break;
-		case 701: Cvar_SetValue("r_mipscale",
+		case 800: Cvar_SetValue("r_mipscale",
 			CLAMP(0, r_mipscale.value - 0.1, 9.9)); break;
-		case 702: Cvar_SetValue("scr_menubgstyle",
+		case 801: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
-		case 703: Cvar_SetValue("r_rebuildmips",
+		case 802: Cvar_SetValue("r_rebuildmips",
 			!r_rebuildmips.value); break;
-		case 704: Cvar_SetValue("r_dithertex",
+		case 803: Cvar_SetValue("r_dithertex",
 			!r_dithertex.value); break;
+		case 804: Cvar_SetValue("r_alphastyle",
+			!r_alphastyle.value); break;
 		}
 		break;
 	case K_RIGHTARROW:
@@ -1843,8 +1855,8 @@ void M_Graphics_Key(s32 k)
 			!r_litwater.value); break;
 		case 402: Cvar_SetValue("r_labmixpal",
 			!r_labmixpal.value); break;
-		case 500: Cvar_SetValue("r_alphastyle",
-			!r_alphastyle.value); break;
+		case 500: Cvar_SetValue("r_hlwater",
+			!r_hlwater.value); break;
 		case 501: Cvar_SetValue("r_wateralpha",
 			CLAMP(0, r_wateralpha.value + 0.1, 1)); break;
 		case 502: Cvar_SetValue("r_slimealpha",
@@ -1853,19 +1865,31 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_lavaalpha.value + 0.1, 1)); break;
 		case 504: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value + 0.1, 1)); break;
-		case 601: Cvar_SetValue("lyr_sbar",
+		case 505: Cvar_SetValue("r_hlwaterquality",
+			!r_hlwaterquality.value); break;
+		case 506: Cvar_SetValue("r_hlripplescale",
+			CLAMP(0, r_hlripplescale.value + 0.1, 5)); break;
+		case 507: Cvar_SetValue("r_hlwavescale",
+			CLAMP(0, r_hlwavescale.value + 0.1, 5)); break;
+		case 600: Cvar_SetValue("r_particlescale",
+			CLAMP(0, r_particlescale.value + 0.1, 9)); break;
+		case 601: Cvar_SetValue("r_particlesize",
+			CLAMP(0, r_particlesize.value + 1, 9)); break;
+		case 602: Cvar_SetValue("r_particlestyle",
+			!r_particlestyle.value); break;
+		case 701: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value + 1, 3)); break;
-		case 602: Cvar_SetValue("lyr_menu",
+		case 702: Cvar_SetValue("lyr_menu",
 			CLAMP(0, lyr_menu.value + 1, 3)); break;
-		case 603: Cvar_SetValue("lyr_centerprint",
+		case 703: Cvar_SetValue("lyr_centerprint",
 			CLAMP(0, lyr_centerprint.value + 1, 3)); break;
-		case 604: Cvar_SetValue("lyr_console",
+		case 704: Cvar_SetValue("lyr_console",
 			CLAMP(0, lyr_console.value + 1, 3)); break;
-		case 605: Cvar_SetValue("lyr_notify",
+		case 705: Cvar_SetValue("lyr_notify",
 			CLAMP(0, lyr_notify.value + 1, 3)); break;
-		case 606: Cvar_SetValue("lyr_crosshair",
+		case 706: Cvar_SetValue("lyr_crosshair",
 			CLAMP(0, lyr_crosshair.value + 1, 3)); break;
-		case 607:
+		case 707:
 			Cvar_SetValue("lyr_main", 0);
 			Cvar_SetValue("lyr_sbar", 3);
 			Cvar_SetValue("lyr_menu", 2);
@@ -1874,36 +1898,39 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("lyr_notify", 2);
 			Cvar_SetValue("lyr_crosshair", 2);
 			break;
-		case 700: Cvar_SetValue("r_particlescale",
-			CLAMP(0, r_particlescale.value + 1, 9)); break;
-		case 701: Cvar_SetValue("r_mipscale",
+		case 800: Cvar_SetValue("r_mipscale",
 			CLAMP(0, r_mipscale.value + 0.1, 9.9)); break;
-		case 702: Cvar_SetValue("scr_menubgstyle",
+		case 801: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
-		case 703: Cvar_SetValue("r_rebuildmips",
+		case 802: Cvar_SetValue("r_rebuildmips",
 			!r_rebuildmips.value); break;
-		case 704: Cvar_SetValue("r_dithertex",
+		case 803: Cvar_SetValue("r_dithertex",
 			!r_dithertex.value); break;
+		case 804: Cvar_SetValue("r_alphastyle",
+			!r_alphastyle.value); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (graphics_cursor == 0) graphics_cursor = 7;
+		if (graphics_cursor == 0) graphics_cursor = 8;
 		else if (graphics_cursor == 200) {
 			if (r_lockfog.value) graphics_cursor = 211;
 			else graphics_cursor = 207;
 		}else if(graphics_cursor == 300) graphics_cursor = 301;
 		else if (graphics_cursor == 400) graphics_cursor = 402;
-		else if (graphics_cursor == 500) graphics_cursor = 504;
-		else if (graphics_cursor == 600) graphics_cursor = 607;
-		else if (graphics_cursor == 700) graphics_cursor = 704;
+		else if (graphics_cursor == 500) {
+			if (r_hlwater.value) graphics_cursor = 507;
+			else graphics_cursor = 504;
+		}else if (graphics_cursor == 600) graphics_cursor = 602;
+		else if (graphics_cursor == 700) graphics_cursor = 707;
+		else if (graphics_cursor == 800) graphics_cursor = 804;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		if (graphics_cursor < 100) {
-			if (graphics_cursor == 7) graphics_cursor = 0;
+			if (graphics_cursor == 8) graphics_cursor = 0;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 300) {
 			if (r_lockfog.value) {
@@ -1920,13 +1947,21 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 402) graphics_cursor = 400;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 600) {
-			if (graphics_cursor == 504) graphics_cursor = 500;
-			else graphics_cursor++;
+			if (r_hlwater.value) {
+				if (graphics_cursor==507) graphics_cursor = 500;
+				else graphics_cursor++;
+			} else {
+				if (graphics_cursor==504) graphics_cursor = 500;
+				else graphics_cursor++;
+			}
 		} else if (graphics_cursor < 700) {
-			if (graphics_cursor == 607) graphics_cursor = 600;
+			if (graphics_cursor == 602) graphics_cursor = 600;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 800) {
-			if (graphics_cursor == 704) graphics_cursor = 700;
+			if (graphics_cursor == 707) graphics_cursor = 700;
+			else graphics_cursor++;
+		} else if (graphics_cursor < 900) {
+			if (graphics_cursor == 804) graphics_cursor = 800;
 			else graphics_cursor++;
 		}
 		break;
@@ -1958,9 +1993,10 @@ void M_Graphics_Draw()
 	M_Print(xoffset, 48, "  Fog...");
 	M_Print(xoffset, 56, "  Sky...");
 	M_Print(xoffset, 64, "  Lighting...");
-	M_Print(xoffset, 72, "  Translusency...");
-	M_Print(xoffset, 80, "  Layers...");
-	M_Print(xoffset, 88, "  Misc...");
+	M_Print(xoffset, 72, "  Liquids...");
+	M_Print(xoffset, 80, "  Particles...");
+	M_Print(xoffset, 88, "  Layers...");
+	M_Print(xoffset, 96, "  Misc...");
 	xoffset = 160;
 	s32 x2 = 104;
 	if (graphics_cursor == 0) {
@@ -2034,7 +2070,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
 	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
 		M_Print(xoffset, 32, "Style:");
-		M_Print(xoffset+x2, 32, r_alphastyle.value==1?"Dither":"Blend");
+		M_Print(xoffset+x2, 32, r_hlwater.value==0?"Classic":"HL");
 		M_Print(xoffset, 40, "Water Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_wateralpha.value);
 		M_Print(xoffset + x2, 40, temp);
@@ -2047,7 +2083,27 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 64, "Tele Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_telealpha.value);
 		M_Print(xoffset + x2, 64, temp);
+		if (!r_hlwater.value) return;
+		M_Print(xoffset, 72, "Quality:");
+		M_Print(xoffset+x2, 72, r_hlwaterquality.value==0?"Low":"High");
+		M_Print(xoffset, 80, "Ripple Scale:");
+		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlripplescale.value);
+		M_Print(xoffset + x2, 80, temp);
+		M_Print(xoffset, 88, "Wave Scale:");
+		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlwavescale.value);
+		M_Print(xoffset + x2, 88, temp);
 	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
+		x2 -= 32;
+		M_Print(xoffset, 32, "Scale:");
+		snprintf(temp, sizeof(temp), "x%0.1f", r_particlescale.value);
+		M_Print(xoffset + x2, 32, r_particlescale.value ? temp:"Auto");
+		M_Print(xoffset, 40, "Size:");
+		snprintf(temp, sizeof(temp), "x%d", (s32)r_particlesize.value);
+		M_Print(xoffset + x2, 40, r_particlesize.value ? temp:"Auto");
+		M_Print(xoffset, 48, "Shape:");
+		M_Print(xoffset + x2, 48, r_particlestyle.value==0 ?
+			"Square":"Circle");
+	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
 		x2 += 16;
 		M_Print(xoffset, 32, "World:");
 		snprintf(temp, sizeof(temp), "%d", (s32)lyr_main.value);
@@ -2076,31 +2132,30 @@ void M_Graphics_Draw()
 		M_Print(16, 166, "1: default palette, not scaled");
 		M_Print(16, 174, "2: custom ui palette, scaled");
 		M_Print(16, 182, "3: custom ui palette, scaled");
-	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
+	} else if (graphics_cursor == 8 || graphics_cursor/100 == 8) {
 		x2 += 24;
-		M_Print(xoffset, 32, "Particle Scale:");
-		snprintf(temp, sizeof(temp), "x%d", (s32)r_particlescale.value);
-		M_Print(xoffset + x2, 32, r_particlescale.value ? temp:"Auto");
-		M_Print(xoffset, 40, "Mipmap Distance:");
+		M_Print(xoffset, 32, "Mipmap Distance:");
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
-		M_Print(xoffset + x2, 40, temp);
-		M_Print(xoffset, 48, "Menu BG Style:");
-		M_Print(xoffset, 56, "Rebuild Mipmaps:");
-		M_Print(xoffset + x2, 56, !r_rebuildmips.value?" Off":" On");
-		M_Print(xoffset, 64, "Textures:");
-		M_Print(xoffset+80, 64, r_dithertex.value?"Dithered":"Default");
-		if (graphics_cursor == 703) {
+		M_Print(xoffset + x2, 32, temp);
+		M_Print(xoffset, 40, "Menu BG Style:");
+		M_Print(xoffset, 48, "Rebuild Mipmaps:");
+		M_Print(xoffset + x2, 48, !r_rebuildmips.value?" Off":" On");
+		M_Print(xoffset, 56, "Textures:");
+		M_Print(xoffset+80, 56, r_dithertex.value?"Dithered":"Default");
+		if (graphics_cursor == 802) {
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "  Enable if you see pink around");
 			M_Print(16, 166, " cutouts or fullbright reds that");
 			M_Print(16, 174, " shouldn't be there at a distance");
 		}
 		switch ((s32)scr_menubgstyle.value) {
-		default: case 0: M_Print(xoffset + x2, 48, "Win"); break;
-		case 1: M_Print(xoffset + x2, 48, "DOS"); break;
-		case 2: M_Print(xoffset + x2, 48, "Dark"); break;
-		case 3: M_Print(xoffset + x2, 48, "None"); break;
+		default: case 0: M_Print(xoffset + x2, 40, "Win"); break;
+		case 1: M_Print(xoffset + x2, 40, "DOS"); break;
+		case 2: M_Print(xoffset + x2, 40, "Dark"); break;
+		case 3: M_Print(xoffset + x2, 40, "None"); break;
 		}
+		M_Print(xoffset, 64, "Alpha Style:");
+		M_Print(xoffset+104, 64, !r_alphastyle.value?"Mix":"Dither");
 	}
 }
 
