@@ -1763,6 +1763,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_particlesize.value - 1, 9)); break;
 		case 602: Cvar_SetValue("r_particlestyle",
 			!r_particlestyle.value); break;
+		case 603: Cvar_SetValue("r_particlealpha",
+			CLAMP(0, r_particlealpha.value - 0.1, 1)); break;
 		case 701: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value - 1, 3)); break;
 		case 702: Cvar_SetValue("lyr_menu",
@@ -1877,6 +1879,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_particlesize.value + 1, 9)); break;
 		case 602: Cvar_SetValue("r_particlestyle",
 			!r_particlestyle.value); break;
+		case 603: Cvar_SetValue("r_particlealpha",
+			CLAMP(0, r_particlealpha.value + 0.1, 1)); break;
 		case 701: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value + 1, 3)); break;
 		case 702: Cvar_SetValue("lyr_menu",
@@ -1922,7 +1926,7 @@ void M_Graphics_Key(s32 k)
 		else if (graphics_cursor == 500) {
 			if (r_hlwater.value) graphics_cursor = 507;
 			else graphics_cursor = 504;
-		}else if (graphics_cursor == 600) graphics_cursor = 602;
+		}else if (graphics_cursor == 600) graphics_cursor = 603;
 		else if (graphics_cursor == 700) graphics_cursor = 707;
 		else if (graphics_cursor == 800) graphics_cursor = 804;
 		else graphics_cursor--;
@@ -1955,7 +1959,7 @@ void M_Graphics_Key(s32 k)
 				else graphics_cursor++;
 			}
 		} else if (graphics_cursor < 700) {
-			if (graphics_cursor == 602) graphics_cursor = 600;
+			if (graphics_cursor == 603) graphics_cursor = 600;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 800) {
 			if (graphics_cursor == 707) graphics_cursor = 700;
@@ -2103,6 +2107,9 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Shape:");
 		M_Print(xoffset + x2, 48, r_particlestyle.value==0 ?
 			"Square":"Circle");
+		M_Print(xoffset, 56, "Alpha:");
+		snprintf(temp, sizeof(temp), "%0.1f", r_particlealpha.value);
+		M_Print(xoffset + x2, 56, temp);
 	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
 		x2 += 16;
 		M_Print(xoffset, 32, "World:");
