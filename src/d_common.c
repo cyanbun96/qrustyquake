@@ -122,7 +122,7 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
   // It can be clipped to the top of the screen to allow the console
   // to be smoothly scrolled off.
 	num &= 255;
-	if (y <= -8)
+	if (y <= -8 * scale)
 		return; // totally off screen
 	if (y > (s32)(vid.height - 8 * scale))
 		return; // don't draw past the bottom of the screen
@@ -130,13 +130,20 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
 	s32 col = num & 15;
 	u8 *source = draw_chars + (row << 10) + (col << 3);
 	s32 drawline;
-	if (y < 0) { // clipped TODO doesn't seem to work properly
-		drawline = 8 + y;
-		source -= 128 * y;
+	s32 row_remainder = 0;
+	if (y < 0) {
+		s32 clipped_pixels = -y;
+		s32 clipped_rows = clipped_pixels / scale;
+		row_remainder = clipped_pixels % scale;
+		if (clipped_rows >= 8)
+			return;
+		source += 128 * clipped_rows;
+		drawline = 8 - clipped_rows;
 		y = 0;
 	} else
 		drawline = 8;
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
+	dest -= row_remainder * vid.width; // avoid jitter
 	while (drawline--) {
 		for (s32 k = 0; k < scale; ++k) {
 			for (s32 j = 0; j < scale; ++j) {
