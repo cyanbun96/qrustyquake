@@ -1782,7 +1782,7 @@ void M_Graphics_Key(s32 k)
 		case 801: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
 		case 802: Cvar_SetValue("r_rebuildmips",
-			!r_rebuildmips.value); break;
+			CLAMP(0, r_rebuildmips.value - 1, 2)); break;
 		case 803: Cvar_SetValue("r_dithertex",
 			!r_dithertex.value); break;
 		case 804: Cvar_SetValue("r_alphastyle",
@@ -1804,7 +1804,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("lyr_console", 2);
 			Cvar_SetValue("lyr_notify", 2);
 			Cvar_SetValue("lyr_crosshair", 3);
-			Cvar_SetValue("r_rebuildmips", 1);
+			Cvar_SetValue("r_rebuildmips", 2);
 			Cvar_SetValue("r_mipscale", 3);
 		} else if (graphics_cursor == 1) {
 			Cvar_SetValue("r_nofog", 1);
@@ -1907,7 +1907,7 @@ void M_Graphics_Key(s32 k)
 		case 801: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
 		case 802: Cvar_SetValue("r_rebuildmips",
-			!r_rebuildmips.value); break;
+			CLAMP(0, r_rebuildmips.value + 1, 2)); break;
 		case 803: Cvar_SetValue("r_dithertex",
 			!r_dithertex.value); break;
 		case 804: Cvar_SetValue("r_alphastyle",
@@ -2146,7 +2146,11 @@ void M_Graphics_Draw()
 		M_Print(xoffset + x2, 32, temp);
 		M_Print(xoffset, 40, "Menu BG Style:");
 		M_Print(xoffset, 48, "Rebuild Mipmaps:");
-		M_Print(xoffset + x2, 48, !r_rebuildmips.value?" Off":" On");
+		switch ((s32)r_rebuildmips.value) {
+		default: case 0: M_Print(xoffset + x2, 48, " Off"); break;
+		case 1: M_Print(xoffset + x2, 48, " On"); break;
+		case 2: M_Print(xoffset + x2, 48, "Auto"); break;
+		}
 		M_Print(xoffset, 56, "Textures:");
 		M_Print(xoffset+80, 56, r_dithertex.value?"Dithered":"Default");
 		if (graphics_cursor == 802) {
