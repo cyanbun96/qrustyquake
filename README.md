@@ -228,6 +228,8 @@ VM is VirtualBox unless specified otherwise.
 
    - Built without SDL3_mixer, with cmake and SDL3 from brew, on 14.6.1
 
+   - Compiles with Makefile and SDL3 from brew on MacOS 15.7.2 (mixer not tested)
+
 - Emscripten [Browsers with WebAssembly] v0.6.0
 
    - Dark magic performed by Erysdren, please don't ask me about it
