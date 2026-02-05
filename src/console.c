@@ -262,7 +262,7 @@ void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 	drawlayer = lyr_console.value;
 	Draw_ConsoleBackground(lines); // draw the background
 	con_vislines = lines; // draw the text
-	s32 rows = ((lines - 16) >> 3) * uiscale; // rows of text to draw
+	s32 rows = ((lines - 9) >> 3) * uiscale; // rows of text to draw
 	s32 y = lines-16*uiscale-(rows<<3)*uiscale; // may start a bit negative
 	for(s32 i = con_current-rows+1; i <= con_current; i++, y += 8*uiscale){
 		s32 j = i - con_backscroll;
