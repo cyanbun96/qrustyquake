@@ -307,8 +307,8 @@ void Mod_LoadTextures(lump_t *l)
 		if (!r_rebuildmips.value) continue;
 		u8 *base = (u8 *)tx + LittleLong(tx->offsets[0]);
 		if (r_rebuildmips.value == 2) { // only cutouts and fullbrights
-			for (s32 h = 0; h < tx->height; ++h)
-			for (s32 w = 0; w < tx->width; ++w)
+			for (u32 h = 0; h < tx->height; ++h)
+			for (u32 w = 0; w < tx->width; ++w)
 				if (base[w + h*tx->width] >= 0xE0) goto rebuild;
 			continue;
 		}

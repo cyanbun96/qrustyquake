@@ -542,8 +542,8 @@ void D_RasterizeAliasPolySmooth()
 	s32 *prighttop = pedgetable->prightedgevert0;
 	s32 *pleftbottom = pedgetable->pleftedgevert1;
 	s32 *prightbottom = pedgetable->prightedgevert1;
-	s32 initialleftheight = pleftbottom[1] - plefttop[1];
-	s32 initialrightheight = prightbottom[1] - prighttop[1];
+	u32 initialleftheight = pleftbottom[1] - plefttop[1];
+	u32 initialrightheight = prightbottom[1] - prighttop[1];
 	if (initialleftheight>=vid.height || initialrightheight>=vid.height) {
 		Con_DPrintf("Broken alias model\n");
 		return;
