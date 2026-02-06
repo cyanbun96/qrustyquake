@@ -544,6 +544,10 @@ void D_RasterizeAliasPolySmooth()
 	s32 *prightbottom = pedgetable->prightedgevert1;
 	s32 initialleftheight = pleftbottom[1] - plefttop[1];
 	s32 initialrightheight = prightbottom[1] - prighttop[1];
+	if (initialleftheight>=vid.height || initialrightheight>=vid.height) {
+		Con_DPrintf("Broken alias model\n");
+		return;
+	}
 	// set the s, t, and light gradients, which are consistent across the
 	// triangle because being a triangle, things are affine
 	D_PolysetCalcGradients(r_affinetridesc.skinwidth);
