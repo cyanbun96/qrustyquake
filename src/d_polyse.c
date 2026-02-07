@@ -84,15 +84,13 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 	for (s32 i = 0; i < numverts; i++, fv++) {
 		// valid triangle coordinates for filling can include the bottom and
 		// right clip edges, due to the fill rule; these shouldn't be drawn
-		if ((fv->v[0] < r_refdef.vrectright) &&
-				(fv->v[1] < r_refdef.vrectbottom)) {
-			s32 z = fv->v[5] >> 16;
-			s16 *zbuf = zspantable[fv->v[1]] + fv->v[0];
-			if (zbuf < d_pzbuffer || // FIXME properly
-				zbuf >= (d_pzbuffer+vid.width*vid.height*2)) {
-				Con_DPrintf("Zbuf segfault 0 %lx\n", zbuf);
+		if (fv->v[0] < r_refdef.vrectright && fv->v[1] < r_refdef.vrectbottom) {
+			if (fv->v[0] < 0 || fv->v[1] < 0) {
+				Con_DPrintf("Zbuf segfault 0 %d %d\n", fv->v[0], fv->v[1]);
 				continue;
 			}
+			s32 z = fv->v[5] >> 16;
+			s16 *zbuf = zspantable[fv->v[1]] + fv->v[0];
 			if (!(z >= *zbuf))
 				continue;
 			s32 pix;
@@ -240,13 +238,12 @@ split: // split this edge
 		goto nodraw;
 	if ((lp2[1] == lp1[1]) && (lp2[0] < lp1[0]))
 		goto nodraw;
-	s32 z = new[5] >> 16;
-	s16 *zbuf = zspantable[new[1]] + new[0];
-	if (zbuf < d_pzbuffer || // FIXME properly
-		zbuf >= (d_pzbuffer+vid.width*vid.height*2)) {
-		Con_DPrintf("Zbuf segfault 1 %lx\n", zbuf);
+	if (new[0] < 0 || new[1] < 0) {
+		Con_DPrintf("Zbuf segfault 1 %d %d\n", new[0], new[1]);
 		goto nodraw;
 	}
+	s32 z = new[5] >> 16;
+	s16 *zbuf = zspantable[new[1]] + new[0];
 	if (z >= *zbuf) {
 		*zbuf = z;
 		s32 pix;
