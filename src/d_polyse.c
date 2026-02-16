@@ -114,10 +114,10 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 				s32 curpix = d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]];
 				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] =
 					color_mix_lut[curpix][pix]
-					[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+					[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
 			}
 			else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
-				if (D_Dither(&d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]], 1-cur_ent_alpha))
+				if (D_Dither(&d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]], cur_ent_alpha))
 					d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] = pix;
 			}
 			else
@@ -274,10 +274,10 @@ split: // split this edge
 			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
 			d_viewbuffer[d_scantable[new[1]] + new[0]] =
 				color_mix_lut[curpix][pix]
-				[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+				[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
 		}
 		else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
-			if (D_Dither(&d_viewbuffer[d_scantable[new[1]] + new[0]], 1-cur_ent_alpha))
+			if (D_Dither(&d_viewbuffer[d_scantable[new[1]] + new[0]], cur_ent_alpha))
 				d_viewbuffer[d_scantable[new[1]] + new[0]] = pix;
 		}
 		else
@@ -433,10 +433,10 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 							s32 curpix = *lpdest;
 							*lpdest = color_mix_lut[curpix][pix]
-								[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+								[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
 						}
 						else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
-							if (D_Dither(lpdest, 1-cur_ent_alpha))
+							if (D_Dither(lpdest, cur_ent_alpha))
 								*lpdest = pix;
 						}
 						else
@@ -532,10 +532,10 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 							s32 curpix = *lpdest;
 							*lpdest = color_mix_lut[curpix][pix]
-								[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+								[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
 						}
 						else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
-							if (D_Dither(lpdest, 1-cur_ent_alpha))
+							if (D_Dither(lpdest, cur_ent_alpha))
 								*lpdest = pix;
 						}
 						else
