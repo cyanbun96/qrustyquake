@@ -56,6 +56,7 @@ void D_PolysetScanLeftEdge(s32 height);
 
 static inline s32 D_GetRGBPix(s32 pix)
 {
+	if (pix == 0xFF) return pix;
 	u8 tr = vid_curpal[pix * 3 + 0];
 	u8 tg = vid_curpal[pix * 3 + 1];
 	u8 tb = vid_curpal[pix * 3 + 2];
@@ -428,7 +429,8 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 						pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
 					else
 						pix = D_GetRGBPix(((u8*)acolormap)[*lptex]);
-					if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
+					if (pix==0xFF) { /* skip */}
+					else if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 						s32 curpix = *lpdest;
 						*lpdest = color_mix_lut[curpix][pix]
 							[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
@@ -525,7 +527,8 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
 					else
 						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
-					if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
+					if (pix==0xFF) { /* skip */}
+					else if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 						s32 curpix = *lpdest;
 						*lpdest = color_mix_lut[curpix][pix]
 							[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
