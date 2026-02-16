@@ -429,19 +429,20 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 						pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
 					else
 						pix = D_GetRGBPix(((u8*)acolormap)[*lptex]);
-					if (pix==0xFF) { /* skip */}
-					else if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
-						s32 curpix = *lpdest;
-						*lpdest = color_mix_lut[curpix][pix]
-							[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
-					}
-					else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
-						if (D_Dither(lpdest, 1-cur_ent_alpha))
+					if (pix!=0xFF) {
+						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
+							s32 curpix = *lpdest;
+							*lpdest = color_mix_lut[curpix][pix]
+								[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+						}
+						else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
+							if (D_Dither(lpdest, 1-cur_ent_alpha))
+								*lpdest = pix;
+						}
+						else
 							*lpdest = pix;
+						*lpz = lzi >> 16;
 					}
-					else
-						*lpdest = pix;
-					*lpz = lzi >> 16;
 				}
 				lpdest++;
 				lzi += r_zistepx;
@@ -527,19 +528,20 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
 					else
 						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
-					if (pix==0xFF) { /* skip */}
-					else if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
-						s32 curpix = *lpdest;
-						*lpdest = color_mix_lut[curpix][pix]
-							[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
-					}
-					else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
-						if (D_Dither(lpdest, 1-cur_ent_alpha))
+					if (pix==0xFF) {
+						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
+							s32 curpix = *lpdest;
+							*lpdest = color_mix_lut[curpix][pix]
+								[(s32)((1-cur_ent_alpha)*FOG_LUT_LEVELS)];
+						}
+						else if (r_alphastyle.value == 1 && cur_ent_alpha != 1) {
+							if (D_Dither(lpdest, 1-cur_ent_alpha))
+								*lpdest = pix;
+						}
+						else
 							*lpdest = pix;
+						*lpz = lzi >> 16;
 					}
-					else
-						*lpdest = pix;
-					*lpz = lzi >> 16;
 				}
 				lpdest++;
 				lzi += r_zistepx;
