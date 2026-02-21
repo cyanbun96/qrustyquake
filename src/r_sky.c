@@ -260,11 +260,8 @@ void R_InitSkyBox ()
 
 void R_EmitSkyBox ()
 {
-	if (insubmodel)
-		return; // submodels should never have skies
-	if ((u32)r_skyframe == r_framecount) {
+	if ((u32)r_skyframe == r_framecount)
 		return; // already set this frame
-	}
 	r_skyframe = r_framecount;
 	for (s32 i = 0 ; i < 8 ; i++) // set the eight fake vertexes
 		for (s32 j = 0 ; j < 3 ; j++)

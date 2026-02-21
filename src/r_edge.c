@@ -326,7 +326,8 @@ void R_GenerateSpans()
 	surfaces[1].last_u = edge_head_u_shift20;
 	// generate spans
 	for (edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next) {
-		if (surfaces[edge->surfs[1]].flags & SURF_DRAWCUTOUT) {
+		if ((surfaces[edge->surfs[1]].flags & SURF_DRAWCUTOUT) ||
+			(surfaces[edge->surfs[1]].flags & SURF_DRAWSKYBOX)) {
 		// Generates spans for whole cutout surfaces, from the leftmost
 		// point of each surface to the rightmost, intentional overdraw
 			s32 surfn = edge->surfs[1];

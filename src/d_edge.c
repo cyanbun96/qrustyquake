@@ -232,12 +232,28 @@ void D_DrawSurfaces()
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
 	s32 foundcutouts = 0;
+	if (skybox_name[0]) {
+		for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
+			if (!s->spans) continue;
+			if (s->flags & SURF_DRAWSKYBOX) {
+				miplevel = 0;
+				msurface_t *pface = s->data;
+				d_zistepu = s->d_zistepu;
+				d_zistepv = s->d_zistepv;
+				d_ziorigin = s->d_ziorigin;
+				D_DrawSkybox(s, pface);
+				s->spans = NULL;
+			}
+		}
+	}
 	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
 		if (!s->spans) continue;
 		msurface_t *pface = s->data;
+		miplevel = 0;
 		if (s->flags & SURF_DRAWBACKGROUND) {
 			if (skybox_name[0]) continue;
 			D_DrawBackground(s);
+			s->spans = NULL;
 			continue;
 		}
 		if (!pface || !pface->extents[0] || !pface->extents[1]) {
@@ -250,15 +266,11 @@ void D_DrawSurfaces()
 		d_zistepu = s->d_zistepu;
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
-		if(s->flags&(SURF_DRAWTURB|SURF_DRAWBACKGROUND|SURF_DRAWSKYBOX))
-			miplevel = 0;
-		else miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
-				* pface->texinfo->mipadjust);
 		if (s->insubmodel) D_SwitchSubModelOn(s);
 		if (s->flags & SURF_DRAWSKY) {
-			D_DrawSky(s);
-		} else if (s->flags & SURF_DRAWSKYBOX) {
-			D_DrawSkybox(s, pface);
+			if (!skybox_name[0]) D_DrawSky(s);
+			else D_DrawZSpans(s->spans);
+			s->spans = NULL;
 		} else if (s->flags & SURF_DRAWTURB) {
 			f32 opacity = 1;
 			if (s->entity && s->entity->alpha && r_entalpha.value)
@@ -273,12 +285,16 @@ void D_DrawSurfaces()
 				D_DrawUnlitWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
+			s->spans = NULL;
 		} else if (s->flags & SURF_DRAWCUTOUT) {
 			foundcutouts = 1;
-		} else D_DrawNormalSurf(s, pface);
-		if (s->insubmodel) D_SwitchSubModelOff();
-		if (!(s->flags & SURF_DRAWCUTOUT))
+		} else {
+			miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
+					* pface->texinfo->mipadjust);
+			D_DrawNormalSurf(s, pface);
 			s->spans = NULL;
+		}
+		if (s->insubmodel) D_SwitchSubModelOff();
 	}
 	if (!foundcutouts) return;
 	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
