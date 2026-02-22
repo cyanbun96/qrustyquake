@@ -110,6 +110,7 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 				pix = ((u8 *) acolormap)[pix + (fv->v[4] & 0xFF00)];
 			else
 				pix = D_GetRGBPix(((u8 *) acolormap)[pix]);
+			if (pix == 0xFF) continue;
 			if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 				s32 curpix = d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]];
 				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] =
@@ -270,6 +271,7 @@ split: // split this edge
 			pix = d_pcolormap[skintable[new[3] >> 16][new[2] >> 16]];
 		else
 			pix = D_GetRGBPix(((u8*)acolormap)[skintable[new[3] >> 16][new[2] >> 16]]);
+		if (pix == 0xFF) goto nodraw;
 		if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
 			d_viewbuffer[d_scantable[new[1]] + new[0]] =
