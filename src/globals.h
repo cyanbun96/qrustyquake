@@ -275,7 +275,7 @@ EX f32 xscaleshrink, yscaleshrink;
 EX s32 d_lightstylevalue[256];
 EX s32 r_skymade;
 EX s8 skybox_name[1024];
-EX surf_t *surfaces, *surface_p, *surf_max;
+EX surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
 void R_MakeSky();
 void Sky_LoadSkyBox(const s8 *name);
 void R_EmitSkyBox();
@@ -750,6 +750,7 @@ void R_ParseWorldspawn();
 void R_InitSkyBox();                                                  // r_sky.c
 void Sky_NewMap();
 void Sky_Init();
+EX s32 r_skyframe;
 EX u8 lit_loaded;                                                     //r_surf.c
 EX u8 worldpal[768];                                                 // common.c
 EX u8 worldcmap[64*256];

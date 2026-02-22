@@ -225,7 +225,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	// sky surfaces encountered in the world will cause the
 	// environment box surfaces to be emited
 	if ((fa->flags & SURF_DRAWSKY) && skybox_name[0])
-		R_EmitSkyBox();
+		r_skyframe = r_framecount;
 	// Manoel Kasimier - skyboxes - end
 	if (fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT) {
 		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(fa->flags);

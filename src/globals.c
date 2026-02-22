@@ -175,7 +175,7 @@ surf_t *lsurfs;
 s32 r_ledges_size = 0;
 s32 r_lsurfs_size = 0;
 edge_t *r_edges, *edge_p, *edge_max;
-surf_t *surfaces, *surface_p, *surf_max;
+surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
 edge_t *newedges[MAXHEIGHT];
 edge_t *removeedges[MAXHEIGHT];
 s32 r_currentkey;
@@ -206,6 +206,7 @@ f32 *pr_globals; // same as pr_global_struct
 s32 pr_edict_size; // in bytes
 u16 pr_crc;
 u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                   // r_sky.c
+s32 r_skyframe;
 f32 skyspeed, skyspeed2;
 f32 skytime;
 u8 *r_skysource;

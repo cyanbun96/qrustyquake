@@ -232,8 +232,8 @@ void D_DrawSurfaces()
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
 	s32 foundcutouts = 0;
-	if (skybox_name[0]) {
-		for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
+	if (skybox_name[0] && r_skyframe == r_framecount) {
+		for (surf_t *s = skybox_surf_p; s < surface_p; s++) {
 			if (!s->spans) continue;
 			if (s->flags & SURF_DRAWSKYBOX) {
 				miplevel = 0;

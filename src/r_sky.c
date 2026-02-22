@@ -10,7 +10,6 @@ static s32 iskyspeed2 = 2;
 static u8 bottomsky[128 * 131];
 static u8 bottommask[128 * 131];
 static u8 newsky[128 * 256];	
-static s32 r_skyframe;
 static msurface_t *r_skyfaces;
 static mplane_t r_skyplanes[6]; // Manoel Kasimier - edited
 static mtexinfo_t r_skytexinfo[6];
@@ -260,9 +259,6 @@ void R_InitSkyBox ()
 
 void R_EmitSkyBox ()
 {
-	if ((u32)r_skyframe == r_framecount)
-		return; // already set this frame
-	r_skyframe = r_framecount;
 	for (s32 i = 0 ; i < 8 ; i++) // set the eight fake vertexes
 		for (s32 j = 0 ; j < 3 ; j++)
 			r_skyverts[i].position[j] = r_origin[j] + box_verts[i][j]*128;
@@ -277,6 +273,7 @@ void R_EmitSkyBox ()
 	}
 	s32 oldkey = r_currentkey; // emit the six faces
 	r_currentkey = 0x7ffffff0;
+	skybox_surf_p = surface_p;
 	for (s32 i = 0; i < 6; i++)
 		R_RenderFace (r_skyfaces + i, 15);
 	r_currentkey = oldkey; // bsp sorting order
