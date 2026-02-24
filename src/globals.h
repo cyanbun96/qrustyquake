@@ -53,6 +53,7 @@ void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_SetMode(s32 moden, s32 custw, s32 custh, s32 custwinm, u8 *pal);
 void VID_Update();
 void VID_VidSetModeCommand_f();
+void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar);
 EX u8 r_foundtranswater, r_alphapass;                                // r_main.c
 EX void *colormap;
 EX bool r_dowarp;

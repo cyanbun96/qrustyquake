@@ -116,6 +116,7 @@ void R_Init()
 	Cvar_RegisterVariable(&lyr_console);
 	Cvar_RegisterVariable(&lyr_notify);
 	Cvar_RegisterVariable(&lyr_crosshair);
+	Cvar_RegisterVariable(&r_renderscale);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
@@ -124,6 +125,7 @@ void R_Init()
 	Cvar_SetCallback(&r_telealpha, R_SetTelealpha_f);
 	Cvar_SetCallback(&r_slimealpha, R_SetSlimealpha_f);
 	Cvar_SetCallback(&r_fovmode, R_ViewChangedCallback);
+	Cvar_SetCallback(&r_renderscale, VID_SetRenderScaleCommand_f);
 	Cvar_SetCallback(&yaspectscale, R_ViewChangedCallback);
 	view_clipplanes[0].leftedge = 1;
 	view_clipplanes[1].rightedge = 1;

@@ -56,6 +56,7 @@ cvar_t r_fogscale=                                    {"r_fogscale", "1", 1,ZR};
 cvar_t r_fognoise=                                    {"r_fognoise", "1", 1,ZR};
 cvar_t r_fogdepthcorrection=                {"r_fogdepthcorrection", "1", 1,ZR};
 cvar_t r_litwater=                                    {"r_litwater", "1", 1,ZR};
+cvar_t r_renderscale=                              {"r_renderscale", "1", 1,ZR};
 cvar_t vid_cwidth=                                    {"vid_cwidth", "0", 1,ZR};
 cvar_t vid_cheight=                                  {"vid_cheight", "0", 1,ZR};
 cvar_t vid_cwmode=                                    {"vid_cwmode", "0", 1,ZR};
