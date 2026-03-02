@@ -95,7 +95,8 @@ void D_DrawSurfacesFlat()
 static void D_DrawSky(surf_t *s)
 {
 	if (!r_skymade) R_MakeSky();
-	D_DrawSkyScans(s->spans);
+	if (fog_density>0 && r_skyfog.value>=1) D_DrawSkyScansOnlyFog(s->spans);
+	else D_DrawSkyScans(s->spans);
 	D_DrawZSpans(s->spans);
 }
 

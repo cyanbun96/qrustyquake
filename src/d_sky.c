@@ -63,3 +63,19 @@ void D_DrawSkyScans(espan_t *pspan)
 		} while (count > 0);
 	} while ((pspan = pspan->pnext) != NULL);
 }
+
+void D_DrawSkyScansOnlyFog(espan_t *pspan)
+{
+	do {
+		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +
+					  (screenwidth * pspan->v) + pspan->u);
+		s32 count = pspan->count;
+		do {
+			s32 spancount = count>=SKY_SPAN_MAX?SKY_SPAN_MAX:count;
+			count -= spancount;
+			do {
+				*pdest++ = fog_pal_index;
+			} while (--spancount > 0);
+		} while (count > 0);
+	} while ((pspan = pspan->pnext) != NULL);
+}
