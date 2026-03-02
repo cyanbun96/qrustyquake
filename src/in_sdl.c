@@ -248,10 +248,10 @@ void IN_Move(usercmd_t *cmd)
 		V_StopPitchDrift();
 	if ((in_mlook.state & 1) && !(in_strafe.state & 1)) {
 		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
-		if (cl.viewangles[PITCH] > 80)
-			cl.viewangles[PITCH] = 80;
-		if (cl.viewangles[PITCH] < -70)
-			cl.viewangles[PITCH] = -70;
+		if (cl.viewangles[PITCH] > cl_maxpitch.value)
+			cl.viewangles[PITCH] = cl_maxpitch.value;
+		if (cl.viewangles[PITCH] < cl_minpitch.value)
+			cl.viewangles[PITCH] = cl_minpitch.value;
 	} else {
 		if ((in_strafe.state & 1) && noclip_anglehack)
 			cmd->upmove -= m_forward.value * mouse_y;
