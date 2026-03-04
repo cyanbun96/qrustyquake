@@ -1577,7 +1577,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pmodel->numskins = pheader->numskins = LittleLong(pinmodel->numskins);
 	pmodel->skinwidth = pheader->skinwidth =LittleLong(pinmodel->skinwidth);
 	pmodel->skinheight=pheader->skinheight=LittleLong(pinmodel->skinheight);
-	if(pheader->skinheight > MAX_LBM_HEIGHT) Host_Error(
+	if(pheader->skinheight > MAX_LBM_HEIGHT) Con_DPrintf(
 		"Mod_LoadAliasModel: model %s has a skin taller than %d",
 			mod->name, MAX_LBM_HEIGHT);
 	pmodel->numverts = pheader->numverts = LittleLong(pinmodel->numverts);
