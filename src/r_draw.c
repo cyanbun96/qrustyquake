@@ -227,7 +227,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	if ((fa->flags & SURF_DRAWSKY) && skybox_name[0])
 		r_skyframe = r_framecount;
 	// Manoel Kasimier - skyboxes - end
-	if (fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT) {
+	if (fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT && !currententity->alpha) {
 		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(fa->flags);
 	} else if (cur_ent_alpha < 1 && r_entalpha.value == 1)
 		winquake_surface_liquid_alpha = cur_ent_alpha;
@@ -376,7 +376,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 
 void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 {
-	if (psurf->flags&SURF_WINQUAKE_DRAWTRANSLUCENT) {
+	if (psurf->flags&SURF_WINQUAKE_DRAWTRANSLUCENT && !currententity->alpha) {
 		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(psurf->flags);
 	} else if (cur_ent_alpha < 1 && r_entalpha.value == 1)
 		winquake_surface_liquid_alpha = cur_ent_alpha;
