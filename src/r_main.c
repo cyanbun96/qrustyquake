@@ -420,22 +420,32 @@ void R_DrawViewModel()
 s32 R_BmodelCheckBBox(model_t *clmodel, f32 *minmaxs)
 {
 	s32 clipflags = 0;
+	// recompute radius from real bounds to support large modern entities
+	vec3_t mins, maxs;
+	mins[0] = clmodel->mins[0];
+	mins[1] = clmodel->mins[1];
+	mins[2] = clmodel->mins[2];
+	maxs[0] = clmodel->maxs[0];
+	maxs[1] = clmodel->maxs[1];
+	maxs[2] = clmodel->maxs[2];
+	f32 dx = maxs[0] - mins[0];
+	f32 dy = maxs[1] - mins[1];
+	f32 dz = maxs[2] - mins[2];
+	f32 radius = sqrtf(dx*dx + dy*dy + dz*dz) * 0.5f;
+	radius += 8.0f; // bias prevents precision clipping with large entities
 	if(currententity->angles[0] || currententity->angles[1]
 	    || currententity->angles[2]){
 		for(s32 i = 0; i < 4; i++){
 			f64 d = DotProduct(currententity->origin,
-				       view_clipplanes[i].normal);
+					view_clipplanes[i].normal);
 			d -= view_clipplanes[i].dist;
-			if(d <= -clmodel->radius)
+			if(d <= -radius)
 				return BMODEL_FULLY_CLIPPED;
-			if(d <= clmodel->radius)
+			if(d <= radius)
 				clipflags |= (1 << i);
 		}
 	} else {
 		for(s32 i = 0; i < 4; i++){
-			// generate accept and reject points
-			// FIXME: do with fast look-ups or integer tests
-			// based on the sign bit of the floating point values
 			s32 *pindex = pfrustum_indexes[i];
 			vec3_t acceptpt, rejectpt;
 			rejectpt[0] = minmaxs[pindex[0]];
