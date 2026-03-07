@@ -146,11 +146,11 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
 	dest -= row_remainder * vid.width; // avoid jitter
 	while (drawline--) {
 		for (s32 k = 0; k < scale; ++k) {
-			for (s32 j = 0; j < scale; ++j) {
-				for (s32 i = 0; i < 8; ++i)
-					if (source[i])
-						dest[i * scale + j] = source[i];
-			}
+			if (dest >= (u8*)scrbuffs[drawlayer]->pixels)
+				for (s32 j = 0; j < scale; ++j)
+					for (s32 i = 0; i < 8; ++i)
+						if (source[i])
+							dest[i * scale + j] = source[i];
 			dest += vid.width;
 		}
 		source += 128;
