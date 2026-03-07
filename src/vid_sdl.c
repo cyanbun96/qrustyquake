@@ -7,7 +7,6 @@ static SDL_Rect blitRect;
 static SDL_FRect destRect;
 static SDL_Rect scRect;
 static SDL_Rect scRect2;
-static s32 VID_highhunkmark;
 static u8 *screenpixels;
 static u8 *toppixels;
 static u8 *uipixels;

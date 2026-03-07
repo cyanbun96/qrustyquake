@@ -15,13 +15,13 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 	// we count on FP exceptions being turned off to avoid range problems
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
 	do {
-		if (pspan->v < 0 || pspan->v >= vid.height)
+		if (pspan->v < 0 || pspan->v >= (s32)vid.height)
 			goto NextSpan;
-		if (pspan->u < 0 || pspan->u >= vid.width)
+		if (pspan->u < 0 || pspan->u >= (s32)vid.width)
 			goto NextSpan;
 		if (pspan->count <= 0)
 			goto NextSpan;
-		if (pspan->u + pspan->count > vid.width)
+		if (pspan->u + pspan->count > (s32)vid.width)
 			pspan->count = vid.width - pspan->u;
 		s32 count = pspan->count;
 		u8 *pdest = d_viewbuffer + (screenwidth*pspan->v) + pspan->u;
