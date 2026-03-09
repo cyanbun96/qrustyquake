@@ -58,8 +58,6 @@ bool SNDDMA_Init(dma_t *dma)
 	}
 	const SDL_AudioSpec desired = { SDL_AUDIO_U8, 2, 11025 }; // TODO configurable sample rates
 	s32 samples = 256;
-	SDL_AudioStream *stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, paint_audio_new, 0);
-	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream));
 	memset((void *) dma, 0, sizeof(dma_t));
 	shm = dma;
 	// Fill the audio DMA information block
@@ -97,7 +95,8 @@ bool SNDDMA_Init(dma_t *dma)
 		Con_Printf("Failed allocating memory for SDL audio\n");
 		return 0;
 	}
-	//SDL_PauseAudio(0);
+	SDL_AudioStream *stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, paint_audio_new, 0);
+	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream));
 	return 1;
 }
 
