@@ -143,6 +143,7 @@ static qpic_t plasma8x8 = { 8, 8, {
 	0xff,0x23,0x26,0x29,0x26,0x23,0xff,0xff,
 	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
 }};
+static s32 oldhudstyle;
 static qpic_t *sb_nums[2][11];
 static qpic_t *sb_colon, *sb_slash;
 static qpic_t *sb_ibar;
@@ -366,20 +367,21 @@ void Sbar_SortFrags()
 
 void Sbar_SoloScoreboard()
 {
+	s32 xx = (oldhudstyle == 4 && WW/SCL >= 640)*-160*SCL;
 	s8 str[80];
 	sprintf(str, "Monsters:%3i /%3i", cl.stats[STAT_MONSTERS],
 			cl.stats[STAT_TOTALMONSTERS]);
-	Draw_StringScaled(WW/2-152*SCL, HH-20*SCL, str, SCL);
+	Draw_StringScaled(WW/2-152*SCL+xx, HH-20*SCL, str, SCL);
 	sprintf(str, "Secrets :%3i /%3i", cl.stats[STAT_SECRETS],
 			cl.stats[STAT_TOTALSECRETS]);
-	Draw_StringScaled(WW/2-152*SCL, HH-12*SCL, str, SCL);
+	Draw_StringScaled(WW/2-152*SCL+xx, HH-12*SCL, str, SCL);
 	s32 minutes = cl.time / 60;
 	s32 seconds = cl.time - 60 * minutes;
 	s32 tens = seconds / 10;
 	s32 units = seconds - 10 * tens;
 	sprintf(str, "Time :%3i:%i%i", minutes, tens, units);
-	Draw_StringScaled(WW/2+24*SCL, HH-20*SCL, str, SCL);
-	Draw_StringScaled(WW/2+24*SCL, HH-12*SCL, cl.levelname, SCL);
+	Draw_StringScaled(WW/2+24*SCL+xx, HH-20*SCL, str, SCL);
+	Draw_StringScaled(WW/2+24*SCL+xx, HH-12*SCL, cl.levelname, SCL);
 }
 
 void Sbar_CalcPos()
@@ -1033,7 +1035,7 @@ void Sbar_Draw()
 	}
 	s32 force_vanilla = (scr_hudstyle.value == 4 && WW/SCL < 640)
 		|| scr_hudstyle.value == 8;
-	s32 oldhudstyle = scr_hudstyle.value;
+	oldhudstyle = scr_hudstyle.value;
 	if (force_vanilla) scr_hudstyle.value = 0;
 	if (sb_lines && WW/SCL > 320)
 		Draw_TileClear(0, HH - sb_lines/SCL, WW, sb_lines/SCL);
@@ -1041,8 +1043,13 @@ void Sbar_Draw()
 		Sbar_DrawBg();
 	if (cl.gametype==GAME_DEATHMATCH&&(sb_showscores||scr_sidescore.value))
 		Sbar_DeathmatchOverlay();
+	if ((sb_lines/SCL>24 || oldhudstyle) && !(oldhudstyle==4 && WW/SCL<640))
+		Sbar_DrawInventory();
+	if (sb_lines/SCL > 24 && cl.maxclients != 1)
+		Sbar_DrawFrags();
 	if (sb_showscores || cl.stats[STAT_HEALTH] <= 0) {
-		Draw_TransPicScaled(WW/2-160*SCL, HH-24*SCL, sb_scorebar, SCL);
+		s32 xx = (oldhudstyle == 4 && WW/SCL >= 640)*-160*SCL;
+		Draw_TransPicScaled(WW/2-160*SCL+xx,HH-24*SCL,sb_scorebar, SCL);
 		Sbar_SoloScoreboard();
 		sb_updates = 0;
 	} else if (scr_hudstyle.value == 9) { // EZQuake
@@ -1053,10 +1060,6 @@ void Sbar_Draw()
 		Sbar_DrawFace(); // ...and HP
 		Sbar_DrawAmmo();
 	}
-	if ((sb_lines/SCL>24 || oldhudstyle) && !(oldhudstyle==4 && WW/SCL<640))
-		Sbar_DrawInventory();
-	if (sb_lines/SCL > 24 && cl.maxclients != 1)
-		Sbar_DrawFrags();
 	if (force_vanilla) scr_hudstyle.value = oldhudstyle;
 	drawlayer = lyr_main.value;
 }
