@@ -246,6 +246,61 @@ void Key_WriteBindings(FILE *f) // Writes lines containing "bind key value"
 				Key_KeynumToString(i), keybindings[i]);
 }
 
+void Key_SetDefaults() // CyanBun96: some paks don't include a default.cfg,
+{ // notably the 2021 rerelease. This is a direct copy of the id1 defaults.
+	Key_SetBinding(K_ALT, "+strafe");
+	Key_SetBinding(',', "+moveleft");
+	Key_SetBinding('.', "+moveright");
+	Key_SetBinding(K_DEL, "+lookdown");
+	Key_SetBinding(K_PGDN, "+lookup");
+	Key_SetBinding(K_END, "centerview");
+	Key_SetBinding('z', "+lookdown");
+	Key_SetBinding('a', "+lookup");
+	Key_SetBinding('d', "+moveup");
+	Key_SetBinding('c', "+movedown");
+	Key_SetBinding(K_SHIFT, "+speed");
+	Key_SetBinding(K_CTRL, "+attack");
+	Key_SetBinding(K_UPARROW, "+forward");
+	Key_SetBinding(K_DOWNARROW, "+back");
+	Key_SetBinding(K_LEFTARROW, "+left");
+	Key_SetBinding(K_RIGHTARROW, "+right");
+	Key_SetBinding(K_SPACE, "+jump");
+	Key_SetBinding(K_ENTER, "+jump");
+	Key_SetBinding(K_TAB, "+showscores");
+	Key_SetBinding('1', "impulse 1");
+	Key_SetBinding('2', "impulse 2");
+	Key_SetBinding('3', "impulse 3");
+	Key_SetBinding('4', "impulse 4");
+	Key_SetBinding('5', "impulse 5");
+	Key_SetBinding('6', "impulse 6");
+	Key_SetBinding('7', "impulse 7");
+	Key_SetBinding('8', "impulse 8");
+	Key_SetBinding('0', "impulse 0");
+	Key_SetBinding('/', "impulse 10");
+	Key_SetBinding(K_F1, "help");
+	Key_SetBinding(K_F2, "menu_save");
+	Key_SetBinding(K_F3, "menu_load");
+	Key_SetBinding(K_F4, "menu_options");
+	Key_SetBinding(K_F5, "menu_multiplayer");
+	Key_SetBinding(K_F6, "echo Quicksaving...; wait; save quick");
+	Key_SetBinding(K_F9, "echo Quickloading...; wait; load quick");
+	Key_SetBinding(K_F10, "quit");
+	Key_SetBinding(K_F12, "screenshot");
+	Key_SetBinding('\\', "+mlook");
+	Key_SetBinding(K_PAUSE, "pause");
+	Key_SetBinding(K_ESCAPE, "togglemenu");
+	Key_SetBinding('~', "toggleconsole");
+	Key_SetBinding('`', "toggleconsole");
+	Key_SetBinding('t', "messagemode");
+	Key_SetBinding('+', "sizeup");
+	Key_SetBinding('=', "sizeup");
+	Key_SetBinding('-', "sizedown");
+	Key_SetBinding(K_INS, "+klook");
+	Key_SetBinding(K_MOUSE1, "+attack");
+	Key_SetBinding(K_MOUSE2, "+forward");
+	Key_SetBinding(K_MOUSE3, "+mlook");
+}
+
 void Key_Init()
 {
 	for(s32 i = 0; i < 32; i++){
@@ -283,6 +338,7 @@ void Key_Init()
 	Cmd_AddCommand("bind", Key_Bind_f);
 	Cmd_AddCommand("unbind", Key_Unbind_f);
 	Cmd_AddCommand("unbindall", Key_Unbindall_f);
+	Key_SetDefaults();
 }
 
 void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
