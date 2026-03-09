@@ -61,6 +61,7 @@ void D_AllocCaches() // allocate z buffer and surface cache
 	chunk += cachesize;
 	D_FlushCaches(0);
 	d_pzbuffer = realloc(d_pzbuffer, chunk);
+	memset(d_pzbuffer, 0, chunk);
 	if(d_pzbuffer == NULL) Sys_Error("Not enough memory for surf cache\n");
 	u8 *cache = (u8*)d_pzbuffer+vid.width*vid.height*sizeof(*d_pzbuffer);
 	D_InitCaches(cache, cachesize);

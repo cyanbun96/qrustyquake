@@ -439,7 +439,7 @@ void V_AllocLedges()
 	s32 alloc_sz = (r_ledges_size+((CACHE_SIZE-1)/sizeof(edge_t))+1)
 				* sizeof(edge_t);
 	ledges = realloc(ledges, alloc_sz);
-
+	memset(ledges, 0, alloc_sz);
 }
 
 void V_AllocLsurfs()
@@ -450,6 +450,7 @@ void V_AllocLsurfs()
 	s32 alloc_sz = (r_lsurfs_size+((CACHE_SIZE-1)/sizeof(surf_t))+1)
 				* sizeof(surf_t);
 	lsurfs = realloc(lsurfs, alloc_sz);
+	memset(lsurfs, 0, alloc_sz);
 }
 
 void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
