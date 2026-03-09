@@ -577,7 +577,7 @@ void R_EdgeDrawing()
 
 void R_EdgeDrawingAlpha()
 {
-	if(!r_foundtranswater || !r_entalpha.value){
+	if(!r_foundtranswater){
 		if(r_dspeeds.value)
 			d_times[7]=d_times[8]=d_times[9]=Sys_DoubleTime();
 		return;
