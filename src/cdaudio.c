@@ -124,7 +124,7 @@ void CDAudio_Update()
 	if (bgmvolume.value > 1) Cvar_SetQuick(&bgmvolume, "1");
 	if (last_volume != bgmvolume.value) {
 		last_volume = bgmvolume.value;
-		MIX_SetMasterGain(mixer, bgmvolume.value);
+		MIX_SetMixerGain(mixer, bgmvolume.value);
 	}
 }
 
