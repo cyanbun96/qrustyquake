@@ -43,10 +43,14 @@ CFLAGS += -DSDL_DISABLE_IMMINTRIN_H
 endif
 
 DEBUG_FLAGS = -g -O0 -DDEBUG
-RELEASE_FLAGS = -O3 -flto -g
+RELEASE_FLAGS = -O3 -flto=auto -g
 
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += $(DEBUG_FLAGS)
+	ifeq ($(ASAN), 1)
+		CFLAGS += -fsanitize=address -fsanitize-recover=address -fno-omit-frame-pointer
+		LDFLAGS += -fsanitize=address
+	endif
 else
 	CFLAGS += $(RELEASE_FLAGS)
 endif
@@ -61,6 +65,9 @@ $(TARGET): $(OBJS)
 
 debug:
 	$(MAKE) BUILD_TYPE=debug
+
+asan:
+	$(MAKE) BUILD_TYPE=debug ASAN=1
 
 release:
 	$(MAKE) BUILD_TYPE=release

@@ -249,6 +249,7 @@ Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
 	s32 i = 0;
 	for(host_client = svs.clients; i < svs.maxclients; i++, host_client++)
 		if(host_client->active) SV_DropClient(crash);
+	free(sv.edicts);
 	memset(&sv, 0, sizeof(sv)); // clear structures
 	memset(svs.clients, 0, svs.maxclientslimit * sizeof(client_t));
 }
@@ -260,6 +261,7 @@ void Host_ClearMemory() // This clears all the memory used by both the client
 	Mod_ClearAll();
 	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
 	cls.signon = 0;
+	free(sv.edicts);
 	memset(&sv, 0, sizeof(sv));
 	memset(&cl, 0, sizeof(cl));
 }
