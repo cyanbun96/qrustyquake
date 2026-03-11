@@ -78,7 +78,7 @@ found:
 		Con_Printf("failed to create IOStream for %s: %s\n", filename, SDL_GetError());
 		return;
 	}
-	music = MIX_LoadAudio_IO(mixer, io, true, true);
+	music = MIX_LoadAudio_IO(mixer, io, false, true);
 	if (!music) {
 		Con_Printf("failed to load %s: %s\n", filename, SDL_GetError());
 		return;
