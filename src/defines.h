@@ -754,8 +754,8 @@
 
 #define BLINK_HZ ((1000 / 70) * 16) // vgatext.c
 
-#define MAX_BMODEL_VERTS 2500 // CyanBun96: was 500 // r_bsp.c
-#define MAX_BMODEL_EDGES 5000 // was 1000
+#define MAX_BMODEL_VERTS 5000 // CyanBun96: was 500 // r_bsp.c
+#define MAX_BMODEL_EDGES 10000 // was 1000
 
 #define NUMVERTEXNORMALS 162 // r_alias.c
 #define LIGHT_MIN 5
