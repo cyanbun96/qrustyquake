@@ -48,7 +48,7 @@ static s8 current_name[MAX_OSPATH];
 static u8 *loaded_file = NULL;
 static float last_volume = -1;
 
-void BGM_Play(s8 *musicname, bool looping)
+void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
 {
 	s8 filename[MAX_OSPATH];
 	u8 *file = NULL;
@@ -59,8 +59,8 @@ void BGM_Play(s8 *musicname, bool looping)
 		return;
 	}
 	CDAudio_Stop();
-	for(s32 i = 0; i < Q_COUNTOF(music_formats); i++) {
-		for(s32 j = 0; j < music_formats[i].num_extensions; j++) {
+	for(u32 i = 0; i < Q_COUNTOF(music_formats); i++) {
+		for(u32 j = 0; j < music_formats[i].num_extensions; j++) {
 			q_snprintf(filename, sizeof(filename), "music/%s%s",
 				musicname, music_formats[i].extensions[j]);
 			file = COM_LoadMallocFile(filename, NULL);
