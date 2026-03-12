@@ -45,7 +45,7 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 	if (!sc_base)
 		return;
 	for (c = sc_base; c; c = c->next)
-		if (c->owner)
+		if (c->owner && !((u64)sc_rover->owner & 0xFF00000000000000))
 			*c->owner = NULL;
 	sc_rover = sc_base;
 	sc_base->next = NULL;
@@ -99,11 +99,16 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 		*sc_rover->owner = NULL;
 	while (new->size < (s32)size) {
 		sc_rover = sc_rover->next; // free another
-		if (!sc_rover)
-			Sys_Error("D_SCAlloc: hit the end of memory");
-		if (sc_rover->owner)
+		if (!sc_rover) {
+			Con_DPrintf("D_SCAlloc: hit the end of memory");
+			return NULL;
+		}
+		if (((u64)sc_rover->owner&0xFF00000000000000)) {
+			Con_DPrintf("D_SCAlloc: corrupt sc_rover");
+			return NULL;
+		}
+		if (sc_rover->owner&&!((u64)sc_rover->owner&0xFF00000000000000))
 			*sc_rover->owner = NULL;
-
 		new->size += sc_rover->size;
 		new->next = sc_rover->next;
 	}
