@@ -131,7 +131,8 @@ static void R_InitDepthCorrection()
 	for(s32 i = 0; i < scr_vrect.height; ++i){
 	for(s32 j = 0; j < scr_vrect.width; ++j){
 		f32 dist = (j-xmid)*(j-xmid) + (i-ymid)*(i-ymid);
-		zadjarr[i*scr_vrect.width + j] = (dist/max)*(dist/max)/5+0.8;
+		f32 noise = ((f32)((s32)lfsr_random() % 64))/(64.0*100.0)-0.005;
+		zadjarr[i*scr_vrect.width+j]=(dist/max)*(dist/max)/5+0.8+noise;
 	}}
 }
 
