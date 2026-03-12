@@ -113,11 +113,17 @@ void CDAudio_Play(u8 track, bool looping)
 void CDAudio_Stop()
 {
 	MIX_StopAllTracks(mixer, 0);
-	if (loaded_file) free(loaded_file);
-	loaded_file = NULL;
+	if (current_music) {
+		MIX_DestroyAudio(current_music);
+		current_music = 0;
+	}
+	if (loaded_file) {
+		free(loaded_file);
+		loaded_file = 0;
+	}
 	memset(current_name, 0, sizeof(current_name));
-	current_music = NULL;
 }
+
 void CDAudio_Update()
 {
 	if (bgmvolume.value < 0) Cvar_SetQuick(&bgmvolume, "0");
