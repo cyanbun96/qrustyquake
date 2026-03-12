@@ -105,6 +105,20 @@ u8 *Upscale_NearestNeighbor(u8 *src, s32 width, s32 height, s32 *new_width,
 	return dest;
 }
 
+u8 *Resize_Nearest(const u8 *src, s32 sw, s32 sh, s32 dw, s32 dh)
+{
+	u8 *dst = malloc(dw * dh);
+	if (!dst) return NULL;
+	for (s32 y = 0; y < dh; y++) {
+		s32 sy = (y * sh) / dh;
+		for (s32 x = 0; x < dw; x++) {
+			s32 sx = (x * sw) / dw;
+			dst[y * dw + x] = src[sy * sw + sx];
+		}
+	}
+	return dst;
+}
+
 s32 R_LoadSkybox (const s8 *name)
 {
 	if (!name || !name[0]) {
@@ -141,6 +155,23 @@ s32 R_LoadSkybox (const s8 *name)
 		if (!pic) {
 			Con_Printf ("Couldn't load %s", pathname);
 			return 0;
+		}
+		s32 target = 1024;
+		s32 m = width > height ? width : height;
+		bool freescaled = false;
+		if (m <= 256) target = 256;
+		if (m <= 512) target = 512;
+		u8 *scaled;
+		if (width != target || height != target) {
+			scaled = Resize_Nearest(pic, width, height, target, target);
+			freescaled = true;
+			if (!scaled) {
+				Con_Printf("skybox resize failed for %s", pathname);
+				Hunk_FreeToLowMark(mark);
+				return 0;
+			}
+			width = height = target;
+			pic = scaled;
 		}
 		switch (width) { // Manoel Kasimier - hi-res skyboxes - begin
 			case 1024: // falls through
@@ -192,6 +223,7 @@ s32 R_LoadSkybox (const s8 *name)
 		else Con_DPrintf ("Warning: No surface to load yet for WinQuake skybox");
 		memcpy (r_skypixels[i], pic, width*height);
 		pic = origpic;
+		if (freescaled) free (scaled);
 		Hunk_FreeToLowMark (mark);
 		if (final_pic != origpic)
 			free(final_pic);
