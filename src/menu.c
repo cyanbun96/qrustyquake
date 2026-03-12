@@ -1734,7 +1734,9 @@ void M_Graphics_Key(s32 k)
 		case 300: Cvar_SetValue("r_enableskybox",
 			!r_enableskybox.value); break;
 		case 301: Cvar_SetValue("r_skyfog",
-			r_skyfog.value - 0.1); break;
+			CLAMP(0, r_skyfog.value - 0.1, 1)); break;
+		case 302: Cvar_SetValue("r_skynoise",
+			CLAMP(0, r_skynoise.value - 0.1, 1)); break;
 		case 400: Cvar_SetValue("r_rgblighting",
 			!r_rgblighting.value); break;
 		case 401: Cvar_SetValue("r_litwater",
@@ -1850,7 +1852,9 @@ void M_Graphics_Key(s32 k)
 		case 300: Cvar_SetValue("r_enableskybox",
 			!r_enableskybox.value); break;
 		case 301: Cvar_SetValue("r_skyfog",
-			r_skyfog.value + 0.1); break;
+			CLAMP(0, r_skyfog.value + 0.1, 1)); break;
+		case 302: Cvar_SetValue("r_skynoise",
+			CLAMP(0, r_skynoise.value + 0.1, 1)); break;
 		case 400: Cvar_SetValue("r_rgblighting",
 			!r_rgblighting.value); break;
 		case 401: Cvar_SetValue("r_litwater",
@@ -1921,7 +1925,7 @@ void M_Graphics_Key(s32 k)
 		else if (graphics_cursor == 200) {
 			if (r_lockfog.value) graphics_cursor = 211;
 			else graphics_cursor = 207;
-		}else if(graphics_cursor == 300) graphics_cursor = 301;
+		}else if(graphics_cursor == 300) graphics_cursor = 302;
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) {
 			if (r_hlwater.value) graphics_cursor = 507;
@@ -1945,7 +1949,7 @@ void M_Graphics_Key(s32 k)
 				else graphics_cursor++;
 			}
 		} else if (graphics_cursor < 400) {
-			if (graphics_cursor == 301) graphics_cursor = 300;
+			if (graphics_cursor == 302) graphics_cursor = 300;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 500) {
 			if (graphics_cursor == 402) graphics_cursor = 400;
@@ -2065,6 +2069,13 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 40, "Sky Fog:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_skyfog.value);
 		M_Print(xoffset + x2, 40, temp);
+		M_Print(xoffset, 48, "Sky Noise:");
+		snprintf(temp, sizeof(temp), "%0.1f\n", r_skynoise.value);
+		M_Print(xoffset + x2, 48, temp);
+		if (graphics_cursor == 302) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Applies to newly loaded skyboxes");
+		}
 	} else if (graphics_cursor == 4 || graphics_cursor/100 == 4) {
 		M_Print(xoffset, 32, "Color:");
 		M_Print(xoffset+x2, 32, r_rgblighting.value==1 ? "On" : "Off");

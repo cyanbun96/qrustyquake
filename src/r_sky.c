@@ -127,9 +127,9 @@ s32 R_LoadSkybox (const s8 *name)
 		if (!rgb_lut_built)
 			R_BuildRGBLUT();
 		for (s32 j = 0; j < width*height; j++, psrc+=4) {
-			s32 r = psrc[0] + (lfsr_random() % 16) - 7;
-			s32 g = psrc[1] + (lfsr_random() % 16) - 7;
-			s32 b = psrc[2] + (lfsr_random() % 16) - 7;
+			s32 r = psrc[0] + ((f32)(((s32)lfsr_random() % 16) - 7) * r_skynoise.value);
+			s32 g = psrc[1] + ((f32)(((s32)lfsr_random() % 16) - 7) * r_skynoise.value);
+			s32 b = psrc[2] + ((f32)(((s32)lfsr_random() % 16) - 7) * r_skynoise.value);
 			pdest[j] = fast_rgbtoi(CLAMP(0,r,255),
 						CLAMP(0,g,255),
 						CLAMP(0,b,255));
@@ -332,6 +332,7 @@ void Sky_Init()
 	Cmd_AddCommand ("sky", Sky_SkyCommand_f);
 	Cvar_RegisterVariable (&r_enableskybox);
 	Cvar_RegisterVariable (&r_skyfog);
+	Cvar_RegisterVariable (&r_skynoise);
         skybox_name[0] = 0;
 }
 
