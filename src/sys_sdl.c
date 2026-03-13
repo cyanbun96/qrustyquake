@@ -137,6 +137,13 @@ s32 Sys_FileOpenWrite(const s8 *path)
 	return i;
 }
 
+f64 Sys_DoubleTime()
+{
+	static Uint64 starttime = 0;
+	if (!starttime) starttime = SDL_GetTicksNS();
+	return ((double)(SDL_GetTicksNS() - starttime)) / 1000000000;
+}
+
 #ifndef _WIN32
 s32 Sys_FileType (const s8 *path)
 {
@@ -145,19 +152,6 @@ s32 Sys_FileType (const s8 *path)
         if(S_ISDIR(st.st_mode)) return FS_ENT_DIRECTORY;
         if(S_ISREG(st.st_mode)) return FS_ENT_FILE;
         return FS_ENT_NONE;
-}
-
-f64 Sys_DoubleTime()
-{
-	struct timeval tp;
-	struct timezone tzp;
-	static s32 secbase;
-	gettimeofday(&tp, &tzp);
-	if(!secbase){
-		secbase = tp.tv_sec;
-		return tp.tv_usec / 1000000.0;
-	}
-	return (tp.tv_sec - secbase) + tp.tv_usec / 1000000.0;
 }
 
 void Sys_mkdir(const s8 *path) { mkdir(path, 0777); }
@@ -169,13 +163,6 @@ s32 Sys_FileType (const s8 *path)
         if(result == -1) return FS_ENT_NONE;
         if(result & FILE_ATTRIBUTE_DIRECTORY) return FS_ENT_DIRECTORY;
         return FS_ENT_FILE;
-}
-
-f64 Sys_DoubleTime()
-{
-	static s32 starttime = 0;
-	if(!starttime) starttime = clock();
-	return (clock() - starttime) * 1.0 / 1024;
 }
 
 void Sys_mkdir(const s8 *path) { _mkdir(path); }
