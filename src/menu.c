@@ -1806,7 +1806,6 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("lyr_console", 2);
 			Cvar_SetValue("lyr_notify", 2);
 			Cvar_SetValue("lyr_crosshair", 3);
-			Cvar_SetValue("r_rebuildmips", 2);
 			Cvar_SetValue("r_mipscale", 3);
 		} else if (graphics_cursor == 1) {
 			Cvar_SetValue("r_nofog", 1);
@@ -1821,7 +1820,6 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("lyr_console", 0);
 			Cvar_SetValue("lyr_notify", 0);
 			Cvar_SetValue("lyr_crosshair", 0);
-			Cvar_SetValue("r_rebuildmips", 0);
 			Cvar_SetValue("r_mipscale", 1);
 		} else if (graphics_cursor < 100) graphics_cursor *= 100;
 		else switch (graphics_cursor) {
@@ -2013,14 +2011,14 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "colored lighting,");
 		M_Print(xoffset, 56, "translusency,");
 		M_Print(xoffset, 64, "layered rendering,");
-		M_Print(xoffset, 72, "far+rebuilt mipmaps");
+		M_Print(xoffset, 72, "far mipmaps");
 	} else if (graphics_cursor == 1) {
 		M_Print(xoffset, 32, "Disables fog,");
 		M_Print(xoffset, 40, "custom skyboxes,");
 		M_Print(xoffset, 48, "colored lighting,");
 		M_Print(xoffset, 56, "translusency,");
 		M_Print(xoffset, 64, "layered rendering,");
-		M_Print(xoffset, 72, "far+rebuilt mipmaps");
+		M_Print(xoffset, 72, "far mipmaps");
 	} else if (graphics_cursor == 2 || graphics_cursor/100 == 2) {
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "On" : "Off");
