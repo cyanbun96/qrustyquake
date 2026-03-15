@@ -16,6 +16,10 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
 - Hardware-accelerated frame > screen rendering
 
+- r_renderscale cvar that can be used to render at lower resolutions in exclusive fullscreen
+
+   - In console, use "r_renderscale 2" and "vid_setmode 320 240 1" to render at 320x240 in 640x480 fullscreen
+
 - High resolution support
 
    - Maximum tested is 16K, 2000 times bigger that 320x200
@@ -74,13 +78,17 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
    - All the formats you can think of (i.e. whatever sdl3_mixer supports)
 
-   - Optional, requires sdl3_mixer, currently missing from the windows releases
+   - Optional, requires sdl3_mixer
 
 - The default audio rate is 11025 for more muffled WinQuake sound
 
 - vim-like keybinds that work in menus, enable with -vimmode flag
 
+- Modern gamepad support
+
 - Mouse sensitivity Y-axis scaling with sensitivityyscale cvar
+
+   - Affects gamepads
 
 - FPS counter, scr_showfps 1
 
@@ -114,7 +122,11 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
       - Dither - much less memory-hungry option, but with less gradual translusency levels
 
-   - Cubemapped skyboxes ("sky filename_", "r_skyfog [0.0-1.0]"), only .tga format for now
+   - Cubemapped skyboxes ("sky filename_"), only .tga format for now
+
+      - r_skyfog [0-1] blends between sky and fog colors
+
+      - r_skynoise [0-1] for noise dithering
 
    - Cutout textures (transparency)
 
@@ -138,19 +150,25 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
    - Better mipmaps
 
-      - Regenerated on map load with r_rebuildmips 1
+      - Regenerated on map load with r_rebuildmips 1 (all textures) or 2 (only cutouts)
 
       - Solves random fullbright pixels on dark textures and bright fringe around cutout textures
 
    - Dithered texture filtering, Unreal-style
 
-- Miscellaneous graphics cvars
+   - HL-style liquid warping shader
+   
+   - Configurable particles
 
-   - r_particlescale for higher resolutions
+      - r_particlescale for relative scaling
+
+      - r_particlesize for fixed size
+
+      - r_particlestyle 0 - square, 1 - circle
+
+      - r_particlealpha [0=1] for translusency, affected by r_alphastyle
 
    - r_mipscale for LOD distance adjustment
-
-- Modern gamepad support
 
 # Planned
 
@@ -163,6 +181,10 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 - Other modern features (optional)
 
    - More modern console
+
+   - "Mods" menu
+
+   - CSQC for custom HUD elements in modern mods
 
    - More palette options
 
@@ -178,11 +200,11 @@ Contributions of any kind are very welcome. If someone implements their favorite
 
 Linux: cd src && make
 
-Other -nixes: cd src && make -f Makefile.freebsd/openbsd/...
+Use CMakeLists.txt for building for Windows natively:
 
-Windows: cd src && make -f Makefile.w64
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR=C:/sdl3/cmake/ -DSDL3_mixer_DIR=C:/sdl3_mixer/cmake/
 
-The windows makefile is for cross-compilation from under Linux. Use CMakeLists.txt for building natively.
+cd build && cmake --build .
 
 # Successful builds
 
@@ -190,7 +212,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.6.2
+- Arch Linux [HW] v0.7.0
 
    - The main platform that this port is developed on. The most likely one to work
 
@@ -234,7 +256,7 @@ VM is VirtualBox unless specified otherwise.
 
    - Dark magic performed by Erysdren, please don't ask me about it
 
-- Windows [VM, HW] v0.6.2
+- Windows [VM, HW] v0.7.0
 
 # Credits
 
