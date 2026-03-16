@@ -44,8 +44,6 @@ static s32 loadsize;
 static localization_t localization;
 static bool fitzmode;
 static s8 com_cmdline[CMDLINE_LENGTH];
-static searchpath_t *com_base_searchpaths;
-static searchpath_t *com_searchpaths;
 static u16 pop[] =
 { // this graphic needs to be in the pak file to use registered features
 	     0,     0,     0,     0,     0,     0,     0,     0,
@@ -1407,6 +1405,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 		SCR_Init();
 		Sbar_Init();
 	}
+	ExtraMaps_NewGame();
 	Con_Printf("\"game\" changed to \"%s\"\n", COM_SkipPath(com_gamedir));
 	Cbuf_AddText("exec quake.rc\n");
 	Cbuf_AddText("vid_unlock\n");

@@ -1,4 +1,7 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 2002-2009 John Fitzgibbons and others
+// Copyright(C) 2007-2008 Kristian Duske
+// Copyright(C) 2010-2014 QuakeSpasm developers
 #include "quakedef.h"
 
 void Host_Quit_f()
@@ -821,8 +824,119 @@ void Host_Stopdemo_f()
 	CL_Disconnect();
 }
 
+void FileList_Add (const char *name, filelist_item_t **list)
+{
+        filelist_item_t *item,*cursor,*prev;
+        for (item = *list; item; item = item->next) // ignore duplicate
+                if (!Q_strcmp (name, item->name)) return;
+        item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
+        q_strlcpy (item->name, name, sizeof(item->name));
+        // insert each entry in alphabetical order
+        if (*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0) {
+                item->next = *list; //insert at front
+                *list = item;
+        } else { //insert later
+                prev = *list;
+                cursor = (*list)->next;
+                while (cursor && (q_strcasecmp(item->name, cursor->name) > 0)) {
+                        prev = cursor;
+                        cursor = cursor->next;
+                }
+                item->next = prev->next;
+                prev->next = item;
+        }
+}
+
+void ExtraMaps_Add(const s8 *name) { FileList_Add(name, &extralevels); }
+
+void ExtraMaps_Init()
+{
+#ifdef _WIN32
+	WIN32_FIND_DATA fdat;
+	HANDLE          fhnd;
+#else
+	DIR             *dir_p;
+	struct dirent   *dir_t;
+#endif
+	s8 filestring[MAX_OSPATH];
+	s8 mapname[32];
+	s8 ignorepakdir[32];
+	searchpath_t *search;
+	pack_t *pak;
+	s32 i;
+	// we don't want to list the maps in id1 pakfiles,
+	// because these are not "add-on" levels
+	q_snprintf (ignorepakdir, sizeof(ignorepakdir), "/%s/", GAMENAME);
+	for (search = com_searchpaths; search; search = search->next) {
+		if (*search->filename) { //directory
+#ifdef _WIN32
+			q_snprintf (filestring, sizeof(filestring), "%s/maps/*.bsp", search->filename);
+			fhnd = FindFirstFile(filestring, &fdat);
+			if (fhnd == INVALID_HANDLE_VALUE) continue;
+			do {
+				COM_StripExtension(fdat.cFileName, mapname, sizeof(mapname));
+				ExtraMaps_Add (mapname);
+			} while (FindNextFile(fhnd, &fdat));
+			FindClose(fhnd);
+#else
+			q_snprintf (filestring, sizeof(filestring), "%s/maps/", search->filename);
+			dir_p = opendir(filestring);
+			if (dir_p == NULL) continue;
+			while ((dir_t = readdir(dir_p)) != NULL) {
+				if (q_strcasecmp(COM_FileGetExtension(dir_t->d_name), "bsp") != 0)
+					continue;
+				COM_StripExtension(dir_t->d_name, mapname, sizeof(mapname));
+				ExtraMaps_Add (mapname);
+			}
+			closedir(dir_p);
+#endif
+		} else { //pakfile
+			if (!strstr(search->pack->filename, ignorepakdir)) { //don't list standard id maps
+				for (i = 0, pak = search->pack; i < pak->numfiles; i++)
+				{
+					if (!strcmp(COM_FileGetExtension(pak->files[i].name), "bsp")) {
+						if (pak->files[i].filelen > 32*1024) { // don't list files under 32k (ammo boxes etc)
+							COM_StripExtension(pak->files[i].name + 5, mapname, sizeof(mapname));
+							ExtraMaps_Add (mapname);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+static void FileList_Clear(filelist_item_t **list)
+{
+        filelist_item_t *blah;
+        while (*list) {
+                blah = (*list)->next;
+                Z_Free(*list);
+                *list = blah;
+        }
+}
+
+static void ExtraMaps_Clear() { FileList_Clear(&extralevels); }
+
+void ExtraMaps_NewGame()
+{
+        ExtraMaps_Clear();
+        ExtraMaps_Init();
+}
+
+void Host_Maps_f()
+{
+        s32 i;
+        filelist_item_t *level;
+        for (level = extralevels, i = 0; level; level = level->next, i++)
+                Con_Printf ("   %s\n", level->name);
+        if (i) Con_Printf ("%i map(s)\n", i);
+        else Con_Printf ("no maps found\n");
+}
+
 void Host_InitCommands()
 {
+	Cmd_AddCommand("maps", Host_Maps_f);
 	Cmd_AddCommand("status", Host_Status_f);
 	Cmd_AddCommand("quit", Host_Quit_f);
 	Cmd_AddCommand("god", Host_God_f);

@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <assert.h>
 #ifndef _WIN32
+#include <dirent.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/ioctl.h>

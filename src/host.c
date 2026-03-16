@@ -477,6 +477,7 @@ void Host_Init()
 		Sbar_Init();
 		CL_Init();
 	}
+	ExtraMaps_NewGame();
 	LOC_Init(); // for 2021 rerelease support.
 	Cbuf_InsertText("exec quake.rc\n");
 	IN_MLookDown();

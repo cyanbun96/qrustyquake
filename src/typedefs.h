@@ -68,6 +68,10 @@ typedef struct _fshandle_t {
 	s64 length; /* file or data size */
 	s64 pos; /* current position relative to start */
 } fshandle_t;
+typedef struct filelist_item_s {
+	s8 name[32];
+	struct filelist_item_s *next;
+} filelist_item_t;
 
 typedef struct {                                                    // bspfile.h
 	s32 fileofs, filelen;
