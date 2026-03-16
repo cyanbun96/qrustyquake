@@ -314,6 +314,18 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 
 void VID_Update()
 {
+	bool blitscreentop = false;
+	bool blitscreenui = false;
+	bool blitscreensbar = false;
+	if (lyr_main.value==1||lyr_sbar.value==1||lyr_menu.value==1||
+		lyr_centerprint.value==1||lyr_console.value==1||
+		lyr_notify.value==1||lyr_crosshair.value==1)blitscreentop=true;
+	if (lyr_main.value==2||lyr_sbar.value==2||lyr_menu.value==2||
+		lyr_centerprint.value==2||lyr_console.value==2||
+		lyr_notify.value==2||lyr_crosshair.value==2)blitscreenui=true;
+	if (lyr_main.value==3||lyr_sbar.value==3||lyr_menu.value==3||
+		lyr_centerprint.value==3||lyr_console.value==3||
+		lyr_notify.value==3||lyr_crosshair.value==3)blitscreensbar=true;
 	SDL_Rect dst = {0, 0, vid.width*renderscale, vid.height*renderscale};
 	scRect.w = vid.width * (scr_uixscale.value>0 ? scr_uixscale.value : 1);
 	scRect.h = vid.height * (scr_uiyscale.value>0 ? scr_uiyscale.value : 1);
@@ -324,11 +336,14 @@ void VID_Update()
 	scRect2.x = (vid.width*renderscale - scRect2.w) / 2;
 	scRect2.y = (vid.height*renderscale - scRect2.h) / 2;
 	if (SDL_LockTexture(texture, 0, &argbbuffer->pixels, &argbbuffer->pitch)){
-		SDL_BlitSurfaceScaled(screensbar, &blitRect, screen, &scRect, SDL_SCALEMODE_NEAREST);
+		if(blitscreensbar)
+			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen, &scRect, SDL_SCALEMODE_NEAREST);
 		if(fadescreen == 1) Draw_FadeScreen();
 		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst, SDL_SCALEMODE_NEAREST);
-		SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer, &scRect2, SDL_SCALEMODE_NEAREST);
-		SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer, &dst, SDL_SCALEMODE_NEAREST);
+		if(blitscreenui)
+			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer, &scRect2, SDL_SCALEMODE_NEAREST);
+		if(blitscreentop)
+			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer, &dst, SDL_SCALEMODE_NEAREST);
 		SDL_UnlockTexture(texture);
 	} else { printf("Couldn't lock texture %s\n", SDL_GetError()); }
 	SDL_RenderClear(renderer);
