@@ -739,6 +739,7 @@ EX s32 current_skill;                                              // host_cmd.c
 EX bool noclip_anglehack;
 void M_Menu_Quit_f();
 void ExtraMaps_NewGame();
+void Modlist_Init();
 EX s32 key_lastpress;                                                  // keys.c
 EX s32 key_count;
 EX s8 *keybindings[256];
@@ -765,6 +766,7 @@ EX void SetWorldPal(s8 *path, s8 *cmappath);
 EX searchpath_t *com_base_searchpaths;
 EX searchpath_t *com_searchpaths;
 EX filelist_item_t *extralevels;
+EX filelist_item_t *modlist;
 EX vec3_t vec3_origin;                                              // mathlib.c
 EX f32 cur_ent_alpha;                                              // d_polyse.c
 EX sspan_t spans[MAXHEIGHT + 1];                                   // d_sprite.c

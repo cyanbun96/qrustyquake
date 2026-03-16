@@ -934,9 +934,71 @@ void Host_Maps_f()
         else Con_Printf ("no maps found\n");
 }
 
+void Modlist_Add (const char *name) { FileList_Add(name, &modlist); }
+
+#ifdef _WIN32
+void Modlist_Init()
+{
+        WIN32_FIND_DATA fdat;
+        HANDLE fhnd;
+        DWORD attribs;
+        s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
+        q_snprintf (dir_string, sizeof(dir_string), "%s/*", com_basedir);
+        fhnd = FindFirstFile(dir_string, &fdat);
+        if (fhnd == INVALID_HANDLE_VALUE) return;
+        do {
+                if (!strcmp(fdat.cFileName, ".") || !strcmp(fdat.cFileName, ".."))
+                        continue;
+                q_snprintf (mod_string, sizeof(mod_string), "%s/%s", com_basedir, fdat.cFileName);
+                attribs = GetFileAttributes (mod_string);
+                if (attribs != INVALID_FILE_ATTRIBUTES && (attribs & FILE_ATTRIBUTE_DIRECTORY)) {
+                        // don't bother testing for pak files / progs.dat
+                        Modlist_Add(fdat.cFileName);
+                }
+        } while (FindNextFile(fhnd, &fdat));
+        FindClose(fhnd);
+}
+#else
+void Modlist_Init()
+{
+        DIR *dir_p, *mod_dir_p;
+        struct dirent *dir_t;
+        s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
+        q_snprintf (dir_string, sizeof(dir_string), "%s/", com_basedir);
+        dir_p = opendir(dir_string);
+        if (dir_p == NULL) return;
+        while ((dir_t = readdir(dir_p)) != NULL) {
+                if (!strcmp(dir_t->d_name, ".") || !strcmp(dir_t->d_name, ".."))
+                        continue;
+                if (!q_strcasecmp (COM_FileGetExtension (dir_t->d_name), "app")) // skip .app bundles on macOS
+                        continue;
+                q_snprintf(mod_string, sizeof(mod_string), "%s%s/", dir_string, dir_t->d_name);
+                mod_dir_p = opendir(mod_string);
+                if (mod_dir_p == NULL)
+                        continue;
+                // don't bother testing for pak files / progs.dat
+                Modlist_Add(dir_t->d_name);
+                closedir(mod_dir_p);
+        }
+        closedir(dir_p);
+}
+#endif
+
+void Host_Mods_f()
+{//list all potential mod directories (contain either a pak file or a progs.dat)
+        s32 i;
+        filelist_item_t *mod;
+        for (mod = modlist, i=0; mod; mod = mod->next, i++)
+                Con_Printf ("   %s\n", mod->name);
+        if (i) Con_Printf ("%i mod(s)\n", i);
+        else Con_Printf ("no mods found\n");
+}
+
 void Host_InitCommands()
 {
 	Cmd_AddCommand("maps", Host_Maps_f);
+	Cmd_AddCommand("mods", Host_Mods_f);
+	Cmd_AddCommand("games", Host_Mods_f);
 	Cmd_AddCommand("status", Host_Status_f);
 	Cmd_AddCommand("quit", Host_Quit_f);
 	Cmd_AddCommand("god", Host_God_f);
