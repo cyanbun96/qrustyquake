@@ -4,6 +4,8 @@
 // Copyright(C) 2010-2014 QuakeSpasm developers
 #include "quakedef.h"
 
+static s32 maxlevelnamelen = 0;
+
 void Host_Quit_f()
 {
 	if(key_dest != key_console && cls.state != ca_dedicated){
@@ -864,6 +866,7 @@ void ExtraMaps_Init()
 	searchpath_t *search;
 	pack_t *pak;
 	s32 i;
+	maxlevelnamelen = 0;
 	// we don't want to list the maps in id1 pakfiles,
 	// because these are not "add-on" levels
 	q_snprintf (ignorepakdir, sizeof(ignorepakdir), "/%s/", GAMENAME);
@@ -875,6 +878,8 @@ void ExtraMaps_Init()
 			if (fhnd == INVALID_HANDLE_VALUE) continue;
 			do {
 				COM_StripExtension(fdat.cFileName, mapname, sizeof(mapname));
+				if (maxlevelnamelen < Q_strlen(mapname))
+					maxlevelnamelen = Q_strlen(mapname);
 				ExtraMaps_Add (mapname);
 			} while (FindNextFile(fhnd, &fdat));
 			FindClose(fhnd);
@@ -886,6 +891,8 @@ void ExtraMaps_Init()
 				if (q_strcasecmp(COM_FileGetExtension(dir_t->d_name), "bsp") != 0)
 					continue;
 				COM_StripExtension(dir_t->d_name, mapname, sizeof(mapname));
+				if (maxlevelnamelen < Q_strlen(mapname))
+					maxlevelnamelen = Q_strlen(mapname);
 				ExtraMaps_Add (mapname);
 			}
 			closedir(dir_p);
@@ -924,14 +931,38 @@ void ExtraMaps_NewGame()
         ExtraMaps_Init();
 }
 
+static const s8 *RightPad (const s8 *str, size_t minlen, s8 c)
+{
+	static s8 buf[1024];
+	size_t len = strlen (str);
+	minlen = q_min (minlen, sizeof (buf) - 1);
+	if (len >= minlen)
+		return str;
+	memcpy (buf, str, len);
+	for (; len < minlen; len++)
+		buf[len] = c;
+	buf[len] = '\0';
+	return buf;
+}
+
 void Host_Maps_f()
 {
-        s32 i;
-        filelist_item_t *level;
-        for (level = extralevels, i = 0; level; level = level->next, i++)
-                Con_Printf ("   %s\n", level->name);
-        if (i) Con_Printf ("%i map(s)\n", i);
-        else Con_Printf ("no maps found\n");
+	s32 i;
+	s8 buf[1024];
+	s8 padchar = '.' | 0x80;
+	filelist_item_t *level;
+	for (level = extralevels, i = 0; level; level = level->next, i++){
+		if(!Mod_LoadMapDescription(buf, sizeof(buf), level->name))
+			continue;
+		if (*buf)
+			Con_Printf ("   %s%c%s\n", RightPad(level->name,
+				maxlevelnamelen, padchar), padchar, buf);
+		else
+			Con_Printf ("   %s\n", level->name);
+	}
+	if (i>1) Con_Printf ("%i maps\n", i);
+	else if(i) Con_Printf ("%i map\n", i);
+	else Con_Printf ("no maps found\n");
 }
 
 void Modlist_Add (const char *name) { FileList_Add(name, &modlist); }
