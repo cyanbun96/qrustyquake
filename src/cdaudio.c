@@ -54,6 +54,9 @@ void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
 	u8 *file = NULL;
 	SDL_IOStream *io = NULL;
 	MIX_Audio *music = NULL;
+
+	if (!mixer) return;
+
 	if(!musicname || !*musicname) {
 		Con_DPrintf("null music file name\n");
 		return;
@@ -94,6 +97,7 @@ found:
 
 static void BGM_Play_f()
 {
+	if (!mixer) return;
 	if(Cmd_Argc() == 2)
 		BGM_Play(Cmd_Argv(1), 1);
 	else {
@@ -112,6 +116,7 @@ void CDAudio_Play(u8 track, bool looping)
 
 void CDAudio_Stop()
 {
+	if (!mixer) return;
 	MIX_StopAllTracks(mixer, 0);
 	if (current_music) {
 		MIX_DestroyAudio(current_music);
@@ -126,6 +131,7 @@ void CDAudio_Stop()
 
 void CDAudio_Update()
 {
+	if (!mixer) return;
 	if (bgmvolume.value < 0) Cvar_SetQuick(&bgmvolume, "0");
 	if (bgmvolume.value > 1) Cvar_SetQuick(&bgmvolume, "1");
 	if (last_volume != bgmvolume.value) {
@@ -137,14 +143,18 @@ void CDAudio_Update()
 bool CDAudio_Init()
 {
 	if (safemode || COM_CheckParm("-nosound") || COM_CheckParm("-nomusic"))
-		return 0;
-	MIX_Init();
-	mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
-	if (mixer) Con_Printf("SDL Mixer initialized\n");
-	else {
+		return false;
+	if (!MIX_Init()) {
 		Con_Printf("SDL Mixer initialization failed: %s\n", SDL_GetError());
 		return false;
 	}
+	mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
+	if (!mixer) {
+		MIX_Quit();
+		Con_Printf("SDL Mixer device creation failed: %s\n", SDL_GetError());
+		return false;
+	}
+	Con_Printf("SDL Mixer initialized\n");
 	Cmd_AddCommand("music", BGM_Play_f);
 	Cmd_AddCommand("music_stop", CDAudio_Stop);
 	Cmd_AddCommand("music_pause", CDAudio_Pause);
@@ -153,12 +163,17 @@ bool CDAudio_Init()
 }
 
 void CDAudio_Pause()
-{ MIX_PauseAllTracks(mixer); }
+{ if(mixer) MIX_PauseAllTracks(mixer); }
 
 void CDAudio_Resume()
-{ MIX_ResumeAllTracks(mixer); }
+{ if(mixer) MIX_ResumeAllTracks(mixer); }
 
 void CDAudio_Shutdown()
-{ MIX_Quit(); }
+{
+	if (mixer) {
+		MIX_Quit();
+		mixer = NULL;
+	}
+}
 
 #endif // AVAIL_SDL3MIXER
