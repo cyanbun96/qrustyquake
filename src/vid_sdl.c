@@ -117,7 +117,7 @@ void VID_SetBorderless()
 
 void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
 {
-	if(vid.width / 320 >= scr_uiscale.value && scr_uiscale.value > 0){
+	if(vid.width / 320 >= scr_uiscale.value && scr_uiscale.value >= 1){
 		uiscale = scr_uiscale.value;
 		vid.recalc_refdef = 1;
 	} else {
