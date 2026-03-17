@@ -826,13 +826,15 @@ void Host_Stopdemo_f()
 	CL_Disconnect();
 }
 
-void FileList_Add (const char *name, filelist_item_t **list)
+void FileList_Add (const char *name, const char *game, const char *desc, filelist_item_t **list)
 {
         filelist_item_t *item,*cursor,*prev;
         for (item = *list; item; item = item->next) // ignore duplicate
                 if (!Q_strcmp (name, item->name)) return;
         item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
         q_strlcpy (item->name, name, sizeof(item->name));
+        if (game) q_strlcpy (item->game, game, sizeof(item->game));
+        if (desc) q_strlcpy (item->desc, desc, sizeof(item->desc));
         // insert each entry in alphabetical order
         if (*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0) {
                 item->next = *list; //insert at front
@@ -849,7 +851,13 @@ void FileList_Add (const char *name, filelist_item_t **list)
         }
 }
 
-void ExtraMaps_Add(const s8 *name) { FileList_Add(name, &extralevels); }
+void ExtraMaps_Add(const s8 *name, const s8 *game)
+{
+	s8 buf[128];
+	if(!Mod_LoadMapDescription(buf, sizeof(buf), name))
+		return;
+	FileList_Add(name, COM_SkipPath(game), buf, &extralevels);
+}
 
 void ExtraMaps_Init()
 {
@@ -880,7 +888,7 @@ void ExtraMaps_Init()
 				COM_StripExtension(fdat.cFileName, mapname, sizeof(mapname));
 				if (maxlevelnamelen < Q_strlen(mapname))
 					maxlevelnamelen = Q_strlen(mapname);
-				ExtraMaps_Add (mapname);
+				ExtraMaps_Add (mapname, search->filename);
 			} while (FindNextFile(fhnd, &fdat));
 			FindClose(fhnd);
 #else
@@ -893,18 +901,17 @@ void ExtraMaps_Init()
 				COM_StripExtension(dir_t->d_name, mapname, sizeof(mapname));
 				if (maxlevelnamelen < Q_strlen(mapname))
 					maxlevelnamelen = Q_strlen(mapname);
-				ExtraMaps_Add (mapname);
+				ExtraMaps_Add (mapname, search->filename);
 			}
 			closedir(dir_p);
 #endif
 		} else { //pakfile
 			if (!strstr(search->pack->filename, ignorepakdir)) { //don't list standard id maps
-				for (i = 0, pak = search->pack; i < pak->numfiles; i++)
-				{
+				for (i = 0, pak = search->pack; i < pak->numfiles; i++) {
 					if (!strcmp(COM_FileGetExtension(pak->files[i].name), "bsp")) {
 						if (pak->files[i].filelen > 32*1024) { // don't list files under 32k (ammo boxes etc)
 							COM_StripExtension(pak->files[i].name + 5, mapname, sizeof(mapname));
-							ExtraMaps_Add (mapname);
+							ExtraMaps_Add (mapname, com_gamedir);
 						}
 					}
 				}
@@ -948,24 +955,32 @@ static const s8 *RightPad (const s8 *str, size_t minlen, s8 c)
 void Host_Maps_f()
 {
 	s32 i;
-	s8 buf[1024];
+	s32 tot = 0;
 	s8 padchar = '.' | 0x80;
 	filelist_item_t *level;
+	Con_Printf ("%s\n", RightPad("id1", 32, '-'|0x80));
 	for (level = extralevels, i = 0; level; level = level->next, i++){
-		if(!Mod_LoadMapDescription(buf, sizeof(buf), level->name))
-			continue;
-		if (*buf)
-			Con_Printf ("   %s%c%s\n", RightPad(level->name,
-				maxlevelnamelen, padchar), padchar, buf);
-		else
-			Con_Printf ("   %s\n", level->name);
+		if (Q_strncmp("id1", level->game, 4)) continue;
+		Con_Printf ("   %s%c%s\n", RightPad(level->name,
+			maxlevelnamelen, padchar), padchar, level->desc);
+		++tot;
 	}
-	if (i>1) Con_Printf ("%i maps\n", i);
-	else if(i) Con_Printf ("%i map\n", i);
+	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
+		goto host_maps_f_fin;
+	Con_Printf ("%s\n", RightPad(COM_SkipPath(com_gamedir), 32, '-'|0x80));
+	for (level = extralevels, i = 0; level; level = level->next, i++){
+		if (!Q_strncmp("id1", level->game, 4)) continue;
+		Con_Printf ("   %s%c%s\n", RightPad(level->name,
+			maxlevelnamelen, padchar), padchar, level->desc);
+		++tot;
+	}
+host_maps_f_fin:
+	if (tot>1) Con_Printf ("%i maps\n", i);
+	else if(tot) Con_Printf ("%i map\n", i);
 	else Con_Printf ("no maps found\n");
 }
 
-void Modlist_Add (const char *name) { FileList_Add(name, &modlist); }
+void Modlist_Add (const char *name) { FileList_Add(name, 0, 0, &modlist); }
 
 #ifdef _WIN32
 void Modlist_Init()
