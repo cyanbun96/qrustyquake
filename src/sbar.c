@@ -143,6 +143,7 @@ static qpic_t plasma8x8 = { 8, 8, {
 	0xff,0x23,0x26,0x29,0x26,0x23,0xff,0xff,
 	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
 }};
+static s8 lvnamebuf[21];
 static s32 oldhudstyle;
 static qpic_t *sb_nums[2][11];
 static qpic_t *sb_colon, *sb_slash;
@@ -365,6 +366,29 @@ void Sbar_SortFrags()
 			}
 }
 
+void Sbar_UpdateLevelNameBuf()
+{
+	s8 *src = cl.levelname;
+	s32 len = strlen(src);
+	static s8 last_levelname[128];
+	static s8 scrollbuf[128];
+	if (Q_strcmp(last_levelname, src) != 0) {
+		Q_strncpy(last_levelname, src, sizeof(last_levelname) - 1);
+		last_levelname[sizeof(last_levelname) - 1] = '\0';
+		q_snprintf(scrollbuf,sizeof(scrollbuf),"%s%*s%s",src,3,"",src);
+	}
+	if (len <= 20) {
+		Q_strncpy(lvnamebuf, src, 20);
+		lvnamebuf[len] = '\0';
+		return;
+	}
+	f64 t = Sys_DoubleTime();
+	s32 cycle = len + 3;
+	s32 pos = (s32)(t * 4.0) % cycle;
+	memcpy(lvnamebuf, scrollbuf + pos, 20);
+	lvnamebuf[20] = '\0';
+}
+
 void Sbar_SoloScoreboard()
 {
 	s32 xx = (oldhudstyle == 4 && WW/SCL >= 640)*-160*SCL;
@@ -381,8 +405,9 @@ void Sbar_SoloScoreboard()
 	s32 units = seconds - 10 * tens;
 	sprintf(str, "Time :%3i:%i%i", minutes, tens, units);
 	Draw_StringScaled(WW/2+24*SCL+xx, HH-20*SCL, str, SCL);
-	s32 l = Q_strlen (cl.levelname);
-	Draw_StringScaled(WW/2+72*SCL+xx-l*4, HH-12*SCL, cl.levelname, SCL);
+	Sbar_UpdateLevelNameBuf();
+	s32 l = Q_strlen (lvnamebuf);
+	Draw_StringScaled(WW/2+72*SCL+xx-l*4, HH-12*SCL, lvnamebuf, SCL);
 }
 
 void Sbar_CalcPos()
