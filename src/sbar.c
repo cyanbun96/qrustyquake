@@ -381,7 +381,8 @@ void Sbar_SoloScoreboard()
 	s32 units = seconds - 10 * tens;
 	sprintf(str, "Time :%3i:%i%i", minutes, tens, units);
 	Draw_StringScaled(WW/2+24*SCL+xx, HH-20*SCL, str, SCL);
-	Draw_StringScaled(WW/2+24*SCL+xx, HH-12*SCL, cl.levelname, SCL);
+	s32 l = Q_strlen (cl.levelname);
+	Draw_StringScaled(WW/2+72*SCL+xx-l*4, HH-12*SCL, cl.levelname, SCL);
 }
 
 void Sbar_CalcPos()
