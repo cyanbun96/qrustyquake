@@ -223,6 +223,7 @@ s8 uipalname[MAX_OSPATH];
 searchpath_t *com_base_searchpaths;
 searchpath_t *com_searchpaths;
 filelist_item_t *extralevels;
+filelist_item_t *extralevels_mod;
 filelist_item_t *modlist;
 s32 refresh_palette = 0;                                               // view.c
 vec3_t vec3_origin = {0,0,0};                                       // mathlib.h

@@ -70,7 +70,6 @@ typedef struct _fshandle_t {
 } fshandle_t;
 typedef struct filelist_item_s {
 	s8 name[32];
-	s8 game[32];
 	s8 desc[128];
 	struct filelist_item_s *next;
 } filelist_item_t;

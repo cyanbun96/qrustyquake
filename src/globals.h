@@ -766,6 +766,7 @@ EX void SetWorldPal(s8 *path, s8 *cmappath);
 EX searchpath_t *com_base_searchpaths;
 EX searchpath_t *com_searchpaths;
 EX filelist_item_t *extralevels;
+EX filelist_item_t *extralevels_mod;
 EX filelist_item_t *modlist;
 EX vec3_t vec3_origin;                                              // mathlib.c
 EX f32 cur_ent_alpha;                                              // d_polyse.c

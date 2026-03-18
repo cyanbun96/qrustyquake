@@ -826,14 +826,13 @@ void Host_Stopdemo_f()
 	CL_Disconnect();
 }
 
-void FileList_Add (const char *name, const char *game, const char *desc, filelist_item_t **list)
+void FileList_Add (const char *name, const char *desc, filelist_item_t **list)
 {
         filelist_item_t *item,*cursor,*prev;
         for (item = *list; item; item = item->next) // ignore duplicate
                 if (!Q_strcmp (name, item->name)) return;
         item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
         q_strlcpy (item->name, name, sizeof(item->name));
-        if (game) q_strlcpy (item->game, game, sizeof(item->game));
         if (desc) q_strlcpy (item->desc, desc, sizeof(item->desc));
         // insert each entry in alphabetical order
         if (*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0) {
@@ -854,9 +853,12 @@ void FileList_Add (const char *name, const char *game, const char *desc, filelis
 void ExtraMaps_Add(const s8 *name, const s8 *game)
 {
 	s8 buf[128];
+	filelist_item_t **list = &extralevels;
 	if(!Mod_LoadMapDescription(buf, sizeof(buf), name))
 		return;
-	FileList_Add(name, COM_SkipPath(game), buf, &extralevels);
+	if(Q_strncmp(COM_SkipPath(game), "id1", 4))
+		list = &extralevels_mod;
+	FileList_Add(name, buf, list);
 }
 
 void ExtraMaps_Init()
@@ -960,7 +962,6 @@ void Host_Maps_f()
 	filelist_item_t *level;
 	Con_Printf ("%s\n", RightPad("id1", 32, '-'|0x80));
 	for (level = extralevels, i = 0; level; level = level->next, i++){
-		if (Q_strncmp("id1", level->game, 4)) continue;
 		Con_Printf ("   %s%c%s\n", RightPad(level->name,
 			maxlevelnamelen, padchar), padchar, level->desc);
 		++tot;
@@ -968,8 +969,7 @@ void Host_Maps_f()
 	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		goto host_maps_f_fin;
 	Con_Printf ("%s\n", RightPad(COM_SkipPath(com_gamedir), 32, '-'|0x80));
-	for (level = extralevels, i = 0; level; level = level->next, i++){
-		if (!Q_strncmp("id1", level->game, 4)) continue;
+	for (level = extralevels_mod, i = 0; level; level = level->next, i++){
 		Con_Printf ("   %s%c%s\n", RightPad(level->name,
 			maxlevelnamelen, padchar), padchar, level->desc);
 		++tot;
@@ -980,7 +980,7 @@ host_maps_f_fin:
 	else Con_Printf ("no maps found\n");
 }
 
-void Modlist_Add (const char *name) { FileList_Add(name, 0, 0, &modlist); }
+void Modlist_Add (const char *name) { FileList_Add(name, 0, &modlist); }
 
 #ifdef _WIN32
 void Modlist_Init()
