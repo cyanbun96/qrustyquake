@@ -26,6 +26,9 @@ static s32 keys_cursor;
 static s32 bind_grab;
 static s32 new_cursor;
 static s32 maps_cursor;
+static s32 maps_scroll;
+static s32 maps_total;
+static s8 maps_game[64];
 static s32 gamepad_cursor;
 static s32 display_cursor;
 static s32 graphics_cursor;
@@ -1390,11 +1393,31 @@ void M_Gamepad_Draw()
 	M_Print(120, 168, temp);
 }
 
+void M_Maps_List_Update()
+{
+	if(!Q_strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game)))
+		return;
+	Q_strncpy(maps_game, COM_SkipPath(com_gamedir), sizeof(maps_game));
+	filelist_item_t *level;
+	maps_total = 0;
+	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
+		level = extralevels;
+	else
+		level = extralevels_mod;
+	for (; level; level = level->next)
+		maps_total++;
+	if (maps_scroll > maps_total - 20)
+		maps_scroll = q_max(0, maps_total - 20);
+}
+
 void M_Maps_Draw()
 {
 	s8 temp[32];
 	s32 xoffset = 64;
 	filelist_item_t *level;
+	M_Maps_List_Update();
+	if (maps_cursor >= maps_total)
+		maps_cursor = maps_total > 0 ? maps_total - 1 : 0;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
@@ -1402,17 +1425,24 @@ void M_Maps_Draw()
 		level = extralevels;
 	else
 		level = extralevels_mod;
-	for (s32 i = 0; level&&i<20; level = level->next, i++){
+	for (s32 i = 0; i < maps_scroll && level; i++)
+		level = level->next;
+	for (s32 i = 0; level&&i<20; level = level->next){
 		snprintf(temp, 10, "%s\n", level->name);
 		M_Print(xoffset, 32+i*8, temp);
 		snprintf(temp, 22, "%s\n", level->desc);
 		M_Print(xoffset+10*8, 32+i*8, temp);
+		++i;
 	}
 	M_DrawCursor(xoffset - 8, 32 + maps_cursor * 8);
 }
 
 void M_Maps_Key(s32 k)
 {
+	s8 temp[40];
+	s32 curr_i = maps_scroll + maps_cursor;
+	s32 max_i = maps_total - 1;
+	filelist_item_t *level;
 	switch (k) {
 	case K_ESCAPE:
 		M_Menu_New_f();
@@ -1421,18 +1451,35 @@ void M_Maps_Key(s32 k)
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_RIGHTARROW:
-	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
+		break;
+	case K_ENTER:
+		if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
+			level = extralevels;
+		else
+			level = extralevels_mod;
+		for (s32 i = 0; i < curr_i && level; i++)
+			level = level->next;
+		snprintf(temp, sizeof(temp), "map %s\n", level->name);
+		Cbuf_AddText(temp);
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (maps_cursor == 0) maps_cursor = 12;
-		else maps_cursor--;
+		if (curr_i > 0) {
+			if (maps_cursor > 0)
+				maps_cursor--;
+			else if (maps_scroll > 0)
+				maps_scroll--;
+		}
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (maps_cursor == 12) maps_cursor = 0;
-		else maps_cursor++;
+		if (curr_i < max_i) {
+			if (maps_cursor < 19)
+				maps_cursor++;
+			else if (maps_scroll < maps_total - 20)
+				maps_scroll++;
+		}
 		break;
 	default:
 		break;
