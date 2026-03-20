@@ -29,6 +29,10 @@ static s32 maps_cursor;
 static s32 maps_scroll;
 static s32 maps_total;
 static s32 maps_sortby;
+static filelist_item_t **maps_items = NULL;
+static s32 maps_items_cap = 0;
+static s32 maps_list_sorted_by = -1;
+static s32 maps_list_skill = -1;
 static s8 maps_game[64];
 static s32 gamepad_cursor;
 static s32 display_cursor;
@@ -1486,19 +1490,40 @@ s32 Mod_CountMonsters(const s8 *map)
 	return monster_count;
 }
 
+s32 Maps_SortByMonsters(const void *a, const void *b)
+{
+	filelist_item_t *A = *(filelist_item_t **)a;
+	filelist_item_t *B = *(filelist_item_t **)b;
+	s32 ma = Mod_CountMonsters(A->name);
+	s32 mb = Mod_CountMonsters(B->name);
+	return mb - ma; // descending
+}
+
 void M_Maps_List_Update()
 {
-	if(!Q_strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game)))
+	if(!Q_strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game))
+		&& maps_list_sorted_by == maps_sortby
+		&& maps_list_skill == (s32)skill.value)
 		return;
 	Q_strncpy(maps_game, COM_SkipPath(com_gamedir), sizeof(maps_game));
+	maps_list_sorted_by = maps_sortby;
+	maps_list_skill = (s32)skill.value;
 	filelist_item_t *level;
 	maps_total = 0;
 	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		level = extralevels;
 	else
 		level = extralevels_mod;
-	for (; level; level = level->next)
+	for (filelist_item_t *l = level; l; l = l->next)
 		maps_total++;
+	if (maps_total > maps_items_cap) {
+		maps_items_cap = maps_total;
+		maps_items = realloc(maps_items, maps_items_cap * sizeof(*maps_items));
+	}
+	for (s32 i = 0; level; level = level->next)
+		maps_items[i++] = level;
+	if (maps_sortby == 1)
+		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortByMonsters);
 	if (maps_scroll > maps_total - 19)
 		maps_scroll = q_max(0, maps_total - 19);
 }
@@ -1507,7 +1532,6 @@ void M_Maps_Draw()
 {
 	s8 temp[32];
 	s32 xoffset = 64;
-	filelist_item_t *level;
 	M_Maps_List_Update();
 	if (maps_cursor >= maps_total)
 		maps_cursor = maps_total > 0 ? maps_total - 1 : 0;
@@ -1518,27 +1542,23 @@ void M_Maps_Draw()
 	else if (maps_sortby == 1)
 		M_Print(xoffset + 32, 32, "Sort by <- Monsters ->");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
-		level = extralevels;
-	else
-		level = extralevels_mod;
-	for (s32 i = 0; i < maps_scroll && level; i++)
-		level = level->next;
-	for (s32 i = 0; level&&i<19; level = level->next){
+	for (s32 i = 0; i < 19; i++) {
+		s32 idx = maps_scroll + i;
+		if (idx >= maps_total)
+			break;
+		filelist_item_t *level = maps_items[idx];
 		snprintf(temp, 10, "%s", level->name);
 		M_Print(xoffset, 40+i*8, temp);
 		if (maps_sortby == 0) {
 			snprintf(temp, 22, "%s", level->desc);
 			M_Print(xoffset+10*8, 40+i*8, temp);
-		}
-		else if (maps_sortby == 1) {
+		} else {
 			s32 mons = Mod_CountMonsters(level->name);
 			snprintf(temp, 22, "%d", mons);
 			M_Print(xoffset+10*8, 40+i*8, temp);
 			snprintf(temp, 17, "%s", level->desc);
 			M_Print(xoffset+15*8, 40+i*8, temp);
 		}
-		++i;
 	}
 	M_DrawCursor(xoffset - 8, 40 + maps_cursor * 8);
 }
@@ -1548,7 +1568,6 @@ void M_Maps_Key(s32 k)
 	s8 temp[40];
 	s32 curr_i = maps_scroll + maps_cursor;
 	s32 max_i = maps_total - 1;
-	filelist_item_t *level;
 	switch (k) {
 	case K_ESCAPE:
 		M_Menu_New_f();
@@ -1566,14 +1585,12 @@ void M_Maps_Key(s32 k)
 			maps_sortby = 0;
 		break;
 	case K_ENTER:
-		if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
-			level = extralevels;
-		else
-			level = extralevels_mod;
-		for (s32 i = 0; i < curr_i && level; i++)
-			level = level->next;
-		snprintf(temp, sizeof(temp), "map %s\n", level->name);
-		Cbuf_AddText(temp);
+		s32 idx = maps_scroll + maps_cursor;
+		if (idx >= 0 && idx < maps_total) {
+			filelist_item_t *level = maps_items[idx];
+			snprintf(temp, sizeof(temp), "map %s\n", level->name);
+			Cbuf_AddText(temp);
+		}
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
