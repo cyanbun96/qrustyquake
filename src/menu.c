@@ -28,6 +28,7 @@ static s32 new_cursor;
 static s32 maps_cursor;
 static s32 maps_scroll;
 static s32 maps_total;
+static s32 maps_sortby;
 static s8 maps_game[64];
 static s32 gamepad_cursor;
 static s32 display_cursor;
@@ -1393,6 +1394,98 @@ void M_Gamepad_Draw()
 	M_Print(120, 168, temp);
 }
 
+s32 Mod_CountMonsters(const s8 *map)
+{
+	s8 path[MAX_QPATH];
+	const s8 *data;
+	FILE *f;
+	lump_t *entlump;
+	dheader_t header;
+	s32 i, filesize;
+	s32 monster_count = 0;
+	if ((size_t) q_snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+		return 0;
+	filesize = COM_FOpenFile (path, &f, NULL);
+	if (filesize <= (s32) sizeof (header)) {
+		if (filesize != -1)
+			fclose (f);
+		return 0;
+	}
+	if (fread (&header, sizeof (header), 1, f) != 1) {
+		fclose (f);
+		return 0;
+	}
+	header.version = LittleLong (header.version);
+	switch (header.version) {
+		case BSPVERSION:
+		case BSP2VERSION_2PSB:
+		case BSP2VERSION_BSP2:
+		case BSPVERSION_QUAKE64:
+			break;
+		default:
+			fclose (f);
+			return 0;
+	}
+	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
+		((s32 *)&header)[i] = LittleLong (((s32 *)&header)[i]);
+	entlump = &header.lumps[LUMP_ENTITIES];
+	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
+	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
+		fclose (f);
+		return 0;
+	}
+	s8 *buf = malloc(entlump->filelen + 1);
+	if (!buf)
+		return 0;
+	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
+	i = fread(buf, 1, entlump->filelen, f);
+	fclose(f);
+	if (i <= 0) {
+		free(buf);
+		return 0;
+	}
+	buf[i] = '\0';
+	for (data = buf; data;) {
+		data = COM_Parse(data);
+		if (!data || com_token[0] != '{')
+			break;
+		s32 spawnflags = 0;
+		bool is_monster = false;
+		s8 monname[32];
+		while (1) {
+			data = COM_Parse(data);
+			if (!data)
+				return monster_count;
+			if (com_token[0] == '}')
+				break;
+			bool is_classname = !strcmp(com_token, "classname");
+			bool is_spawnflags = !strcmp(com_token, "spawnflags");
+			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
+			if (!data)
+				return monster_count;
+			if (is_classname) {
+				if (!strncmp(com_token, "monster_", 8))
+					is_monster = true;
+				if(is_monster)
+					strncpy(monname, com_token, 32);
+			}
+			else if (is_spawnflags)
+				spawnflags = atoi(com_token);
+		}
+		if (is_monster) {
+			s32 s = (s32)skill.value;
+			bool skip = false;
+			if (s == 0 && (spawnflags & 256)) skip = true;
+			if (s == 1 && (spawnflags & 512)) skip = true;
+			if (s >= 2 && (spawnflags & 1024)) skip = true;
+			if (!skip)
+				monster_count++;
+		}
+	}
+	free(buf);
+	return monster_count;
+}
+
 void M_Maps_List_Update()
 {
 	if(!Q_strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game)))
@@ -1406,8 +1499,8 @@ void M_Maps_List_Update()
 		level = extralevels_mod;
 	for (; level; level = level->next)
 		maps_total++;
-	if (maps_scroll > maps_total - 20)
-		maps_scroll = q_max(0, maps_total - 20);
+	if (maps_scroll > maps_total - 19)
+		maps_scroll = q_max(0, maps_total - 19);
 }
 
 void M_Maps_Draw()
@@ -1420,6 +1513,10 @@ void M_Maps_Draw()
 		maps_cursor = maps_total > 0 ? maps_total - 1 : 0;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
+	if (maps_sortby == 0)
+		M_Print(xoffset + 32, 32, "Sort by <- Name ->");
+	else if (maps_sortby == 1)
+		M_Print(xoffset + 32, 32, "Sort by <- Monsters ->");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		level = extralevels;
@@ -1427,14 +1524,23 @@ void M_Maps_Draw()
 		level = extralevels_mod;
 	for (s32 i = 0; i < maps_scroll && level; i++)
 		level = level->next;
-	for (s32 i = 0; level&&i<20; level = level->next){
-		snprintf(temp, 10, "%s\n", level->name);
-		M_Print(xoffset, 32+i*8, temp);
-		snprintf(temp, 22, "%s\n", level->desc);
-		M_Print(xoffset+10*8, 32+i*8, temp);
+	for (s32 i = 0; level&&i<19; level = level->next){
+		snprintf(temp, 10, "%s", level->name);
+		M_Print(xoffset, 40+i*8, temp);
+		if (maps_sortby == 0) {
+			snprintf(temp, 22, "%s", level->desc);
+			M_Print(xoffset+10*8, 40+i*8, temp);
+		}
+		else if (maps_sortby == 1) {
+			s32 mons = Mod_CountMonsters(level->name);
+			snprintf(temp, 22, "%d", mons);
+			M_Print(xoffset+10*8, 40+i*8, temp);
+			snprintf(temp, 17, "%s", level->desc);
+			M_Print(xoffset+15*8, 40+i*8, temp);
+		}
 		++i;
 	}
-	M_DrawCursor(xoffset - 8, 32 + maps_cursor * 8);
+	M_DrawCursor(xoffset - 8, 40 + maps_cursor * 8);
 }
 
 void M_Maps_Key(s32 k)
@@ -1449,9 +1555,15 @@ void M_Maps_Key(s32 k)
 		break;
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
+		maps_sortby--;
+		if (maps_sortby < 0)
+			maps_sortby = 1;
 		break;
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu3.wav");
+		maps_sortby++;
+		if (maps_sortby > 1)
+			maps_sortby = 0;
 		break;
 	case K_ENTER:
 		if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
@@ -1475,9 +1587,9 @@ void M_Maps_Key(s32 k)
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		if (curr_i < max_i) {
-			if (maps_cursor < 19)
+			if (maps_cursor < 18)
 				maps_cursor++;
-			else if (maps_scroll < maps_total - 20)
+			else if (maps_scroll < maps_total - 19)
 				maps_scroll++;
 		}
 		break;
