@@ -932,7 +932,11 @@ static void FileList_Clear(filelist_item_t **list)
         }
 }
 
-static void ExtraMaps_Clear() { FileList_Clear(&extralevels); }
+static void ExtraMaps_Clear()
+{
+	FileList_Clear(&extralevels);
+	FileList_Clear(&extralevels_mod);
+}
 
 void ExtraMaps_NewGame()
 {

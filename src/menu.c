@@ -1398,6 +1398,109 @@ void M_Gamepad_Draw()
 	M_Print(120, 168, temp);
 }
 
+time_t M_GetMapTime(const s8 *map)
+{
+	s8 path[MAX_QPATH];
+	if ((size_t) q_snprintf (path, sizeof (path), "%s/maps/%s.bsp", com_gamedir, map) >= sizeof (path))
+		return 0;
+	SDL_PathInfo info;
+	SDL_GetPathInfo(path, &info);
+	u64 ns = info.modify_time;
+        time_t seconds = ns / 1000000000ULL;
+	return seconds;
+}
+
+s32 Mod_CountSecrets(const s8 *map)
+{
+	s8 path[MAX_QPATH];
+	const s8 *data;
+	FILE *f;
+	lump_t *entlump;
+	dheader_t header;
+	s32 i, filesize;
+	s32 secret_count = 0;
+	if ((size_t) q_snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+		return 0;
+	filesize = COM_FOpenFile (path, &f, NULL);
+	if (filesize <= (s32) sizeof (header)) {
+		if (filesize != -1)
+			fclose (f);
+		return 0;
+	}
+	if (fread (&header, sizeof (header), 1, f) != 1) {
+		fclose (f);
+		return 0;
+	}
+	header.version = LittleLong (header.version);
+	switch (header.version) {
+		case BSPVERSION:
+		case BSP2VERSION_2PSB:
+		case BSP2VERSION_BSP2:
+		case BSPVERSION_QUAKE64:
+			break;
+		default:
+			fclose (f);
+			return 0;
+	}
+	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
+		((s32 *)&header)[i] = LittleLong (((s32 *)&header)[i]);
+	entlump = &header.lumps[LUMP_ENTITIES];
+	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
+	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
+		fclose (f);
+		return 0;
+	}
+	s8 *buf = malloc(entlump->filelen + 1);
+	if (!buf)
+		return 0;
+	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
+	i = fread(buf, 1, entlump->filelen, f);
+	fclose(f);
+	if (i <= 0) {
+		free(buf);
+		return 0;
+	}
+	buf[i] = '\0';
+	for (data = buf; data;) {
+		data = COM_Parse(data);
+		if (!data || com_token[0] != '{')
+			break;
+		s32 spawnflags = 0;
+		bool is_secret = false;
+		while (1) {
+			data = COM_Parse(data);
+			if (!data)
+				return secret_count;
+			if (com_token[0] == '}')
+				break;
+			bool is_classname = !strcmp(com_token, "classname");
+			bool is_spawnflags = !strcmp(com_token, "spawnflags");
+			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
+			if (!data)
+				return secret_count;
+			if (is_classname) {
+				if (!strcmp(com_token, "trigger_secret")
+				|| !strcmp(com_token, "target_secret") // copper
+				|| !strcmp(com_token, "trigger_secret_point")) // quoth
+					is_secret = true;
+			}
+			else if (is_spawnflags)
+				spawnflags = atoi(com_token);
+		}
+		if (is_secret) {
+			s32 s = (s32)skill.value;
+			bool skip = false;
+			if (s == 0 && (spawnflags & 256)) skip = true;
+			if (s == 1 && (spawnflags & 512)) skip = true;
+			if (s >= 2 && (spawnflags & 1024)) skip = true;
+			if (!skip)
+				secret_count++;
+		}
+	}
+	free(buf);
+	return secret_count;
+}
+
 s32 Mod_CountMonsters(const s8 *map)
 {
 	s8 path[MAX_QPATH];
@@ -1455,7 +1558,6 @@ s32 Mod_CountMonsters(const s8 *map)
 			break;
 		s32 spawnflags = 0;
 		bool is_monster = false;
-		s8 monname[32];
 		while (1) {
 			data = COM_Parse(data);
 			if (!data)
@@ -1470,8 +1572,6 @@ s32 Mod_CountMonsters(const s8 *map)
 			if (is_classname) {
 				if (!strncmp(com_token, "monster_", 8))
 					is_monster = true;
-				if(is_monster)
-					strncpy(monname, com_token, 32);
 			}
 			else if (is_spawnflags)
 				spawnflags = atoi(com_token);
@@ -1490,6 +1590,26 @@ s32 Mod_CountMonsters(const s8 *map)
 	return monster_count;
 }
 
+s32 Maps_SortByTime(const void *a, const void *b)
+{
+	filelist_item_t *A = *(filelist_item_t **)a;
+	filelist_item_t *B = *(filelist_item_t **)b;
+	time_t ta = M_GetMapTime(A->name);
+	time_t tb = M_GetMapTime(B->name);
+	if (tb > ta) return 1;   // descending
+	if (tb < ta) return -1;
+	return 0;
+}
+
+s32 Maps_SortBySecrets(const void *a, const void *b)
+{
+	filelist_item_t *A = *(filelist_item_t **)a;
+	filelist_item_t *B = *(filelist_item_t **)b;
+	s32 ma = Mod_CountSecrets(A->name);
+	s32 mb = Mod_CountSecrets(B->name);
+	return mb - ma; // descending
+}
+
 s32 Maps_SortByMonsters(const void *a, const void *b)
 {
 	filelist_item_t *A = *(filelist_item_t **)a;
@@ -1505,6 +1625,7 @@ void M_Maps_List_Update()
 		&& maps_list_sorted_by == maps_sortby
 		&& maps_list_skill == (s32)skill.value)
 		return;
+	Con_DPrintf("Rebuilding custom map list\n");
 	Q_strncpy(maps_game, COM_SkipPath(com_gamedir), sizeof(maps_game));
 	maps_list_sorted_by = maps_sortby;
 	maps_list_skill = (s32)skill.value;
@@ -1524,6 +1645,10 @@ void M_Maps_List_Update()
 		maps_items[i++] = level;
 	if (maps_sortby == 1)
 		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortByMonsters);
+	else if (maps_sortby == 2)
+		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortBySecrets);
+	else if (maps_sortby == 3)
+		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortByTime);
 	if (maps_scroll > maps_total - 19)
 		maps_scroll = q_max(0, maps_total - 19);
 }
@@ -1541,6 +1666,10 @@ void M_Maps_Draw()
 		M_Print(xoffset + 32, 32, "Sort by <- Name ->");
 	else if (maps_sortby == 1)
 		M_Print(xoffset + 32, 32, "Sort by <- Monsters ->");
+	else if (maps_sortby == 2)
+		M_Print(xoffset + 32, 32, "Sort by <- Secrets ->");
+	else if (maps_sortby == 3)
+		M_Print(xoffset + 32, 32, "Sort by <- Date ->");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	for (s32 i = 0; i < 19; i++) {
 		s32 idx = maps_scroll + i;
@@ -1552,12 +1681,27 @@ void M_Maps_Draw()
 		if (maps_sortby == 0) {
 			snprintf(temp, 22, "%s", level->desc);
 			M_Print(xoffset+10*8, 40+i*8, temp);
-		} else {
+		} else if (maps_sortby == 1) {
 			s32 mons = Mod_CountMonsters(level->name);
 			snprintf(temp, 22, "%d", mons);
 			M_Print(xoffset+10*8, 40+i*8, temp);
 			snprintf(temp, 17, "%s", level->desc);
 			M_Print(xoffset+15*8, 40+i*8, temp);
+		} else if (maps_sortby == 2) {
+			s32 secs = Mod_CountSecrets(level->name);
+			snprintf(temp, 22, "%d", secs);
+			M_Print(xoffset+10*8, 40+i*8, temp);
+			snprintf(temp, 18, "%s", level->desc);
+			M_Print(xoffset+14*8, 40+i*8, temp);
+		} else if (maps_sortby == 3) {
+			time_t seconds = M_GetMapTime(level->name);
+			if(seconds){
+				struct tm tm_info;
+				gmtime_r(&seconds, &tm_info);
+				strftime(temp,sizeof(temp),"%d/%m/%Y",&tm_info);
+				M_Print(xoffset+10*8, 40+i*8, temp);
+			}
+			else M_Print(xoffset+10*8, 40+i*8, "Unknown");
 		}
 	}
 	M_DrawCursor(xoffset - 8, 40 + maps_cursor * 8);
@@ -1576,12 +1720,12 @@ void M_Maps_Key(s32 k)
 		S_LocalSound("misc/menu3.wav");
 		maps_sortby--;
 		if (maps_sortby < 0)
-			maps_sortby = 1;
+			maps_sortby = 3;
 		break;
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu3.wav");
 		maps_sortby++;
-		if (maps_sortby > 1)
+		if (maps_sortby > 3)
 			maps_sortby = 0;
 		break;
 	case K_ENTER:
