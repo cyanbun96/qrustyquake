@@ -826,7 +826,20 @@ void Host_Stopdemo_f()
 	CL_Disconnect();
 }
 
-void FileList_Add (const char *name, const char *desc, filelist_item_t **list)
+time_t Mod_GetMapDate(const s8 *map)
+{
+	s8 path[MAX_QPATH];
+	if ((size_t) q_snprintf (path, sizeof (path), "%s/maps/%s.bsp",
+				com_gamedir, map) >= sizeof (path))
+		return 0;
+	SDL_PathInfo info;
+	SDL_GetPathInfo(path, &info);
+	u64 ns = info.modify_time;
+        time_t seconds = ns / 1000000000ULL;
+	return seconds;
+}
+
+void FileList_Add(const char *name, const char *desc, filelist_item_t **list)
 {
         filelist_item_t *item,*cursor,*prev;
         for (item = *list; item; item = item->next) // ignore duplicate
@@ -834,6 +847,33 @@ void FileList_Add (const char *name, const char *desc, filelist_item_t **list)
         item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
         q_strlcpy (item->name, name, sizeof(item->name));
         if (desc) q_strlcpy (item->desc, desc, sizeof(item->desc));
+        // insert each entry in alphabetical order
+        if (*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0) {
+                item->next = *list; //insert at front
+                *list = item;
+        } else { //insert later
+                prev = *list;
+                cursor = (*list)->next;
+                while (cursor && (q_strcasecmp(item->name, cursor->name) > 0)) {
+                        prev = cursor;
+                        cursor = cursor->next;
+                }
+                item->next = prev->next;
+                prev->next = item;
+        }
+}
+
+void FileList_AddMap(const char *name, const char *desc, filelist_item_t **list)
+{
+        filelist_item_t *item,*cursor,*prev;
+        for (item = *list; item; item = item->next) // ignore duplicate
+                if (!Q_strcmp (name, item->name)) return;
+        item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
+        q_strlcpy (item->name, name, sizeof(item->name));
+        if (desc) q_strlcpy (item->desc, desc, sizeof(item->desc));
+	item->data1 = Mod_CountMonsters(name);
+	item->data2 = Mod_CountSecrets(name);
+	item->date = Mod_GetMapDate(name);
         // insert each entry in alphabetical order
         if (*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0) {
                 item->next = *list; //insert at front
@@ -858,7 +898,7 @@ void ExtraMaps_Add(const s8 *name, const s8 *game)
 		return;
 	if(Q_strncmp(COM_SkipPath(game), "id1", 4))
 		list = &extralevels_mod;
-	FileList_Add(name, buf, list);
+	FileList_AddMap(name, buf, list);
 }
 
 void ExtraMaps_Init()

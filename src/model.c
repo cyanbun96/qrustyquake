@@ -846,6 +846,186 @@ bool Mod_LoadMapDescription(s8 *desc, size_t maxchars, const s8 *map)
 	return ret;
 }
 
+s32 Mod_CountSecrets(const s8 *map)
+{
+	s8 path[MAX_QPATH];
+	const s8 *data;
+	FILE *f;
+	lump_t *entlump;
+	dheader_t header;
+	s32 i, filesize;
+	s32 secret_count = 0;
+	if ((size_t) q_snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+		return 0;
+	filesize = COM_FOpenFile (path, &f, NULL);
+	if (filesize <= (s32) sizeof (header)) {
+		if (filesize != -1)
+			fclose (f);
+		return 0;
+	}
+	if (fread (&header, sizeof (header), 1, f) != 1) {
+		fclose (f);
+		return 0;
+	}
+	header.version = LittleLong (header.version);
+	switch (header.version) {
+		case BSPVERSION:
+		case BSP2VERSION_2PSB:
+		case BSP2VERSION_BSP2:
+		case BSPVERSION_QUAKE64:
+			break;
+		default:
+			fclose (f);
+			return 0;
+	}
+	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
+		((s32 *)&header)[i] = LittleLong (((s32 *)&header)[i]);
+	entlump = &header.lumps[LUMP_ENTITIES];
+	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
+	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
+		fclose (f);
+		return 0;
+	}
+	s8 *buf = malloc(entlump->filelen + 1);
+	if (!buf)
+		return 0;
+	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
+	i = fread(buf, 1, entlump->filelen, f);
+	fclose(f);
+	if (i <= 0) {
+		free(buf);
+		return 0;
+	}
+	buf[i] = '\0';
+	for (data = buf; data;) {
+		data = COM_Parse(data);
+		if (!data || com_token[0] != '{')
+			break;
+		s32 spawnflags = 0;
+		bool is_secret = false;
+		while (1) {
+			data = COM_Parse(data);
+			if (!data)
+				return secret_count;
+			if (com_token[0] == '}')
+				break;
+			bool is_classname = !strcmp(com_token, "classname");
+			bool is_spawnflags = !strcmp(com_token, "spawnflags");
+			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
+			if (!data)
+				return secret_count;
+			if (is_classname) {
+				if (!strcmp(com_token, "trigger_secret")
+				|| !strcmp(com_token, "target_secret") // copper
+				|| !strcmp(com_token, "trigger_secret_point")) // quoth
+					is_secret = true;
+			}
+			else if (is_spawnflags)
+				spawnflags = atoi(com_token);
+		}
+		if (is_secret) {
+			s32 s = (s32)skill.value;
+			bool skip = false;
+			if (s == 0 && (spawnflags & 256)) skip = true;
+			if (s == 1 && (spawnflags & 512)) skip = true;
+			if (s >= 2 && (spawnflags & 1024)) skip = true;
+			if (!skip)
+				secret_count++;
+		}
+	}
+	free(buf);
+	return secret_count;
+}
+
+s32 Mod_CountMonsters(const s8 *map)
+{
+	s8 path[MAX_QPATH];
+	const s8 *data;
+	FILE *f;
+	lump_t *entlump;
+	dheader_t header;
+	s32 i, filesize;
+	s32 monster_count = 0;
+	if ((size_t) q_snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+		return 0;
+	filesize = COM_FOpenFile (path, &f, NULL);
+	if (filesize <= (s32) sizeof (header)) {
+		if (filesize != -1)
+			fclose (f);
+		return 0;
+	}
+	if (fread (&header, sizeof (header), 1, f) != 1) {
+		fclose (f);
+		return 0;
+	}
+	header.version = LittleLong (header.version);
+	switch (header.version) {
+		case BSPVERSION:
+		case BSP2VERSION_2PSB:
+		case BSP2VERSION_BSP2:
+		case BSPVERSION_QUAKE64:
+			break;
+		default:
+			fclose (f);
+			return 0;
+	}
+	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
+		((s32 *)&header)[i] = LittleLong (((s32 *)&header)[i]);
+	entlump = &header.lumps[LUMP_ENTITIES];
+	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
+	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
+		fclose (f);
+		return 0;
+	}
+	s8 *buf = malloc(entlump->filelen + 1);
+	if (!buf)
+		return 0;
+	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
+	i = fread(buf, 1, entlump->filelen, f);
+	fclose(f);
+	if (i <= 0) {
+		free(buf);
+		return 0;
+	}
+	buf[i] = '\0';
+	for (data = buf; data;) {
+		data = COM_Parse(data);
+		if (!data || com_token[0] != '{')
+			break;
+		s32 spawnflags = 0;
+		bool is_monster = false;
+		while (1) {
+			data = COM_Parse(data);
+			if (!data)
+				return monster_count;
+			if (com_token[0] == '}')
+				break;
+			bool is_classname = !strcmp(com_token, "classname");
+			bool is_spawnflags = !strcmp(com_token, "spawnflags");
+			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
+			if (!data)
+				return monster_count;
+			if (is_classname) {
+				if (!strncmp(com_token, "monster_", 8))
+					is_monster = true;
+			}
+			else if (is_spawnflags)
+				spawnflags = atoi(com_token);
+		}
+		if (is_monster) {
+			s32 s = (s32)skill.value;
+			bool skip = false;
+			if (s == 0 && (spawnflags & 256)) skip = true;
+			if (s == 1 && (spawnflags & 512)) skip = true;
+			if (s >= 2 && (spawnflags & 1024)) skip = true;
+			if (!skip)
+				monster_count++;
+		}
+	}
+	free(buf);
+	return monster_count;
+}
+
 static void Mod_SetParent(mnode_t *node, mnode_t *parent)
 {
 	node->parent = parent;

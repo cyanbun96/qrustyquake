@@ -71,6 +71,9 @@ typedef struct _fshandle_t {
 typedef struct filelist_item_s {
 	s8 name[32];
 	s8 desc[128];
+	time_t date;
+	s32 data1; // monsters
+	s32 data2; // secrets
 	struct filelist_item_s *next;
 } filelist_item_t;
 
