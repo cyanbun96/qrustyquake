@@ -5,6 +5,7 @@
 #include "quakedef.h"
 
 static s32 maxlevelnamelen = 0;
+static s32 maxmodnamelen = 0;
 
 void Host_Quit_f()
 {
@@ -1020,11 +1021,35 @@ void Host_Maps_f()
 	}
 host_maps_f_fin:
 	if (tot>1) Con_Printf ("%i maps\n", i);
-	else if(tot) Con_Printf ("%i map\n", i);
+	else if(tot) Con_Printf ("1 map\n");
 	else Con_Printf ("no maps found\n");
 }
 
-void Modlist_Add (const char *name) { FileList_Add(name, 0, &modlist); }
+void Modlist_Add (const char *name, const char *desc) {
+	FileList_Add(name, desc, &modlist);
+}
+
+char *Modlist_ReadDescription(const char *mod_path)
+{
+	static s8 desc[128];
+	FILE *f;
+	s8 path[MAX_OSPATH];
+	q_snprintf(path, sizeof(path), "%s/descript.ion", mod_path);
+	f = fopen(path, "rb");
+	if (!f)
+		return NULL;
+	size_t len = fread(desc, 1, sizeof(desc) - 1, f);
+	fclose(f);
+	if (len == 0)
+		return NULL;
+	desc[len] = '\0';
+	// strip trailing newline(s)
+	while (len > 0 && (desc[len-1] == '\n' || desc[len-1] == '\r')) {
+		desc[len-1] = '\0';
+		len--;
+	}
+	return desc;
+}
 
 #ifdef _WIN32
 void Modlist_Init()
@@ -1035,6 +1060,7 @@ void Modlist_Init()
         s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
         q_snprintf (dir_string, sizeof(dir_string), "%s/*", com_basedir);
         fhnd = FindFirstFile(dir_string, &fdat);
+	maxmodnamelen = 0;
         if (fhnd == INVALID_HANDLE_VALUE) return;
         do {
                 if (!strcmp(fdat.cFileName, ".") || !strcmp(fdat.cFileName, ".."))
@@ -1043,7 +1069,10 @@ void Modlist_Init()
                 attribs = GetFileAttributes (mod_string);
                 if (attribs != INVALID_FILE_ATTRIBUTES && (attribs & FILE_ATTRIBUTE_DIRECTORY)) {
                         // don't bother testing for pak files / progs.dat
-                        Modlist_Add(fdat.cFileName);
+			s8 *desc = Modlist_ReadDescription(mod_string);
+			if (maxmodnamelen < Q_strlen(fdat.cFileName))
+				maxmodnamelen = Q_strlen(fdat.cFileName);
+			Modlist_Add(fdat.cFileName, desc);
                 }
         } while (FindNextFile(fhnd, &fdat));
         FindClose(fhnd);
@@ -1056,6 +1085,7 @@ void Modlist_Init()
         s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
         q_snprintf (dir_string, sizeof(dir_string), "%s/", com_basedir);
         dir_p = opendir(dir_string);
+	maxmodnamelen = 0;
         if (dir_p == NULL) return;
         while ((dir_t = readdir(dir_p)) != NULL) {
                 if (!strcmp(dir_t->d_name, ".") || !strcmp(dir_t->d_name, ".."))
@@ -1067,7 +1097,10 @@ void Modlist_Init()
                 if (mod_dir_p == NULL)
                         continue;
                 // don't bother testing for pak files / progs.dat
-                Modlist_Add(dir_t->d_name);
+		s8 *desc = Modlist_ReadDescription(mod_string);
+		if (maxmodnamelen < Q_strlen(dir_t->d_name))
+			maxmodnamelen = Q_strlen(dir_t->d_name);
+		Modlist_Add(dir_t->d_name, desc);
                 closedir(mod_dir_p);
         }
         closedir(dir_p);
@@ -1078,9 +1111,12 @@ void Host_Mods_f()
 {//list all potential mod directories (contain either a pak file or a progs.dat)
         s32 i;
         filelist_item_t *mod;
+	s8 padchar = '.' | 0x80;
         for (mod = modlist, i=0; mod; mod = mod->next, i++)
-                Con_Printf ("   %s\n", mod->name);
-        if (i) Con_Printf ("%i mod(s)\n", i);
+		Con_Printf ("   %s%c%s\n", RightPad(mod->name,
+			maxmodnamelen, padchar), padchar, mod->desc);
+	if (i == 1) Con_Printf ("1 mod\n");
+        if (i) Con_Printf ("%i mods\n", i);
         else Con_Printf ("no mods found\n");
 }
 
