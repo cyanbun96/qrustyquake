@@ -1503,7 +1503,11 @@ void M_Maps_Draw()
 			time_t seconds = level->date;
 			if(seconds){
 				struct tm tm_info;
+#ifdef __WIN32
+				gmtime_s(&tm_info, &seconds);
+#else
 				gmtime_r(&seconds, &tm_info);
+#endif
 				strftime(temp,sizeof(temp),"%d/%m/%Y",&tm_info);
 				M_Print(xoffset+10*8, 40+i*8, temp);
 			}
