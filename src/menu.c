@@ -1518,6 +1518,7 @@ void M_Maps_Key(s32 k)
 	s8 temp[40];
 	s32 curr_i = maps_scroll + maps_cursor;
 	s32 max_i = maps_total - 1;
+	s32 idx;
 	switch (k) {
 	case K_ESCAPE:
 		M_Menu_New_f();
@@ -1535,7 +1536,7 @@ void M_Maps_Key(s32 k)
 			maps_sortby = 0;
 		break;
 	case K_ENTER:
-		s32 idx = maps_scroll + maps_cursor;
+		idx = maps_scroll + maps_cursor;
 		if (idx >= 0 && idx < maps_total) {
 			filelist_item_t *level = maps_items[idx];
 			snprintf(temp, sizeof(temp), "map %s\n", level->name);

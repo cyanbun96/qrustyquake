@@ -1,7 +1,7 @@
 PKGCONFIG ?= pkg-config
 CC = gcc
-CFLAGS = -c -Wall -Wextra -D_DEFAULT_SOURCE $(shell $(PKGCONFIG) --cflags sdl3)
-LDFLAGS = -lm $(shell $(PKGCONFIG) --libs sdl3)
+CFLAGS := -c -Wall -Wextra -D_DEFAULT_SOURCE $(shell $(PKGCONFIG) --cflags sdl3) $(CFLAGS)
+LDFLAGS := -lm $(shell $(PKGCONFIG) --libs sdl3) $(LDFLAGS)
 SDL3_MIXER_CFLAGS := $(shell $(PKGCONFIG) --cflags sdl3-mixer 2>/dev/null)
 SDL3_MIXER_LIBS := $(shell $(PKGCONFIG) --libs sdl3-mixer 2>/dev/null)
 TARGET = qrustyquake
@@ -42,8 +42,8 @@ ifeq ($(CC),tcc)
 CFLAGS += -DSDL_DISABLE_IMMINTRIN_H
 endif
 
-DEBUG_FLAGS = -g -O0 -DDEBUG
-RELEASE_FLAGS = -O3 -flto=auto -g
+DEBUG_FLAGS ?= -g -O0 -DDEBUG
+RELEASE_FLAGS ?= -O3 -flto=auto -g
 
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += $(DEBUG_FLAGS)
@@ -74,3 +74,12 @@ release:
 
 clean:
 	rm -f $(OBJS) $(TARGET)
+
+appimage:
+	(cd ../AppImage && ./build.sh)
+
+appimage-aarch64:
+	(cd ../AppImage && ./build.sh linux/arm64)
+
+appimage-clean:
+	(cd ../AppImage && ./build.sh clean)

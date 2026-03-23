@@ -272,6 +272,7 @@ void Mod_LoadTextures(lump_t *l)
 {
 	texture_t *anims[10];
 	texture_t *altanims[10];
+	u8 *mip1, *mip2, *mip3;
 	if(!l->filelen){
 		loadmodel->textures = NULL;
 		return;
@@ -313,9 +314,9 @@ void Mod_LoadTextures(lump_t *l)
 			continue;
 		}
 rebuild:
-		u8 *mip1 = (u8 *)tx + LittleLong(tx->offsets[1]);
-		u8 *mip2 = (u8 *)tx + LittleLong(tx->offsets[2]);
-		u8 *mip3 = (u8 *)tx + LittleLong(tx->offsets[3]);
+		mip1 = (u8 *)tx + LittleLong(tx->offsets[1]);
+		mip2 = (u8 *)tx + LittleLong(tx->offsets[2]);
+		mip3 = (u8 *)tx + LittleLong(tx->offsets[3]);
 		bilinear_u8(base, mip1, tx->width, tx->height, tx->width/2, tx->height/2);
 		bilinear_u8(base, mip2, tx->width, tx->height, tx->width/4, tx->height/4);
 		bilinear_u8(base, mip3, tx->width, tx->height, tx->width/8, tx->height/8);
