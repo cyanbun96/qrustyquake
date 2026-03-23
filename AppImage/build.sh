@@ -1,7 +1,9 @@
 #!/bin/sh
 #shellcheck disable=SC2086,SC2046
 
-# multi-arch image (linux/amd64 and linux/arm64) hosted on dockerhub.com
+# multi-arch image (linux/amd64 and linux/arm64) hosted on Docker Hub
+# it can be built and uploaded with:
+# docker buildx build --progress=plain --platform=linux/amd64,linux/arm64 -t <docker hub username>/qrustyquake-build  --push .
 IMAGE_NAME=bubblesoftapps/qrustyquake-build
 
 # if you prefer a local image, generate it locally once with:

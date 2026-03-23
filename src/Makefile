@@ -76,7 +76,10 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 appimage:
-	(cd ../AppImage && ./build.sh $(PLATFORM))
+	(cd ../AppImage && ./build.sh)
+
+appimage-aarch64:
+	(cd ../AppImage && ./build.sh linux/arm64)
 
 appimage-clean:
 	(cd ../AppImage && ./build.sh clean)
