@@ -1503,7 +1503,7 @@ void M_Maps_Draw()
 			time_t seconds = level->date;
 			if(seconds){
 				struct tm tm_info;
-#ifdef __WIN32
+#ifdef _WIN32
 				gmtime_s(&tm_info, &seconds);
 #else
 				gmtime_r(&seconds, &tm_info);
