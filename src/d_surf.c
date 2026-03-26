@@ -97,18 +97,39 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 	surfcache_t *new = sc_rover;
 	if (sc_rover->owner)
 		*sc_rover->owner = NULL;
+	uintptr_t cache_lo = (uintptr_t)sc_base;
+	uintptr_t cache_hi = cache_lo + sc_size;
 	while (new->size < (s32)size) {
 		sc_rover = sc_rover->next; // free another
 		if (!sc_rover) {
-			Con_DPrintf("D_SCAlloc: hit the end of memory");
+			Con_DPrintf("D_SCAlloc: hit the end of memory\n");
 			return NULL;
 		}
-		if (((u64)sc_rover->owner&0xFF00000000000000)) {
-			Con_DPrintf("D_SCAlloc: corrupt sc_rover");
+		uintptr_t rover_addr = (uintptr_t)sc_rover; // validate sc_rover
+		if (rover_addr < cache_lo || rover_addr >= cache_hi) {
+			Con_DPrintf("D_SCAlloc: corrupt sc_rover\n");
 			return NULL;
 		}
-		if (sc_rover->owner&&!((u64)sc_rover->owner&0xFF00000000000000))
+		if (sc_rover->size <= 0 || (u64)sc_rover->size > sc_size) { // validate size
+			Con_DPrintf("D_SCAlloc: corrupt block size\n");
+			return NULL;
+		}
+		if (sc_rover->next) { // validate next
+			uintptr_t next_addr = (uintptr_t)sc_rover->next;
+			if (next_addr < cache_lo || next_addr >= cache_hi) {
+				Con_DPrintf("D_SCAlloc: corrupt next pointer\n");
+				return NULL;
+			}
+		}
+		if (sc_rover->owner) { // validate owner (against engine memory, not cache)
+			uintptr_t owner_addr = (uintptr_t)sc_rover->owner;
+			if (owner_addr < (uintptr_t)host_parms.membase || owner_addr >=
+				(uintptr_t)(host_parms.membase+host_parms.memsize)) {
+				Con_DPrintf("D_SCAlloc: corrupt owner pointer\n");
+				return NULL;
+			}
 			*sc_rover->owner = NULL;
+		}
 		new->size += sc_rover->size;
 		new->next = sc_rover->next;
 	}
