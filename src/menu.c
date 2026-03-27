@@ -1565,6 +1565,31 @@ void M_Maps_Key(s32 k)
 				maps_scroll++;
 		}
 		break;
+	case K_PGUP:
+	case 'u':
+	case 'U':
+		S_LocalSound("misc/menu1.wav");
+		curr_i -= 19;
+		if (curr_i < 0)
+			curr_i = 0;
+		maps_scroll = curr_i;
+		if (maps_scroll > maps_total - 19)
+			maps_scroll = q_max(0, maps_total - 19);
+
+		maps_cursor = curr_i - maps_scroll;
+		break;
+	case K_PGDN:
+	case 'd':
+	case 'D':
+		S_LocalSound("misc/menu1.wav");
+		curr_i += 19;
+		if (curr_i > max_i)
+			curr_i = max_i;
+		maps_scroll = curr_i;
+		if (maps_scroll > maps_total - 19)
+			maps_scroll = q_max(0, maps_total - 19);
+		maps_cursor = curr_i - maps_scroll;
+		break;
 	default:
 		break;
 	}
