@@ -44,6 +44,8 @@ static struct music_format {
 
 static MIX_Mixer *mixer = NULL;
 static MIX_Audio *current_music = NULL;
+static MIX_Track *track = NULL;
+static SDL_PropertiesID trackprops = 0;
 static s8 current_name[MAX_OSPATH];
 static u8 *loaded_file = NULL;
 static float last_volume = -1;
@@ -88,7 +90,8 @@ found:
 	}
 	CDAudio_Stop();
 	current_music = music;
-	if (!MIX_PlayAudio(mixer, current_music)) {
+	MIX_SetTrackAudio(track, current_music);
+	if (!MIX_PlayTrack(track, trackprops)) {
 		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
 		return;
 	}
@@ -154,6 +157,14 @@ bool CDAudio_Init()
 		Con_Printf("SDL Mixer device creation failed: %s\n", SDL_GetError());
 		return false;
 	}
+	track = MIX_CreateTrack(mixer);
+	if (!track) {
+		MIX_Quit();
+		Con_Printf("SDL Track creation failed: %s\n", SDL_GetError());
+		return false;
+	}
+	trackprops = SDL_CreateProperties();
+	SDL_SetNumberProperty(trackprops, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
 	Con_Printf("SDL Mixer initialized\n");
 	Cmd_AddCommand("music", BGM_Play_f);
 	Cmd_AddCommand("music_stop", CDAudio_Stop);
