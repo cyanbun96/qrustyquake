@@ -16,6 +16,11 @@ static const char *const knownmods[][2] = {
 	{"ctf",         "Capture The Flag"},
 	{"udob",        "Underdark Overbright"},
 	{"ad",          "Arcane Dimensions"},
+	{"quoth",       "Quoth"},
+	{"impel",       "Abyss of Pandemonium"},
+	{"alk1.2",      "Alkaline 1.2"},
+	{"rubicon2",    "Rubicon 2"},
+	{"zer",         "Zerstorer - Testament of the Destroyer"},
 };
 
 
