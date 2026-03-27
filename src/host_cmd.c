@@ -1043,7 +1043,7 @@ void Modlist_Add (const char *name, const char *desc) {
 
 static const char *Modlist_KnownDescription(const char *modname)
 {
-	for (s32 i = 0; i < sizeof(knownmods) / sizeof(knownmods[0]); i++) {
+	for (u32 i = 0; i < sizeof(knownmods) / sizeof(knownmods[0]); i++) {
 		if (!q_strcasecmp(modname, knownmods[i][0]))
 			return knownmods[i][1];
 	}
@@ -1121,7 +1121,7 @@ void Modlist_Init()
                         continue;
                 // don't bother testing for pak files / progs.dat
 		char *file_desc = Modlist_ReadDescription(mod_string);
-		char *desc = file_desc ? file_desc : Modlist_KnownDescription(dir_t->d_name);
+		const char *desc = file_desc ? file_desc : Modlist_KnownDescription(dir_t->d_name);
 		if (maxmodnamelen < Q_strlen(dir_t->d_name))
 			maxmodnamelen = Q_strlen(dir_t->d_name);
 		Modlist_Add(dir_t->d_name, desc);

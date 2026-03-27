@@ -124,7 +124,7 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 		if (sc_rover->owner) { // validate owner (against engine memory, not cache)
 			uintptr_t owner_addr = (uintptr_t)sc_rover->owner;
 			if (owner_addr < (uintptr_t)host_parms.membase || owner_addr >=
-				(uintptr_t)(host_parms.membase+host_parms.memsize)) {
+				(uintptr_t)((uintptr_t)host_parms.membase+host_parms.memsize)) {
 				Con_DPrintf("D_SCAlloc: corrupt owner pointer\n");
 				return NULL;
 			}
