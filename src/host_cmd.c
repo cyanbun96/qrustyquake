@@ -6,6 +6,18 @@
 
 static s32 maxlevelnamelen = 0;
 static s32 maxmodnamelen = 0;
+static const char *const knownmods[][2] = {
+	{"id1",         "Quake"},
+	{"hipnotic",    "Scourge of Armagon"},
+	{"rogue",       "Dissolution of Eternity"},
+	{"dopa",        "Dimension of the Past"},
+	{"mg1",         "Dimension of the Machine"},
+	{"q64",         "Quake (Nintendo 64)"},
+	{"ctf",         "Capture The Flag"},
+	{"udob",        "Underdark Overbright"},
+	{"ad",          "Arcane Dimensions"},
+};
+
 
 void Host_Quit_f()
 {
@@ -1029,6 +1041,15 @@ void Modlist_Add (const char *name, const char *desc) {
 	FileList_Add(name, desc, &modlist);
 }
 
+static const char *Modlist_KnownDescription(const char *modname)
+{
+	for (s32 i = 0; i < sizeof(knownmods) / sizeof(knownmods[0]); i++) {
+		if (!q_strcasecmp(modname, knownmods[i][0]))
+			return knownmods[i][1];
+	}
+	return NULL;
+}
+
 char *Modlist_ReadDescription(const char *mod_path)
 {
 	static s8 desc[128];
@@ -1069,10 +1090,12 @@ void Modlist_Init()
                 attribs = GetFileAttributes (mod_string);
                 if (attribs != INVALID_FILE_ATTRIBUTES && (attribs & FILE_ATTRIBUTE_DIRECTORY)) {
                         // don't bother testing for pak files / progs.dat
-			s8 *desc = Modlist_ReadDescription(mod_string);
+			s8 *file_desc = Modlist_ReadDescription(mod_string);
+			s8 *desc = file_desc ? file_desc : Modlist_KnownDescription(fdat.cFileName);
 			if (maxmodnamelen < Q_strlen(fdat.cFileName))
 				maxmodnamelen = Q_strlen(fdat.cFileName);
 			Modlist_Add(fdat.cFileName, desc);
+
                 }
         } while (FindNextFile(fhnd, &fdat));
         FindClose(fhnd);
@@ -1097,7 +1120,8 @@ void Modlist_Init()
                 if (mod_dir_p == NULL)
                         continue;
                 // don't bother testing for pak files / progs.dat
-		s8 *desc = Modlist_ReadDescription(mod_string);
+		char *file_desc = Modlist_ReadDescription(mod_string);
+		char *desc = file_desc ? file_desc : Modlist_KnownDescription(dir_t->d_name);
 		if (maxmodnamelen < Q_strlen(dir_t->d_name))
 			maxmodnamelen = Q_strlen(dir_t->d_name);
 		Modlist_Add(dir_t->d_name, desc);
