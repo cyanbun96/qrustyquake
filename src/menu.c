@@ -25,12 +25,18 @@ static s32 options_cursor;
 static s32 keys_cursor;
 static s32 bind_grab;
 static s32 new_cursor;
+static s32 mods_cursor;
+static s32 mods_scroll;
+static s32 mods_total;
 static s32 maps_cursor;
 static s32 maps_scroll;
 static s32 maps_total;
 static s32 maps_sortby;
 static filelist_item_t **maps_items = NULL;
+static filelist_item_t **mods_items = NULL;
 static s32 maps_items_cap = 0;
+static s32 mods_items_cap = 0;
+static s32 mod_list_built = 0;
 static s32 maps_list_sorted_by = -1;
 static s32 maps_list_skill = -1;
 static s8 maps_game[64];
@@ -216,7 +222,8 @@ s8 *quitMessage[] = {
 
 enum { m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup,
 m_net, m_options, m_video, m_keys, m_new, m_gamepad, m_display, m_graphics, 
-m_help, m_quit, m_lanconfig, m_gameoptions, m_search, m_slist, m_maps } m_state;
+m_help, m_quit, m_lanconfig, m_gameoptions, m_search, m_slist, m_maps, m_mods
+} m_state;
 
 void M_Menu_Main_f();
 void M_Menu_SinglePlayer_f();
@@ -245,6 +252,7 @@ void M_Net_Draw();
 void M_Options_Draw();
 void M_Keys_Draw();
 void M_New_Draw();
+void M_Mods_Draw();
 void M_Maps_Draw();
 void M_Video_Draw();
 void M_Help_Draw();
@@ -1575,7 +1583,6 @@ void M_Maps_Key(s32 k)
 		maps_scroll = curr_i;
 		if (maps_scroll > maps_total - 19)
 			maps_scroll = q_max(0, maps_total - 19);
-
 		maps_cursor = curr_i - maps_scroll;
 		break;
 	case K_PGDN:
@@ -1589,6 +1596,112 @@ void M_Maps_Key(s32 k)
 		if (maps_scroll > maps_total - 19)
 			maps_scroll = q_max(0, maps_total - 19);
 		maps_cursor = curr_i - maps_scroll;
+		break;
+	default:
+		break;
+	}
+}
+
+void M_Mods_List_Update()
+{
+	if (mod_list_built) return;
+	mod_list_built = 1;
+	filelist_item_t *mod = modlist;
+	mods_total = 0;
+	for (filelist_item_t *l = mod; l; l = l->next)
+		mods_total++;
+	if (mods_total > mods_items_cap) {
+		mods_items_cap = mods_total;
+		mods_items = realloc(mods_items, mods_items_cap * sizeof(*mods_items));
+	}
+	for (s32 i = 0; mod; mod = mod->next)
+		mods_items[i++] = mod;
+	if (mods_scroll > mods_total - 19)
+		mods_scroll = q_max(0, mods_total - 19);
+}
+
+void M_Mods_Draw()
+{
+	s8 temp[32];
+	s32 xoffset = 64;
+	M_Mods_List_Update();
+	if (mods_cursor >= mods_total)
+		mods_cursor = mods_total > 0 ? mods_total - 1 : 0;
+	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
+	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
+	M_DrawTransPic((320 - p->width) / 2, 4, p);
+	for (s32 i = 0; i < 20; i++) {
+		s32 idx = mods_scroll + i;
+		if (idx >= mods_total)
+			break;
+		filelist_item_t *mod = mods_items[idx];
+		snprintf(temp, 10, "%s", mod->name);
+		M_Print(xoffset, 32+i*8, temp);
+		snprintf(temp, 22, "%s", mod->desc);
+		M_Print(xoffset+10*8, 32+i*8, temp);
+	}
+	M_DrawCursor(xoffset - 8, 32 + mods_cursor * 8);
+}
+
+void M_Mods_Key(s32 k)
+{
+	s8 temp[40];
+	s32 curr_i = mods_scroll + mods_cursor;
+	s32 max_i = mods_total - 1;
+	s32 idx;
+	switch (k) {
+	case K_ESCAPE:
+		M_Menu_New_f();
+		break;
+	case K_ENTER:
+		idx = mods_scroll + mods_cursor;
+		if (idx >= 0 && idx < mods_total) {
+			filelist_item_t *mod = mods_items[idx];
+			snprintf(temp, sizeof(temp), "game %s\n", mod->name);
+			Cbuf_AddText(temp);
+		}
+		break;
+	case K_UPARROW:
+		S_LocalSound("misc/menu1.wav");
+		if (curr_i > 0) {
+			if (mods_cursor > 0)
+				mods_cursor--;
+			else if (mods_scroll > 0)
+				mods_scroll--;
+		}
+		break;
+	case K_DOWNARROW:
+		S_LocalSound("misc/menu1.wav");
+		if (curr_i < max_i) {
+			if (mods_cursor < 19)
+				mods_cursor++;
+			else if (mods_scroll < mods_total - 20)
+				mods_scroll++;
+		}
+		break;
+	case K_PGUP:
+	case 'u':
+	case 'U':
+		S_LocalSound("misc/menu1.wav");
+		curr_i -= 20;
+		if (curr_i < 0)
+			curr_i = 0;
+		mods_scroll = curr_i;
+		if (mods_scroll > mods_total - 20)
+			mods_scroll = q_max(0, mods_total - 20);
+		mods_cursor = curr_i - mods_scroll;
+		break;
+	case K_PGDN:
+	case 'd':
+	case 'D':
+		S_LocalSound("misc/menu1.wav");
+		curr_i += 20;
+		if (curr_i > max_i)
+			curr_i = max_i;
+		mods_scroll = curr_i;
+		if (mods_scroll > mods_total - 20)
+			mods_scroll = q_max(0, mods_total - 20);
+		mods_cursor = curr_i - mods_scroll;
 		break;
 	default:
 		break;
@@ -1766,6 +1879,13 @@ void M_Display_Key(s32 k)
 			}
 		}
 	}
+}
+
+void M_Menu_Mods_f()
+{
+	key_dest = key_menu;
+	m_state = m_mods;
+	m_entersound = 1;
 }
 
 void M_Menu_Maps_f()
@@ -2424,6 +2544,7 @@ void M_New_Draw()
 	M_Print(xoffset + 204, 56, "Graphics...");
 	M_Print(xoffset + 204, 64, "Gamepad...");
 	M_Print(xoffset + 204, 72, "Custom maps...");
+	M_Print(xoffset + 204, 80, "Mods...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -2528,12 +2649,12 @@ void M_New_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 5;
+		if (new_cursor == 0) new_cursor = 6;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 5) new_cursor = 0;
+		if (new_cursor == 6) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_RIGHTARROW:
@@ -2548,6 +2669,7 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 3) M_Menu_Graphics_f();
 		else if (new_cursor == 4) M_Menu_Gamepad_f();
 		else if (new_cursor == 5) M_Menu_Maps_f();
+		else if (new_cursor == 6) M_Menu_Mods_f();
 		break;
 	}
 }
@@ -3328,6 +3450,7 @@ void M_Init()
 	Cmd_AddCommand("menu_new", M_Menu_New_f);
 	Cmd_AddCommand("menu_gamepad", M_Menu_Gamepad_f);
 	Cmd_AddCommand("menu_maps", M_Menu_Maps_f);
+	Cmd_AddCommand("menu_mods", M_Menu_Mods_f);
 	Cmd_AddCommand("menu_display", M_Menu_Display_f);
 	Cmd_AddCommand("menu_graphics", M_Menu_Graphics_f);
 	Cmd_AddCommand("help", M_Menu_Help_f);
@@ -3362,6 +3485,7 @@ void M_Draw()
 		case m_gamepad: M_Gamepad_Draw(); break;
 		case m_display: M_Display_Draw(); break;
 		case m_maps: M_Maps_Draw(); break;
+		case m_mods: M_Mods_Draw(); break;
 		case m_graphics: M_Graphics_Draw(); break;
 		case m_video: M_Video_Draw(); break;
 		case m_help: M_Help_Draw(); break;
@@ -3395,6 +3519,7 @@ void M_Keydown(s32 key)
 		case m_gamepad: M_Gamepad_Key(key); return;
 		case m_display: M_Display_Key(key); return;
 		case m_maps: M_Maps_Key(key); return;
+		case m_mods: M_Mods_Key(key); return;
 		case m_graphics: M_Graphics_Key(key); return;
 		case m_help: M_Help_Key(key); return;
 		case m_quit: M_Quit_Key(key); return;
