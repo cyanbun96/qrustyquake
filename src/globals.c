@@ -145,6 +145,7 @@ u8 *host_basepal;
 u8 *host_colormap;
 s32 current_skill;                                                 // host_cmd.c
 bool noclip_anglehack;
+cvar_t *cvar_vars;                                                     // cvar.c
 s8 key_lines[32][MAXCMDLINE];                                          // keys.c
 s32 key_linepos;
 s32 key_lastpress;

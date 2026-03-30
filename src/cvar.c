@@ -5,7 +5,6 @@
 // cvar.c -- dynamic variable tracking
 #include "quakedef.h"
 
-static cvar_t *cvar_vars;
 static s8 cvar_null_string[] = "";
 
 void Cvar_List_f()

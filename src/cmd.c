@@ -319,6 +319,27 @@ void Cmd_AddCommand(s8 *cmd_name, xcommand_t function)
 	}
 }
 
+s32 Cmd_ListCompletions(const s8 *text)
+{
+	s32 len = Q_strlen(text);
+	s32 tot = 0;
+	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
+		if(!len || !Q_strncmp(text, cmd->name, len))
+			++tot;
+	for(cvar_t *cvar = cvar_vars; cvar; cvar = cvar->next)
+		if(!len || !strncmp(text, cvar->name, len))
+			++tot;
+	if(tot == 1) return tot;
+	Con_Printf("\n");
+	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
+		if(!len || !Q_strncmp(text, cmd->name, len))
+			Con_Printf("(cmd) %s\n", cmd->name);
+	for(cvar_t *cvar = cvar_vars; cvar; cvar = cvar->next)
+		if(!len || !strncmp(text, cvar->name, len))
+			Con_Printf("(var) %s\n", cvar->name);
+	return tot;
+}
+
 bool Cmd_Exists(const s8 *cmd_name)
 {
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)

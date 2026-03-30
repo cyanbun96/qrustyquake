@@ -382,6 +382,7 @@ void Cache_Flush();
 void *Cache_Check(cache_user_t *c);
 void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name);
 void Cache_Report();
+EX cvar_t *cvar_vars;                                                  // cvar.c
 EX cmd_source_t cmd_source;                                             // cmd.h
 void Cmd_Init();
 void Cbuf_Init();
@@ -390,6 +391,7 @@ void Cbuf_InsertText(s8 *text);
 void Cbuf_Execute();
 void Cmd_AddCommand(s8 *cmd_name, xcommand_t function);
 bool Cmd_Exists(const s8 *cmd_name);
+s32 Cmd_ListCompletions(const s8 *text);
 s8 *Cmd_CompleteCommand(s8 *partial);
 s32 Cmd_Argc();
 s8 *Cmd_Argv(s32 arg);
