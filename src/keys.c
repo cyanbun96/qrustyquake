@@ -95,18 +95,24 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if(key == K_PGUP || key == K_MWHEELUP){
-		con_backscroll += 2;
-		if((u32)con_backscroll > con_totallines - (vid.height >> 3) - 1)
-			con_backscroll = con_totallines - (vid.height >> 3) - 1;
+		if (keydown[K_CTRL] || keydown[K_SHIFT])
+			con_backscroll += 20;
+		else
+			con_backscroll += 2;
+		if((u32)con_backscroll > con_totallines - ((vid.height/uiscale)/8) - 1)
+			con_backscroll = con_totallines - ((vid.height/uiscale)/8) - 1;
 		return;
 	}
 	if(key == K_PGDN || key == K_MWHEELDOWN){
-		con_backscroll -= 2;
+		if (keydown[K_CTRL] || keydown[K_SHIFT])
+			con_backscroll -= 20;
+		else
+			con_backscroll -= 2;
 		if(con_backscroll < 0) con_backscroll = 0;
 		return;
 	}
 	if(key == K_HOME){
-		con_backscroll = con_totallines - (vid.height >> 3) - 1;
+		con_backscroll = con_totallines - ((vid.height/uiscale)/8) - 1;
 		return;
 	}
 	if(key == K_END){
