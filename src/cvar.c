@@ -63,7 +63,6 @@ void Cvar_Toggle_f()
 
 void Cvar_Cycle_f()
 {
-
 	if(Cmd_Argc() < 3) {
 Con_Printf("cycle <cvar> <value list>: cycle cvar through a list of values\n");
 		return; }

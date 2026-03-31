@@ -437,6 +437,7 @@ void Host_Init()
 	Cmd_Init();
 	V_Init();
 	Chase_Init();
+	Cvar_Init();
 	COM_Init();
 	COM_InitFilesystem();
 	Host_InitLocal();

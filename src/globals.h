@@ -383,6 +383,7 @@ void *Cache_Check(cache_user_t *c);
 void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name);
 void Cache_Report();
 EX cvar_t *cvar_vars;                                                  // cvar.c
+void Cvar_Init();
 EX cmd_source_t cmd_source;                                             // cmd.h
 void Cmd_Init();
 void Cbuf_Init();
