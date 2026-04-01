@@ -119,6 +119,17 @@ void Key_Console(s32 key) // Line typing into the console
 		con_backscroll = 0;
 		return;
 	}
+	if((key == 'v' || key == 'V') && keydown[K_CTRL]){
+		s8 *cb = SDL_GetClipboardText();
+		if (!cb) return;
+		s32 len1 = Q_strlen(key_lines[edit_line]);
+		Q_strncpy(&key_lines[edit_line][key_linepos], cb,
+			MAXCMDLINE - key_linepos);
+		s32 len2 = Q_strlen(key_lines[edit_line]);
+		key_linepos += len2 - len1;
+		SDL_free(cb);
+		return;
+	}
 	if(key < 32 || key > 127) return; // non printable
 	if(key_linepos < MAXCMDLINE - 1){
 		key_lines[edit_line][key_linepos] = key;
