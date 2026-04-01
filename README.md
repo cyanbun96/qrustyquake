@@ -166,7 +166,7 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
       - r_particlestyle 0 - square, 1 - circle
 
-      - r_particlealpha [0=1] for translusency, affected by r_alphastyle
+      - r_particlealpha [0-1] for translusency, affected by r_alphastyle
 
    - r_mipscale for LOD distance adjustment
 
@@ -242,7 +242,7 @@ VM is VirtualBox unless specified otherwise.
 
    - Default heapsize crashes on launch, works with "-heapsize 100000"
 
-- Android [HW, Termux, AARCH64, clang] v0.6.1
+- Android [HW, Termux, AARCH64, clang] v0.7.0 (since commit ccbe834)
 
    - Ran through X11 with touch controls. *unpleasant*
 
