@@ -69,7 +69,13 @@ void Key_Console(s32 key) // Line typing into the console
 		}
 	}
 	if(key == K_BACKSPACE || key == K_LEFTARROW){
-		if(key_linepos > 1) key_linepos--;
+		if(key_linepos > 1 && !keydown[K_CTRL]) key_linepos--;
+		else if(key_linepos > 1) {
+			do{
+				key_linepos--;
+			}while(key_lines[edit_line][key_linepos-1] > ' '
+					&& key_linepos>1);
+		}
 		return;
 	}
 	if(key == K_UPARROW){
