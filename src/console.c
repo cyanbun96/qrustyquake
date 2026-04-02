@@ -201,24 +201,27 @@ void Con_SafePrintf(s8 *fmt, ...)
 	scr_disabled_for_loading = temp;
 }
 
-
 void Con_DrawInput()
-{ // The input line scrolls horizontally if typing goes beyond the right edge
-	if(key_dest != key_console && !con_forcedup)
-		return; // don't draw anything
-	s8 *text = key_lines[edit_line];
-	// add the cursor frame
-	text[key_linepos] = 10 + ((s32)(realtime * con_cursorspeed) & 1);
-	for(s32 i = key_linepos + 1; i < con_linewidth; i++)
-		text[i] = ' '; // fill out remainder with spaces
-	if(key_linepos >= con_linewidth) // prestep if horizontally scrolling
-		text += 1 + key_linepos - con_linewidth;
-	for(s32 i = 0; i < con_linewidth; i++) // draw it
+{
+	if (key_dest != key_console && !con_forcedup)
+		return;
+	const s8 *line = key_lines[edit_line];
+	s32 len = Q_strlen(line);
+	s32 start = 0;
+	if (key_linepos >= con_linewidth)
+		start = key_linepos - con_linewidth + 1;
+	for (s32 i = 0; i < con_linewidth; i++) {
+		s32 idx = start + i;
+		s32 ch = ' ';
+		if (idx < len)
+			ch = line[idx];
+		if (idx == key_linepos && ((s32)(realtime*con_cursorspeed) & 1))
+			ch = 11;
 		Draw_CharacterScaled(((i + 1) << 3) * uiscale,
-			con_vislines - 16 * uiscale, text[i], uiscale);
-	key_lines[edit_line][key_linepos] = 0; // remove cursor
+				con_vislines - 16 * uiscale,
+				ch, uiscale);
+	}
 }
-
 
 void Con_DrawNotify()
 { // Draws the last few lines of output transparently over the game top

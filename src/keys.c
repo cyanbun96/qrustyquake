@@ -41,6 +41,84 @@ keyname_t keynames[] = {
 	{ NULL, 0 }
 };
 
+static void Con_InsertChar(s32 c)
+{
+	s32 len = Q_strlen(key_lines[edit_line]);
+	if (len >= MAXCMDLINE - 2) // keep room for prompt and NUL
+		return;
+	memmove(&key_lines[edit_line][key_linepos + 1],
+			&key_lines[edit_line][key_linepos],
+			len - key_linepos + 1); // include NUL
+	key_lines[edit_line][key_linepos] = c;
+	key_linepos++;
+}
+
+static void Con_BackspaceChar()
+{
+	s32 len = Q_strlen(key_lines[edit_line]);
+	if (key_linepos <= 1)
+		return;
+	memmove(&key_lines[edit_line][key_linepos - 1],
+			&key_lines[edit_line][key_linepos],
+			len - key_linepos + 1); // include NUL
+	key_linepos--;
+}
+
+static void Con_DeleteChar()
+{
+	s32 len = Q_strlen(key_lines[edit_line]);
+	if (key_linepos >= len)
+		return;
+	memmove(&key_lines[edit_line][key_linepos],
+			&key_lines[edit_line][key_linepos + 1],
+			len - key_linepos); // include NUL
+}
+
+static bool Con_IsSpace(s32 c) { return c <= ' '; }
+
+static void Con_WordLeft()
+{
+	if(key_linepos <= 1) return;
+	while(key_linepos>1 && Con_IsSpace(key_lines[edit_line][key_linepos-1]))
+		key_linepos--;
+	while(key_linepos>1 &&!Con_IsSpace(key_lines[edit_line][key_linepos-1]))
+		key_linepos--;
+}
+
+static void Con_WordRight()
+{
+	s32 len = Q_strlen(key_lines[edit_line]);
+	if (key_linepos >= len) return;
+	while(key_linepos<len && Con_IsSpace(key_lines[edit_line][key_linepos]))
+		key_linepos++;
+	while(key_linepos<len &&!Con_IsSpace(key_lines[edit_line][key_linepos]))
+		key_linepos++;
+}
+
+static void Con_DeleteWordLeft()
+{
+	s32 old = key_linepos;
+	Con_WordLeft();
+	s32 newpos = key_linepos;
+	s32 len = Q_strlen(key_lines[edit_line]);
+	memmove(&key_lines[edit_line][newpos], &key_lines[edit_line][old],
+			len - old + 1); // include NUL
+}
+
+static void Con_DeleteWordRight()
+{
+	s32 start = key_linepos;
+	s32 len = Q_strlen(key_lines[edit_line]);
+	if (start >= len) return;
+	s32 pos = start;
+	while (pos < len && Con_IsSpace(key_lines[edit_line][pos]))
+		pos++;
+	while (pos < len && !Con_IsSpace(key_lines[edit_line][pos]))
+		pos++;
+	memmove(&key_lines[edit_line][start], &key_lines[edit_line][pos],
+			len - pos + 1); // include NUL
+}
+
 void Key_Console(s32 key) // Line typing into the console
 { // Interactive line editing and console scrollback
 	if(key == K_ENTER){
@@ -68,14 +146,32 @@ void Key_Console(s32 key) // Line typing into the console
 			return;
 		}
 	}
-	if(key == K_BACKSPACE || key == K_LEFTARROW){
-		if(key_linepos > 1 && !keydown[K_CTRL]) key_linepos--;
-		else if(key_linepos > 1) {
-			do{
-				key_linepos--;
-			}while(key_lines[edit_line][key_linepos-1] > ' '
-					&& key_linepos>1);
-		}
+	if (key == K_LEFTARROW) {
+		if(keydown[K_CTRL])
+			Con_WordLeft();
+		else if(key_linepos > 1)
+			key_linepos--;
+		return;
+	}
+	if (key == K_RIGHTARROW) {
+		if(keydown[K_CTRL])
+			Con_WordRight();
+		else if(key_linepos < Q_strlen(key_lines[edit_line]))
+			key_linepos++;
+		return;
+	}
+	if (key == K_BACKSPACE) {
+		if(keydown[K_CTRL])
+			Con_DeleteWordLeft();
+		else
+			Con_BackspaceChar();
+		return;
+	}
+	if (key == K_DEL) {
+		if(keydown[K_CTRL])
+			Con_DeleteWordRight();
+		else
+			Con_DeleteChar();
 		return;
 	}
 	if(key == K_UPARROW){
@@ -137,11 +233,7 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if(key < 32 || key > 127) return; // non printable
-	if(key_linepos < MAXCMDLINE - 1){
-		key_lines[edit_line][key_linepos] = key;
-		key_linepos++;
-		key_lines[edit_line][key_linepos] = 0;
-	}
+	Con_InsertChar(key);
 }
 
 void Key_Message(s32 key)
@@ -345,7 +437,9 @@ void Key_Init()
 	consolekeys[K_PGDN] = 1;
 	consolekeys[K_SHIFT] = 1;
 	consolekeys[K_MWHEELUP] = 1;
-	consolekeys[K_MWHEELDOWN] = 1;
+	consolekeys[K_DEL] = 1;
+	consolekeys[K_HOME] = 1;
+	consolekeys[K_END] = 1;
 	consolekeys['`'] = 0;
 	consolekeys['~'] = 0;
 	for(s32 i = 0; i < 256; i++) keyshift[i] = i;
