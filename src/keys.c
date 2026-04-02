@@ -240,14 +240,24 @@ void Key_Console(s32 key) // Line typing into the console
 		con_backscroll = 0;
 		return;
 	}
-	if((key == 'v' || key == 'V') && keydown[K_CTRL]){
+	if ((key == 'v' || key == 'V') && keydown[K_CTRL]) {
 		s8 *cb = SDL_GetClipboardText();
 		if (!cb) return;
-		s32 len1 = Q_strlen(key_lines[edit_line]);
-		Q_strncpy(&key_lines[edit_line][key_linepos], cb,
-			MAXCMDLINE - key_linepos);
-		s32 len2 = Q_strlen(key_lines[edit_line]);
-		key_linepos += len2 - len1;
+		s32 len_cb = Q_strlen(cb);
+		s32 len_line = Q_strlen(key_lines[edit_line]);
+		if (len_cb <= 0) {
+			SDL_free(cb);
+			return;
+		}
+		if (len_line + len_cb >= MAXCMDLINE - 1)
+			len_cb = (MAXCMDLINE - 1) - len_line;
+		if (len_cb > 0) {
+			memmove(&key_lines[edit_line][key_linepos + len_cb],
+				&key_lines[edit_line][key_linepos],
+				len_line - key_linepos + 1); // include NUL
+			memcpy(&key_lines[edit_line][key_linepos], cb, len_cb);
+			key_linepos += len_cb;
+		}
 		SDL_free(cb);
 		return;
 	}
