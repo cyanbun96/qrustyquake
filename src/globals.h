@@ -697,6 +697,9 @@ EX s32 con_totallines;
 EX s32 con_backscroll;
 EX bool con_initialized;
 EX s32 con_notifylines;
+EX s32 con_current;
+EX s8 *con_text;
+EX s32 con_linewidth;
 void M_Menu_Main_f();
 EX edge_t *ledges;                                                   // r_edge.c
 EX surf_t *lsurfs;

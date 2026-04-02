@@ -119,8 +119,17 @@ static void Con_DeleteWordRight()
 			len - pos + 1); // include NUL
 }
 
+static bool Con_LineIsEmpty(int line)
+{
+	s8 *text = con_text + (line % con_totallines) * con_linewidth;
+	for (s32 i = 0; i < con_linewidth; i++)
+		if (text[i] > ' ') return false;
+	return true;
+}
+
 void Key_Console(s32 key) // Line typing into the console
 { // Interactive line editing and console scrollback
+	s32 con_bottom = con_totallines - ((vid.height/uiscale)/8) - 1;
 	if(key == K_ENTER){
 		Cbuf_AddText(key_lines[edit_line] + 1);	// skip the >
 		Cbuf_AddText("\n");
@@ -201,8 +210,8 @@ void Key_Console(s32 key) // Line typing into the console
 			con_backscroll += 20;
 		else
 			con_backscroll += 2;
-		if((u32)con_backscroll > con_totallines - ((vid.height/uiscale)/8) - 1)
-			con_backscroll = con_totallines - ((vid.height/uiscale)/8) - 1;
+		if((u32)con_backscroll > con_bottom)
+			con_backscroll = con_bottom;
 		return;
 	}
 	if(key == K_PGDN || key == K_MWHEELDOWN){
@@ -213,8 +222,18 @@ void Key_Console(s32 key) // Line typing into the console
 		if(con_backscroll < 0) con_backscroll = 0;
 		return;
 	}
-	if(key == K_HOME){
-		con_backscroll = con_totallines - ((vid.height/uiscale)/8) - 1;
+	if (key == K_HOME) {
+		s32 maxscroll = con_bottom;
+		if(maxscroll < 0) maxscroll = 0;
+		s32 target = con_current - maxscroll;
+		if(target < 0) target = 0;
+		while(target < con_current && Con_LineIsEmpty(target))
+			target++;
+		con_backscroll = con_current - target;
+		if (con_backscroll > maxscroll)
+			con_backscroll = maxscroll;
+		if (con_backscroll < 0)
+			con_backscroll = 0;
 		return;
 	}
 	if(key == K_END){

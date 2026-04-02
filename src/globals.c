@@ -118,6 +118,9 @@ s32 con_totallines; // total lines in console scrollback
 s32 con_backscroll; // lines up from bottom to display
 bool con_initialized;
 s32 con_notifylines; // scan lines to clear for notify lines
+s32 con_current; // where next message will be printed
+s8 *con_text = 0;
+s32 con_linewidth;
 surfcache_t *d_initial_rover;                                        // d_init.c
 bool d_roverwrapped;
 s32 d_minmip;

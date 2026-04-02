@@ -2,9 +2,6 @@
 
 #include "quakedef.h"
 
-static s32 con_current; // where next message will be printed
-static s8 *con_text = 0;
-static s32 con_linewidth;
 static f32 con_cursorspeed = 4;
 static s32 con_vislines;
 static bool con_debuglog;
