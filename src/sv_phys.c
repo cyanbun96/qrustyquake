@@ -21,8 +21,8 @@ void SV_Physics_Toss(edict_t *ent);
 void SV_CheckAllEnts()
 {
 	// see if any solid entities are inside the final position
-	edict_t *check = NEXT_EDICT(sv.edicts);
-	for(s32 e = 1; e < sv.num_edicts; e++, check = NEXT_EDICT(check)) {
+	edict_t *check = NEXT_EDICT(qcvm->edicts);
+	for(s32 e = 1; e < qcvm->num_edicts; e++, check = NEXT_EDICT(check)) {
 		if(check->free) continue;
 		if(check->v.movetype == MOVETYPE_PUSH
 			|| check->v.movetype == MOVETYPE_NONE
@@ -57,9 +57,9 @@ void SV_CheckVelocity(edict_t *ent)
 bool SV_RunThink(edict_t *ent)
 {
 	f32 thinktime = ent->v.nextthink;
-	if(thinktime <= 0 || thinktime > sv.time + host_frametime) return 1;
-	if(thinktime < sv.time)
-		thinktime = sv.time; // don't let things stay in the past.
+	if(thinktime <= 0 || thinktime > qcvm->time + host_frametime) return 1;
+	if(thinktime < qcvm->time)
+		thinktime = qcvm->time; // don't let things stay in the past.
 				     // it is possible to start that way
 				     // by a trigger with a local time.
 	ent->oldthinktime = thinktime;
@@ -67,7 +67,7 @@ bool SV_RunThink(edict_t *ent)
 	ent->v.nextthink = 0;
 	pr_global_struct->time = thinktime;
 	pr_global_struct->self = EDICT_TO_PROG(ent);
-	pr_global_struct->other = EDICT_TO_PROG(sv.edicts);
+	pr_global_struct->other = EDICT_TO_PROG(qcvm->edicts);
 	PR_ExecuteProgram(ent->v.think);
 	return !ent->free;
 }
@@ -76,7 +76,7 @@ void SV_Impact(edict_t *e1, edict_t *e2)
 { // Two entities have touched, so run their touch functions
 	s32 old_self = pr_global_struct->self;
 	s32 old_other = pr_global_struct->other;
-	pr_global_struct->time = sv.time;
+	pr_global_struct->time = qcvm->time;
 	if(e1->v.touch && e1->v.solid != SOLID_NOT) {
 		pr_global_struct->self = EDICT_TO_PROG(e1);
 		pr_global_struct->other = EDICT_TO_PROG(e2);
@@ -197,7 +197,7 @@ void SV_AddGravity(edict_t *ent)
 {
 	f32 ent_gravity;
 	eval_t *val;
-	val = GetEdictFieldValue(ent, "gravity");
+	val = GetEdictFieldValueByName(ent, "gravity");
 	if(val && val->_float)
 		ent_gravity = val->_float;
 	else
@@ -253,13 +253,13 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 	SV_LinkEdict(pusher, 0);
 	//johnfitz -- dynamically allocate
 	mark = Hunk_LowMark();
-	moved_edict = (edict_t **) Hunk_Alloc(sv.num_edicts*sizeof(edict_t *));
-	moved_from = (vec3_t *) Hunk_Alloc(sv.num_edicts*sizeof(vec3_t));
+	moved_edict = (edict_t **) Hunk_Alloc(qcvm->num_edicts*sizeof(edict_t *));
+	moved_from = (vec3_t *) Hunk_Alloc(qcvm->num_edicts*sizeof(vec3_t));
 	//johnfitz
 	// see if any solid entities are inside the final position
 	num_moved = 0;
-	check = NEXT_EDICT(sv.edicts);
-	for(e=1 ; e<sv.num_edicts ; e++, check = NEXT_EDICT(check))
+	check = NEXT_EDICT(qcvm->edicts);
+	for(e=1 ; e<qcvm->num_edicts ; e++, check = NEXT_EDICT(check))
 	{
 		if(check->free)
 			continue;
@@ -360,9 +360,9 @@ void SV_Physics_Pusher(edict_t *ent)
 	if(thinktime > oldltime && thinktime <= ent->v.ltime)
 	{
 		ent->v.nextthink = 0;
-		pr_global_struct->time = sv.time;
+		pr_global_struct->time = qcvm->time;
 		pr_global_struct->self = EDICT_TO_PROG(ent);
-		pr_global_struct->other = EDICT_TO_PROG(sv.edicts);
+		pr_global_struct->other = EDICT_TO_PROG(qcvm->edicts);
 		PR_ExecuteProgram(ent->v.think);
 		if(ent->free)
 			return;
@@ -551,8 +551,9 @@ void SV_WalkMove(edict_t *ent)
 
 void SV_Physics_Client(edict_t *ent, s32 num) // Player character actions
 {
+	if((s32)ent->v.movetype == 7) return; // FIXME
 	if(!svs.clients[num-1].active) return; // unconnected slot
-	pr_global_struct->time = sv.time; // call standard client pre-think
+	pr_global_struct->time = qcvm->time; // call standard client pre-think
 	pr_global_struct->self = EDICT_TO_PROG(ent);
 	PR_ExecuteProgram(pr_global_struct->PlayerPreThink);
 	SV_CheckVelocity(ent); // do a move
@@ -585,7 +586,7 @@ void SV_Physics_Client(edict_t *ent, s32 num) // Player character actions
 	}
 
 	SV_LinkEdict(ent, 1); // call standard player post-think
-	pr_global_struct->time = sv.time;
+	pr_global_struct->time = qcvm->time;
 	pr_global_struct->self = EDICT_TO_PROG(ent);
 	PR_ExecuteProgram(pr_global_struct->PlayerPostThink);
 }
@@ -684,15 +685,15 @@ void SV_Physics()
 {
 	edict_t *ent;
 	// let the progs know that a new frame has started
-	pr_global_struct->self = EDICT_TO_PROG(sv.edicts);
-	pr_global_struct->other = EDICT_TO_PROG(sv.edicts);
-	pr_global_struct->time = sv.time;
+	pr_global_struct->self = EDICT_TO_PROG(qcvm->edicts);
+	pr_global_struct->other = EDICT_TO_PROG(qcvm->edicts);
+	pr_global_struct->time = qcvm->time;
 	PR_ExecuteProgram(pr_global_struct->StartFrame);
-	ent = sv.edicts; // treat each object in turn
+	ent = qcvm->edicts; // treat each object in turn
 	// Only run physics on clients and the world
 	s32 entity_cap; // For sv_freezenonclients 
 	if(sv_freezenonclients.value) entity_cap = svs.maxclients + 1;
-	else entity_cap = sv.num_edicts;
+	else entity_cap = qcvm->num_edicts;
 	for(s32 i = 0; i<entity_cap; i++, ent = NEXT_EDICT(ent)) {
 		if(ent->free) continue;
 		if(pr_global_struct->force_retouch)
@@ -711,7 +712,7 @@ void SV_Physics()
 				SV_Physics_Toss(ent);
 		else Sys_Error("SV_Physics: bad movetype %i", (s32)ent->v.movetype);
 		ent->sendinterval = 0; // johnfitz -- lerp
-		if(!ent->free && ent->v.nextthink > sv.time && (ent->v.movetype
+		if(!ent->free && ent->v.nextthink > qcvm->time && (ent->v.movetype
 			== MOVETYPE_STEP || ent->v.movetype == MOVETYPE_WALK ||
 				ent->v.frame != ent->oldframe)) {
 			s32 j = Q_rint((ent->v.nextthink-ent->oldthinktime)*255);
@@ -720,5 +721,5 @@ void SV_Physics()
 		} //johnfitz
 	}
 	if(pr_global_struct->force_retouch) pr_global_struct->force_retouch--;
-	if(!sv_freezenonclients.value) sv.time += host_frametime;
+	if(!sv_freezenonclients.value) qcvm->time += host_frametime;
 }

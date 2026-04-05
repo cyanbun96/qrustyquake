@@ -17,16 +17,16 @@
 #define NUM_TYPE_SIZES 8 // progs.h
 #define MAX_ENT_LEAFS 32
 #define EDICT_FROM_AREA(l) STRUCT_FROM_LINK(l,edict_t,area)
-#define NEXT_EDICT(e) ((edict_t*)((u8*)e + pr_edict_size))
-#define EDICT_TO_PROG(e) (s32)((u8*)e - (u8*)sv.edicts)
-#define PROG_TO_EDICT(e) ((edict_t*)((u8*)sv.edicts + e))
-#define G_FLOAT(o) (pr_globals[o])
-#define G_INT(o) (*(s32*)&pr_globals[o])
-#define G_EDICT(o) ((edict_t*)((u8*)sv.edicts+ *(s32*)&pr_globals[o]))
+#define NEXT_EDICT(e) ((edict_t*)((u8*)e + qcvm->edict_size))
+#define EDICT_TO_PROG(e) (s32)((u8*)e - (u8*)qcvm->edicts)
+#define PROG_TO_EDICT(e) ((edict_t*)((u8*)qcvm->edicts + e))
+#define G_FLOAT(o) (qcvm->globals[o])
+#define G_INT(o) (*(s32*)&qcvm->globals[o])
+#define G_EDICT(o) ((edict_t *)((u8*)qcvm->edicts+ *(s32*)&qcvm->globals[o]))
 #define G_EDICTNUM(o) NUM_FOR_EDICT(G_EDICT(o))
-#define G_VECTOR(o) (&pr_globals[o])
-#define G_STRING(o) (PR_GetString(*(string_t*)&pr_globals[o]))
-#define G_FUNCTION(o) (*(func_t*)&pr_globals[o])
+#define G_VECTOR(o) (&qcvm->globals[o])
+#define G_STRING(o) (PR_GetString(*(string_t *)&qcvm->globals[o]))
+#define G_FUNCTION(o) (*(func_t *)&qcvm->globals[o])
 #define E_FLOAT(e,o) (((f32*)&e->v)[o])
 #define E_INT(e,o) (*(s32*)&((f32*)&e->v)[o])
 #define E_VECTOR(e,o) (&((f32*)&e->v)[o])
@@ -237,6 +237,8 @@
 #define CVAR_LOCKED (1U << 8) // locked temporarily
 #define CVAR_REGISTERED (1U << 10) // the var is added to the list of variables
 #define CVAR_CALLBACK (1U << 16) // var has a callback
+#define CVAR_USERDEFINED (1U << 17) // cvar was created by the user/mod, and needs to be saved a bit differently.
+#define CVAR_AUTOCVAR (1U << 18) // cvar changes need to feed back to qc global changes.
 #define NET_NAMELEN 64 // net.h
 #define NET_MAXMESSAGE 65535 // ericw -- was 32000
 #define R_SKY_SMASK 0x007F0000 // d_local.h
@@ -274,6 +276,7 @@
 #define DEAD_NO 0 // edict->deadflag values
 #define DEAD_DYING 1
 #define DEAD_DEAD 2
+#define DEAD_RESPAWNABLE 3
 #define DAMAGE_NO 0
 #define DAMAGE_YES 1
 #define DAMAGE_AIM 2
@@ -775,8 +778,9 @@
 #define MAXGAMEDIRLEN 1000
 #define MAXPRINTMSG 4096
 
-#define MAX_STACK_DEPTH 64 // pr_exec.c
-#define LOCALSTACK_SIZE 2048
+#define MAX_STACK_DEPTH 1024 // pr_exec.c
+#define LOCALSTACK_SIZE 16384
+#define MAX_BUILTINS 1280
 
 #define CRC_INIT_VALUE 0xffff // crc.c
 #define CRC_XOR_VALUE 0x0000
@@ -834,7 +838,7 @@
 
 #define STRINGTEMP_BUFFERS 16 // pr_cmds.c
 #define STRINGTEMP_LENGTH 1024
-#define RETURN_EDICT(e) (((s32 *)pr_globals)[OFS_RETURN] = EDICT_TO_PROG(e))
+#define RETURN_EDICT(e) (((s32 *)qcvm->globals)[OFS_RETURN] = EDICT_TO_PROG(e))
 #define MSG_BROADCAST 0 // unreliable to all
 #define MSG_ONE 1 // reliable to one (msg_entity)
 #define MSG_ALL 2 // reliable to all

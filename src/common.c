@@ -83,6 +83,13 @@ void COM_CloseFile(s32 h);
 void ClearLink(link_t *l){ l->prev = l->next = l; } // used for new headnodes
 void RemoveLink(link_t *l){ l->next->prev = l->prev; l->prev->next = l->next;}
 
+const char *COM_SkipSpace (const char *str)
+{
+    while (q_isspace (*str))
+        str++;
+    return str;
+}
+
 void InsertLinkBefore(link_t *l, link_t *before)
 {
 	l->next = before;
@@ -1569,18 +1576,18 @@ s64 FS_filelength(fshandle_t *fh)
 }
 
 
-unsigned COM_HashString(const s8 *str)
+u32 COM_HashString(const s8 *str)
 { // Computes the FNV-1a hash of string str
-	unsigned hash = 0x811c9dc5u;
+	u32 hash = 0x811c9dc5u;
 	while(*str) { hash ^= *str++; hash *= 0x01000193u; }
 	return hash;
 }
 
 
-unsigned COM_HashBlock(const void *data, size_t size)
+u32 COM_HashBlock(const void *data, size_t size)
 { // Computes the FNV-1a hash of a memory block
 	const u8 *ptr = (const u8 *)data;
-	unsigned hash = 0x811c9dc5u;
+	u32 hash = 0x811c9dc5u;
 	while(size--) { hash ^= *ptr++; hash *= 0x01000193u; }
 	return hash;
 }

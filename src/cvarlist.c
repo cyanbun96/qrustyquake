@@ -216,6 +216,7 @@ cvar_t lyr_centerprint=                           {"lyr_centerprint","1", 1,ZR};
 cvar_t lyr_console=                                   {"lyr_console","2", 1,ZR};
 cvar_t lyr_notify=                                     {"lyr_notify","2", 1,ZR};
 cvar_t lyr_crosshair=                               {"lyr_crosshair","3", 1,ZR};
+cvar_t pr_checkextension=                       {"pr_checkextension","1", 1,ZR};
 cvar_t registered=                               {"registered","1",CVAR_ROM,ZR};
 cvar_t cmdline=                                      {"cmdline","",CVAR_ROM,ZR};
 cvar_t vid_mode=                                 {"vid_mode", "0", CVAR_ROM,ZR};

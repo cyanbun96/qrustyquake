@@ -1,6 +1,7 @@
 // Copyright(C) 1996-2001 Id Software, Inc.
 // Copyright(C) 2002-2009 John Fitzgibbons and others
 // Copyright(C) 2010-2014 QuakeSpasm developers
+// Copyright(C) 2016      Spike
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
@@ -9,6 +10,24 @@ static u8 pr_string_tempindex = 0;
 static u8 *checkpvs; //ericw -- changed to malloc
 static s32 checkpvs_capacity;
 static s32 c_invis, c_notvis;
+static struct
+{
+    char name[MAX_QPATH];
+    unsigned int flags;
+    qpic_t *pic;
+} *qcpics;
+static size_t numqcpics;
+static size_t maxqcpics;
+
+void PF_Fixme (void) { if(developer.value)PR_RunError ("unimplemented builtin"); }
+
+void PR_ReloadPics(bool purge)
+{
+    numqcpics = 0;
+    free(qcpics);
+    qcpics = NULL;
+    maxqcpics = 0;
+}
 
 static s8 *PR_GetTempString()
 { return pr_string_temp[(STRINGTEMP_BUFFERS-1) & ++pr_string_tempindex]; }
@@ -94,34 +113,105 @@ static void SetMinMaxSize(edict_t *e, f32 *minvec, f32 *maxvec, SDL_UNUSED bool 
 
 static void PF_setsize() // the size box is rotated by the current angle
 {
-	edict_t *e = G_EDICT(OFS_PARM0);
-	f32 *minvec = G_VECTOR(OFS_PARM1);
-	f32 *maxvec = G_VECTOR(OFS_PARM2);
-	SetMinMaxSize(e, minvec, maxvec, 0);
+    edict_t *e;
+    float   *minvec, *maxvec;
+
+    e = G_EDICT(OFS_PARM0);
+    minvec = G_VECTOR(OFS_PARM1);
+    maxvec = G_VECTOR(OFS_PARM2);
+    SetMinMaxSize (e, minvec, maxvec, false);
 }
 
-static void PF_setmodel()
-{
-	edict_t *e = G_EDICT(OFS_PARM0);
-	const s8 *m = G_STRING(OFS_PARM1);
-	// check to see if model was properly precached
-	s32 i = 0;
-	const s8 **check = sv.model_precache;
-	for(; *check; i++, check++)
-		if(!strcmp(*check, m)) break;
-	if(!*check) PR_RunError("no precache: %s", m);
-	e->v.model = PR_SetEngineString(*check);
-	e->v.modelindex = i;
-	model_t *mod = sv.models[ (s32)e->v.modelindex];
-	if(mod){ //johnfitz -- correct physics cullboxes for bmodels
-		if(mod->type == mod_brush)
-			SetMinMaxSize(e, mod->clipmins, mod->clipmaxs, 1);
-		else SetMinMaxSize(e, mod->mins, mod->maxs, 1);
-	} else SetMinMaxSize(e, vec3_origin, vec3_origin, 1);
+static void PF_setmodel (void)
+{ // setmodel(entity, model)
+    int     i;
+    const char  *m, **check;
+    model_t    *mod;
+    edict_t     *e;
+
+    e = G_EDICT(OFS_PARM0);
+    m = G_STRING(OFS_PARM1);
+
+// check to see if model was properly precached
+    for (i = 0, check = sv.model_precache; *check; i++, check++)
+    {
+        if (!strcmp(*check, m))
+            break;
+    }
+
+    if (!*check)
+    {
+        PR_RunError ("no precache: %s", m);
+    }
+    e->v.model = PR_SetEngineString(*check);
+    e->v.modelindex = i; //SV_ModelIndex (m);
+
+    mod = sv.models[ (int)e->v.modelindex];  // Mod_ForName (m, true);
+
+    if (mod)
+    //johnfitz -- correct physics cullboxes for bmodels
+    {
+        if (mod->type == mod_brush)
+            SetMinMaxSize (e, mod->clipmins, mod->clipmaxs, true);
+        else
+            SetMinMaxSize (e, mod->mins, mod->maxs, true);
+    }
+    //johnfitz
+    else
+        SetMinMaxSize (e, vec3_origin, vec3_origin, true);
 }
 
 static void PF_bprint() // broadcast print to everyone on server
 { s8 *s = PF_VarString(0); SV_BroadcastPrintf("%s", s); }
+
+/*KRIMZON_SV_PARSECLIENTCOMMAND added these two - note that for compatibility with DP, this tokenize builtin is veeery vauge and doesn't match the console*/
+static void PF_Tokenize(void)
+{
+	puts("TODO PF_Tokenize");
+    //G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), true);
+}
+
+static void PF_tokenize_console(void)
+{
+	puts("TODO PF_tokenize_console");
+    //G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), false);
+}
+
+static void PF_ArgV(void)
+{
+	puts("TODO PF_ArgV");
+    /*int idx = G_FLOAT(OFS_PARM0);
+
+    //negative indexes are relative to the end
+    if (idx < 0)
+        idx += qctoken_count;
+
+    if ((unsigned int)idx >= qctoken_count)
+        G_INT(OFS_RETURN) = 0;
+    else
+    {
+        char *ret = PR_GetTempString();
+        q_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
+        G_INT(OFS_RETURN) = PR_SetEngineString(ret);
+    }*/
+}
+
+static void PF_ArgC(void)
+{
+	puts("TODO PF_ArgC");
+    //G_FLOAT(OFS_RETURN) = qctoken_count;
+}
+
+static void PF_sprintf()
+{
+	puts("TODO PF_sprintf");
+}
+
+static void PF_cl_registercommand(void)
+{
+    const char *cmdname = G_STRING(OFS_PARM0);
+    Cmd_AddCommand(cmdname, NULL);
+}
 
 static void PF_sprint() // single print to a specific client
 {
@@ -298,7 +388,7 @@ static void PF_traceline()
 	VectorCopy(trace.plane.normal, pr_global_struct->trace_plane_normal);
 	pr_global_struct->trace_plane_dist = trace.plane.dist;
 	if(trace.ent) pr_global_struct->trace_ent = EDICT_TO_PROG(trace.ent);
-	else pr_global_struct->trace_ent = EDICT_TO_PROG(sv.edicts);
+	else pr_global_struct->trace_ent = EDICT_TO_PROG(qcvm->edicts);
 }
 
 static s32 PF_newcheckclient(s32 check)
@@ -341,13 +431,13 @@ Sys_Error("PF_newcheckclient: realloc() failed on %d bytes", checkpvs_capacity);
 static void PF_checkclient()
 {
 	// find a new check if on a new frame
-	if(sv.time - sv.lastchecktime >= 0.1) {
+	if(qcvm->time - sv.lastchecktime >= 0.1) {
 		sv.lastcheck = PF_newcheckclient(sv.lastcheck);
-		sv.lastchecktime = sv.time;
+		sv.lastchecktime = qcvm->time;
 	}
 	edict_t *ent = EDICT_NUM(sv.lastcheck);
 	if(ent->free || ent->v.health<=0){ //return check if it might be visible
-		RETURN_EDICT(sv.edicts);
+		RETURN_EDICT(qcvm->edicts);
 		return;
 	}
 	// if current entity can't possibly see the check entity, return 0
@@ -358,7 +448,7 @@ static void PF_checkclient()
 	s32 l = (leaf - sv.worldmodel->leafs) - 1;
 	if((l < 0) || !(checkpvs[l>>3] & (1 << (l & 7)))) {
 		c_notvis++;
-		RETURN_EDICT(sv.edicts);
+		RETURN_EDICT(qcvm->edicts);
 		return;
 	}
 	c_invis++; // might be able to see it
@@ -399,12 +489,12 @@ static void PF_cvar_set()
 
 static void PF_findradius()
 { // Returns a chain of entities that have origins within a spherical area
-	edict_t *chain = (edict_t *)sv.edicts;
+	edict_t *chain = (edict_t *)qcvm->edicts;
 	f32 *org = G_VECTOR(OFS_PARM0);
 	f32 rad = G_FLOAT(OFS_PARM1);
 	rad *= rad;
-	edict_t *ent = NEXT_EDICT(sv.edicts);
-	for(s32 i = 1; i < sv.num_edicts; i++, ent = NEXT_EDICT(ent)) {
+	edict_t *ent = NEXT_EDICT(qcvm->edicts);
+	for(s32 i = 1; i < qcvm->num_edicts; i++, ent = NEXT_EDICT(ent)) {
 		f32 d, lensq;
 		if(ent->free) continue;
 		if(ent->v.solid == SOLID_NOT) continue;
@@ -462,23 +552,36 @@ static void PF_Remove()
 	ED_Free(ed);
 }
 
-static void PF_Find()
-{
-	s32 e = G_EDICTNUM(OFS_PARM0);
-	s32 f = G_INT(OFS_PARM1);
-	const s8 *s = G_STRING(OFS_PARM2);
-	if(!s) PR_RunError("PF_Find: bad search string");
-	for(e++; e < sv.num_edicts; e++) {
-		edict_t *ed = EDICT_NUM(e);
-		if(ed->free) continue;
-		const s8 *t = E_STRING(ed,f);
-		if(!t) continue;
-		if(!strcmp(t,s)) {
-			RETURN_EDICT(ed);
-			return;
-		}
-	}
-	RETURN_EDICT(sv.edicts);
+
+static void PF_Find (void)
+{ // entity (entity start, .string field, string match) find = #5;
+    int     e;
+    int     f;
+    const char  *s, *t;
+    edict_t *ed;
+
+    e = G_EDICTNUM(OFS_PARM0);
+    f = G_INT(OFS_PARM1);
+    s = G_STRING(OFS_PARM2);
+    if (!s)
+        PR_RunError ("PF_Find: bad search string");
+
+    for (e++ ; e < qcvm->num_edicts ; e++)
+    {
+        ed = EDICT_NUM(e);
+        if (ed->free)
+            continue;
+        t = E_STRING(ed,f);
+        if (!t)
+            continue;
+        if (!strcmp(t,s))
+        {
+            RETURN_EDICT(ed);
+            return;
+        }
+    }
+
+    RETURN_EDICT(qcvm->edicts);
 }
 
 static void PR_CheckEmptyString(const s8 *s)
@@ -613,8 +716,8 @@ static void PF_nextent()
 	s32 i = G_EDICTNUM(OFS_PARM0);
 	while(1) {
 		i++;
-		if(i == sv.num_edicts) {
-			RETURN_EDICT(sv.edicts);
+		if(i == qcvm->num_edicts) {
+			RETURN_EDICT(qcvm->edicts);
 			return;
 		}
 		edict_t *ent = EDICT_NUM(i);
@@ -625,6 +728,34 @@ static void PF_nextent()
 	}
 }
 
+static void PF_checkcommand(void)
+{
+	puts("TODO: PF_checkcommand");
+    /*const char *name = G_STRING(OFS_PARM0);
+    if (Cmd_Exists(name))
+        G_FLOAT(OFS_RETURN) = 1;
+    else if (Cmd_AliasExists(name))
+        G_FLOAT(OFS_RETURN) = 2;
+    else if (Cvar_FindVar(name))
+        G_FLOAT(OFS_RETURN) = 3;
+    else
+        G_FLOAT(OFS_RETURN) = 0;*/
+}
+static void PF_clientcommand(void)
+{
+    edict_t *ed             = G_EDICT(OFS_PARM0);
+    const char *str         = G_STRING(OFS_PARM1);
+    unsigned int i          = NUM_FOR_EDICT(ed)-1;
+    if (i < (unsigned int)svs.maxclients && svs.clients[i].active)
+    {
+        client_t *ohc = host_client;
+        host_client = &svs.clients[i];
+        Cmd_ExecuteString (str, src_client);
+        host_client = ohc;
+    }
+    else
+        Con_Printf("PF_clientcommand: not a client\n");
+}
 
 static void PF_aim() // Pick a vector for the player to shoot along
 {
@@ -645,8 +776,8 @@ static void PF_aim() // Pick a vector for the player to shoot along
 	VectorCopy(dir, bestdir); // try all possible entities
 	f32 bestdist = sv_aim.value;
 	edict_t *bestent = NULL;
-	edict_t *check = NEXT_EDICT(sv.edicts);
-	for(s32 i = 1; i < sv.num_edicts; i++, check = NEXT_EDICT(check)) {
+	edict_t *check = NEXT_EDICT(qcvm->edicts);
+	for(s32 i = 1; i < qcvm->num_edicts; i++, check = NEXT_EDICT(check)) {
 		if(check->v.takedamage != DAMAGE_AIM) continue;
 		if(check == ent) continue;
 		if(teamplay.value &&ent->v.team>0 &&ent->v.team==check->v.team)
@@ -726,52 +857,92 @@ static void PF_WriteString()
 static void PF_WriteEntity()
 { MSG_WriteShort(WriteDest(), G_EDICTNUM(OFS_PARM1)); }
 
-static void PF_makestatic()
+static void PF_makestatic (void)
 {
-	s32 bits = 0;
-	edict_t *ent = G_EDICT(OFS_PARM0);
-	if(ent->alpha == ENTALPHA_ZERO){ ED_Free(ent); return; }
-	if(sv.protocol == PROTOCOL_NETQUAKE) {
-		if(SV_ModelIndex(PR_GetString(ent->v.model)) & 0xFF00
-				|| (s32)(ent->v.frame) & 0xFF00) {
-			ED_Free(ent); //can't display the correct model & frame
-			return; // so don't show it at all
-		}
-	} else {
-		if(SV_ModelIndex(PR_GetString(ent->v.model)) & 0xFF00)
-			bits |= B_LARGEMODEL;
-		if((s32)(ent->v.frame) & 0xFF00)
-			bits |= B_LARGEFRAME;
-		if(ent->alpha != ENTALPHA_DEFAULT)
-			bits |= B_ALPHA;
-		if(sv.protocol == PROTOCOL_RMQ) {
-			eval_t* val = GetEdictFieldValue(ent, "scale");
-			if(val) ent->scale = ENTSCALE_ENCODE(val->_float);
-			else ent->scale = ENTSCALE_DEFAULT;
-			if(ent->scale != ENTSCALE_DEFAULT) bits |= B_SCALE;
-		}
-	}
-	SV_ReserveSignonSpace(34);
-	if(bits) {
-		MSG_WriteByte(sv.signon, svc_spawnstatic2);
-		MSG_WriteByte(sv.signon, bits);
-	}
-	else MSG_WriteByte(sv.signon, svc_spawnstatic);
-	if(bits & B_LARGEMODEL)
-	   MSG_WriteShort(sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
-	else
-	   MSG_WriteByte(sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
-	if(bits & B_LARGEFRAME) MSG_WriteShort(sv.signon, ent->v.frame);
-	else MSG_WriteByte(sv.signon, ent->v.frame);
-	MSG_WriteByte(sv.signon, ent->v.colormap);
-	MSG_WriteByte(sv.signon, ent->v.skin);
-	for(s32 i = 0; i < 3; i++) {
-		MSG_WriteCoord(sv.signon, ent->v.origin[i], sv.protocolflags);
-		MSG_WriteAngle(sv.signon, ent->v.angles[i], sv.protocolflags);
-	}
-	if(bits & B_ALPHA) MSG_WriteByte(sv.signon, ent->alpha);
-	if(bits & B_SCALE) MSG_WriteByte(sv.signon, ent->scale);
-	ED_Free(ent); // throw the entity away now
+    edict_t *ent;
+    int     i;
+    int bits = 0; //johnfitz -- PROTOCOL_FITZQUAKE
+
+    ent = G_EDICT(OFS_PARM0);
+
+    //johnfitz -- don't send invisible static entities
+    if (ent->alpha == ENTALPHA_ZERO) {
+        ED_Free (ent);
+        return;
+    }
+    //johnfitz
+
+    //johnfitz -- PROTOCOL_FITZQUAKE
+    if (sv.protocol == PROTOCOL_NETQUAKE)
+    {
+        if (SV_ModelIndex(PR_GetString(ent->v.model)) & 0xFF00 || (int)(ent->v.frame) & 0xFF00)
+        {
+            ED_Free (ent);
+            return; //can't display the correct model & frame, so don't show it at all
+        }
+    }
+    else
+    {
+        if (SV_ModelIndex(PR_GetString(ent->v.model)) & 0xFF00)
+            bits |= B_LARGEMODEL;
+        if ((int)(ent->v.frame) & 0xFF00)
+            bits |= B_LARGEFRAME;
+        if (ent->alpha != ENTALPHA_DEFAULT)
+            bits |= B_ALPHA;
+
+        if (sv.protocol == PROTOCOL_RMQ)
+        {
+            eval_t* val;
+            val = GetEdictFieldValueByName(ent, "scale");
+            if (val)
+                ent->scale = ENTSCALE_ENCODE(val->_float);
+            else
+                ent->scale = ENTSCALE_DEFAULT;
+
+            if (ent->scale != ENTSCALE_DEFAULT)
+                bits |= B_SCALE;
+        }
+    }
+
+    SV_ReserveSignonSpace (34);
+
+    if (bits)
+    {
+        MSG_WriteByte (sv.signon, svc_spawnstatic2);
+        MSG_WriteByte (sv.signon, bits);
+    }
+    else
+        MSG_WriteByte (sv.signon, svc_spawnstatic);
+
+    if (bits & B_LARGEMODEL)
+        MSG_WriteShort (sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
+    else
+        MSG_WriteByte (sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
+
+    if (bits & B_LARGEFRAME)
+        MSG_WriteShort (sv.signon, ent->v.frame);
+    else
+        MSG_WriteByte (sv.signon, ent->v.frame);
+    //johnfitz
+
+    MSG_WriteByte (sv.signon, ent->v.colormap);
+    MSG_WriteByte (sv.signon, ent->v.skin);
+    for (i = 0; i < 3; i++)
+    {
+        MSG_WriteCoord(sv.signon, ent->v.origin[i], sv.protocolflags);
+        MSG_WriteAngle(sv.signon, ent->v.angles[i], sv.protocolflags);
+    }
+
+    //johnfitz -- PROTOCOL_FITZQUAKE
+    if (bits & B_ALPHA)
+        MSG_WriteByte (sv.signon, ent->alpha);
+    //johnfitz
+
+    if (bits & B_SCALE)
+        MSG_WriteByte (sv.signon, ent->scale);
+
+// throw the entity away now
+    ED_Free (ent);
 }
 
 static void PF_setspawnparms()
@@ -810,23 +981,838 @@ static void PF_localsound()
 	SV_LocalSound(&svs.clients[entnum-1], sample);
 }
 
-static void PF_Fixme() { PR_RunError("unimplemented builtin"); }
+static void PF_Sin(void)
+{ G_FLOAT(OFS_RETURN) = sin(G_FLOAT(OFS_PARM0)); }
+static void PF_asin(void)
+{ G_FLOAT(OFS_RETURN) = asin(G_FLOAT(OFS_PARM0)); }
+static void PF_Cos(void)
+{ G_FLOAT(OFS_RETURN) = cos(G_FLOAT(OFS_PARM0)); }
+static void PF_acos(void)
+{ G_FLOAT(OFS_RETURN) = acos(G_FLOAT(OFS_PARM0)); }
+static void PF_tan(void)
+{ G_FLOAT(OFS_RETURN) = tan(G_FLOAT(OFS_PARM0)); }
+static void PF_atan(void)
+{ G_FLOAT(OFS_RETURN) = atan(G_FLOAT(OFS_PARM0)); }
+static void PF_atan2(void)
+{ G_FLOAT(OFS_RETURN) = atan2(G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1)); }
+static void PF_Sqrt(void)
+{ G_FLOAT(OFS_RETURN) = sqrt(G_FLOAT(OFS_PARM0)); }
+static void PF_pow(void)
+{ G_FLOAT(OFS_RETURN) = pow(G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1)); }
 
-static builtin_t pr_builtin[] = {
-PF_Fixme,PF_makevectors,PF_setorigin,PF_setmodel,PF_setsize,PF_Fixme,PF_break,
-PF_random,PF_sound,PF_normalize,PF_error,PF_objerror,PF_vlen,PF_vectoyaw,
-PF_Spawn,PF_Remove,PF_traceline,PF_checkclient,PF_Find,PF_precache_sound,
-PF_precache_model,PF_stuffcmd,PF_findradius,PF_bprint,PF_sprint,PF_dprint,
-PF_ftos,PF_vtos,PF_coredump,PF_traceon,PF_traceoff,PF_eprint,PF_walkmove,
-PF_Fixme,PF_droptofloor,PF_lightstyle,PF_rint,PF_floor,PF_ceil,PF_Fixme,
-PF_checkbottom,PF_pointcontents,PF_Fixme,PF_fabs,PF_aim,PF_cvar,PF_localcmd,
-PF_nextent,PF_particle,PF_changeyaw,PF_Fixme,PF_vectoangles,PF_WriteByte,
-PF_WriteChar,PF_WriteShort,PF_WriteLong,PF_WriteCoord,PF_WriteAngle,
-PF_WriteString,PF_WriteEntity,PF_Fixme,PF_Fixme,PF_Fixme,PF_Fixme,PF_Fixme,
-PF_Fixme,PF_Fixme,SV_MoveToGoal,PF_precache_file,PF_makestatic,PF_changelevel,
-PF_Fixme,PF_cvar_set,PF_centerprint,PF_ambientsound,PF_precache_model,
-PF_precache_sound,PF_precache_file,PF_setspawnparms,PF_finalefinished,
-PF_localsound,PF_Fixme,PF_Fixme,PF_Fixme,PF_Fixme,PF_Fixme,PF_Fixme,PF_Fixme,
-PF_Fixme,PF_Fixme,PF_CheckPlayerEXFlags,PF_walkpathtogoal,PF_Fixme, };
-const builtin_t *pr_builtins = pr_builtin;
-const s32 pr_numbuiltins = Q_COUNTOF(pr_builtin);
+static void PF_stof(void)
+{ G_FLOAT(OFS_RETURN) = atof(G_STRING(OFS_PARM0)); }
+static void PF_stov(void)
+{
+    const char *s = G_STRING(OFS_PARM0);
+    s = COM_Parse(s);
+    G_VECTOR(OFS_RETURN)[0] = atof(com_token);
+    s = COM_Parse(s);
+    G_VECTOR(OFS_RETURN)[1] = atof(com_token);
+    s = COM_Parse(s);
+    G_VECTOR(OFS_RETURN)[2] = atof(com_token);
+}
+static void PF_etos(void)
+{   //yes, this is lame
+    char *result = PR_GetTempString();
+    q_snprintf(result, STRINGTEMP_LENGTH, "entity %i", G_EDICTNUM(OFS_PARM0));
+    G_INT(OFS_RETURN) = PR_SetEngineString(result);
+}
+static void PF_ftoi(void)
+{ G_INT(OFS_RETURN) = G_FLOAT(OFS_PARM0); }
+static void PF_itof(void)
+{ G_FLOAT(OFS_RETURN) = G_INT(OFS_PARM0); }
+
+static void PF_mod(void)
+{
+    float a = G_FLOAT(OFS_PARM0);
+    float n = G_FLOAT(OFS_PARM1);
+
+    if (n == 0)
+    {
+        Con_DPrintf("PF_mod: mod by zero\n");
+        G_FLOAT(OFS_RETURN) = 0;
+    }
+    else
+    {
+        //because QC is inherantly floaty, lets use floats.
+        G_FLOAT(OFS_RETURN) = a - (n * (int)(a/n));
+    }
+}
+static void PF_min(void)
+{
+    float r = G_FLOAT(OFS_PARM0);
+    int i;
+    for (i = 1; i < qcvm->argc; i++)
+    {
+        if (r > G_FLOAT(OFS_PARM0 + i*3))
+            r = G_FLOAT(OFS_PARM0 + i*3);
+    }
+    G_FLOAT(OFS_RETURN) = r;
+}
+static void PF_max(void)
+{
+    float r = G_FLOAT(OFS_PARM0);
+    int i;
+    for (i = 1; i < qcvm->argc; i++)
+    {
+        if (r < G_FLOAT(OFS_PARM0 + i*3))
+            r = G_FLOAT(OFS_PARM0 + i*3);
+    }
+    G_FLOAT(OFS_RETURN) = r;
+}
+static void PF_bound(void)
+{
+    float minval = G_FLOAT(OFS_PARM0);
+    float curval = G_FLOAT(OFS_PARM1);
+    float maxval = G_FLOAT(OFS_PARM2);
+    if (curval > maxval)
+        curval = maxval;
+    if (curval < minval)
+        curval = minval;
+    G_FLOAT(OFS_RETURN) = curval;
+}
+
+static void PF_vectorvectors(void)
+{
+    VectorCopy(G_VECTOR(OFS_PARM0), pr_global_struct->v_forward);
+    VectorNormalize(pr_global_struct->v_forward);
+    if (!pr_global_struct->v_forward[0] && !pr_global_struct->v_forward[1])
+    {
+        if (pr_global_struct->v_forward[2])
+            pr_global_struct->v_right[1] = -1;
+        else
+            pr_global_struct->v_right[1] = 0;
+        pr_global_struct->v_right[0] = pr_global_struct->v_right[2] = 0;
+    }
+    else
+    {
+        pr_global_struct->v_right[0] = pr_global_struct->v_forward[1];
+        pr_global_struct->v_right[1] = -pr_global_struct->v_forward[0];
+        pr_global_struct->v_right[2] = 0;
+        VectorNormalize(pr_global_struct->v_right);
+    }
+    CrossProduct(pr_global_struct->v_right, pr_global_struct->v_forward, pr_global_struct->v_up);
+}
+
+static void PF_checkextension(void)
+{
+	puts("TODO PF_checkextension");
+    /*const char *extname = G_STRING(OFS_PARM0);
+    int i = PR_FindExtensionByName (extname);
+    if (i)
+        SetBit (qcvm->checked_ext, i);
+
+    // Note: we expose FTE_QC_CHECKCOMMAND so that AD considers the engine
+    // FTE-like instead of DP-like, in order to avoid a bug in the DP codepath
+    // in older AD versions (e.g. 1.42, used in jam8)
+    if (i == FTE_QC_CHECKCOMMAND)
+    {
+        G_FLOAT(OFS_RETURN) = true;
+        SetBit (qcvm->advertised_ext, i);
+    }
+    else
+        G_FLOAT(OFS_RETURN) = false;*/
+}
+
+static void PF_strlen(void)
+{   //FIXME: doesn't try to handle utf-8
+    const char *s = G_STRING(OFS_PARM0);
+    G_FLOAT(OFS_RETURN) = strlen(s);
+}
+static void PF_strcat(void)
+{
+    int     i;
+    char *out = PR_GetTempString();
+    size_t s;
+
+    out[0] = 0;
+    s = 0;
+    for (i = 0; i < qcvm->argc; i++)
+    {
+        s = q_strlcat(out, G_STRING((OFS_PARM0+i*3)), STRINGTEMP_LENGTH);
+        if (s >= STRINGTEMP_LENGTH)
+        {
+            Con_DPrintf("PF_strcat: overflow (string truncated)\n");
+            break;
+        }
+    }
+
+    G_INT(OFS_RETURN) = PR_SetEngineString(out);
+}
+static void PF_substring(void)
+{
+    int start, length, slen;
+    const char *s;
+    char *string;
+
+    s = G_STRING(OFS_PARM0);
+    start = G_FLOAT(OFS_PARM1);
+    length = G_FLOAT(OFS_PARM2);
+
+    slen = strlen(s);   //utf-8 should use chars, not bytes.
+
+    if (start < 0)
+        start = slen+start;
+    if (length < 0)
+        length = slen-start+(length+1);
+    if (start < 0)
+    {
+    //  length += start;
+        start = 0;
+    }
+
+    if (start >= slen || length<=0)
+    {
+        G_INT(OFS_RETURN) = PR_SetEngineString("");
+        return;
+    }
+
+    slen -= start;
+    if (length > slen)
+        length = slen;
+    //utf-8 should switch to bytes now.
+    s += start;
+
+    if (length >= STRINGTEMP_LENGTH)
+    {
+        length = STRINGTEMP_LENGTH-1;
+        Con_DPrintf("PF_substring: truncation\n");
+    }
+
+    string = PR_GetTempString();
+    memcpy(string, s, length);
+    string[length] = '\0';
+    G_INT(OFS_RETURN) = PR_SetEngineString(string);
+}
+/*our zoned strings implementation is somewhat specific to quakespasm, so good luck porting*/
+static void PF_strzone(void)
+{
+    char *buf;
+    size_t len = 0;
+    const char *s[8];
+    size_t l[8];
+    int i;
+    size_t id;
+
+    for (i = 0; i < qcvm->argc; i++)
+    {
+        s[i] = G_STRING(OFS_PARM0+i*3);
+        l[i] = strlen(s[i]);
+        len += l[i];
+    }
+    len++; /*for the null*/
+
+    buf = Z_Malloc(len);
+    G_INT(OFS_RETURN) = PR_SetEngineString(buf);
+    id = -1-G_INT(OFS_RETURN);
+    if (id >= qcvm->knownzonesize)
+    {
+        qcvm->knownzonesize = (id+32)&~7;
+        qcvm->knownzone = Z_Realloc(qcvm->knownzone, (qcvm->knownzonesize+7)>>3);
+    }
+    qcvm->knownzone[id>>3] |= 1u<<(id&7);
+
+    for (i = 0; i < qcvm->argc; i++)
+    {
+        memcpy(buf, s[i], l[i]);
+        buf += l[i];
+    }
+    *buf = '\0';
+}
+static void PF_strunzone(void)
+{
+	puts("TODO PF_strunzone");
+	/*
+    size_t id;
+    const char *foo = G_STRING(OFS_PARM0);
+
+    if (!G_INT(OFS_PARM0))
+        return; //don't bug out if they gave a null string
+    id = -1-G_INT(OFS_PARM0);
+    if (id < qcvm->knownzonesize && (qcvm->knownzone[id>>3] & (1u<<(id&7))))
+    {
+        qcvm->knownzone[id>>3] &= ~(1u<<(id&7));
+        PR_ClearEngineString(G_INT(OFS_PARM0));
+        Z_Free((void*)foo);
+    }
+    else
+        Con_DPrintf("PF_strunzone: string wasn't strzoned\n");*/
+}
+
+static bool qc_isascii(unsigned int u)
+{
+    if (u < 256)    //should be just \n and 32-127, but we don't actually support any actual unicode and we don't really want to make things worse.
+        return true;
+    return false;
+}
+static void PF_str2chr(void)
+{
+    const char *instr = G_STRING(OFS_PARM0);
+    int ofs = (qcvm->argc>1)?G_FLOAT(OFS_PARM1):0;
+
+    if (ofs < 0)
+        ofs = strlen(instr)+ofs;
+
+    if (ofs && (ofs < 0 || ofs > (int)strlen(instr)))
+        G_FLOAT(OFS_RETURN) = '\0';
+    else
+        G_FLOAT(OFS_RETURN) = (unsigned char)instr[ofs];
+}
+static void PF_chr2str(void)
+{
+    char *ret = PR_GetTempString(), *out;
+    int i;
+    for (i = 0, out=ret; out-ret < STRINGTEMP_LENGTH-6 && i < qcvm->argc; i++)
+    {
+        unsigned int u = G_FLOAT(OFS_PARM0 + i*3);
+        if (u >= 0xe000 && u < 0xe100)
+            *out++ = (unsigned char)u;  //quake chars.
+        else if (qc_isascii(u))
+            *out++ = u;
+        else
+            *out++ = '?';   //no unicode support
+    }
+    *out = 0;
+    G_INT(OFS_RETURN) = PR_SetEngineString(ret);
+}
+static void PF_cl_drawfill(void)
+{
+    float *pos  = G_VECTOR(OFS_PARM0);
+    float *size = G_VECTOR(OFS_PARM1);
+    float *rgb  = G_VECTOR(OFS_PARM2);
+    float alpha = G_FLOAT (OFS_PARM3);
+//  int flags   = G_FLOAT (OFS_PARM4);
+
+    puts("TODO PF_cl_drawfill");
+    //Draw_FillEx (pos[0], pos[1], size[0], size[1], rgb, alpha);
+}
+
+static void PF_cl_drawpic(void)
+{
+    float *pos  = G_VECTOR(OFS_PARM0);
+    //qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM1), PICFLAG_AUTO);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
+//  int flags   = G_FLOAT (OFS_PARM5);
+
+    puts("TODO PF_cl_drawpic");
+//    if (pic)
+//        Draw_SubPic (pos[0], pos[1], size[0], size[1], pic, 0, 0, 1, 1, rgb, alpha);
+}
+
+static void PF_cl_getimagesize(void)
+{
+    puts("TODO PF_cl_getimagesize");
+    /*qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM0), PICFLAG_AUTO);
+    if (pic)
+        G_VECTORSET(OFS_RETURN, pic->width, pic->height, 0);
+    else
+        G_VECTORSET(OFS_RETURN, 0, 0, 0);*/
+}
+static void PF_cl_drawcharacter(void)
+{
+    puts("TODO PF_cl_drawcharacter");
+    /*float *pos  = G_VECTOR(OFS_PARM0);
+    int charcode= (int)G_FLOAT (OFS_PARM1) & 0xff;
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
+//  int flags   = G_FLOAT (OFS_PARM5);
+
+    if (charcode == 32)
+        return; //don't waste time on spaces
+
+    GL_SetCanvasColor (rgb[0], rgb[1], rgb[2], alpha);
+    DrawQC_CharacterQuad (pos[0], pos[1], charcode, size[0], size[1]);
+    GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);*/
+}
+static void PF_cl_drawrawstring(void)
+{
+    puts("TODO PF_cl_drawrawstring");
+    /*float *pos  = G_VECTOR(OFS_PARM0);
+    const char *text = G_STRING (OFS_PARM1);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
+//  int flags   = G_FLOAT (OFS_PARM5);
+
+    float x = pos[0];
+    int c;
+
+    if (!*text)
+        return; //don't waste time on spaces
+
+    GL_SetCanvasColor (rgb[0], rgb[1], rgb[2], alpha);
+    while ((c = *text++))
+    {
+        DrawQC_CharacterQuad (x, pos[1], c, size[0], size[1]);
+        x += size[0];
+    }
+    GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);*/
+}
+static void PF_cl_drawstring(void)
+{
+    puts("TODO PF_cl_drawstring");
+/*    float *pos  = G_VECTOR(OFS_PARM0);
+    const char *text = G_STRING (OFS_PARM1);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
+//  int flags   = G_FLOAT (OFS_PARM5);
+
+    float x = pos[0];
+    struct markup_s mu;
+    int c;
+
+    if (!*text)
+        return; //don't waste time on spaces
+
+    PR_Markup_Begin(&mu, text, rgb, alpha);
+
+    while ((c = PR_Markup_Parse(&mu)))
+    {
+        GL_SetCanvasColor (mu.colour[0], mu.colour[1], mu.colour[2], mu.colour[3]);
+        DrawQC_CharacterQuad (x, pos[1], c, size[0], size[1]);
+        x += size[0];
+    }
+    GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);*/
+}
+static void PF_cl_precachepic(void)
+{
+	puts("TODO PF_cl_precachepic");
+    /*const char *name    = G_STRING(OFS_PARM0);
+    unsigned int flags = G_FLOAT(OFS_PARM1);
+
+    G_INT(OFS_RETURN) = G_INT(OFS_PARM0);   //return input string, for convienience
+
+    if (!DrawQC_CachePic(name, flags) && (flags & PICFLAG_BLOCK))
+        G_INT(OFS_RETURN) = 0;  //return input string, for convienience*/
+}
+static void PF_cl_iscachedpic(void)
+{
+	puts("TODO PF_cl_iscachedpic");
+    /*const char *name    = G_STRING(OFS_PARM0);
+    if (DrawQC_CachePic(name, PICFLAG_NOLOAD))
+        G_FLOAT(OFS_RETURN) = true;
+    else
+        G_FLOAT(OFS_RETURN) = false;*/
+}
+static void PF_cl_drawsetclip(void)
+{
+	puts("TODO PF_cl_drawsetclip");
+    float x = G_FLOAT(OFS_PARM0);
+    float y = G_FLOAT(OFS_PARM1);
+    float w = G_FLOAT(OFS_PARM2);
+    float h = G_FLOAT(OFS_PARM3);
+    //Draw_SetClipRect (x, y, w, h);
+}
+static void PF_cl_drawresetclip(void)
+{
+	puts("TODO PF_cl_drawresetclip");
+    //Draw_ResetClipping ();
+}
+
+static void PF_cl_stringwidth(void)
+{
+	puts("TODO PF_cl_stringwidth");
+    /*static const float defaultfontsize[] = {8,8};
+    const char *text = G_STRING (OFS_PARM0);
+    bool usecolours = G_FLOAT(OFS_PARM1);
+    const float *fontsize = (qcvm->argc>2)?G_VECTOR (OFS_PARM2):defaultfontsize;
+    struct markup_s mu;
+    int r = 0;
+
+    if (!usecolours)
+        r = strlen(text);
+    else
+    {
+        PR_Markup_Begin(&mu, text, vec3_origin, 1);
+        while (PR_Markup_Parse(&mu))
+        {
+            r += 1;
+        }
+    }
+
+    //primitive and lame, but hey.
+    G_FLOAT(OFS_RETURN) = fontsize[0] * r;*/
+}
+static void PF_cl_drawsubpic(void)
+{
+	puts("TODO PF_cl_drawsubpic");
+    /*float *pos  = G_VECTOR(OFS_PARM0);
+    float *size = G_VECTOR(OFS_PARM1);
+    qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM2), PICFLAG_AUTO);
+    float *srcpos   = G_VECTOR(OFS_PARM3);
+    float *srcsize  = G_VECTOR(OFS_PARM4);
+    float *rgb  = G_VECTOR(OFS_PARM5);
+    float alpha = G_FLOAT (OFS_PARM6);
+//  int flags   = G_FLOAT (OFS_PARM7);
+
+    if (pic)
+        Draw_SubPic (pos[0], pos[1], size[0], size[1], pic, srcpos[0], srcpos[1], srcsize[0], srcsize[1], rgb, alpha);*/
+}
+static void PF_cl_getstat_int(void)
+{
+	puts("PF_cl_getstat_int");
+    /*int stnum = G_FLOAT(OFS_PARM0);
+    if (stnum < 0 || stnum >= countof(cl.stats))
+        G_INT(OFS_RETURN) = 0;
+    else
+        G_INT(OFS_RETURN) = cl.stats[stnum];*/
+}
+static void PF_cl_getstat_float(void)
+{
+	puts("PF_cl_getstat_float");
+    /*int stnum = G_FLOAT(OFS_PARM0);
+    if (stnum < 0 || stnum >= countof(cl.stats))
+        G_FLOAT(OFS_RETURN) = 0;
+    else if (qcvm->argc > 1)
+    {
+        int firstbit = G_FLOAT(OFS_PARM1);
+        int bitcount = G_FLOAT(OFS_PARM2);
+        G_FLOAT(OFS_RETURN) = (cl.stats[stnum]>>firstbit) & ((1<<bitcount)-1);
+    }
+    else
+        G_FLOAT(OFS_RETURN) = cl.statsf[stnum];*/
+}
+static void PF_cl_getstat_string(void)
+{
+	puts("PF_cl_getstat_string");
+    /*int stnum = G_FLOAT(OFS_PARM0);
+    if (stnum < 0 || stnum >= countof(cl.statss) || !cl.statss[stnum])
+        G_INT(OFS_RETURN) = 0;
+    else
+    {
+        char *result = PR_GetTempString();
+        q_strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
+        G_INT(OFS_RETURN) = PR_SetEngineString(result);
+    }*/
+}
+static void PF_cl_playerkey_s(void)
+{
+	puts("PF_cl_playerkey_s");
+    int playernum = G_FLOAT(OFS_PARM0);
+    const char *keyname = G_STRING(OFS_PARM1);
+    //PF_cl_playerkey_internal(playernum, keyname, false);
+}
+static void PF_cl_playerkey_f(void)
+{
+	puts("PF_cl_playerkey_f");
+    int playernum = G_FLOAT(OFS_PARM0);
+    const char *keyname = G_STRING(OFS_PARM1);
+    //PF_cl_playerkey_internal(playernum, keyname, true);
+}
+
+//part of PF_strconv
+static int chrconv_number(int i, int base, int conv)
+{
+    i -= base;
+    switch (conv)
+    {
+    default:
+    case 5:
+    case 6:
+    case 0:
+        break;
+    case 1:
+        base = '0';
+        break;
+    case 2:
+        base = '0'+128;
+        break;
+    case 3:
+        base = '0'-30;
+        break;
+    case 4:
+        base = '0'+128-30;
+        break;
+    }
+    return i + base;
+}
+//part of PF_strconv
+static int chrconv_punct(int i, int base, int conv)
+{
+    i -= base;
+    switch (conv)
+    {
+    default:
+    case 0:
+        break;
+    case 1:
+        base = 0;
+        break;
+    case 2:
+        base = 128;
+        break;
+    }
+    return i + base;
+}
+//part of PF_strconv
+static int chrchar_alpha(int i, int basec, int baset, int convc, int convt, int charnum)
+{
+    //convert case and colour seperatly...
+
+    i -= baset + basec;
+    switch (convt)
+    {
+    default:
+    case 0:
+        break;
+    case 1:
+        baset = 0;
+        break;
+    case 2:
+        baset = 128;
+        break;
+
+    case 5:
+    case 6:
+        baset = 128*((charnum&1) == (convt-5));
+        break;
+    }
+
+    switch (convc)
+    {
+    default:
+    case 0:
+        break;
+    case 1:
+        basec = 'a';
+        break;
+    case 2:
+        basec = 'A';
+        break;
+    }
+    return i + basec + baset;
+}
+//FTE_STRINGS
+//bulk convert a string. change case or colouring.
+static void PF_strconv (void)
+{
+    int ccase = G_FLOAT(OFS_PARM0);     //0 same, 1 lower, 2 upper
+    int redalpha = G_FLOAT(OFS_PARM1);  //0 same, 1 white, 2 red,  5 alternate, 6 alternate-alternate
+    int rednum = G_FLOAT(OFS_PARM2);    //0 same, 1 white, 2 red, 3 redspecial, 4 whitespecial, 5 alternate, 6 alternate-alternate
+    const unsigned char *string = (const unsigned char*)PF_VarString(3);
+    int len = strlen((const char*)string);
+    int i;
+    unsigned char *resbuf = (unsigned char*)PR_GetTempString();
+    unsigned char *result = resbuf;
+
+    //UTF-8-FIXME: cope with utf+^U etc
+
+    if (len >= STRINGTEMP_LENGTH)
+        len = STRINGTEMP_LENGTH-1;
+
+    for (i = 0; i < len; i++, string++, result++)   //should this be done backwards?
+    {
+        if (*string >= '0' && *string <= '9')   //normal numbers...
+            *result = chrconv_number(*string, '0', rednum);
+        else if (*string >= '0'+128 && *string <= '9'+128)
+            *result = chrconv_number(*string, '0'+128, rednum);
+        else if (*string >= '0'+128-30 && *string <= '9'+128-30)
+            *result = chrconv_number(*string, '0'+128-30, rednum);
+        else if (*string >= '0'-30 && *string <= '9'-30)
+            *result = chrconv_number(*string, '0'-30, rednum);
+
+        else if (*string >= 'a' && *string <= 'z')  //normal numbers...
+            *result = chrchar_alpha(*string, 'a', 0, ccase, redalpha, i);
+        else if (*string >= 'A' && *string <= 'Z')  //normal numbers...
+            *result = chrchar_alpha(*string, 'A', 0, ccase, redalpha, i);
+        else if (*string >= 'a'+128 && *string <= 'z'+128)  //normal numbers...
+            *result = chrchar_alpha(*string, 'a', 128, ccase, redalpha, i);
+        else if (*string >= 'A'+128 && *string <= 'Z'+128)  //normal numbers...
+            *result = chrchar_alpha(*string, 'A', 128, ccase, redalpha, i);
+
+        else if ((*string & 127) < 16 || !redalpha) //special chars..
+            *result = *string;
+        else if (*string < 128)
+            *result = chrconv_punct(*string, 0, redalpha);
+        else
+            *result = chrconv_punct(*string, 128, redalpha);
+    }
+    *result = '\0';
+
+    G_INT(OFS_RETURN) = PR_SetEngineString((char*)resbuf);
+}
+static void PF_clientstat(void)
+{
+	puts("TODO PF_clientstat");
+/*    int idx = G_FLOAT(OFS_PARM0);
+    int type = G_FLOAT(OFS_PARM1);
+    int fldofs = G_INT(OFS_PARM2);
+    struct svcustomstat_s *stat = PR_CustomStat(idx, type);
+    if (!stat)
+        return;
+    stat->fld = fldofs;*/
+}
+
+#define PF_BOTH(x)  x,x
+#define PF_CSQC(x)  NULL,x
+#define PF_SSQC(x)  x,NULL
+
+builtindef_t pr_builtindefs[] =
+{
+    {"makevectors",             PF_SSQC(PF_makevectors),        1},     // void(entity e) makevectors       = #1
+    {"setorigin",               PF_SSQC(PF_setorigin),          2},     // void(entity e, vector o) setorigin   = #2
+    {"setmodel",                PF_SSQC(PF_setmodel),           3},     // void(entity e, string m) setmodel    = #3
+    {"setsize",                 PF_SSQC(PF_setsize),            4},     // void(entity e, vector min, vector max) setsize   = #4
+    {"break",                   PF_BOTH(PF_break),              6},     // void() break             = #6
+    {"random",                  PF_BOTH(PF_random),             7},     // float() random           = #7
+    {"sound",                   PF_SSQC(PF_sound),              8},     // void(entity e, float chan, string samp) sound    = #8
+    {"normalize",               PF_BOTH(PF_normalize),          9},     // vector(vector v) normalize       = #9
+    {"error",                   PF_SSQC(PF_error),              10},    // void(string e) error         = #10
+    {"objerror",                PF_SSQC(PF_objerror),           11},    // void(string e) objerror      = #11
+    {"vlen",                    PF_BOTH(PF_vlen),               12},    // float(vector v) vlen         = #12
+    {"vectoyaw",                PF_BOTH(PF_vectoyaw),           13},    // float(vector v) vectoyaw     = #13
+    {"spawn",                   PF_SSQC(PF_Spawn),              14},    // entity() spawn           = #14
+    {"remove",                  PF_SSQC(PF_Remove),             15},    // void(entity e) remove        = #15
+    {"traceline",               PF_SSQC(PF_traceline),          16},    // float(vector v1, vector v2, float tryents) traceline = #16
+    {"checkclient",             PF_SSQC(PF_checkclient),        17},    // entity() clientlist          = #17
+    {"find",                    PF_SSQC(PF_Find),               18},    // entity(entity start, .string fld, string match) find = #18
+    {"precache_sound",          PF_SSQC(PF_precache_sound),     19},    // void(string s) precache_sound    = #19
+    {"precache_model",          PF_SSQC(PF_precache_model),     20},    // void(string s) precache_model    = #20
+    {"stuffcmd",                PF_SSQC(PF_stuffcmd),           21},    // void(entity client, string s)stuffcmd    = #21
+    {"findradius",              PF_SSQC(PF_findradius),         22},    // entity(vector org, float rad) findradius = #22
+    {"bprint",                  PF_SSQC(PF_bprint),             23},    // void(string s) bprint        = #23
+    {"sprint",                  PF_SSQC(PF_sprint),             24},    // void(entity client, string s) sprint = #24
+    {"dprint",                  PF_BOTH(PF_dprint),             25},    // void(string s) dprint        = #25
+    {"ftos",                    PF_BOTH(PF_ftos),               26},    // void(string s) ftos          = #26
+    {"vtos",                    PF_BOTH(PF_vtos),               27},    // void(string s) vtos          = #27
+    {"coredump",                PF_SSQC(PF_coredump),           28},
+    {"traceon",                 PF_BOTH(PF_traceon),            29},
+    {"traceoff",                PF_BOTH(PF_traceoff),           30},
+    {"eprint",                  PF_SSQC(PF_eprint),             31},    // void(entity e) debug print an entire entity
+    {"walkmove",                PF_SSQC(PF_walkmove),           32},    // float(float yaw, float dist) walkmove
+    {"droptofloor",             PF_SSQC(PF_droptofloor),        34},
+    {"lightstyle",              PF_SSQC(PF_lightstyle),         35},
+    {"rint",                    PF_BOTH(PF_rint),               36},
+    {"floor",                   PF_BOTH(PF_floor),              37},
+    {"ceil",                    PF_BOTH(PF_ceil),               38},
+    {"checkbottom",             PF_SSQC(PF_checkbottom),        40},
+    {"pointcontents",           PF_SSQC(PF_pointcontents),      41},
+    {"fabs",                    PF_BOTH(PF_fabs),               43},
+    {"aim",                     PF_SSQC(PF_aim),                44},
+    {"cvar",                    PF_BOTH(PF_cvar),               45},
+    {"localcmd",                PF_BOTH(PF_localcmd),           46},
+    {"nextent",                 PF_SSQC(PF_nextent),            47},
+    {"particle",                PF_SSQC(PF_particle),           48},
+    {"ChangeYaw",               PF_SSQC(PF_changeyaw),          49},
+    {"vectoangles",             PF_BOTH(PF_vectoangles),        51},
+
+    {"WriteByte",               PF_SSQC(PF_WriteByte),          52},
+    {"WriteChar",               PF_SSQC(PF_WriteChar),          53},
+    {"WriteShort",              PF_SSQC(PF_WriteShort),         54},
+    {"WriteLong",               PF_SSQC(PF_WriteLong),          55},
+    {"WriteCoord",              PF_SSQC(PF_WriteCoord),         56},
+    {"WriteAngle",              PF_SSQC(PF_WriteAngle),         57},
+    {"WriteString",             PF_SSQC(PF_WriteString),        58},
+    {"WriteEntity",             PF_SSQC(PF_WriteEntity),        59},
+
+    {"sin",                     PF_BOTH(PF_Sin),                60,     DP_QC_SINCOSSQRTPOW},   // float(float angle)
+    {"cos",                     PF_BOTH(PF_Cos),                61,     DP_QC_SINCOSSQRTPOW},   // float(float angle)
+    {"sqrt",                    PF_BOTH(PF_Sqrt),               62,     DP_QC_SINCOSSQRTPOW},   // float(float value)
+
+    {"etos",                    PF_BOTH(PF_etos),               65,     DP_QC_ETOS},            // string(entity ent)
+
+    {"movetogoal",              PF_SSQC(SV_MoveToGoal),         67},
+    {"precache_file",           PF_SSQC(PF_precache_file),      68},
+    {"makestatic",              PF_SSQC(PF_makestatic),         69},
+
+    {"changelevel",             PF_SSQC(PF_changelevel),        70},
+
+    {"cvar_set",                PF_BOTH(PF_cvar_set),           72},
+    {"centerprint",             PF_SSQC(PF_centerprint),        73},
+
+    {"ambientsound",            PF_SSQC(PF_ambientsound),       74},
+
+    {"precache_model2",         PF_SSQC(PF_precache_model),     75},
+    {"precache_sound2",         PF_SSQC(PF_precache_sound),     76},    // precache_sound2 is different only for qcc
+    {"precache_file2",          PF_SSQC(PF_precache_file),      77},
+
+    {"setspawnparms",           PF_SSQC(PF_setspawnparms),      78},
+
+    // 2021 re-release
+    {"finaleFinished",          PF_SSQC(PF_finalefinished),     79},    // float() finaleFinished = #79
+    {"localsound",              PF_SSQC(PF_localsound),         80},    // void localsound (entity client, string sample) = #80
+
+    {"stof",                    PF_BOTH(PF_stof),               81,     FRIK_FILE},         // float(string)
+
+    // 2021 re-release update 3
+    {"ex_centerprint",          PF_SSQC(PF_centerprint)},               // void(entity client, string s, ...)
+    {"ex_bprint",               PF_SSQC(PF_bprint)},                    // void(string s, ...)
+    {"ex_sprint",               PF_SSQC(PF_sprint)},                    // void(entity client, string s, ...)
+    {"ex_finalefinished",       PF_SSQC(PF_finalefinished)},            // float()
+    {"ex_CheckPlayerEXFlags",   PF_SSQC(PF_CheckPlayerEXFlags)},        // float(entity playerEnt)
+    {"ex_walkpathtogoal",       PF_SSQC(PF_walkpathtogoal)},            // float(float movedist, vector goal)
+    {"ex_localsound",           PF_SSQC(PF_localsound)},                // void(entity client, string sample)
+
+    {"min",                     PF_BOTH(PF_min),                94,     DP_QC_MINMAXBOUND}, // float(float a, float b, ...)
+    {"max",                     PF_BOTH(PF_max),                95,     DP_QC_MINMAXBOUND}, // float(float a, float b, ...)
+    {"bound",                   PF_BOTH(PF_bound),              96,     DP_QC_MINMAXBOUND}, // float(float minimum, float val, float maximum)
+
+    {"pow",                     PF_BOTH(PF_pow),                97,     DP_QC_SINCOSSQRTPOW},   // float(float value, float exp)
+
+    {"checkextension",          PF_BOTH(PF_checkextension),     99},    // float(string extname)
+
+    {"strlen",                  PF_BOTH(PF_strlen),             114,    FRIK_FILE}, // float(string s)
+    {"strcat",                  PF_BOTH(PF_strcat),             115,    FRIK_FILE}, // string(string s1, optional string s2, optional string s3, optional string s4, optional string s5, optional string s6, optional string s7, optional string s8)
+    {"substring",               PF_BOTH(PF_substring),          116,    FRIK_FILE}, // string(string s, float start, float length)
+    {"stov",                    PF_BOTH(PF_stov),               117,    FRIK_FILE}, // vector(string s)
+    {"strzone",                 PF_BOTH(PF_strzone),            118,    FRIK_FILE}, // string(string s, ...)
+    {"strunzone",               PF_BOTH(PF_strunzone),          119,    FRIK_FILE}, // void(string s)
+
+    {"str2chr",                 PF_BOTH(PF_str2chr),            222,    FTE_STRINGS},   // float(string str, float index)
+    {"chr2str",                 PF_BOTH(PF_chr2str),            223,    FTE_STRINGS},   // string(float chr, ...)
+    {"strconv",                 PF_BOTH(PF_strconv),            224,    FTE_STRINGS},   // string(float ccase, float redalpha, float redchars, string str, ...)
+
+    {"clientstat",              PF_SSQC(PF_clientstat),         232},   // void(float num, float type, .__variant fld)
+
+    {"mod",                     PF_BOTH(PF_mod),                245},   // float(float a, float n)
+									//     {"ftoi",                    PF_BOTH(PF_ftoi)},                      // int(float)
+    {"itof",                    PF_BOTH(PF_itof)},                      // float(int)
+
+    {"checkcommand",            PF_BOTH(PF_checkcommand),       294,    FTE_QC_CHECKCOMMAND},   // float(string name)
+
+    {"iscachedpic",             PF_CSQC(PF_cl_iscachedpic),     316},   // float(string name)
+    {"precache_pic",            PF_CSQC(PF_cl_precachepic),     317},   // string(string name, optional float flags)
+    {"drawgetimagesize",        PF_CSQC(PF_cl_getimagesize),    318},   // #define draw_getimagesize drawgetimagesize\nvector(string picname)
+    {"drawcharacter",           PF_CSQC(PF_cl_drawcharacter),   320},   // float(vector position, float character, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawrawstring",           PF_CSQC(PF_cl_drawrawstring),   321},   // float(vector position, string text, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawpic",                 PF_CSQC(PF_cl_drawpic),         322},   // float(vector position, string pic, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawfill",                PF_CSQC(PF_cl_drawfill),        323},   // float(vector position, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawsetcliparea",         PF_CSQC(PF_cl_drawsetclip),     324},   // void(float x, float y, float width, float height)
+    {"drawresetcliparea",       PF_CSQC(PF_cl_drawresetclip),   325},   // void(void)
+    {"drawstring",              PF_CSQC(PF_cl_drawstring),      326},   // float(vector position, string text, vector size, vector rgb, float alpha, float drawflag)
+    {"stringwidth",             PF_CSQC(PF_cl_stringwidth),     327},   // float(string text, float usecolours, vector fontsize='8 8')
+    {"drawsubpic",              PF_CSQC(PF_cl_drawsubpic),      328},   // void(vector pos, vector sz, string pic, vector srcpos, vector srcsz, vector rgb, float alpha, optional float drawflag)
+
+    {"getstati",                PF_CSQC(PF_cl_getstat_int),     330},   // #define getstati_punf(stnum) (float)(__variant)getstati(stnum)\nint(float stnum)
+    {"getstatf",                PF_CSQC(PF_cl_getstat_float),   331},   // #define getstatbits getstatf\nfloat(float stnum, optional float firstbit, optional float bitcount)
+    {"getstats",                PF_CSQC(PF_cl_getstat_string),  332},   // string(float stnum)
+
+    {"getplayerkeyvalue",       PF_CSQC(PF_cl_playerkey_s),     348},   // string(float playernum, string keyname)
+    {"getplayerkeyfloat",       PF_CSQC(PF_cl_playerkey_f)},            // float(float playernum, string keyname, optional float assumevalue)
+
+    {"registercommand",         PF_CSQC(PF_cl_registercommand), 352},   // void(string cmdname)
+
+    {"vectorvectors",           PF_BOTH(PF_vectorvectors),      432,    DP_QC_VECTORVECTORS},   // void(vector dir)
+
+    {"clientcommand",           PF_SSQC(PF_clientcommand),      440,    KRIMZON_SV_PARSECLIENTCOMMAND}, // void(entity e, string s)
+    {"tokenize",                PF_BOTH(PF_Tokenize),           441,    KRIMZON_SV_PARSECLIENTCOMMAND}, // float(string s)
+    {"argv",                    PF_BOTH(PF_ArgV),               442,    KRIMZON_SV_PARSECLIENTCOMMAND}, // string(float n)
+    {"argc",                    PF_BOTH(PF_ArgC)},                      // float()
+
+    {"asin",                    PF_BOTH(PF_asin),               471,    DP_QC_ASINACOSATANATAN2TAN},    // float(float s)
+    {"acos",                    PF_BOTH(PF_acos),               472,    DP_QC_ASINACOSATANATAN2TAN},    // float(float c)
+    {"atan",                    PF_BOTH(PF_atan),               473,    DP_QC_ASINACOSATANATAN2TAN},    // float(float t)
+    {"atan2",                   PF_BOTH(PF_atan2),              474,    DP_QC_ASINACOSATANATAN2TAN},    // float(float c, float s)
+    {"tan",                     PF_BOTH(PF_tan),                475,    DP_QC_ASINACOSATANATAN2TAN},    // float(float a)
+
+    {"tokenize_console",        PF_BOTH(PF_tokenize_console),   514,    DP_QC_TOKENIZE_CONSOLE},        // float(string str)
+
+    {"sprintf",                 PF_BOTH(PF_sprintf),            627,    DP_QC_SPRINTF},                 // string(string fmt, ...)
+};
+
+int pr_numbuiltindefs = Q_COUNTOF(pr_builtindefs);

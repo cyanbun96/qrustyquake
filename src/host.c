@@ -40,6 +40,7 @@ void Host_EndGame(s8 *message, ...)
 
 void Host_Error(s8 *error, ...)
 {
+	__asm__("int3");
 	va_list argptr;
 	s8 string[1024];
 	static bool inerror = 0;
@@ -213,45 +214,68 @@ void SV_DropClient(bool crash)
 
 void Host_ShutdownServer(bool crash)
 { // This only happens at the end of a game, not between levels
-	u8 message[4];
-	if(!sv.active) return;
-	sv.active = 0;
-	if(cls.state == ca_connected) // stop all client sounds immediately
-		CL_Disconnect();
-	f64 start = Sys_DoubleTime(); // flush any pending messages like score
-	s32 count;
-	do {
-		count = 0;
-		s32 i = 0;
-		for(host_client=svs.clients;i<svs.maxclients;i++,host_client++){
-			if(!(host_client->active&&host_client->message.cursize))
-				continue;
-			if(NET_CanSendMessage(host_client->netconnection)){
-				NET_SendMessage(host_client-> netconnection,
-						&host_client->message);
-				SZ_Clear(&host_client->message);
-			} else {
-				NET_GetMessage(host_client-> netconnection);
-				count++;
-			}
-		}
-		if((Sys_DoubleTime() - start) > 3.0)
-			break;
-	} while(count);
-	sizebuf_t buf; // make sure all the clients know we're disconnecting
-	buf.data = message;
-	buf.maxsize = 4;
-	buf.cursize = 0;
-	MSG_WriteByte(&buf, svc_disconnect);
-	count = NET_SendToAll(&buf, 5);
-	if(count)
-Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
-	s32 i = 0;
-	for(host_client = svs.clients; i < svs.maxclients; i++, host_client++)
-		if(host_client->active) SV_DropClient(crash);
-	free(sv.edicts);
-	memset(&sv, 0, sizeof(sv)); // clear structures
-	memset(svs.clients, 0, svs.maxclientslimit * sizeof(client_t));
+	    int     i;
+    int     count;
+    sizebuf_t   buf;
+    u8        message[4];
+    double  start;
+
+    if (!sv.active)
+        return;
+
+    sv.active = false;
+
+// stop all client sounds immediately
+    if (cls.state == ca_connected)
+        CL_Disconnect ();
+
+// flush any pending messages - like the score!!!
+    start = Sys_DoubleTime();
+    do
+    {
+        count = 0;
+        for (i=0, host_client = svs.clients ; i<svs.maxclients ; i++, host_client++)
+        {
+            if (host_client->active && host_client->message.cursize)
+            {
+                if (NET_CanSendMessage (host_client->netconnection))
+                {
+                    NET_SendMessage(host_client->netconnection, &host_client->message);
+                    SZ_Clear (&host_client->message);
+                }
+                else
+                {
+                    NET_GetMessage(host_client->netconnection);
+                    count++;
+                }
+            }
+        }
+        if ((Sys_DoubleTime() - start) > 3.0)
+            break;
+    }
+    while (count);
+
+// make sure all the clients know we're disconnecting
+    buf.data = message;
+    buf.maxsize = 4;
+    buf.cursize = 0;
+    MSG_WriteByte(&buf, svc_disconnect);
+    count = NET_SendToAll(&buf, 5.0);
+    if (count)
+        Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
+
+    PR_SwitchQCVM(&sv.qcvm);
+    for (i = 0, host_client = svs.clients; i < svs.maxclients; i++, host_client++)
+        if (host_client->active)
+            SV_DropClient(crash);
+
+    PR_SwitchQCVM(NULL);
+
+//
+// clear structures
+//
+//  memset (&sv, 0, sizeof(sv)); // ServerSpawn already do this by Host_ClearMemory
+    memset (svs.clients, 0, svs.maxclientslimit*sizeof(client_t));
 }
 
 void Host_ClearMemory() // This clears all the memory used by both the client
@@ -261,7 +285,7 @@ void Host_ClearMemory() // This clears all the memory used by both the client
 	Mod_ClearAll();
 	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
 	cls.signon = 0;
-	free(sv.edicts);
+	PR_ClearProgs(&sv.qcvm);
 	memset(&sv, 0, sizeof(sv));
 	memset(&cl, 0, sizeof(cl));
 }
@@ -359,8 +383,11 @@ void _Host_Frame(f32 time)
 		else
 			accumtime -= host_netinterval;
 		CL_SendCmd();
-		if(sv.active)
+		if(sv.active){
+			PR_SwitchQCVM(&sv.qcvm);
 			Host_ServerFrame();
+			PR_SwitchQCVM(NULL);
+		}
 		host_frametime = realframetime;
 		Cbuf_Waited();
 		ranserver = 1;

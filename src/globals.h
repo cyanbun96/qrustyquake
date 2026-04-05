@@ -329,7 +329,7 @@ void NET_Poll();
 void NET_Slist_f();
 void PR_Init();                                                       // progs.h
 void PR_ExecuteProgram(func_t fnum);
-void PR_LoadProgs();
+bool PR_LoadProgs(const s8 *filename, bool fatal);
 const s8 *PR_GetString(s32 num);
 s32 PR_SetEngineString(const s8 *s);
 s32 PR_AllocString(s32 bufferlength, s8 **ptr);
@@ -345,15 +345,13 @@ void ED_LoadFromFile(const s8 *data);
 edict_t *EDICT_NUM(s32);
 s32 NUM_FOR_EDICT(edict_t*);
 EX const s32 type_size[NUM_TYPE_SIZES];
-EX const builtin_t *pr_builtins;
-EX const s32 pr_numbuiltins;
 EX s32 pr_argc;
 EX bool pr_trace;
 EX dfunction_t *pr_xfunction;
 void PR_RunError(const s8 *error, ...);
 void ED_PrintEdicts();
 void ED_PrintNum(s32 ent);
-eval_t *GetEdictFieldValue(edict_t *ed, const s8 *field);
+eval_t *GetEdictFieldValue(edict_t *ed, int fldofs);
 void Cvar_SetCallback(cvar_t *var, cvarcallback_t func);               // cvar.h
 void Cvar_Set(const s8 *var_name, const s8 *value);
 void Cvar_SetValue(const s8 *var_name, const f32 value);
@@ -384,6 +382,7 @@ void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name);
 void Cache_Report();
 EX cvar_t *cvar_vars;                                                  // cvar.c
 void Cvar_Init();
+cvar_t *Cvar_Create (const char *name, const char *value);
 EX cmd_source_t cmd_source;                                             // cmd.h
 void Cmd_Init();
 void Cbuf_Init();
@@ -428,13 +427,14 @@ void SND_InitScaletable();
 void S_StopAllSounds(bool clear);
 EX bool pr_alpha_supported;                                        // pr_edict.c
 EX s32 pr_effects_mask;
-EX dprograms_t *progs;
-EX dfunction_t *pr_functions;
-EX dstatement_t *pr_statements;
 EX globalvars_t *pr_global_struct;
 EX f32 *pr_globals;
 EX s32 pr_edict_size;
-EX u16 pr_crc;
+EX qcvm_t *qcvm;
+void PR_SwitchQCVM(qcvm_t *nvm);
+void PR_ClearProgs(qcvm_t *vm);
+void ED_ClearEdict (edict_t *e);
+eval_t *GetEdictFieldValueByName(edict_t *ed, const char *name);
 EX clipplane_t view_clipplanes[4];                                  // r_local.h
 EX mplane_t screenedge[4];
 EX vec3_t r_entorigin;
@@ -600,8 +600,11 @@ EX s32(*BigLong) (s32 l);
 EX s32(*LittleLong) (s32 l);
 EX f32(*BigFloat) (f32 l);
 EX f32(*LittleFloat) (f32 l);
+const char *COM_SkipSpace (const char *str);
 void Host_WriteConfiguration();
 void Q_memset(void *dest, s32 fill, size_t count);
+u32 COM_HashString(const s8 *str);
+u32 COM_HashBlock(const void *data, size_t size);
 void Q_memmove(void *dest, const void *src, size_t count);
 void Q_memcpy(void *dest, const void *src, size_t count);
 s32 Q_memcmp(const void *m1, const void *m2, size_t count);
@@ -788,6 +791,10 @@ bool Mod_LoadMapDescription(s8 *desc, size_t maxchars, const s8 *map);
 s32 Mod_CountSecrets(const s8 *map);
 s32 Mod_CountMonsters(const s8 *map);
 void PF_changeyaw();                                                // pr_cmds.c
+void PR_ReloadPics(bool purge);
+void PF_Fixme (void);
+EX s32 pr_numbuiltindefs;
+EX builtindef_t pr_builtindefs[];
 void CDAudio_Play(u8 track, bool looping);                          // cdaudio.c
 void CDAudio_Stop();
 void CDAudio_Pause();

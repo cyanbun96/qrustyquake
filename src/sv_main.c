@@ -38,7 +38,6 @@ void SV_Protocol_f()
 
 void SV_Init()
 {
-	sv.edicts = NULL; // ericw -- sv.edicts switched to use malloc()
 	Cvar_RegisterVariable(&sv_maxvelocity);
 	Cvar_RegisterVariable(&sv_gravity);
 	Cvar_RegisterVariable(&sv_friction);
@@ -50,6 +49,7 @@ void SV_Init()
 	Cvar_RegisterVariable(&sv_aim);
 	Cvar_RegisterVariable(&sv_nostep);
 	Cvar_RegisterVariable(&sv_freezenonclients);
+	Cvar_RegisterVariable(&pr_checkextension);
 	Cvar_RegisterVariable(&sv_altnoclip); //johnfitz
 	Cmd_AddCommand("sv_protocol", &SV_Protocol_f); //johnfitz
 	for(s32 i = 0; i < MAX_MODELS; i++)
@@ -186,7 +186,7 @@ void SV_SendServerinfo(client_t *client)
 	s8 message[2048];
 	MSG_WriteByte(&client->message, svc_print);
 	sprintf(message, "%c\nFITZQUAKE %1.2f SERVER(%i CRC)\n",
-			2, FITZQUAKE_VERSION, pr_crc);
+			2, FITZQUAKE_VERSION, qcvm->crc);
 	MSG_WriteString(&client->message,message);
 	MSG_WriteByte(&client->message, svc_serverinfo);
 	MSG_WriteLong(&client->message, sv.protocol);
@@ -197,7 +197,7 @@ void SV_SendServerinfo(client_t *client)
 	if(!coop.value && deathmatch.value)
 		MSG_WriteByte(&client->message, GAME_DEATHMATCH);
 	else MSG_WriteByte(&client->message, GAME_COOP);
-	MSG_WriteString(&client->message, PR_GetString(sv.edicts->v.message));
+	MSG_WriteString(&client->message, PR_GetString(qcvm->edicts->v.message));
 //johnfitz - only send the first 256 model and sound precaches if protocol is 15
 	s32 i;
 	const s8 **s;
@@ -210,8 +210,8 @@ void SV_SendServerinfo(client_t *client)
 			MSG_WriteString(&client->message, *s);
 	MSG_WriteByte(&client->message, 0);
 	MSG_WriteByte(&client->message, svc_cdtrack);
-	MSG_WriteByte(&client->message, sv.edicts->v.sounds);
-	MSG_WriteByte(&client->message, sv.edicts->v.sounds);
+	MSG_WriteByte(&client->message, qcvm->edicts->v.sounds);
+	MSG_WriteByte(&client->message, qcvm->edicts->v.sounds);
 	MSG_WriteByte(&client->message, svc_setview);
 	MSG_WriteShort(&client->message, NUM_FOR_EDICT(client->edict));
 	MSG_WriteByte(&client->message, svc_signonnum);
@@ -328,8 +328,8 @@ void SV_WriteEntitiesToClient(edict_t *clent, sizebuf_t *msg)
 	VectorAdd(clent->v.origin, clent->v.view_ofs, org);
 	u8 *pvs = SV_FatPVS(org, sv.worldmodel);
 	// send over all entities(excpet the client) that touch the pvs
-	edict_t *ent = NEXT_EDICT(sv.edicts);
-	for(s32 e = 1; e < sv.num_edicts; e++, ent = NEXT_EDICT(ent)) {
+	edict_t *ent = NEXT_EDICT(qcvm->edicts);
+	for(s32 e = 1; e < qcvm->num_edicts; e++, ent = NEXT_EDICT(ent)) {
 		s32 i;
 		if(ent != clent){ // clent is ALLWAYS sent
 			// ignore ents without visible models
@@ -374,14 +374,14 @@ void SV_WriteEntitiesToClient(edict_t *clent, sizebuf_t *msg)
 		if(ent->baseline.modelindex!=ent->v.modelindex)bits |= U_MODEL;
 		eval_t *val;
 		if(pr_alpha_supported) {
-			val = GetEdictFieldValue(ent, "alpha");
+			val = GetEdictFieldValueByName(ent, "alpha");
 			if(val) ent->alpha = ENTALPHA_ENCODE(val->_float);
 		}
 		//don't send invisible entities unless they have effects
 		if(ent->alpha == ENTALPHA_ZERO &&
 			!((s32)ent->v.effects & pr_effects_mask))
 				continue;
-		val = GetEdictFieldValue(ent, "scale");
+		val = GetEdictFieldValueByName(ent, "scale");
 		if(val) ent->scale = ENTSCALE_ENCODE(val->_float);
 		else ent->scale = ENTSCALE_DEFAULT;
 		if(sv.protocol != PROTOCOL_NETQUAKE) {
@@ -427,14 +427,14 @@ void SV_WriteEntitiesToClient(edict_t *clent, sizebuf_t *msg)
 		if(bits & U_MODEL2)MSG_WriteByte(msg,(s32)ent->v.modelindex>>8);
 		if(bits & U_LERPFINISH)
 			MSG_WriteByte(msg,
-				(u8)(Q_rint((ent->v.nextthink-sv.time)*255)));
+				(u8)(Q_rint((ent->v.nextthink-qcvm->time)*255)));
 	}
 }
 
 void SV_CleanupEnts()
 {
-	edict_t *ent = NEXT_EDICT(sv.edicts);
-	for(s32 e = 1; e < sv.num_edicts; e++, ent = NEXT_EDICT(ent))
+	edict_t *ent = NEXT_EDICT(qcvm->edicts);
+	for(s32 e = 1; e < qcvm->num_edicts; e++, ent = NEXT_EDICT(ent))
 		ent->v.effects = (s32)ent->v.effects & ~EF_MUZZLEFLASH;
 }
 
@@ -464,7 +464,7 @@ void SV_WriteClientdataToMessage(edict_t *ent, sizebuf_t *msg)
 	if(ent->v.view_ofs[2] != DEFAULT_VIEWHEIGHT) bits |= SU_VIEWHEIGHT;
 	if(ent->v.idealpitch) bits |= SU_IDEALPITCH;
 // stuff sigil bits into high bits of items for sbar, or else mix in items2
-	eval_t *val = GetEdictFieldValue(ent, "items2");
+	eval_t *val = GetEdictFieldValueByName(ent, "items2");
 	s32 items;
 	if(val) items = (s32)ent->v.items | ((s32)val->_float << 23);
 	else items = (s32)ent->v.items|((s32)pr_global_struct->serverflags<<28);
@@ -546,7 +546,7 @@ bool SV_SendClientDatagram(client_t *client)
 	if(Q_strcmp(client->netconnection->address, "LOCAL") != 0) //johnfitz
 		msg.maxsize = DATAGRAM_MTU;
 	MSG_WriteByte(&msg, svc_time);
-	MSG_WriteFloat(&msg, sv.time);
+	MSG_WriteFloat(&msg, qcvm->time);
 	// add the client specific data to the datagram
 	SV_WriteClientdataToMessage(client->edict, &msg);
 	SV_WriteEntitiesToClient(client->edict, &msg);
@@ -700,7 +700,7 @@ s32 SV_ModelIndex(const s8 *name)
 void SV_CreateBaseline()
 {
 	edict_t *sve;
-	for(s32 entnum = 0; entnum < sv.num_edicts ; entnum++) {
+	for(s32 entnum = 0; entnum < qcvm->num_edicts ; entnum++) {
 		sve = EDICT_NUM(entnum); // get the current server version
 		if(sve->free) continue;
 		if(entnum > svs.maxclients && !sve->v.modelindex) continue;
@@ -721,7 +721,7 @@ void SV_CreateBaseline()
 			sve->baseline.alpha = sve->alpha;
 			sve->baseline.scale = ENTSCALE_DEFAULT;
 			if(sv.protocol == PROTOCOL_RMQ) {
-				eval_t* val = GetEdictFieldValue(sve, "scale");
+				eval_t* val = GetEdictFieldValueByName(sve, "scale");
 				if(val) sve->baseline.scale =
 					ENTSCALE_ENCODE(val->_float);
 			}
@@ -794,97 +794,177 @@ void SV_SaveSpawnparms() // Grabs the current state of each client for saving
 	}
 }
 
-void SV_SpawnServer(const s8 *server)
-{ // This is called at the start of each level
-	static s8 dummy[8] = { 0,0,0,0,0,0,0,0 };
-	if(hostname.string[0] == 0) Cvar_Set("hostname", "UNNAMED");
-	scr_centertime_off = 0;
-	lit_loaded = 0;
-	Con_DPrintf("SpawnServer: %s\n",server);
-	svs.changelevel_issued = 0; // now safe to issue another
-	// tell all connected clients that we are going to a new level
-	if(sv.active) SV_SendReconnect();
-	if(coop.value) Cvar_Set("deathmatch", "0"); // make cvars consistant
-	current_skill = (s32)(skill.value + 0.5);
-	if(current_skill < 0) current_skill = 0;
-	if(current_skill > 3) current_skill = 3;
-	Cvar_SetValue("skill", (f32)current_skill);
-	Host_ClearMemory(); // set up the new server
-	q_strlcpy(sv.name, server, sizeof(sv.name));
-	sv.protocol = sv_protocol;
-	if(sv.protocol == PROTOCOL_RMQ)
-		sv.protocolflags = PRFL_INT32COORD | PRFL_SHORTANGLE;
-	else sv.protocolflags = 0;
-	PR_LoadProgs(); // load progs to get entity field count
-	// allocate server memory
-	sv.max_edicts = CLAMP(MIN_EDICTS,(s32)max_edicts.value,MAX_EDICTS);
-	sv.edicts = (edict_t *) malloc(sv.max_edicts*pr_edict_size);
-	sv.datagram.maxsize = sizeof(sv.datagram_buf);
-	sv.datagram.cursize = 0;
-	sv.datagram.data = sv.datagram_buf;
-	sv.reliable_datagram.maxsize = sizeof(sv.reliable_datagram_buf);
-	sv.reliable_datagram.cursize = 0;
-	sv.reliable_datagram.data = sv.reliable_datagram_buf;
-	SV_AddSignonBuffer();
-	// leave slots at start for clients only
-	sv.num_edicts = svs.maxclients+1;
-	memset(sv.edicts, 0, sv.num_edicts*pr_edict_size);
-	for(s32 i = 0; i < svs.maxclients; i++) {
-		edict_t *ent = EDICT_NUM(i+1);
-		svs.clients[i].edict = ent;
-	}
-	sv.state = ss_loading;
-	sv.paused = 0;
-	sv.nomonsters = (nomonsters.value != 0.f);
-	sv.time = 1.0;
-	q_strlcpy(sv.name, server, sizeof(sv.name));
-	snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
-	sv.worldmodel = Mod_ForName(sv.modelname, 0);
-	if(!sv.worldmodel) {
-		Con_Printf("Couldn't spawn server %s\n", sv.modelname);
-		sv.active = 0;
-		return;
-	}
-	sv.models[1] = sv.worldmodel;
-	SV_ClearWorld(); // clear world interaction links
-	sv.sound_precache[0] = dummy;
-	sv.model_precache[0] = dummy;
-	sv.model_precache[1] = sv.modelname;
-	for(s32 i = 1; i < sv.worldmodel->numsubmodels; i++) {
-		sv.model_precache[1+i] = localmodels[i];
-		sv.models[i+1] = Mod_ForName(localmodels[i], 0);
-	}
-	edict_t *ent = EDICT_NUM(0); // load the rest of the entities
-	memset(&ent->v, 0, progs->entityfields * 4);
-	ent->free = 0;
-	ent->v.model = PR_SetEngineString(sv.worldmodel->name);
-	ent->v.modelindex = 1; // world model
-	ent->v.solid = SOLID_BSP;
-	ent->v.movetype = MOVETYPE_PUSH;
-	if(coop.value) pr_global_struct->coop = coop.value;
-	else pr_global_struct->deathmatch = deathmatch.value;
-	pr_global_struct->mapname = PR_SetEngineString(sv.name);
-	// serverflags are for cross level information(sigils)
-	pr_global_struct->serverflags = svs.serverflags;
-	ED_LoadFromFile(sv.worldmodel->entities);
-	sv.active = 1;
-	// all setup is completed, any further precache statements are errors
-	sv.state = ss_active;
-	// run two frames to allow everything to settle
-	host_frametime = 0.1;
-	SV_Physics();
-	SV_Physics();
-	// create a baseline for more efficient communications
-	SV_CreateBaseline();
-	s32 i = 0, signonsize = 0;
-	for(; i < sv.num_signon_buffers; i++)
-		signonsize += sv.signon_buffers[i]->cursize;
-	if(signonsize > 64000-2)
-printf("%i u8 signon buffer exceeds QS limit of 63998.\n", signonsize);
-	else if(signonsize > 8000-2)
-printf("%i u8 signon buffer exceeds standard limit of 7998.\n", signonsize);
-	// send serverinfo to all connected clients
-	for(i=0,host_client = svs.clients; i<svs.maxclients; i++, host_client++)
-		if(host_client->active) SV_SendServerinfo(host_client);
-	Con_DPrintf("Server spawned.\n");
+void SV_SpawnServer (const char *server)
+{
+    static char dummy[8] = { 0,0,0,0,0,0,0,0 };
+    edict_t     *ent;
+    int         i, signonsize;
+    qcvm_t      *vm = qcvm;
+
+    // let's not have any servers with no name
+    if (hostname.string[0] == 0)
+        Cvar_Set ("hostname", "UNNAMED");
+    scr_centertime_off = 0;
+
+    Con_DPrintf ("SpawnServer: %s\n",server);
+    svs.changelevel_issued = false;     // now safe to issue another
+
+    PR_SwitchQCVM(NULL);
+
+//
+// tell all connected clients that we are going to a new level
+//
+    if (sv.active)
+    {
+        SV_SendReconnect ();
+    }
+
+//
+// make cvars consistant
+//
+    if (coop.value)
+        Cvar_Set ("deathmatch", "0");
+    current_skill = (int)(skill.value + 0.5);
+    if (current_skill < 0)
+        current_skill = 0;
+    if (current_skill > 3)
+        current_skill = 3;
+
+    Cvar_SetValue ("skill", (float)current_skill);
+
+//
+// set up the new server
+//
+    //memset (&sv, 0, sizeof(sv));
+    Host_ClearMemory ();
+
+    q_strlcpy (sv.name, server, sizeof(sv.name));
+    // TODO if (developer.value || map_checks.value)
+    // TODO     sv.mapchecks.active = true;
+
+    sv.protocol = sv_protocol; // johnfitz
+
+    if (sv.protocol == PROTOCOL_RMQ)
+    {
+        // set up the protocol flags used by this server
+        // (note - these could be cvar-ised so that server admins could choose the protocol features used by their servers)
+        sv.protocolflags = PRFL_INT32COORD | PRFL_SHORTANGLE;
+    }
+    else sv.protocolflags = 0;
+
+    PR_SwitchQCVM(vm);
+// load progs to get entity field count
+    PR_LoadProgs ("progs.dat", true);
+
+// allocate server memory
+    /* Host_ClearMemory() called above already cleared the whole sv structure */
+    qcvm->max_edicts = CLAMP (MIN_EDICTS,(int)max_edicts.value,MAX_EDICTS); //johnfitz -- max_edicts cvar
+    qcvm->edicts = (edict_t *) malloc (qcvm->max_edicts*qcvm->edict_size); // ericw -- sv.edicts switched to use malloc()
+    if (!qcvm->edicts)
+        Sys_Error ("SV_SpawnServer: out of memory (%d edicts x %d bytes)", qcvm->max_edicts, qcvm->edict_size);
+    ClearLink (&qcvm->free_edicts);
+
+    sv.datagram.maxsize = sizeof(sv.datagram_buf);
+    sv.datagram.cursize = 0;
+    sv.datagram.data = sv.datagram_buf;
+
+    sv.reliable_datagram.maxsize = sizeof(sv.reliable_datagram_buf);
+    sv.reliable_datagram.cursize = 0;
+    sv.reliable_datagram.data = sv.reliable_datagram_buf;
+
+    SV_AddSignonBuffer ();
+
+// leave slots at start for clients only
+    qcvm->num_edicts = svs.maxclients+1;
+    memset(qcvm->edicts, 0, qcvm->num_edicts*qcvm->edict_size); // ericw -- sv.edicts switched to use malloc()
+    for (i=0 ; i<svs.maxclients ; i++)
+    {
+        ent = EDICT_NUM(i+1);
+        svs.clients[i].edict = ent;
+    }
+
+    sv.state = ss_loading;
+    sv.paused = false;
+    sv.nomonsters = (nomonsters.value != 0.f);
+
+    qcvm->time = 1.0;
+
+    q_strlcpy (sv.name, server, sizeof(sv.name));
+    q_snprintf (sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
+    sv.worldmodel = Mod_ForName (sv.modelname, false);
+    if (!sv.worldmodel)
+    {
+        Con_Printf ("Couldn't spawn server %s\n", sv.modelname);
+        sv.active = false;
+        return;
+    }
+    sv.models[1] = sv.worldmodel;
+
+//
+// clear world interaction links
+//
+    SV_ClearWorld ();
+
+    sv.sound_precache[0] = dummy;
+    sv.model_precache[0] = dummy;
+    sv.model_precache[1] = sv.modelname;
+    for (i=1 ; i<sv.worldmodel->numsubmodels ; i++)
+    {
+        sv.model_precache[1+i] = localmodels[i];
+        sv.models[i+1] = Mod_ForName (localmodels[i], false);
+    }
+
+//
+// load the rest of the entities
+//
+    ent = EDICT_NUM(0);
+    memset (&ent->v, 0, qcvm->progs->entityfields * 4);
+    ent->v.model = PR_SetEngineString(sv.worldmodel->name);
+    ent->v.modelindex = 1;      // world model
+    ent->v.solid = SOLID_BSP;
+    ent->v.movetype = MOVETYPE_PUSH;
+
+    if (coop.value)
+        pr_global_struct->coop = coop.value;
+    else
+        pr_global_struct->deathmatch = deathmatch.value;
+
+    pr_global_struct->mapname = PR_SetEngineString(sv.name);
+
+// serverflags are for cross level information (sigils)
+    pr_global_struct->serverflags = svs.serverflags;
+
+    ED_LoadFromFile (sv.worldmodel->entities);
+
+    sv.active = true;
+
+// all setup is completed, any further precache statements are errors
+    sv.state = ss_active;
+
+// run two frames to allow everything to settle
+    host_frametime = 0.1;
+    SV_Physics ();
+    SV_Physics ();
+
+// create a baseline for more efficient communications
+    SV_CreateBaseline ();
+
+    //johnfitz -- warn if signon buffer larger than standard server can handle
+    for (i = 0, signonsize = 0; i < sv.num_signon_buffers; i++)
+        signonsize += sv.signon_buffers[i]->cursize;
+    if (signonsize > 64000-2)
+        Con_DPrintf ("%i byte signon buffer exceeds QS limit of 63998.\n", signonsize);
+    else if (signonsize > 8000-2) //max size that will fit into 8000-sized client->message buffer with 2 extra bytes on the end
+        Con_DPrintf ("%i byte signon buffer exceeds standard limit of 7998.\n", signonsize);
+    //johnfitz
+
+// send serverinfo to all connected clients
+    for (i=0,host_client = svs.clients ; i<svs.maxclients ; i++, host_client++)
+        if (host_client->active)
+            SV_SendServerinfo (host_client);
+
+    Con_DPrintf ("Server spawned.\n");
+
+    // TODO if (sv.mapchecks.active)
+    // TODO     SV_PrintMapChecklist ();
 }

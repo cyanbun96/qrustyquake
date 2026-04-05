@@ -342,3 +342,24 @@ void Cvar_WriteVariables(FILE *f) // Write lines containing "set variable value"
 			fprintf(f, "%s \"%s\"\n", var->name, var->string);
 }
 
+// Creates a cvar if it does not already exist, otherwise does nothing.
+// Must not be used until after all other cvars are registered.
+// Cvar will be persistent. -- spike
+cvar_t *Cvar_Create (const char *name, const char *value)
+{
+    cvar_t *newvar;
+    newvar = Cvar_FindVar(name);
+    if (newvar)
+        return newvar;  //already exists.
+    if (Cmd_Exists (name))
+        return NULL;    //error! panic! oh noes!
+
+    newvar = Z_Malloc(sizeof(cvar_t) + strlen(name)+1);
+    newvar->name = (char*)(newvar+1);
+    strcpy((char*)(newvar+1), name);
+    newvar->flags = CVAR_USERDEFINED;
+
+    newvar->string = value;
+    Cvar_RegisterVariable(newvar);
+    return newvar;
+}
