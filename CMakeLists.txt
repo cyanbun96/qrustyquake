@@ -2,8 +2,13 @@ cmake_minimum_required(VERSION 3.22)
 project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 0.7.0)
 
 if(EMSCRIPTEN)
+<<<<<<< HEAD
 	find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3-static)
 	find_package(SDL3_mixer CONFIG)
+=======
+	find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-static)
+	find_package(SDL3_mixer CONFIG COMPONENTS SDL3_mixer-static)
+>>>>>>> 8983ac7eff21e45290466f49594a98f0e79d9ead
 else()
 	find_package(SDL3 REQUIRED CONFIG)
 	find_package(SDL3_mixer REQUIRED CONFIG)
