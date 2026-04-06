@@ -216,9 +216,10 @@ void Host_Changelevel_f()
 		Con_Printf("Only the server may changelevel\n");
 		return;
 	}
-	SV_SaveSpawnparms();
 	strcpy(level, Cmd_Argv(1));
+	key_dest = key_game;
 	PR_SwitchQCVM(&sv.qcvm);
+	SV_SaveSpawnparms();
 	SV_SpawnServer(level);
 	PR_SwitchQCVM(NULL);
 }
