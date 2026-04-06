@@ -426,7 +426,6 @@ sfxcache_t *S_LoadSound(sfx_t *s);
 void SND_InitScaletable();
 void S_StopAllSounds(bool clear);
 EX bool pr_alpha_supported;                                        // pr_edict.c
-EX s32 pr_effects_mask;
 EX globalvars_t *pr_global_struct;
 EX f32 *pr_globals;
 EX s32 pr_edict_size;

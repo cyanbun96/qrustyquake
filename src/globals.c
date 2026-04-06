@@ -201,7 +201,6 @@ portable_samplepair_t s_rawsamples[MAX_RAW_SAMPLES];
 server_t sv;                                                        // sv_main.c
 server_static_t svs;
 bool pr_alpha_supported; //johnfitz                                // pr_edict.c
-s32 pr_effects_mask; // only enable rerelease quad/penta dlights when applicable
 globalvars_t *pr_global_struct;
 f32 *pr_globals; // same as pr_global_struct
 s32 pr_edict_size; // in bytes
