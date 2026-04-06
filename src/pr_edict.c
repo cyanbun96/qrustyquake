@@ -725,7 +725,7 @@ void ED_Write(FILE *f, edict_t *ed)
 	fprintf(f, "{\n");
 	if(ed->free) { fprintf(f, "}\n"); return; }
 	for(s32 i = 1; i < qcvm->progs->numfielddefs; i++) {
-		ddef_t *d = &pr_fielddefs[i];
+		ddef_t *d = &qcvm->fielddefs[i];
 		const s8 *name = PR_GetString(d->s_name);
 		s32 j = strlen(name);
 		if(j > 1 && name[j - 2] == '_')
@@ -795,7 +795,7 @@ void ED_WriteGlobals(FILE *f)
 {
 	fprintf(f, "{\n");
 	for(s32 i = 0; i < qcvm->progs->numglobaldefs; i++) {
-		ddef_t *def = &pr_globaldefs[i];
+		ddef_t *def = &qcvm->globaldefs[i];
 		s32 type = def->type;
 		if(!(def->type & DEF_SAVEGLOBAL)) continue;
 		type &= ~DEF_SAVEGLOBAL;
@@ -804,7 +804,7 @@ void ED_WriteGlobals(FILE *f)
 		const s8 *name = PR_GetString(def->s_name);
 		fprintf(f, "\"%s\" ", name);
 		fprintf(f, "\"%s\"\n", PR_UglyValueString(type,
-					(eval_t *)&pr_globals[def->ofs]));
+					(eval_t *)&qcvm->globals[def->ofs]));
 	}
 	fprintf(f, "}\n");
 }

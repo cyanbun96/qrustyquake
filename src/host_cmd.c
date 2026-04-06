@@ -292,6 +292,7 @@ if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_AddExtension(name, ".sav", sizeof(name));
 	Con_Printf("Saving game to %s...\n", name);
+	PR_SwitchQCVM (&sv.qcvm);
 	FILE *f = fopen(name, "w");
 	if(!f){ Con_Printf("ERROR: couldn't open.\n"); return; }
 	fprintf(f, "%i\n", SAVEGAME_VERSION);
@@ -312,6 +313,7 @@ if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
 		fflush(f);
 	}
 	fclose(f);
+	PR_SwitchQCVM (NULL);
 	Con_Printf("done.\n");
 }
 
