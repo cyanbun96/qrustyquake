@@ -39,24 +39,47 @@ static const s8* PF_GetStringArg(s32 idx, void* userdata)
 	return LOC_GetString(G_STRING(OFS_PARM0 + idx * 3));
 }
 
-static s8 *PF_VarString(s32 first)
+static char *PF_VarString (int  first)
 {
-	static s8 out[1024];
-	out[0] = 0;
-	if(first >= pr_argc) return out;
-	const s8 *format = LOC_GetString(G_STRING((OFS_PARM0 + first * 3)));
-	size_t s = 0;
-	if(LOC_HasPlaceholders(format)) {
-		s32 offset = first + 1;
-		s = LOC_Format(format,PF_GetStringArg,&offset,out,sizeof(out));
-	} else for(s32 i = first; i < pr_argc; i++) {
-	    s=q_strlcat(out,LOC_GetString(G_STRING(OFS_PARM0+i*3)),sizeof(out));
-		if(s >= sizeof(out)) {
-			printf("PF_VarString: overflow(string truncated)\n");
-			return out;
-		}
-	}
-	return out;
+    int     i;
+    static char out[1024];
+    const char *format;
+    size_t s;
+
+    out[0] = 0;
+    s = 0;
+
+    if (first >= qcvm->argc)
+        return out;
+
+    format = LOC_GetString(G_STRING((OFS_PARM0 + first * 3)));
+    if (LOC_HasPlaceholders(format))
+    {
+        int offset = first + 1;
+        s = LOC_Format(format, PF_GetStringArg, &offset, out, sizeof(out));
+    }
+    else
+    {
+        for (i = first; i < qcvm->argc; i++)
+        {
+            s = q_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)), sizeof(out));
+            if (s >= sizeof(out))
+            {
+                Con_DPrintf("PF_VarString: overflow (string truncated)\n");
+                return out;
+            }
+        }
+    }
+    if (s > 255)
+    {
+        /*TODOif (!dev_overflows.varstring || dev_overflows.varstring + CONSOLE_RESPAM_TIME < realtime)
+        {
+            Con_DPrintf("PF_VarString: %i characters exceeds standard limit of 255 (max = %d).\n",
+                                (int) s, (int)(sizeof(out) - 1));
+            dev_overflows.varstring = realtime;
+        }*/
+    }
+    return out;
 }
 
 static void PF_error()
