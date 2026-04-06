@@ -372,11 +372,8 @@ void SV_WriteEntitiesToClient(edict_t *clent, sizebuf_t *msg)
 		if((ent->baseline.effects^(s32)ent->v.effects)&qcvm->effects_mask)
 			bits |= U_EFFECTS;
 		if(ent->baseline.modelindex!=ent->v.modelindex)bits |= U_MODEL;
-		eval_t *val;
-		if(pr_alpha_supported) {
-			val = GetEdictFieldValueByName(ent, "alpha");
-			if(val) ent->alpha = ENTALPHA_ENCODE(val->_float);
-		}
+		eval_t *val = GetEdictFieldValueByName(ent, "alpha");
+		if(val) ent->alpha = ENTALPHA_ENCODE(val->_float);
 		//don't send invisible entities unless they have effects
 		if(ent->alpha == ENTALPHA_ZERO &&
 			!((s32)ent->v.effects & qcvm->effects_mask))

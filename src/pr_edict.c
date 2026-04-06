@@ -740,9 +740,9 @@ void ED_Write(FILE *f, edict_t *ed)
 		fprintf(f, "\"%s\" ", name);
 		fprintf(f, "\"%s\"\n", PR_UglyValueString(d->type,(eval_t *)v));
 	}
-//johnfitz -- save entity alpha manually when progs.dat doesn't know about alpha
-	if(!pr_alpha_supported && ed->alpha != ENTALPHA_DEFAULT)
-		fprintf(f, "\"alpha\" \"%f\"\n", ENTALPHA_TOSAVE(ed->alpha));
+	//johnfitz -- save entity alpha manually when progs.dat doesn't know about alpha
+	if (qcvm->extfields.alpha<0 && ed->alpha != ENTALPHA_DEFAULT)
+		fprintf (save->file, "\"alpha\" \"%f\"\n", ENTALPHA_TOSAVE(ed->alpha));
 	fprintf(f, "}\n");
 }
 

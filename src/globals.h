@@ -425,10 +425,7 @@ void S_LocalSound(const s8 *name);
 sfxcache_t *S_LoadSound(sfx_t *s);
 void SND_InitScaletable();
 void S_StopAllSounds(bool clear);
-EX bool pr_alpha_supported;                                        // pr_edict.c
-EX globalvars_t *pr_global_struct;
-EX f32 *pr_globals;
-EX s32 pr_edict_size;
+EX globalvars_t *pr_global_struct;                                 // pr_edict.c
 EX qcvm_t *qcvm;
 void PR_SwitchQCVM(qcvm_t *nvm);
 void PR_ClearProgs(qcvm_t *vm);
