@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name=viewport content="width=device-width, initial-scale=1">
+		<title>Qrusty Quake</title>
+		<style>
+			html, body {
+				background-color:#000000;
+				color:#808080;
+				height:100%;
+				width:100%;
+				margin:0;
+				padding:0;
+			}
+			canvas {
+				padding-right: 0;
+				margin-left: auto;
+				margin-right: auto;
+				display: block;
+				border: 0px none;
+				width:100%;
+				height:100%;
+				padding:0;
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="canvas" oncontextmenu="event.preventDefault()" hidden=1></canvas>
+		<script type="text/javascript">
+var Module = {
+	files:
+	{
+		"id1/pak0.pak": "id1/pak0.pak",
+		"id1/pak1.pak": "id1/pak1.pak"
+	},
+	autostart: true,
+	print: function(msg)
+	{
+		console.log(msg);
+	},
+	printErr: function(text)
+	{
+		console.log(text);
+	},
+	canvas: document.getElementById("canvas"),
+	setStatus: function(text)
+	{
+		if (Module.setStatus.interval)
+			clearInterval(Module.setStatus.interval);
+	},
+	totalDependencies: 0,
+	monitorRunDependencies: function(left)
+	{
+		this.totalDependencies = Math.max(this.totalDependencies, left);
+		Module.setStatus(left ? "Preparing... (" + (this.totalDependencies-left) + "/" + this.totalDependencies + ")" : "All downloads complete.");
+	}
+};
+
+function begin()
+{
+	if (Module.began)
+		return;
+
+	Module.began = true;
+	Module.setStatus("Downloading...");
+
+	var s = document.createElement("script");
+
+	s.setAttribute("src", "qrustyquake.js");
+	s.setAttribute("type", "text/javascript");
+	s.setAttribute("charset", "utf-8");
+	s.addEventListener("error", function() {alert("Oh noes! we got an error!"); Module.setStatus("Unable to download engine javascript");}, false);
+
+	document.head.appendChild(s);
+}
+
+if (Module["autostart"])
+	begin();
+		</script>
+	</body>
+</html>
