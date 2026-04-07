@@ -740,7 +740,22 @@
 #define TEXPREF_FULLBRIGHT 0x0100 // use fullbright mask palette
 #define TEXPREF_NOBRIGHT 0x0200 // use nobright mask palette
 #define TEXPREF_CONCHARS 0x0400 // use conchars palette
-#define TEXPREF_WARPIMAGE 0x0800 // resize this texture when warpimagesize changes
+#define TEXPREF_ARRAY 0x0800 // array texture
+#define TEXPREF_CUBEMAP 0x1000 // cubemap texture
+#define TEXPREF_BINDLESS 0x2000 // enable bindless usage
+#define TEXPREF_ALPHABRIGHT 0x4000 // use palette with lighting mask in alpha channel (0=fullbright, 1=lit)
+#define TEXPREF_CLAMP 0x8000 // clamp UVs
+#define TEXPREF_ALPHAPIXELS 0x10000 // has demonstratable alpha pixels, mostly used for md3
+#define TEXPREF_UNCOMPRESSED 0x20000 // disable compression
+#define TEXPREF_HASALPHA (TEXPREF_ALPHA|TEXPREF_ALPHABRIGHT) // texture has alpha channel
+#define PICFLAG_AUTO 0 //value used when no flags known
+#define PICFLAG_WAD (1u<<0) //name matches that of a wad lump
+//#define PICFLAG_TEMP (1u<<1)
+#define PICFLAG_WRAP (1u<<2) //make sure npot stuff doesn't break wrapping.
+#define PICFLAG_MIPMAP (1u<<3) //disable use of scrap...
+//#define PICFLAG_DOWNLOAD (1u<<8) //request to download it from the gameserver if its not stored locally.
+#define PICFLAG_BLOCK (1u<<9) //wait until the texture is fully loaded.
+#define PICFLAG_NOLOAD (1u<<31)
 //johnfitz -- extra flags for rendering
 #define MOD_NOLERP 256 // don't lerp when animating
 #define MOD_NOSHADOW 512 // don't cast a shadow

@@ -21,6 +21,60 @@ static size_t maxqcpics;
 
 void PF_Fixme (void) { if(developer.value)PR_RunError ("unimplemented builtin"); }
 
+static qpic_t *DrawQC_CachePic(const char *picname1, unsigned int flags)
+{   //okay, so this is silly. we've ended up with 3 different cache levels. qcpics, pics, and images.
+    char picname[MAX_OSPATH] = "gfx/";
+    if(strncmp(picname, picname1, 4))
+	    strncpy(picname+4, picname1, MAX_OSPATH-4);
+    else
+	    strncpy(picname, picname1, MAX_OSPATH);
+    size_t i;
+    unsigned int texflags;
+    for (i = 0; i < numqcpics; i++)
+    {   //binary search? something more sane?
+        if (!strcmp(picname, qcpics[i].name))
+        {
+            if (qcpics[i].pic)
+                return qcpics[i].pic;
+            break;
+        }
+    }
+
+    if (strlen(picname) >= MAX_QPATH)
+        return NULL;    //too long. get lost.
+
+    if (flags & PICFLAG_NOLOAD)
+        return NULL;    //its a query, not actually needed.
+
+    if (i+1 > maxqcpics)
+    {
+        maxqcpics = i + 32;
+        qcpics = realloc(qcpics, maxqcpics * sizeof(*qcpics));
+    }
+
+    strcpy(qcpics[i].name, picname);
+    qcpics[i].flags = flags;
+    qcpics[i].pic = NULL;
+
+    texflags = TEXPREF_ALPHA | TEXPREF_PAD | TEXPREF_NOPICMIP | TEXPREF_CLAMP | TEXPREF_UNCOMPRESSED;
+    if (flags & PICFLAG_WRAP)
+        texflags &= ~(TEXPREF_PAD | TEXPREF_CLAMP); //don't allow padding if its going to need to wrap (even if we don't enable clamp-to-edge normally). I just hope we have npot support.
+    if (flags & PICFLAG_MIPMAP)
+        texflags |= TEXPREF_MIPMAP;
+
+    //try to load it from a wad if applicable.
+    //the extra gfx/ crap is because DP insists on it for wad images. and its a nightmare to get things working in all engines if we don't accept that quirk too.
+    qcpics[i].pic = Draw_TryCachePic(picname);
+
+    //okay, not a wad pic, try and load a lmp/tga/etc
+    //TODOif (!qcpics[i].pic)
+    //TODO    qcpics[i].pic = Draw_TryCachePic(picname, texflags);
+
+    if (i == numqcpics)
+        numqcpics++;
+
+    return qcpics[i].pic;
+}
 void PR_ReloadPics(bool purge)
 {
     numqcpics = 0;
@@ -1313,15 +1367,14 @@ static void PF_cl_drawfill(void)
 static void PF_cl_drawpic(void)
 {
     float *pos  = G_VECTOR(OFS_PARM0);
-    //qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM1), PICFLAG_AUTO);
+    qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM1), PICFLAG_AUTO);
     float *size = G_VECTOR(OFS_PARM2);
     float *rgb  = G_VECTOR(OFS_PARM3);
     float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
-    puts("TODO PF_cl_drawpic");
-//    if (pic)
-//        Draw_SubPic (pos[0], pos[1], size[0], size[1], pic, 0, 0, 1, 1, rgb, alpha);
+    if (pic)
+        Draw_TransPicScaled(pos[0], pos[1], pic, uiscale);
 }
 
 static void PF_cl_getimagesize(void)
@@ -1403,23 +1456,21 @@ static void PF_cl_drawstring(void)
 }
 static void PF_cl_precachepic(void)
 {
-	puts("TODO PF_cl_precachepic");
-    /*const char *name    = G_STRING(OFS_PARM0);
+    const char *name    = G_STRING(OFS_PARM0);
     unsigned int flags = G_FLOAT(OFS_PARM1);
 
     G_INT(OFS_RETURN) = G_INT(OFS_PARM0);   //return input string, for convienience
 
     if (!DrawQC_CachePic(name, flags) && (flags & PICFLAG_BLOCK))
-        G_INT(OFS_RETURN) = 0;  //return input string, for convienience*/
+        G_INT(OFS_RETURN) = 0;  //return input string, for convienience
 }
 static void PF_cl_iscachedpic(void)
 {
-	puts("TODO PF_cl_iscachedpic");
-    /*const char *name    = G_STRING(OFS_PARM0);
+    const char *name    = G_STRING(OFS_PARM0);
     if (DrawQC_CachePic(name, PICFLAG_NOLOAD))
         G_FLOAT(OFS_RETURN) = true;
     else
-        G_FLOAT(OFS_RETURN) = false;*/
+        G_FLOAT(OFS_RETURN) = false;
 }
 static void PF_cl_drawsetclip(void)
 {
@@ -1462,8 +1513,7 @@ static void PF_cl_stringwidth(void)
 }
 static void PF_cl_drawsubpic(void)
 {
-	puts("TODO PF_cl_drawsubpic");
-    /*float *pos  = G_VECTOR(OFS_PARM0);
+    float *pos  = G_VECTOR(OFS_PARM0);
     float *size = G_VECTOR(OFS_PARM1);
     qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM2), PICFLAG_AUTO);
     float *srcpos   = G_VECTOR(OFS_PARM3);
@@ -1473,7 +1523,7 @@ static void PF_cl_drawsubpic(void)
 //  int flags   = G_FLOAT (OFS_PARM7);
 
     if (pic)
-        Draw_SubPic (pos[0], pos[1], size[0], size[1], pic, srcpos[0], srcpos[1], srcsize[0], srcsize[1], rgb, alpha);*/
+        Draw_TransPicScaled(pos[0], pos[1], pic, uiscale);
 }
 static void PF_cl_getstat_int(void)
 {

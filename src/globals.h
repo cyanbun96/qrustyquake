@@ -168,6 +168,7 @@ void Draw_FadeScreen();
 void Draw_StringScaled(s32 x, s32 y, s8 *str, s32 scale);
 qpic_t *Draw_PicFromWad(s8 *name);
 qpic_t *Draw_CachePic(s8 *path);
+qpic_t *Draw_TryCachePic(s8 *path);
 void Mod_Init();                                                      // model.h
 void Mod_ClearAll();
 void Mod_ResetAll();
