@@ -116,7 +116,8 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	r_refdef.fov_y = CalcFov(r_refdef.fov_x,
 		r_refdef.vrect.width, r_refdef.vrect.height);
 	f32 size = cl.intermission ? 120 : scr_viewsize.value;
-	if (size >= 120 || hudstyle != HUD_CLASSIC)
+	if (size >= 120 || hudstyle != HUD_CLASSIC || 
+			(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))
 		sb_lines = 0; // no status bar at all
 	else if (size >= 110)
 		sb_lines = 24 * uiscale; // no inventory

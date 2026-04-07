@@ -1071,44 +1071,51 @@ void Sbar_Min(s32 color)
 	}
 }
 
+void Sbar_CSQCHUD()
+{
+	bool deathmatchoverlay = false;
+	sb_updates++;
+	PR_SwitchQCVM(&cl.qcvm);
+	pr_global_struct->frametime = host_frametime;
+	if (qcvm->extglobals.cltime)
+		*qcvm->extglobals.cltime = realtime;
+	if (qcvm->extglobals.clframetime)
+		*qcvm->extglobals.clframetime = host_frametime;
+	if (qcvm->extglobals.player_localentnum)
+		*qcvm->extglobals.player_localentnum = cl.viewentity;
+	pr_global_struct->time = cl.time;
+	Sbar_SortFrags ();
+	float w = vid.width;
+	float h = vid.height;
+	G_VECTORSET(OFS_PARM0, w, h, 0);
+	G_FLOAT(OFS_PARM1) = sb_showscores;
+	PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawHud);
+	if (cl.qcvm.extfuncs.CSQC_DrawScores) {
+		G_VECTORSET(OFS_PARM0, w, h, 0);
+		G_FLOAT(OFS_PARM1) = sb_showscores;
+		if (key_dest != key_menu)
+			PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawScores);
+	}
+	else deathmatchoverlay = (sb_showscores || cl.stats[STAT_HEALTH] <= 0);
+	PR_SwitchQCVM(NULL);
+	if (deathmatchoverlay && cl.gametype == GAME_DEATHMATCH) {
+		Sbar_DeathmatchOverlay ();
+	}
+	drawlayer = lyr_main.value;
+	return;
+}
+
 void Sbar_Draw()
 {
+	if (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value && !qcvm) {
+		Sbar_CSQCHUD();
+		return;
+	}
 	if (scr_con_current == HH || !(scr_hudstyle.value || sb_lines)
 		|| (sb_updates >= vid.numpages && !scr_hudstyle.value)
 		|| cl.intermission)
 		return;
 	drawlayer = lyr_sbar.value;
-	if (cl.qcvm.extfuncs.CSQC_DrawHud && !qcvm) {
-		bool deathmatchoverlay = false;
-		sb_updates++;
-		PR_SwitchQCVM(&cl.qcvm);
-		pr_global_struct->frametime = host_frametime;
-		if (qcvm->extglobals.cltime)
-			*qcvm->extglobals.cltime = realtime;
-		if (qcvm->extglobals.clframetime)
-			*qcvm->extglobals.clframetime = host_frametime;
-		if (qcvm->extglobals.player_localentnum)
-			*qcvm->extglobals.player_localentnum = cl.viewentity;
-		pr_global_struct->time = cl.time;
-		Sbar_SortFrags ();
-		float w = vid.width;
-		float h = vid.height;
-		G_VECTORSET(OFS_PARM0, w, h, 0);
-		G_FLOAT(OFS_PARM1) = sb_showscores;
-		PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawHud);
-		if (cl.qcvm.extfuncs.CSQC_DrawScores) {
-			G_VECTORSET(OFS_PARM0, w, h, 0);
-			G_FLOAT(OFS_PARM1) = sb_showscores;
-			if (key_dest != key_menu)
-				PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawScores);
-		}
-		else deathmatchoverlay = (sb_showscores || cl.stats[STAT_HEALTH] <= 0);
-		PR_SwitchQCVM(NULL);
-		if (deathmatchoverlay && cl.gametype == GAME_DEATHMATCH) {
-			Sbar_DeathmatchOverlay ();
-		}
-		return;
-	}
 	if (scr_hudstyle.value >= 5 && scr_hudstyle.value <= 7) {
 		Sbar_Min(scr_hudstyle.value - 5);
 		drawlayer = lyr_main.value;
