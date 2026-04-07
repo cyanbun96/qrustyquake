@@ -195,8 +195,6 @@ void PR_EnableExtensions (void)
         Con_DPrintf("not enabling qc extensions\n");
         return;
     }
-	puts("TODO PR_EnableExtensions");
-	return;
 
 #define QCEXTFUNC(n,t) qcvm->extfuncs.n = PR_FindExtFunction(#n);
 #define QCEXTGLOBAL_FLOAT(n) qcvm->extglobals.n = PR_FindExtGlobal(ev_float, #n);
