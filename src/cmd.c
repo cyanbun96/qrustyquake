@@ -284,8 +284,6 @@ void Cmd_TokenizeString(const s8 *text)
 
 void Cmd_AddCommand(s8 *cmd_name, xcommand_t function)
 {
-	if(host_initialized) // because hunk allocation would get stomped
-		Sys_Error("Cmd_AddCommand after host_initialized");
 	if(Cvar_VariableString(cmd_name)[0]){
 		Con_Printf("Cmd_AddCommand: %s already defined as a var\n",
 				cmd_name);
@@ -299,8 +297,17 @@ void Cmd_AddCommand(s8 *cmd_name, xcommand_t function)
 			return;
 		}
 	}
-	cmd = Hunk_Alloc(sizeof(cmd_function_t));
-	cmd->name = cmd_name;
+	if (host_initialized){
+		cmd = (cmd_function_t *) malloc(sizeof(*cmd) + strlen(cmd_name)+1);
+		if (!cmd)
+			Sys_Error ("Cmd_AddCommand: out of memory (%s)", cmd_name);
+		cmd->name = strcpy((char*)(cmd + 1), cmd_name);
+		cmd->dynamic = true;
+	} else {
+		cmd = (cmd_function_t *) Hunk_Alloc (sizeof(*cmd));
+		cmd->name = cmd_name;
+		cmd->dynamic = false;
+	}
 	cmd->function = function;
 	// johnfitz -- insert each entry in alphabetical order
 	if(cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0)

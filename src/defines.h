@@ -761,7 +761,7 @@
 #define MOD_NOSHADOW 512 // don't cast a shadow
 #define MOD_FBRIGHTHACK 1024 // when fullbrights are disabled, use a hack to render this model brighter
 
-#define MAX_CACHED_PICS 128 // draw.c
+#define MAX_CACHED_PICS 1024 // was 128 // draw.c
 
 #define MAXLEFTCLIPEDGES 100 // r_draw.c
 #define FULLY_CLIPPED_CACHED 0x80000000

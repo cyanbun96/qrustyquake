@@ -1205,6 +1205,7 @@ typedef struct cmd_function_s {
 	struct cmd_function_s *next;
 	s8 *name;
 	xcommand_t function;
+	bool dynamic;
 } cmd_function_t;
 typedef enum { src_client, src_command } cmd_source_t;
 
