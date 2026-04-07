@@ -937,6 +937,30 @@ void Sbar_IntermissionOverlay()
 		return;
 	}
 	drawlayer = lyr_sbar.value;
+	if (cl.qcvm.extfuncs.CSQC_DrawScores && !qcvm) {
+		float w, h;
+		PR_SwitchQCVM(&cl.qcvm);
+		if (qcvm->extglobals.cltime)
+			*qcvm->extglobals.cltime = realtime;
+		if (qcvm->extglobals.clframetime)
+			*qcvm->extglobals.clframetime = host_frametime;
+		if (qcvm->extglobals.player_localentnum)
+			*qcvm->extglobals.player_localentnum = cl.viewentity;
+		if (qcvm->extglobals.intermission)
+			*qcvm->extglobals.intermission = cl.intermission;
+		if (qcvm->extglobals.intermission_time)
+			*qcvm->extglobals.intermission_time = cl.completed_time;
+		pr_global_struct->time = cl.time;
+		pr_global_struct->frametime = host_frametime;
+		Sbar_SortFrags ();
+		w = vid.width;
+		h = vid.height;
+		G_VECTORSET(OFS_PARM0, w, h, 0);
+		G_FLOAT(OFS_PARM1) = sb_showscores;
+		PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawScores);
+		PR_SwitchQCVM(NULL);
+		return;
+	}
 	qpic_t *pic = Draw_CachePic("gfx/complete.lmp"); // plaque is 192px wide
 	Draw_TransPicScaled(WW/2 - 96*SCL, 24*SCL,pic,SCL);
 	s32 p = WW/2 - 160*SCL; // padding for scaling
@@ -1054,6 +1078,37 @@ void Sbar_Draw()
 		|| cl.intermission)
 		return;
 	drawlayer = lyr_sbar.value;
+	if (cl.qcvm.extfuncs.CSQC_DrawHud && !qcvm) {
+		bool deathmatchoverlay = false;
+		sb_updates++;
+		PR_SwitchQCVM(&cl.qcvm);
+		pr_global_struct->frametime = host_frametime;
+		if (qcvm->extglobals.cltime)
+			*qcvm->extglobals.cltime = realtime;
+		if (qcvm->extglobals.clframetime)
+			*qcvm->extglobals.clframetime = host_frametime;
+		if (qcvm->extglobals.player_localentnum)
+			*qcvm->extglobals.player_localentnum = cl.viewentity;
+		pr_global_struct->time = cl.time;
+		Sbar_SortFrags ();
+		float w = vid.width;
+		float h = vid.height;
+		G_VECTORSET(OFS_PARM0, w, h, 0);
+		G_FLOAT(OFS_PARM1) = sb_showscores;
+		PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawHud);
+		if (cl.qcvm.extfuncs.CSQC_DrawScores) {
+			G_VECTORSET(OFS_PARM0, w, h, 0);
+			G_FLOAT(OFS_PARM1) = sb_showscores;
+			if (key_dest != key_menu)
+				PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawScores);
+		}
+		else deathmatchoverlay = (sb_showscores || cl.stats[STAT_HEALTH] <= 0);
+		PR_SwitchQCVM(NULL);
+		if (deathmatchoverlay && cl.gametype == GAME_DEATHMATCH) {
+			Sbar_DeathmatchOverlay ();
+		}
+		return;
+	}
 	if (scr_hudstyle.value >= 5 && scr_hudstyle.value <= 7) {
 		Sbar_Min(scr_hudstyle.value - 5);
 		drawlayer = lyr_main.value;

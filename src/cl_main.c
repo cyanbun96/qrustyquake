@@ -4,10 +4,26 @@
 
 static efrag_t cl_efrags[MAX_EFRAGS];
 
+void CL_FreeState(void)
+{
+    //TODO int i;
+    //TODO for (i = 0; i < MAX_CL_STATS; i++)
+    //TODO     free (cl.statss[i]);
+    PR_ClearProgs (&cl.qcvm);
+    memset (&cl, 0, sizeof(cl));
+}
+
 void CL_ClearState()
 {
+	if (cl.qcvm.extfuncs.CSQC_Shutdown) {
+		PR_SwitchQCVM(&cl.qcvm);
+		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
+		qcvm->extfuncs.CSQC_Shutdown = 0;
+		PR_SwitchQCVM(NULL);
+	}
 	if (!sv.active) Host_ClearMemory();
 	memset(&cl, 0, sizeof(cl)); // wipe the entire cl structure
+	CL_FreeState();
 	SZ_Clear(&cls.message);
 	memset(cl_efrags, 0, sizeof(cl_efrags)); // clear other arrays
 	memset(cl_entities, 0, sizeof(cl_entities));
@@ -41,6 +57,7 @@ void CL_Disconnect() // Sends a disconnect message to the server
 	}
 	cls.demoplayback = cls.timedemo = 0;
 	cls.signon = 0;
+	cl.sendprespawn = 0;
 }
 
 void CL_Disconnect_f()
@@ -67,8 +84,7 @@ void CL_SignonReply()
 	Con_DPrintf("CL_SignonReply: %i\n", cls.signon);
 	switch (cls.signon) {
 	case 1:
-		MSG_WriteByte(&cls.message, clc_stringcmd);
-		MSG_WriteString(&cls.message, "prespawn");
+		cl.sendprespawn = 1;
 		break;
 	case 2:
 		MSG_WriteByte(&cls.message, clc_stringcmd);

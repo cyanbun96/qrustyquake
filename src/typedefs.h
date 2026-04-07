@@ -1593,6 +1593,7 @@ typedef struct {
 	scoreboard_t *scores; // [cl.maxclients]
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
+	bool sendprespawn;
 	qcvm_t qcvm; //for csqc.
 } client_state_t;
 typedef struct {

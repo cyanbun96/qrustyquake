@@ -185,6 +185,39 @@ static void *PR_FindExtGlobal(int type, const char *name)
     return NULL;
 }
 
+void PR_AutoCvarChanged(cvar_t *var)
+{
+    char *n;
+    ddef_t *glob;
+    qcvm_t *oldqcvm = qcvm;
+    PR_SwitchQCVM(NULL);
+    if (sv.active)
+    {
+        PR_SwitchQCVM(&sv.qcvm);
+        n = va("autocvar_%s", var->name);
+        glob = ED_FindGlobal(n);
+        if (glob)
+        {
+            if (!ED_ParseEpair ((void *)qcvm->globals, glob, var->string, true))
+                Con_DPrintf("EXT: Unable to configure %s\n", n);
+        }
+        PR_SwitchQCVM(NULL);
+    }
+    if (cl.qcvm.globals)
+    {
+        PR_SwitchQCVM(&cl.qcvm);
+        n = va("autocvar_%s", var->name);
+        glob = ED_FindGlobal(n);
+        if (glob)
+        {
+            if (!ED_ParseEpair ((void *)qcvm->globals, glob, var->string, true))
+                Con_DPrintf("EXT: Unable to configure %s\n", n);
+        }
+        PR_SwitchQCVM(NULL);
+    }
+    PR_SwitchQCVM(oldqcvm);
+}
+
 void PR_EnableExtensions (void)
 {
     unsigned int i;

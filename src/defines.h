@@ -31,6 +31,7 @@
 #define E_INT(e,o) (*(s32*)&((f32*)&e->v)[o])
 #define E_VECTOR(e,o) (&((f32*)&e->v)[o])
 #define E_STRING(e,o) (PR_GetString(*(string_t*)&((f32*)&e->v)[o]))
+#define G_VECTORSET(r,x,y,z) do{G_FLOAT((r)+0) = x; G_FLOAT((r)+1) = y;G_FLOAT((r)+2) = z;}while(0)
 #define PROGHEADER_CRC 5927
 #define WAV_FORMAT_PCM 1 // q_sound.h
 #define MAX_CHANNELS 1024

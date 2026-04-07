@@ -112,6 +112,7 @@ void Host_InitLocal()
 	Cvar_RegisterVariable(&campaign);
 	Cvar_RegisterVariable(&horde);
 	Cvar_RegisterVariable(&sv_cheats);
+	Cvar_RegisterVariable(&cl_nocsqc);
 	Host_FindMaxClients();
 	host_time = 1.0; // so a think at time 0 won't get called
 }
@@ -281,13 +282,19 @@ void Host_ShutdownServer(bool crash)
 void Host_ClearMemory() // This clears all the memory used by both the client
 { // and server, but does not reinitialize anything.
 	Con_DPrintf("Clearing memory\n");
+	if (cl.qcvm.extfuncs.CSQC_Shutdown) {
+		PR_SwitchQCVM(&cl.qcvm);
+		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
+		qcvm->extfuncs.CSQC_Shutdown = 0;
+		PR_SwitchQCVM(NULL);
+	}
 	D_FlushCaches(0);
 	Mod_ClearAll();
 	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
 	cls.signon = 0;
 	PR_ClearProgs(&sv.qcvm);
+	PR_ClearProgs(&cl.qcvm);
 	memset(&sv, 0, sizeof(sv));
-	memset(&cl, 0, sizeof(cl));
 }
 
 f64 Host_GetFrameInterval()
@@ -352,6 +359,66 @@ void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
 	Con_Printf("%s\n", line);
 }
 
+static void CL_LoadCSProgs (void)
+{
+    PR_ClearProgs (&cl.qcvm);
+    if (pr_checkextension.value && !cl_nocsqc.value)
+    { // only try to use csqc if qc extensions are enabled.
+        PR_SwitchQCVM (&cl.qcvm);
+
+        // try csprogs.dat first, then fall back on progs.dat in case someone tried merging the two.
+        // we only care about it if it actually contains a CSQC_DrawHud, otherwise its either just a (misnamed) ssqc progs or a full csqc progs that would just
+        // crash us on 3d stuff.
+        if ((PR_LoadProgs ("csprogs.dat", false) && (qcvm->extfuncs.CSQC_DrawHud||qcvm->extfuncs.CSQC_DrawScores)) ||
+            (PR_LoadProgs ("progs.dat", false) && qcvm->extfuncs.CSQC_DrawHud))
+        {
+            qcvm->max_edicts = CLAMP (MIN_EDICTS, (int)max_edicts.value, MAX_EDICTS);
+            qcvm->edicts = (edict_t *)malloc (qcvm->max_edicts * qcvm->edict_size);
+            qcvm->num_edicts = qcvm->reserved_edicts = 1;
+            memset (qcvm->edicts, 0, qcvm->num_edicts * qcvm->edict_size);
+
+            if (!qcvm->extfuncs.CSQC_DrawHud)
+            { // no simplecsqc entry points... abort entirely!
+                PR_ClearProgs (qcvm);
+                PR_SwitchQCVM (NULL);
+                return;
+            }
+
+            // set a few globals, if they exist
+            if (qcvm->extglobals.maxclients)
+                *qcvm->extglobals.maxclients = cl.maxclients;
+            pr_global_struct->time = cl.time;
+            pr_global_struct->mapname = PR_SetEngineString (cl.mapname);
+            pr_global_struct->total_monsters = cl.stats[STAT_TOTALMONSTERS];
+            pr_global_struct->total_secrets = cl.stats[STAT_TOTALSECRETS];
+            pr_global_struct->deathmatch = cl.gametype;
+            pr_global_struct->coop = (cl.gametype == GAME_COOP) && cl.maxclients != 1;
+            if (qcvm->extglobals.player_localnum)
+                *qcvm->extglobals.player_localnum = cl.viewentity - 1; // this is a guess, but is important for scoreboards.
+
+            // set a few worldspawn fields too
+            qcvm->edicts->v.solid = SOLID_BSP;
+            qcvm->edicts->v.modelindex = 1;
+            qcvm->edicts->v.model = PR_SetEngineString (cl.worldmodel->name);
+            VectorCopy (cl.worldmodel->mins, qcvm->edicts->v.mins);
+            VectorCopy (cl.worldmodel->maxs, qcvm->edicts->v.maxs);
+            qcvm->edicts->v.message = PR_SetEngineString (cl.levelname);
+
+            // and call the init function... if it exists.
+            if (qcvm->extfuncs.CSQC_Init)
+            {
+                G_FLOAT (OFS_PARM0) = false;
+                G_INT (OFS_PARM1) = PR_SetEngineString ("QrustyQuake");
+                G_FLOAT (OFS_PARM2) = 10000 * VERSION;
+                PR_ExecuteProgram (qcvm->extfuncs.CSQC_Init);
+            }
+        }
+        else
+            PR_ClearProgs (qcvm);
+        PR_SwitchQCVM (NULL);
+    }
+}
+
 void _Host_Frame(f32 time)
 { // Runs all active servers
 	static f64 accumtime = 0;
@@ -367,6 +434,13 @@ void _Host_Frame(f32 time)
 	Sys_SendKeyEvents(); // get new key events
 	Cbuf_Execute(); // process console commands
 	NET_Poll();
+	if (cl.sendprespawn) {
+		CL_LoadCSProgs();
+		cl.sendprespawn = 0;
+		MSG_WriteByte (&cls.message, clc_stringcmd);
+		MSG_WriteString (&cls.message, "prespawn");
+		vid.recalc_refdef = 1;
+	}
 	CL_AccumulateCmd();
 	// Run the server+networking(client->server->client), at a different 
 	// rate from everything else

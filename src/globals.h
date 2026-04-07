@@ -432,6 +432,7 @@ void PR_SwitchQCVM(qcvm_t *nvm);
 void PR_ClearProgs(qcvm_t *vm);
 void ED_ClearEdict (edict_t *e);
 eval_t *GetEdictFieldValueByName(edict_t *ed, const char *name);
+void PR_AutoCvarChanged(cvar_t *var);
 EX clipplane_t view_clipplanes[4];                                  // r_local.h
 EX mplane_t screenedge[4];
 EX vec3_t r_entorigin;

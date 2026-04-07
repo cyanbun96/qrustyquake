@@ -217,6 +217,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 		var->default_string = Z_Strdup(var->string);
 	}
 	if(var->callback) var->callback(var);
+	if(var->flags & CVAR_AUTOCVAR) PR_AutoCvarChanged(var);
 }
 
 void Cvar_SetValueQuick(cvar_t *var, const f32 value)
