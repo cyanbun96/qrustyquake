@@ -1659,16 +1659,44 @@ static void PF_strconv (void)
 
     G_INT(OFS_RETURN) = PR_SetEngineString((char*)resbuf);
 }
+static struct svcustomstat_s *PR_CustomStat(int idx, int type)
+{
+    size_t i;
+    if (idx < 0 || idx >= MAX_CL_STATS)
+        return NULL;
+    switch(type)
+    {
+    case ev_ext_integer:
+    case ev_float:
+    case ev_vector:
+    case ev_entity:
+        break;
+    default:
+        return NULL;
+    }
+
+    for (i = 0; i < sv.numcustomstats; i++)
+    {
+        if (sv.customstats[i].idx == idx && (sv.customstats[i].type==ev_string) == (type==ev_string))
+            break;
+    }
+    if (i == sv.numcustomstats)
+        sv.numcustomstats++;
+    sv.customstats[i].idx = idx;
+    sv.customstats[i].type = type;
+    sv.customstats[i].fld = 0;
+    sv.customstats[i].ptr = NULL;
+    return &sv.customstats[i];
+}
 static void PF_clientstat(void)
 {
-	puts("TODO PF_clientstat");
-/*    int idx = G_FLOAT(OFS_PARM0);
+    int idx = G_FLOAT(OFS_PARM0);
     int type = G_FLOAT(OFS_PARM1);
     int fldofs = G_INT(OFS_PARM2);
     struct svcustomstat_s *stat = PR_CustomStat(idx, type);
     if (!stat)
         return;
-    stat->fld = fldofs;*/
+    stat->fld = fldofs;
 }
 
 #define PF_BOTH(x)  x,x

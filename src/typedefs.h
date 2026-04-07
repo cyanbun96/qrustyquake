@@ -956,7 +956,7 @@ typedef s32 string_t;
 typedef enum {
 	ev_bad = -1, ev_void = 0, ev_string, ev_float,
 	ev_vector, ev_entity, ev_field, ev_function,
-	ev_pointer
+	ev_pointer, ev_ext_integer
 } etype_t;
 enum { OP_DONE, OP_MUL_F, OP_MUL_V, OP_MUL_FV, OP_MUL_VF,
 	OP_DIV_F, OP_ADD_F, OP_ADD_V, OP_SUB_F, OP_SUB_V,
