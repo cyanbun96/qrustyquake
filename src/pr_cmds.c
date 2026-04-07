@@ -1376,30 +1376,30 @@ static void PF_cl_drawrawstring(void)
 }
 static void PF_cl_drawstring(void)
 {
-    puts("TODO PF_cl_drawstring");
-/*    float *pos  = G_VECTOR(OFS_PARM0);
+    float *pos  = G_VECTOR(OFS_PARM0);
     const char *text = G_STRING (OFS_PARM1);
-    float *size = G_VECTOR(OFS_PARM2);
-    float *rgb  = G_VECTOR(OFS_PARM3);
-    float alpha = G_FLOAT (OFS_PARM4);
+    //float *size = G_VECTOR(OFS_PARM2);
+    //float *rgb  = G_VECTOR(OFS_PARM3);
+    //float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
-    float x = pos[0];
-    struct markup_s mu;
-    int c;
+    //float x = pos[0];
+    //struct markup_s mu;
+    //int c;
 
     if (!*text)
         return; //don't waste time on spaces
 
-    PR_Markup_Begin(&mu, text, rgb, alpha);
+    Draw_StringScaled(pos[0], pos[1], text, uiscale);
+    //PR_Markup_Begin(&mu, text, rgb, alpha);
 
-    while ((c = PR_Markup_Parse(&mu)))
-    {
-        GL_SetCanvasColor (mu.colour[0], mu.colour[1], mu.colour[2], mu.colour[3]);
-        DrawQC_CharacterQuad (x, pos[1], c, size[0], size[1]);
-        x += size[0];
-    }
-    GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);*/
+    //while ((c = PR_Markup_Parse(&mu)))
+    //{
+    //    GL_SetCanvasColor (mu.colour[0], mu.colour[1], mu.colour[2], mu.colour[3]);
+    //    DrawQC_CharacterQuad (x, pos[1], c, size[0], size[1]);
+    //    x += size[0];
+    //}
+    //GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);
 }
 static void PF_cl_precachepic(void)
 {
