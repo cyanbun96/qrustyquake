@@ -293,10 +293,6 @@
 #define FL_PARTIALGROUND 1024 // not all corners are valid
 #define FL_WATERJUMP 2048 // player jumping out of water
 #define FL_JUMPRELEASED 4096 // for jump debouncing
-#define EF_BRIGHTFIELD 1 // entity effects
-#define EF_MUZZLEFLASH 2
-#define EF_BRIGHTLIGHT 4
-#define EF_DIMLIGHT 8
 #define SPAWNFLAG_NOT_EASY 256
 #define SPAWNFLAG_NOT_MEDIUM 512
 #define SPAWNFLAG_NOT_HARD 1024
@@ -830,7 +826,6 @@
 #define LOADFILE_MALLOC 5
 
 #define MAX_FIELD_LEN 64 // pr_edict.c
-#define GEFV_CACHESIZE 2
 #define PR_STRING_ALLOCSLOTS 256
 
 #define STEPSIZE 18 // sv_move.c

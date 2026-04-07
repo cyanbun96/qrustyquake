@@ -5,13 +5,6 @@
 // sv_edict.c -- entity dictionary
 #include "quakedef.h"
 
-static s8 *pr_strings;
-static s32 pr_stringssize;
-static const s8 **pr_knownstrings;
-static s32 pr_maxknownstrings;
-static s32 pr_numknownstrings;
-static ddef_t *pr_fielddefs;
-static ddef_t *pr_globaldefs;
 const s32 type_size[NUM_TYPE_SIZES] = {
 	1, // ev_void
 	1, // sizeof(string_t) / 4 // ev_string
@@ -24,7 +17,6 @@ const s32 type_size[NUM_TYPE_SIZES] = {
 };
 static ddef_t *ED_FieldAtOfs(s32 ofs);
 static bool ED_ParseEpair (void *base, ddef_t *key, const char *s, bool zoned);
-static gefv_cache gefvCache[GEFV_CACHESIZE] = { { NULL, "" }, { NULL, "" } };
 
 static void PR_HashInit (prhashtable_t *table, int capacity, const char *name)
 {
@@ -58,13 +50,13 @@ void PR_PopQCVM(qcvm_t *oldvm)
     PR_SwitchQCVM(oldvm);
 }
 
-static int PR_HashGet (prhashtable_t *table, const char *key)
+static s32 PR_HashGet (prhashtable_t *table, const s8 *key)
 {
-    unsigned pos = COM_HashString (key) % table->capacity, end = pos;
+    s32 pos = COM_HashString (key) % table->capacity, end = pos;
 
     do
     {
-        const char *s = table->strings[pos];
+        const s8 *s = table->strings[pos];
         if (!s)
             return -1;
         if (0 == strcmp(s, key))
@@ -1308,20 +1300,20 @@ static void PR_MergeEngineFieldDefs (void)
 	{   //table of engine fields to add. we'll be using ED_FindFieldOffset for these later.
 	    //this is useful for fields that should be defined for mappers which are not defined by the mod.
 	    //future note: mutators will need to edit the mutator's globaldefs table too. remember to handle vectors and their 3 globals too.
-		{"alpha",           ev_float},  //just because we can (though its already handled in a weird hacky way)
-		{"scale",           ev_float},  //hurrah for being able to rescale entities.
-		{"emiteffectnum",   ev_float},  //constantly emitting particles, even without moving.
-		{"traileffectnum",  ev_float},  //custom effect for trails
+		{"alpha",           ev_float, 0},  //just because we can (though its already handled in a weird hacky way)
+		{"scale",           ev_float, 0},  //hurrah for being able to rescale entities.
+		{"emiteffectnum",   ev_float, 0},  //constantly emitting particles, even without moving.
+		{"traileffectnum",  ev_float, 0},  //custom effect for trails
 						//{"glow_size",     ev_float},  //deprecated particle trail rubbish
 						//{"glow_color",    ev_float},  //deprecated particle trail rubbish
-		{"tag_entity",      ev_float},  //for setattachment to not bug out when omitted.
-		{"tag_index",       ev_float},  //for setattachment to not bug out when omitted.
-		{"modelflags",      ev_float},  //deprecated rubbish to fill the high 8 bits of effects.
+		{"tag_entity",      ev_float, 0},  //for setattachment to not bug out when omitted.
+		{"tag_index",       ev_float, 0},  //for setattachment to not bug out when omitted.
+		{"modelflags",      ev_float, 0},  //deprecated rubbish to fill the high 8 bits of effects.
 						//{"vw_index",      ev_float},  //modelindex2
 						//{"pflags",        ev_float},  //for rtlights
 						//{"drawflags",     ev_float},  //hexen2 compat
 						//{"abslight",      ev_float},  //hexen2 compat
-		{"colormod",        ev_vector}, //lighting tints
+		{"colormod",        ev_vector, 0}, //lighting tints
 						//{"glowmod",       ev_vector}, //fullbright tints
 						//{"fatness",       ev_float},  //bloated rendering...
 						//{"gravitydir",    ev_vector}, //says which direction gravity should act for this ent...
@@ -1409,10 +1401,10 @@ void PR_ClearProgs(qcvm_t *vm)
     qcvm = NULL;
     PR_SwitchQCVM(oldvm);
 }
-static void PR_HashAdd (prhashtable_t *table, int skey, int value)
+static void PR_HashAdd (prhashtable_t *table, s32 skey, s32 value)
 {
-    const char *name = PR_GetString (skey);
-    unsigned pos = COM_HashString (name) % table->capacity, end = pos;
+    const s8 *name = PR_GetString (skey);
+    s32 pos = COM_HashString (name) % table->capacity, end = pos;
 
     do
     {
@@ -1800,13 +1792,6 @@ int NUM_FOR_EDICT(edict_t *e)
     if (b < 0 || b >= qcvm->num_edicts)
         Host_Error ("NUM_FOR_EDICT: bad pointer");
     return b;
-}
-
-static void PR_AllocStringSlots()
-{
-	pr_maxknownstrings += PR_STRING_ALLOCSLOTS;
-	pr_knownstrings = (const s8 **) Z_Realloc((void *)pr_knownstrings,
-					pr_maxknownstrings * sizeof(s8 *));
 }
 
 const char *PR_GetString (int num)

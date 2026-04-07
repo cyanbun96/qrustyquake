@@ -232,8 +232,8 @@ static void PF_sprintf()
 
 static void PF_cl_registercommand(void)
 {
-    const char *cmdname = G_STRING(OFS_PARM0);
-    Cmd_AddCommand(cmdname, NULL);
+    const s8 *cmdname = G_STRING(OFS_PARM0);
+    Cmd_AddCommand((s8*)cmdname, NULL);
 }
 
 static void PF_sprint() // single print to a specific client
@@ -1677,61 +1677,61 @@ static void PF_clientstat(void)
 
 builtindef_t pr_builtindefs[] =
 {
-    {"makevectors",             PF_SSQC(PF_makevectors),        1},     // void(entity e) makevectors       = #1
-    {"setorigin",               PF_SSQC(PF_setorigin),          2},     // void(entity e, vector o) setorigin   = #2
-    {"setmodel",                PF_SSQC(PF_setmodel),           3},     // void(entity e, string m) setmodel    = #3
-    {"setsize",                 PF_SSQC(PF_setsize),            4},     // void(entity e, vector min, vector max) setsize   = #4
-    {"break",                   PF_BOTH(PF_break),              6},     // void() break             = #6
-    {"random",                  PF_BOTH(PF_random),             7},     // float() random           = #7
-    {"sound",                   PF_SSQC(PF_sound),              8},     // void(entity e, float chan, string samp) sound    = #8
-    {"normalize",               PF_BOTH(PF_normalize),          9},     // vector(vector v) normalize       = #9
-    {"error",                   PF_SSQC(PF_error),              10},    // void(string e) error         = #10
-    {"objerror",                PF_SSQC(PF_objerror),           11},    // void(string e) objerror      = #11
-    {"vlen",                    PF_BOTH(PF_vlen),               12},    // float(vector v) vlen         = #12
-    {"vectoyaw",                PF_BOTH(PF_vectoyaw),           13},    // float(vector v) vectoyaw     = #13
-    {"spawn",                   PF_SSQC(PF_Spawn),              14},    // entity() spawn           = #14
-    {"remove",                  PF_SSQC(PF_Remove),             15},    // void(entity e) remove        = #15
-    {"traceline",               PF_SSQC(PF_traceline),          16},    // float(vector v1, vector v2, float tryents) traceline = #16
-    {"checkclient",             PF_SSQC(PF_checkclient),        17},    // entity() clientlist          = #17
-    {"find",                    PF_SSQC(PF_Find),               18},    // entity(entity start, .string fld, string match) find = #18
-    {"precache_sound",          PF_SSQC(PF_precache_sound),     19},    // void(string s) precache_sound    = #19
-    {"precache_model",          PF_SSQC(PF_precache_model),     20},    // void(string s) precache_model    = #20
-    {"stuffcmd",                PF_SSQC(PF_stuffcmd),           21},    // void(entity client, string s)stuffcmd    = #21
-    {"findradius",              PF_SSQC(PF_findradius),         22},    // entity(vector org, float rad) findradius = #22
-    {"bprint",                  PF_SSQC(PF_bprint),             23},    // void(string s) bprint        = #23
-    {"sprint",                  PF_SSQC(PF_sprint),             24},    // void(entity client, string s) sprint = #24
-    {"dprint",                  PF_BOTH(PF_dprint),             25},    // void(string s) dprint        = #25
-    {"ftos",                    PF_BOTH(PF_ftos),               26},    // void(string s) ftos          = #26
-    {"vtos",                    PF_BOTH(PF_vtos),               27},    // void(string s) vtos          = #27
-    {"coredump",                PF_SSQC(PF_coredump),           28},
-    {"traceon",                 PF_BOTH(PF_traceon),            29},
-    {"traceoff",                PF_BOTH(PF_traceoff),           30},
-    {"eprint",                  PF_SSQC(PF_eprint),             31},    // void(entity e) debug print an entire entity
-    {"walkmove",                PF_SSQC(PF_walkmove),           32},    // float(float yaw, float dist) walkmove
-    {"droptofloor",             PF_SSQC(PF_droptofloor),        34},
-    {"lightstyle",              PF_SSQC(PF_lightstyle),         35},
-    {"rint",                    PF_BOTH(PF_rint),               36},
-    {"floor",                   PF_BOTH(PF_floor),              37},
-    {"ceil",                    PF_BOTH(PF_ceil),               38},
-    {"checkbottom",             PF_SSQC(PF_checkbottom),        40},
-    {"pointcontents",           PF_SSQC(PF_pointcontents),      41},
-    {"fabs",                    PF_BOTH(PF_fabs),               43},
-    {"aim",                     PF_SSQC(PF_aim),                44},
-    {"cvar",                    PF_BOTH(PF_cvar),               45},
-    {"localcmd",                PF_BOTH(PF_localcmd),           46},
-    {"nextent",                 PF_SSQC(PF_nextent),            47},
-    {"particle",                PF_SSQC(PF_particle),           48},
-    {"ChangeYaw",               PF_SSQC(PF_changeyaw),          49},
-    {"vectoangles",             PF_BOTH(PF_vectoangles),        51},
+    {"makevectors",             PF_SSQC(PF_makevectors),        1, 0},     // void(entity e) makevectors       = #1
+    {"setorigin",               PF_SSQC(PF_setorigin),          2, 0},     // void(entity e, vector o) setorigin   = #2
+    {"setmodel",                PF_SSQC(PF_setmodel),           3, 0},     // void(entity e, string m) setmodel    = #3
+    {"setsize",                 PF_SSQC(PF_setsize),            4, 0},     // void(entity e, vector min, vector max) setsize   = #4
+    {"break",                   PF_BOTH(PF_break),              6, 0},     // void() break             = #6
+    {"random",                  PF_BOTH(PF_random),             7, 0},     // float() random           = #7
+    {"sound",                   PF_SSQC(PF_sound),              8, 0},     // void(entity e, float chan, string samp) sound    = #8
+    {"normalize",               PF_BOTH(PF_normalize),          9, 0},     // vector(vector v) normalize       = #9
+    {"error",                   PF_SSQC(PF_error),              10, 0},    // void(string e) error         = #10
+    {"objerror",                PF_SSQC(PF_objerror),           11, 0},    // void(string e) objerror      = #11
+    {"vlen",                    PF_BOTH(PF_vlen),               12, 0},    // float(vector v) vlen         = #12
+    {"vectoyaw",                PF_BOTH(PF_vectoyaw),           13, 0},    // float(vector v) vectoyaw     = #13
+    {"spawn",                   PF_SSQC(PF_Spawn),              14, 0},    // entity() spawn           = #14
+    {"remove",                  PF_SSQC(PF_Remove),             15, 0},    // void(entity e) remove        = #15
+    {"traceline",               PF_SSQC(PF_traceline),          16, 0},    // float(vector v1, vector v2, float tryents) traceline = #16
+    {"checkclient",             PF_SSQC(PF_checkclient),        17, 0},    // entity() clientlist          = #17
+    {"find",                    PF_SSQC(PF_Find),               18, 0},    // entity(entity start, .string fld, string match) find = #18
+    {"precache_sound",          PF_SSQC(PF_precache_sound),     19, 0},    // void(string s) precache_sound    = #19
+    {"precache_model",          PF_SSQC(PF_precache_model),     20, 0},    // void(string s) precache_model    = #20
+    {"stuffcmd",                PF_SSQC(PF_stuffcmd),           21, 0},    // void(entity client, string s)stuffcmd    = #21
+    {"findradius",              PF_SSQC(PF_findradius),         22, 0},    // entity(vector org, float rad) findradius = #22
+    {"bprint",                  PF_SSQC(PF_bprint),             23, 0},    // void(string s) bprint        = #23
+    {"sprint",                  PF_SSQC(PF_sprint),             24, 0},    // void(entity client, string s) sprint = #24
+    {"dprint",                  PF_BOTH(PF_dprint),             25, 0},    // void(string s) dprint        = #25
+    {"ftos",                    PF_BOTH(PF_ftos),               26, 0},    // void(string s) ftos          = #26
+    {"vtos",                    PF_BOTH(PF_vtos),               27, 0},    // void(string s) vtos          = #27
+    {"coredump",                PF_SSQC(PF_coredump),           28, 0},
+    {"traceon",                 PF_BOTH(PF_traceon),            29, 0},
+    {"traceoff",                PF_BOTH(PF_traceoff),           30, 0},
+    {"eprint",                  PF_SSQC(PF_eprint),             31, 0},    // void(entity e) debug print an entire entity
+    {"walkmove",                PF_SSQC(PF_walkmove),           32, 0},    // float(float yaw, float dist) walkmove
+    {"droptofloor",             PF_SSQC(PF_droptofloor),        34, 0},
+    {"lightstyle",              PF_SSQC(PF_lightstyle),         35, 0},
+    {"rint",                    PF_BOTH(PF_rint),               36, 0},
+    {"floor",                   PF_BOTH(PF_floor),              37, 0},
+    {"ceil",                    PF_BOTH(PF_ceil),               38, 0},
+    {"checkbottom",             PF_SSQC(PF_checkbottom),        40, 0},
+    {"pointcontents",           PF_SSQC(PF_pointcontents),      41, 0},
+    {"fabs",                    PF_BOTH(PF_fabs),               43, 0},
+    {"aim",                     PF_SSQC(PF_aim),                44, 0},
+    {"cvar",                    PF_BOTH(PF_cvar),               45, 0},
+    {"localcmd",                PF_BOTH(PF_localcmd),           46, 0},
+    {"nextent",                 PF_SSQC(PF_nextent),            47, 0},
+    {"particle",                PF_SSQC(PF_particle),           48, 0},
+    {"ChangeYaw",               PF_SSQC(PF_changeyaw),          49, 0},
+    {"vectoangles",             PF_BOTH(PF_vectoangles),        51, 0},
 
-    {"WriteByte",               PF_SSQC(PF_WriteByte),          52},
-    {"WriteChar",               PF_SSQC(PF_WriteChar),          53},
-    {"WriteShort",              PF_SSQC(PF_WriteShort),         54},
-    {"WriteLong",               PF_SSQC(PF_WriteLong),          55},
-    {"WriteCoord",              PF_SSQC(PF_WriteCoord),         56},
-    {"WriteAngle",              PF_SSQC(PF_WriteAngle),         57},
-    {"WriteString",             PF_SSQC(PF_WriteString),        58},
-    {"WriteEntity",             PF_SSQC(PF_WriteEntity),        59},
+    {"WriteByte",               PF_SSQC(PF_WriteByte),          52, 0},
+    {"WriteChar",               PF_SSQC(PF_WriteChar),          53, 0},
+    {"WriteShort",              PF_SSQC(PF_WriteShort),         54, 0},
+    {"WriteLong",               PF_SSQC(PF_WriteLong),          55, 0},
+    {"WriteCoord",              PF_SSQC(PF_WriteCoord),         56, 0},
+    {"WriteAngle",              PF_SSQC(PF_WriteAngle),         57, 0},
+    {"WriteString",             PF_SSQC(PF_WriteString),        58, 0},
+    {"WriteEntity",             PF_SSQC(PF_WriteEntity),        59, 0},
 
     {"sin",                     PF_BOTH(PF_Sin),                60,     DP_QC_SINCOSSQRTPOW},   // float(float angle)
     {"cos",                     PF_BOTH(PF_Cos),                61,     DP_QC_SINCOSSQRTPOW},   // float(float angle)
@@ -1739,37 +1739,37 @@ builtindef_t pr_builtindefs[] =
 
     {"etos",                    PF_BOTH(PF_etos),               65,     DP_QC_ETOS},            // string(entity ent)
 
-    {"movetogoal",              PF_SSQC(SV_MoveToGoal),         67},
-    {"precache_file",           PF_SSQC(PF_precache_file),      68},
-    {"makestatic",              PF_SSQC(PF_makestatic),         69},
+    {"movetogoal",              PF_SSQC(SV_MoveToGoal),         67, 0},
+    {"precache_file",           PF_SSQC(PF_precache_file),      68, 0},
+    {"makestatic",              PF_SSQC(PF_makestatic),         69, 0},
 
-    {"changelevel",             PF_SSQC(PF_changelevel),        70},
+    {"changelevel",             PF_SSQC(PF_changelevel),        70, 0},
 
-    {"cvar_set",                PF_BOTH(PF_cvar_set),           72},
-    {"centerprint",             PF_SSQC(PF_centerprint),        73},
+    {"cvar_set",                PF_BOTH(PF_cvar_set),           72, 0},
+    {"centerprint",             PF_SSQC(PF_centerprint),        73, 0},
 
-    {"ambientsound",            PF_SSQC(PF_ambientsound),       74},
+    {"ambientsound",            PF_SSQC(PF_ambientsound),       74, 0},
 
-    {"precache_model2",         PF_SSQC(PF_precache_model),     75},
-    {"precache_sound2",         PF_SSQC(PF_precache_sound),     76},    // precache_sound2 is different only for qcc
-    {"precache_file2",          PF_SSQC(PF_precache_file),      77},
+    {"precache_model2",         PF_SSQC(PF_precache_model),     75, 0},
+    {"precache_sound2",         PF_SSQC(PF_precache_sound),     76, 0},    // precache_sound2 is different only for qcc
+    {"precache_file2",          PF_SSQC(PF_precache_file),      77, 0},
 
-    {"setspawnparms",           PF_SSQC(PF_setspawnparms),      78},
+    {"setspawnparms",           PF_SSQC(PF_setspawnparms),      78, 0},
 
     // 2021 re-release
-    {"finaleFinished",          PF_SSQC(PF_finalefinished),     79},    // float() finaleFinished = #79
-    {"localsound",              PF_SSQC(PF_localsound),         80},    // void localsound (entity client, string sample) = #80
+    {"finaleFinished",          PF_SSQC(PF_finalefinished),     79, 0},    // float() finaleFinished = #79
+    {"localsound",              PF_SSQC(PF_localsound),         80, 0},    // void localsound (entity client, string sample) = #80
 
     {"stof",                    PF_BOTH(PF_stof),               81,     FRIK_FILE},         // float(string)
 
     // 2021 re-release update 3
-    {"ex_centerprint",          PF_SSQC(PF_centerprint)},               // void(entity client, string s, ...)
-    {"ex_bprint",               PF_SSQC(PF_bprint)},                    // void(string s, ...)
-    {"ex_sprint",               PF_SSQC(PF_sprint)},                    // void(entity client, string s, ...)
-    {"ex_finalefinished",       PF_SSQC(PF_finalefinished)},            // float()
-    {"ex_CheckPlayerEXFlags",   PF_SSQC(PF_CheckPlayerEXFlags)},        // float(entity playerEnt)
-    {"ex_walkpathtogoal",       PF_SSQC(PF_walkpathtogoal)},            // float(float movedist, vector goal)
-    {"ex_localsound",           PF_SSQC(PF_localsound)},                // void(entity client, string sample)
+    {"ex_centerprint",          PF_SSQC(PF_centerprint), 0, 0},               // void(entity client, string s, ...)
+    {"ex_bprint",               PF_SSQC(PF_bprint), 0, 0},                    // void(string s, ...)
+    {"ex_sprint",               PF_SSQC(PF_sprint), 0, 0},                    // void(entity client, string s, ...)
+    {"ex_finalefinished",       PF_SSQC(PF_finalefinished), 0, 0},            // float()
+    {"ex_CheckPlayerEXFlags",   PF_SSQC(PF_CheckPlayerEXFlags), 0, 0},        // float(entity playerEnt)
+    {"ex_walkpathtogoal",       PF_SSQC(PF_walkpathtogoal), 0, 0},            // float(float movedist, vector goal)
+    {"ex_localsound",           PF_SSQC(PF_localsound), 0, 0},                // void(entity client, string sample)
 
     {"min",                     PF_BOTH(PF_min),                94,     DP_QC_MINMAXBOUND}, // float(float a, float b, ...)
     {"max",                     PF_BOTH(PF_max),                95,     DP_QC_MINMAXBOUND}, // float(float a, float b, ...)
@@ -1777,7 +1777,7 @@ builtindef_t pr_builtindefs[] =
 
     {"pow",                     PF_BOTH(PF_pow),                97,     DP_QC_SINCOSSQRTPOW},   // float(float value, float exp)
 
-    {"checkextension",          PF_BOTH(PF_checkextension),     99},    // float(string extname)
+    {"checkextension",          PF_BOTH(PF_checkextension),     99, 0},    // float(string extname)
 
     {"strlen",                  PF_BOTH(PF_strlen),             114,    FRIK_FILE}, // float(string s)
     {"strcat",                  PF_BOTH(PF_strcat),             115,    FRIK_FILE}, // string(string s1, optional string s2, optional string s3, optional string s4, optional string s5, optional string s6, optional string s7, optional string s8)
@@ -1790,42 +1790,42 @@ builtindef_t pr_builtindefs[] =
     {"chr2str",                 PF_BOTH(PF_chr2str),            223,    FTE_STRINGS},   // string(float chr, ...)
     {"strconv",                 PF_BOTH(PF_strconv),            224,    FTE_STRINGS},   // string(float ccase, float redalpha, float redchars, string str, ...)
 
-    {"clientstat",              PF_SSQC(PF_clientstat),         232},   // void(float num, float type, .__variant fld)
+    {"clientstat",              PF_SSQC(PF_clientstat),         232, 0},   // void(float num, float type, .__variant fld)
 
-    {"mod",                     PF_BOTH(PF_mod),                245},   // float(float a, float n)
+    {"mod",                     PF_BOTH(PF_mod),                245, 0},   // float(float a, float n)
 									//     {"ftoi",                    PF_BOTH(PF_ftoi)},                      // int(float)
-    {"itof",                    PF_BOTH(PF_itof)},                      // float(int)
+    {"itof",                    PF_BOTH(PF_itof), 0, 0},                      // float(int)
 
     {"checkcommand",            PF_BOTH(PF_checkcommand),       294,    FTE_QC_CHECKCOMMAND},   // float(string name)
 
-    {"iscachedpic",             PF_CSQC(PF_cl_iscachedpic),     316},   // float(string name)
-    {"precache_pic",            PF_CSQC(PF_cl_precachepic),     317},   // string(string name, optional float flags)
-    {"drawgetimagesize",        PF_CSQC(PF_cl_getimagesize),    318},   // #define draw_getimagesize drawgetimagesize\nvector(string picname)
-    {"drawcharacter",           PF_CSQC(PF_cl_drawcharacter),   320},   // float(vector position, float character, vector size, vector rgb, float alpha, optional float drawflag)
-    {"drawrawstring",           PF_CSQC(PF_cl_drawrawstring),   321},   // float(vector position, string text, vector size, vector rgb, float alpha, optional float drawflag)
-    {"drawpic",                 PF_CSQC(PF_cl_drawpic),         322},   // float(vector position, string pic, vector size, vector rgb, float alpha, optional float drawflag)
-    {"drawfill",                PF_CSQC(PF_cl_drawfill),        323},   // float(vector position, vector size, vector rgb, float alpha, optional float drawflag)
-    {"drawsetcliparea",         PF_CSQC(PF_cl_drawsetclip),     324},   // void(float x, float y, float width, float height)
-    {"drawresetcliparea",       PF_CSQC(PF_cl_drawresetclip),   325},   // void(void)
-    {"drawstring",              PF_CSQC(PF_cl_drawstring),      326},   // float(vector position, string text, vector size, vector rgb, float alpha, float drawflag)
-    {"stringwidth",             PF_CSQC(PF_cl_stringwidth),     327},   // float(string text, float usecolours, vector fontsize='8 8')
-    {"drawsubpic",              PF_CSQC(PF_cl_drawsubpic),      328},   // void(vector pos, vector sz, string pic, vector srcpos, vector srcsz, vector rgb, float alpha, optional float drawflag)
+    {"iscachedpic",             PF_CSQC(PF_cl_iscachedpic),     316, 0},   // float(string name)
+    {"precache_pic",            PF_CSQC(PF_cl_precachepic),     317, 0},   // string(string name, optional float flags)
+    {"drawgetimagesize",        PF_CSQC(PF_cl_getimagesize),    318, 0},   // #define draw_getimagesize drawgetimagesize\nvector(string picname)
+    {"drawcharacter",           PF_CSQC(PF_cl_drawcharacter),   320, 0},   // float(vector position, float character, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawrawstring",           PF_CSQC(PF_cl_drawrawstring),   321, 0},   // float(vector position, string text, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawpic",                 PF_CSQC(PF_cl_drawpic),         322, 0},   // float(vector position, string pic, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawfill",                PF_CSQC(PF_cl_drawfill),        323, 0},   // float(vector position, vector size, vector rgb, float alpha, optional float drawflag)
+    {"drawsetcliparea",         PF_CSQC(PF_cl_drawsetclip),     324, 0},   // void(float x, float y, float width, float height)
+    {"drawresetcliparea",       PF_CSQC(PF_cl_drawresetclip),   325, 0},   // void(void)
+    {"drawstring",              PF_CSQC(PF_cl_drawstring),      326, 0},   // float(vector position, string text, vector size, vector rgb, float alpha, float drawflag)
+    {"stringwidth",             PF_CSQC(PF_cl_stringwidth),     327, 0},   // float(string text, float usecolours, vector fontsize='8 8')
+    {"drawsubpic",              PF_CSQC(PF_cl_drawsubpic),      328, 0},   // void(vector pos, vector sz, string pic, vector srcpos, vector srcsz, vector rgb, float alpha, optional float drawflag)
 
-    {"getstati",                PF_CSQC(PF_cl_getstat_int),     330},   // #define getstati_punf(stnum) (float)(__variant)getstati(stnum)\nint(float stnum)
-    {"getstatf",                PF_CSQC(PF_cl_getstat_float),   331},   // #define getstatbits getstatf\nfloat(float stnum, optional float firstbit, optional float bitcount)
-    {"getstats",                PF_CSQC(PF_cl_getstat_string),  332},   // string(float stnum)
+    {"getstati",                PF_CSQC(PF_cl_getstat_int),     330, 0},   // #define getstati_punf(stnum) (float)(__variant)getstati(stnum)\nint(float stnum)
+    {"getstatf",                PF_CSQC(PF_cl_getstat_float),   331, 0},   // #define getstatbits getstatf\nfloat(float stnum, optional float firstbit, optional float bitcount)
+    {"getstats",                PF_CSQC(PF_cl_getstat_string),  332, 0},   // string(float stnum)
 
-    {"getplayerkeyvalue",       PF_CSQC(PF_cl_playerkey_s),     348},   // string(float playernum, string keyname)
-    {"getplayerkeyfloat",       PF_CSQC(PF_cl_playerkey_f)},            // float(float playernum, string keyname, optional float assumevalue)
+    {"getplayerkeyvalue",       PF_CSQC(PF_cl_playerkey_s),     348, 0},   // string(float playernum, string keyname)
+    {"getplayerkeyfloat",       PF_CSQC(PF_cl_playerkey_f), 0, 0},            // float(float playernum, string keyname, optional float assumevalue)
 
-    {"registercommand",         PF_CSQC(PF_cl_registercommand), 352},   // void(string cmdname)
+    {"registercommand",         PF_CSQC(PF_cl_registercommand), 352, 0},   // void(string cmdname)
 
     {"vectorvectors",           PF_BOTH(PF_vectorvectors),      432,    DP_QC_VECTORVECTORS},   // void(vector dir)
 
     {"clientcommand",           PF_SSQC(PF_clientcommand),      440,    KRIMZON_SV_PARSECLIENTCOMMAND}, // void(entity e, string s)
     {"tokenize",                PF_BOTH(PF_Tokenize),           441,    KRIMZON_SV_PARSECLIENTCOMMAND}, // float(string s)
     {"argv",                    PF_BOTH(PF_ArgV),               442,    KRIMZON_SV_PARSECLIENTCOMMAND}, // string(float n)
-    {"argc",                    PF_BOTH(PF_ArgC)},                      // float()
+    {"argc",                    PF_BOTH(PF_ArgC), 0, 0},                      // float()
 
     {"asin",                    PF_BOTH(PF_asin),               471,    DP_QC_ASINACOSATANATAN2TAN},    // float(float s)
     {"acos",                    PF_BOTH(PF_acos),               472,    DP_QC_ASINACOSATANATAN2TAN},    // float(float c)
