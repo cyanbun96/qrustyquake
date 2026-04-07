@@ -38,6 +38,14 @@ static const char *const pr_extnames[QCEXT_COUNT] =
     #undef QCEXTENSION
 };
 
+s32 PR_FindExtensionByName (const s8 *name)
+{
+    for (s32 i = 1; i < QCEXT_COUNT; i++)
+        if (!strcmp (name, pr_extnames[i]))
+            return i;
+    return 0;
+}
+
 const s8 *PR_GlobalString(s32 ofs);
 const s8 *PR_GlobalStringNoContents(s32 ofs);
 

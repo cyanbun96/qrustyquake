@@ -352,6 +352,7 @@ void PR_RunError(const s8 *error, ...);
 void ED_PrintEdicts();
 void ED_PrintNum(s32 ent);
 eval_t *GetEdictFieldValue(edict_t *ed, int fldofs);
+s32 PR_FindExtensionByName (const s8 *name);
 void Cvar_SetCallback(cvar_t *var, cvarcallback_t func);               // cvar.h
 void Cvar_Set(const s8 *var_name, const s8 *value);
 void Cvar_SetValue(const s8 *var_name, const f32 value);

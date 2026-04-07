@@ -1120,8 +1120,7 @@ static void PF_vectorvectors(void)
 
 static void PF_checkextension(void)
 {
-	puts("TODO PF_checkextension");
-    /*const char *extname = G_STRING(OFS_PARM0);
+    const char *extname = G_STRING(OFS_PARM0);
     int i = PR_FindExtensionByName (extname);
     if (i)
         SetBit (qcvm->checked_ext, i);
@@ -1135,7 +1134,7 @@ static void PF_checkextension(void)
         SetBit (qcvm->advertised_ext, i);
     }
     else
-        G_FLOAT(OFS_RETURN) = false;*/
+        G_FLOAT(OFS_RETURN) = false;
 }
 
 static void PF_strlen(void)
