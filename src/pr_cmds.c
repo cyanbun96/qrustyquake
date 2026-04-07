@@ -1527,25 +1527,23 @@ static void PF_cl_drawsubpic(void)
 }
 static void PF_cl_getstat_int(void)
 {
-	puts("PF_cl_getstat_int");
-    /*int stnum = G_FLOAT(OFS_PARM0);
-    if (stnum < 0 || stnum >= countof(cl.stats))
+    int stnum = G_FLOAT(OFS_PARM0);
+    if (stnum < 0 || stnum >= Q_COUNTOF(cl.stats))
         G_INT(OFS_RETURN) = 0;
     else
-        G_INT(OFS_RETURN) = cl.stats[stnum];*/
+        G_INT(OFS_RETURN) = cl.stats[stnum];
 }
 static void PF_cl_getstat_float(void)
 {
-	puts("PF_cl_getstat_float");
-    /*int stnum = G_FLOAT(OFS_PARM0);
-    if (stnum < 0 || stnum >= countof(cl.stats))
+    int stnum = G_FLOAT(OFS_PARM0);
+    if (stnum < 0 || stnum >= Q_COUNTOF(cl.stats))
         G_FLOAT(OFS_RETURN) = 0;
-    else if (qcvm->argc > 1)
-    {
+    /*else if (qcvm->argc > 1)
+    {*/
         int firstbit = G_FLOAT(OFS_PARM1);
         int bitcount = G_FLOAT(OFS_PARM2);
         G_FLOAT(OFS_RETURN) = (cl.stats[stnum]>>firstbit) & ((1<<bitcount)-1);
-    }
+    /*}
     else
         G_FLOAT(OFS_RETURN) = cl.statsf[stnum];*/
 }
