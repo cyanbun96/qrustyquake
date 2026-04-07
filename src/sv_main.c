@@ -832,7 +832,6 @@ void SV_SpawnServer (const char *server)
 //
 // set up the new server
 //
-    //memset (&sv, 0, sizeof(sv));
     Host_ClearMemory ();
 
     q_strlcpy (sv.name, server, sizeof(sv.name));

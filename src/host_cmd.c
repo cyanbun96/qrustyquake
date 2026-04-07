@@ -402,9 +402,8 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	// Free edicts allocated during map loading but no longer used after restoring saved game state
 	// Note: we use ED_ClearEdict instead of ED_Free to avoid placing entities >= num_edicts in the free list
 	// This is different from QuakeSpasm, which doesn't use a free list
-	//TODO for (i = entnum; i < qcvm->num_edicts; i++)
-	//TODO 	ED_ClearEdict (EDICT_NUM (i));
-
+	for (i = entnum; i < qcvm->num_edicts; i++)
+		ED_ClearEdict (EDICT_NUM (i));
 	qcvm->num_edicts = entnum;
 	qcvm->time = time;
 	fclose(f);
