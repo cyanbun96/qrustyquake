@@ -603,7 +603,7 @@ void Sbar_DrawInventoryBg()
 		x = WW - (scr_hudstyle.value==3 ? 96 : 104)*SCL;
 		y = HH - 56*SCL;
 		Draw_PicScaledPartial(x, y + 9*SCL, 0,0,96,8, pic, SCL);
-		Draw_PicScaledPartial(x - 96*SCL,y,96,8,192,16,pic,SCL);
+		Draw_PicScaledPartial(x - 96*SCL,y,96,0,192,8,pic,SCL);
 		break;
 	case 3: // right side, 1x4
 		x = WW - 48*SCL;

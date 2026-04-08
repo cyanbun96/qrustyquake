@@ -224,14 +224,42 @@ void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
         for (u32 v = 0; v < (u32)p->height; v++) {
                 if (v * s + y >= vid.height || v > (u32)h)
                         return;
-                if (v < (u32)t)
+                if (v < (u32)t){
+			source += p->width;
                         continue;
+		}
                 for (s32 k = 0; k < s; k++) {
                         for (u32 i = 0; i < (u32)p->width; i++) {
                                 if (i < (u32)l || i >= (u32)w)
                                         continue;
                                 for (s32 j = 0; j < s; j++)
                                         if (i * s + j + x < vid.width)
+                                                dest[i * s + j] = source[i];
+                        }
+                        dest += vid.width;
+                }
+                source += p->width;
+        }	
+}
+
+void Draw_TransPicSclPrt(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
+{
+        u8 *source = p->data;
+		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
+        for (u32 v = 0; v < (u32)p->height; v++) {
+                if (v * s + y >= vid.height || v > (u32)h)
+                        return;
+                if (v < (u32)t){
+			source += p->width;
+                        continue;
+		}
+                for (s32 k = 0; k < s; k++) {
+                        for (u32 i = 0; i < (u32)p->width; i++) {
+                                if (i < (u32)l || i >= (u32)w)
+                                        continue;
+                                for (s32 j = 0; j < s; j++)
+					if (source[i] != TRANSPARENT_COLOR &&
+					    (i * s + j + x < vid.width))
                                                 dest[i * s + j] = source[i];
                         }
                         dest += vid.width;

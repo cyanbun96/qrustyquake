@@ -1522,8 +1522,13 @@ static void PF_cl_drawsubpic(void)
     float alpha = G_FLOAT (OFS_PARM6);
 //  int flags   = G_FLOAT (OFS_PARM7);
 
+    int l = srcpos[0] * pic->width;
+    int t = srcpos[1] * pic->height;
+    int w = (srcpos[0] + srcsize[0]) * pic->width;
+    int h = (srcpos[1] + srcsize[1]) * pic->height;
     if (pic)
-        Draw_TransPicScaled(pos[0], pos[1], pic, uiscale);
+	    Draw_TransPicSclPrt(pos[0]*uiscale, pos[1]*uiscale,
+			    l, t, w, h, pic, uiscale);
 }
 static void PF_cl_getstat_int(void)
 {

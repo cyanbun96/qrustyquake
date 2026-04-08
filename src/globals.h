@@ -159,6 +159,7 @@ void Draw_Init();
 void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale);
 void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale);
 void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s);
+void Draw_TransPicSclPrt(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s);
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale);
 void Draw_TransPicTranslateScaled(s32 x, s32 y, qpic_t *p, u8 *tl, s32 scale);
 void Draw_ConsoleBackground(s32 lines);
