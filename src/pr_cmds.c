@@ -69,7 +69,7 @@ static qpic_t *DrawQC_CachePic(const char *picname1, unsigned int flags)
     //the extra gfx/ crap is because DP insists on it for wad images. and its a nightmare to get things working in all engines if we don't accept that quirk too.
     qcpics[i].pic = Draw_TryCachePic(picname);
     if(!qcpics[i].pic){
-	    qcpics[i].pic = Draw_PicFromWad(picname1);
+	    qcpics[i].pic = Draw_PicFromWad(picname1+(strncmp(picname1, "gfx/", 4)?0:4));
 	    strcpy(qcpics[i].name, picname1);
     }
 
