@@ -255,7 +255,8 @@ VM is VirtualBox unless specified otherwise.
 - Emscripten [Browsers with WebAssembly] v0.7.0
   
   - Dark magic performed by Erysdren, please don't ask me about it
-  - Updated CMakeLists by Pup Luka
+
+  - Updated CMakeLists by Pup Luka (since commit 5b68511)
 
 - Windows [VM, HW] v0.7.0
 
@@ -277,8 +278,8 @@ Izhido heroically made the native windows build possible, and in the process bro
 
 The FitzQuake protocol implementation, both client and server, sound system, model loading, filesystem functions, cvars and a whole lot more has been pulled directly from QuakeSpasm.
 
-A lot of code is adapted from Ironwail. Most of the netcode is a direct copy, other chunks are adapted with minor changes.
+A lot of code is adapted from Ironwail. Most of the netcode is a direct copy, other chunks are adapted with minor changes. QCVM/CSQC code is mostly taken from IW too.
 
-TGA image loading code taken from MarkV, lots of software rendering code taken too. Most of it comes from ToChriS engine by Vic.
+TGA image loading code taken from MarkV, along with lots of other software rendering code. Most of it comes from ToChriS engine by Vic.
 
 --CyanBun96 <3
