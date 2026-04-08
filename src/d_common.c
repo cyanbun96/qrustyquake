@@ -298,6 +298,8 @@ void Draw_Pic_Ex(vec_t *pos,vec_t *sz,qpic_t *pic,vec_t *srcpos,vec_t *srcsz)
         if (y >= pic_h) y = pic_h - 1;
         u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
 		+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
+	u8 *destmax = (u8*)scrbuffs[drawlayer]->pixels + vid.width * vid.height;
+	if (dest >= destmax) return;
         for (s32 destx = 0; destx < draw_w; destx++) {
             s32 x = srcpos[0] * pic_w + (srcsz[0] * pic_w) * ((f32)destx / draw_w);
             if (x < 0) x = 0;
