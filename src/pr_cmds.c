@@ -1386,12 +1386,11 @@ static void PF_cl_drawpic(void)
 
 static void PF_cl_getimagesize(void)
 {
-    puts("TODO PF_cl_getimagesize");
-    /*qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM0), PICFLAG_AUTO);
+    qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM0), PICFLAG_AUTO);
     if (pic)
         G_VECTORSET(OFS_RETURN, pic->width, pic->height, 0);
     else
-        G_VECTORSET(OFS_RETURN, 0, 0, 0);*/
+        G_VECTORSET(OFS_RETURN, 0, 0, 0);
 }
 static void PF_cl_drawcharacter(void)
 {
