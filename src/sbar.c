@@ -407,7 +407,7 @@ void Sbar_SoloScoreboard()
 	Draw_StringScaled(WW/2+24*SCL+xx, HH-20*SCL, str, SCL);
 	Sbar_UpdateLevelNameBuf();
 	s32 l = Q_strlen (lvnamebuf);
-	Draw_StringScaled(WW/2+72*SCL+xx-l*4, HH-12*SCL, lvnamebuf, SCL);
+	Draw_StringScaled(WW/2+72*SCL+xx-l*4*SCL, HH-12*SCL, lvnamebuf, SCL);
 }
 
 void Sbar_CalcPos()
