@@ -1474,25 +1474,25 @@ static void PF_cl_iscachedpic(void)
 }
 static void PF_cl_drawsetclip(void)
 {
-	puts("TODO PF_cl_drawsetclip");
-    float x = G_FLOAT(OFS_PARM0);
-    float y = G_FLOAT(OFS_PARM1);
-    float w = G_FLOAT(OFS_PARM2);
-    float h = G_FLOAT(OFS_PARM3);
+	Con_DPrintf("TODO PF_cl_drawsetclip");
+    //float x = G_FLOAT(OFS_PARM0);
+    //float y = G_FLOAT(OFS_PARM1);
+    //float w = G_FLOAT(OFS_PARM2);
+    //float h = G_FLOAT(OFS_PARM3);
     //Draw_SetClipRect (x, y, w, h);
 }
 static void PF_cl_drawresetclip(void)
 {
-	puts("TODO PF_cl_drawresetclip");
+	Con_DPrintf("TODO PF_cl_drawresetclip");
     //Draw_ResetClipping ();
 }
 
 static void PF_cl_stringwidth(void)
 {
-	puts("TODO PF_cl_stringwidth");
-    /*static const float defaultfontsize[] = {8,8};
     const char *text = G_STRING (OFS_PARM0);
-    bool usecolours = G_FLOAT(OFS_PARM1);
+    G_FLOAT(OFS_RETURN) = strlen(text) * 8*uiscale;
+    /*bool usecolours = G_FLOAT(OFS_PARM1);
+    static const float defaultfontsize[] = {8,8};
     const float *fontsize = (qcvm->argc>2)?G_VECTOR (OFS_PARM2):defaultfontsize;
     struct markup_s mu;
     int r = 0;
