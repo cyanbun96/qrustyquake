@@ -1,8 +1,62 @@
-#Game directory for dev/debugging.
-id1/
+src/.gdb_history
+src/qrustyquake
+src/qrustyquake.exe
+src/SDL3.dll
+src/id1
+src/tags
 
-#Compiled & Unlinked Object Files
+cmake-build*/
+build*/
+
+# Prerequisites
+*.d
+
+# Object files
 *.o
+*.ko
+*.obj
+*.elf
 
-#Compiled Executable (Linux/*nix)
-qrustyquake
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+src/.vs/
+src/out/
