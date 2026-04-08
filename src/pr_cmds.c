@@ -25,14 +25,17 @@ static qpic_t *DrawQC_CachePic(const char *picname1, unsigned int flags)
 {   //okay, so this is silly. we've ended up with 3 different cache levels. qcpics, pics, and images.
     char picname[MAX_OSPATH] = "gfx/";
     if(strncmp(picname, picname1, 4))
-	    strncpy(picname+4, picname1, MAX_OSPATH-4);
+	    strncpy(picname+4, picname1, MAX_OSPATH-4-4);
     else
-	    strncpy(picname, picname1, MAX_OSPATH);
+	    strncpy(picname, picname1, MAX_OSPATH-4);
+    if(!strstr(picname, ".lmp"))
+	    strncpy(picname+strlen(picname), ".lmp", 4);
+
     size_t i;
     unsigned int texflags;
     for (i = 0; i < numqcpics; i++)
     {   //binary search? something more sane?
-        if (!strcmp(picname, qcpics[i].name))
+        if (!strcmp(picname, qcpics[i].name) || !strcmp(picname1, qcpics[i].name))
         {
             if (qcpics[i].pic)
                 return qcpics[i].pic;
@@ -65,6 +68,10 @@ static qpic_t *DrawQC_CachePic(const char *picname1, unsigned int flags)
     //try to load it from a wad if applicable.
     //the extra gfx/ crap is because DP insists on it for wad images. and its a nightmare to get things working in all engines if we don't accept that quirk too.
     qcpics[i].pic = Draw_TryCachePic(picname);
+    if(!qcpics[i].pic){
+	    qcpics[i].pic = Draw_PicFromWad(picname1);
+	    strcpy(qcpics[i].name, picname1);
+    }
 
     //okay, not a wad pic, try and load a lmp/tga/etc
     //TODOif (!qcpics[i].pic)

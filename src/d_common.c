@@ -124,7 +124,7 @@ qpic_t *Draw_TryCachePic(s8 *path)
 	COM_LoadCacheFile(path, &pic->cache, NULL); // load the pic from disk
 	dat = (qpic_t *) pic->cache.data;
 	if (!dat) {
-		Con_Printf("Draw_TryCachePic: failed to load %s\n", path);
+		Con_DPrintf("Draw_TryCachePic: failed to load %s\n", path);
 		return NULL;
 	}
 	SwapPic(dat);
