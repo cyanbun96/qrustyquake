@@ -1394,29 +1394,25 @@ static void PF_cl_getimagesize(void)
 }
 static void PF_cl_drawcharacter(void)
 {
-    puts("TODO PF_cl_drawcharacter");
-    /*float *pos  = G_VECTOR(OFS_PARM0);
+    float *pos  = G_VECTOR(OFS_PARM0);
     int charcode= (int)G_FLOAT (OFS_PARM1) & 0xff;
-    float *size = G_VECTOR(OFS_PARM2);
-    float *rgb  = G_VECTOR(OFS_PARM3);
-    float alpha = G_FLOAT (OFS_PARM4);
+//  float *size = G_VECTOR(OFS_PARM2);
+//  float *rgb  = G_VECTOR(OFS_PARM3);
+//  float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
     if (charcode == 32)
         return; //don't waste time on spaces
 
-    GL_SetCanvasColor (rgb[0], rgb[1], rgb[2], alpha);
-    DrawQC_CharacterQuad (pos[0], pos[1], charcode, size[0], size[1]);
-    GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);*/
+    Draw_CharacterScaled(pos[0], pos[1], charcode, uiscale);
 }
 static void PF_cl_drawrawstring(void)
 {
-    puts("TODO PF_cl_drawrawstring");
-    /*float *pos  = G_VECTOR(OFS_PARM0);
+    float *pos  = G_VECTOR(OFS_PARM0);
     const char *text = G_STRING (OFS_PARM1);
-    float *size = G_VECTOR(OFS_PARM2);
-    float *rgb  = G_VECTOR(OFS_PARM3);
-    float alpha = G_FLOAT (OFS_PARM4);
+//  float *size = G_VECTOR(OFS_PARM2);
+//  float *rgb  = G_VECTOR(OFS_PARM3);
+//  float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
     float x = pos[0];
@@ -1425,13 +1421,11 @@ static void PF_cl_drawrawstring(void)
     if (!*text)
         return; //don't waste time on spaces
 
-    GL_SetCanvasColor (rgb[0], rgb[1], rgb[2], alpha);
     while ((c = *text++))
     {
-        DrawQC_CharacterQuad (x, pos[1], c, size[0], size[1]);
-        x += size[0];
+        Draw_CharacterScaled (x, pos[1], c, uiscale);
+        x += 8*uiscale;//size[0];
     }
-    GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);*/
 }
 static void PF_cl_drawstring(void)
 {
