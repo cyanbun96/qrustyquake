@@ -242,32 +242,6 @@ void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
         }	
 }
 
-void Draw_TransPicSclPrt(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
-{
-        u8 *source = p->data;
-		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
-        for (u32 v = 0; v < (u32)p->height; v++) {
-                if (v * s + y >= vid.height || v > (u32)h)
-                        return;
-                if (v < (u32)t){
-			source += p->width;
-                        continue;
-		}
-                for (s32 k = 0; k < s; k++) {
-                        for (u32 i = 0; i < (u32)p->width; i++) {
-                                if (i < (u32)l || i >= (u32)w)
-                                        continue;
-                                for (s32 j = 0; j < s; j++)
-					if (source[i] != TRANSPARENT_COLOR &&
-					    (i * s + j + x < vid.width))
-                                                dest[i * s + j] = source[i];
-                        }
-                        dest += vid.width;
-                }
-                source += p->width;
-        }	
-}
-
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 {
 	u8 *source = pic->data;
@@ -310,6 +284,29 @@ void Draw_TransPicTranslateScaled(s32 x, s32 y, qpic_t *p, u8 *tl, s32 scale)
 		}
 		source += p->width;
 	}
+}
+
+void Draw_Pic_Ex(vec_t *pos,vec_t *sz,qpic_t *pic,vec_t *srcpos,vec_t *srcsz)
+{
+    s32 draw_w = (int)sz[0];
+    s32 draw_h = (int)sz[1];
+    s32 pic_w = pic->width;
+    s32 pic_h = pic->height;
+    for (s32 desty = 0; desty < draw_h; desty++) {
+        s32 y = srcpos[1] * pic_h + (srcsz[1] * pic_h) * ((f32)desty / draw_h);
+        if (y < 0) y = 0;
+        if (y >= pic_h) y = pic_h - 1;
+        u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
+		+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
+        for (s32 destx = 0; destx < draw_w; destx++) {
+            s32 x = srcpos[0] * pic_w + (srcsz[0] * pic_w) * ((f32)destx / draw_w);
+            if (x < 0) x = 0;
+            if (x >= pic_w) x = pic_w - 1;
+            u8 *source = pic->data + y * pic_w + x;
+            if(*source!=TRANSPARENT_COLOR)
+		    dest[destx] = *source;
+        }
+    }
 }
 
 void Draw_CharToConback(s32 num, u8 *dest)

@@ -1371,19 +1371,6 @@ static void PF_cl_drawfill(void)
     //Draw_FillEx (pos[0], pos[1], size[0], size[1], rgb, alpha);
 }
 
-static void PF_cl_drawpic(void)
-{
-    float *pos  = G_VECTOR(OFS_PARM0);
-    qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM1), PICFLAG_AUTO);
-    float *size = G_VECTOR(OFS_PARM2);
-    float *rgb  = G_VECTOR(OFS_PARM3);
-    float alpha = G_FLOAT (OFS_PARM4);
-//  int flags   = G_FLOAT (OFS_PARM5);
-
-    if (pic)
-        Draw_TransPicScaled(pos[0], pos[1], pic, uiscale);
-}
-
 static void PF_cl_getimagesize(void)
 {
     qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM0), PICFLAG_AUTO);
@@ -1511,6 +1498,19 @@ static void PF_cl_stringwidth(void)
     //primitive and lame, but hey.
     G_FLOAT(OFS_RETURN) = fontsize[0] * r;*/
 }
+static void PF_cl_drawpic(void)
+{
+    float *pos  = G_VECTOR(OFS_PARM0);
+    qpic_t *pic = DrawQC_CachePic(G_STRING(OFS_PARM1), PICFLAG_AUTO);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
+//  int flags   = G_FLOAT (OFS_PARM5);
+    float srcpos[2] = {0, 0};
+    float srcsize[2] = {1, 1};
+
+    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize);
+}
 static void PF_cl_drawsubpic(void)
 {
     float *pos  = G_VECTOR(OFS_PARM0);
@@ -1522,13 +1522,7 @@ static void PF_cl_drawsubpic(void)
     float alpha = G_FLOAT (OFS_PARM6);
 //  int flags   = G_FLOAT (OFS_PARM7);
 
-    int l = srcpos[0] * pic->width;
-    int t = srcpos[1] * pic->height;
-    int w = (srcpos[0] + srcsize[0]) * pic->width;
-    int h = (srcpos[1] + srcsize[1]) * pic->height;
-    if (pic)
-	    Draw_TransPicSclPrt(pos[0]*uiscale, pos[1]*uiscale,
-			    l, t, w, h, pic, uiscale);
+    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize);
 }
 static void PF_cl_getstat_int(void)
 {
