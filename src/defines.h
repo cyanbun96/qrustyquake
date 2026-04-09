@@ -847,7 +847,7 @@
 #define STEPSIZE 18 // sv_move.c
 #define DI_NODIR -1
 
-#define STRINGTEMP_BUFFERS 16 // pr_cmds.c
+#define STRINGTEMP_BUFFERS 1024 // pr_cmds.c
 #define STRINGTEMP_LENGTH 1024
 #define RETURN_EDICT(e) (((s32 *)qcvm->globals)[OFS_RETURN] = EDICT_TO_PROG(e))
 #define MSG_BROADCAST 0 // unreliable to all
