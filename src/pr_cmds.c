@@ -1535,22 +1535,29 @@ static void PF_cl_getstat_int(void)
     int stnum = G_FLOAT(OFS_PARM0);
     if (stnum < 0 || stnum >= Q_COUNTOF(cl.stats))
         G_INT(OFS_RETURN) = 0;
-    else
-        G_INT(OFS_RETURN) = cl.stats[stnum];
+    else {
+        if (stnum == 15) G_INT(OFS_RETURN) = cl.items;
+	else G_INT(OFS_RETURN) = cl.stats[stnum];
+    }
 }
 static void PF_cl_getstat_float(void)
-{ // CyanBun96: cl.stats are s32, why mess with the floats at all?
+{
     int stnum = G_FLOAT(OFS_PARM0);
-    if (stnum < 0 || stnum >= Q_COUNTOF(cl.stats))
+    if (stnum < 0 || stnum >= Q_COUNTOF(cl.stats)) {
         G_FLOAT(OFS_RETURN) = 0;
-    else if (qcvm->argc > 1)
+	return;
+    }
+    int num = cl.stats[stnum];
+    if (stnum == 15)
+	    num = cl.items;
+    if (qcvm->argc > 1)
     {
         int firstbit = G_FLOAT(OFS_PARM1);
         int bitcount = G_FLOAT(OFS_PARM2);
-        G_FLOAT(OFS_RETURN) = (cl.stats[stnum]>>firstbit) & ((1<<bitcount)-1);
+        G_FLOAT(OFS_RETURN) = (num>>firstbit) & ((1<<bitcount)-1);
     }
     else
-        G_FLOAT(OFS_RETURN) = (f32)cl.stats[stnum];
+        G_FLOAT(OFS_RETURN) = (f32)num;
 }
 static void PF_cl_getstat_string(void)
 {
