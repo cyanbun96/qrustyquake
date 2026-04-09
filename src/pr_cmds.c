@@ -560,7 +560,13 @@ static void PF_localcmd()
 static void PF_cvar()
 {
 	const s8 *str = G_STRING(OFS_PARM0);
-	G_FLOAT(OFS_RETURN) = Cvar_VariableValue(str);
+	if(!strncmp("scr_sbarscale", str, 13))
+// CyanBun96: a hackaroung for Arcane Dimensions that uses scr_sbarscale to
+// calculate HUD position
+		G_FLOAT(OFS_RETURN) = (2/(((f32)vid.width)/480))
+			+(f32)(vid.width-320)/480;
+	else
+		G_FLOAT(OFS_RETURN) = Cvar_VariableValue(str);
 }
 
 static void PF_cvar_set()
