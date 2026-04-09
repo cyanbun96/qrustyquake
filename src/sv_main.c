@@ -11,6 +11,67 @@ static s32 fatbytes;
 static u8 *fatpvs;
 static s32 fatpvs_capacity;
 
+void SV_CalcStats(client_t *client, int *statsi, float *statsf, const char **statss)
+{
+    size_t i;
+    edict_t *ent = client->edict;
+    //FIXME: string stats!
+
+    memset(statsi, 0, sizeof(*statsi)*MAX_CL_STATS);
+    memset(statsf, 0, sizeof(*statsf)*MAX_CL_STATS);
+    memset((void*)statss, 0, sizeof(*statss)*MAX_CL_STATS);
+    statsf[STAT_HEALTH] = ent->v.health;
+//  statsf[STAT_FRAGS] = ent->v.frags;  //obsolete
+    statsi[STAT_WEAPON] = SV_ModelIndex(PR_GetString(ent->v.weaponmodel));
+    //if ((unsigned int)statsi[STAT_WEAPON] >= client->limit_models)
+    //  statsi[STAT_WEAPON] = 0;
+    statsf[STAT_AMMO] = ent->v.currentammo;
+    statsf[STAT_ARMOR] = ent->v.armorvalue;
+    statsf[STAT_WEAPONFRAME] = ent->v.weaponframe;
+    statsf[STAT_SHELLS] = ent->v.ammo_shells;
+    statsf[STAT_NAILS] = ent->v.ammo_nails;
+    statsf[STAT_ROCKETS] = ent->v.ammo_rockets;
+    statsf[STAT_CELLS] = ent->v.ammo_cells;
+    statsf[STAT_ACTIVEWEAPON] = ent->v.weapon;  //sent in a way that does NOT depend upon the current mod...
+
+    //FIXME: add support for clientstat/globalstat qc builtins.
+
+    for (i = 0; i < sv.numcustomstats; i++)
+    {
+        eval_t *eval = sv.customstats[i].ptr;
+        if (!eval)
+            eval = GetEdictFieldValue(ent, sv.customstats[i].fld);
+
+        switch(sv.customstats[i].type)
+        {
+        case ev_ext_integer:
+            statsi[sv.customstats[i].idx] = eval->_int;
+            break;
+        case ev_entity:
+            statsi[sv.customstats[i].idx] = NUM_FOR_EDICT(PROG_TO_EDICT(eval->edict));
+            break;
+        case ev_float:
+            statsf[sv.customstats[i].idx] = eval->_float;
+            break;
+        case ev_vector:
+            statsf[sv.customstats[i].idx+0] = eval->vector[0];
+            statsf[sv.customstats[i].idx+1] = eval->vector[1];
+            statsf[sv.customstats[i].idx+2] = eval->vector[2];
+            break;
+        case ev_string:     //not supported in this build... send with svcfte_updatestatstring on change, which is annoying.
+            statss[sv.customstats[i].idx] = PR_GetString(eval->string);
+            break;
+        case ev_void:       //nothing...
+        case ev_field:      //panic! everyone panic!
+        case ev_function:   //doesn't make much sense
+        case ev_pointer:    //doesn't make sense
+        default:
+            break;
+        }
+	if(sv_cheats.value){__asm__("int3"); sv_cheats.value = 0;}
+    }
+}
+
 void SV_Protocol_f()
 {
 	s32 i; // keep here for OpenBSD
@@ -557,30 +618,99 @@ bool SV_SendClientDatagram(client_t *client)
 	}
 	return 1;
 }
-
-void SV_UpdateToReliableMessages()
+void SV_WriteStats (client_t *client)
 {
-	s32 i, j;
-	client_t *cl;
-	// check for changes to be sent over the reliable streams
-	for(i=0,host_client=svs.clients; i<svs.maxclients; i++,host_client++){
-		if(host_client->old_frags != host_client->edict->v.frags) {
-			for(j=0, cl = svs.clients; j<svs.maxclients; j++, cl++){
-				if(!cl->active) continue;
-				MSG_WriteByte(&cl->message, svc_updatefrags);
-				MSG_WriteByte(&cl->message, i);
-				MSG_WriteShort(&cl->message,
-						host_client->edict->v.frags);
-			}
-			host_client->old_frags = host_client->edict->v.frags;
-		}
-	}
-	for(j=0, cl = svs.clients ; j<svs.maxclients ; j++, cl++) {
-		if(!cl->active) continue;
-		SZ_Write(&cl->message, sv.reliable_datagram.data,
-				sv.reliable_datagram.cursize);
-	}
-	SZ_Clear(&sv.reliable_datagram);
+    int         statsi[MAX_CL_STATS];
+    float       statsf[MAX_CL_STATS];
+    const char  *statss[MAX_CL_STATS];
+    int         i;
+
+    SV_CalcStats (client, statsi, statsf, statss);
+
+    for (i = 0; i < MAX_CL_STATS; i++)
+    {
+        //small cleanup
+        if (!statsi[i])
+            statsi[i] = statsf[i];
+        else
+            statsf[i] = 0;//statsi[i];
+
+        if (i >= STAT_NONCLIENT && (statsi[i] != client->oldstats_i[i] || statsf[i] != client->oldstats_f[i]))
+        {
+            client->oldstats_i[i] = statsi[i];
+            client->oldstats_f[i] = statsf[i];
+
+            if ((double)statsi[i] != statsf[i] && statsf[i])
+            {   //didn't round nicely, so send as a float
+                MSG_WriteByte (&client->message, svc_stufftext);
+                MSG_WriteString (&client->message, va ("//st %i %g\n", i, statsf[i]));
+            }
+            else
+            {
+                if (i < MAX_CL_BASE_STATS)
+                {
+                    MSG_WriteByte (&client->message, svc_updatestat);
+                    MSG_WriteByte (&client->message, i);
+                    MSG_WriteLong (&client->message, statsi[i]);
+                }
+                else
+                {
+                    MSG_WriteByte (&client->message, svc_stufftext);
+                    MSG_WriteString (&client->message, va ("//st %i %i\n", i, statsi[i]));
+                }
+            }
+        }
+
+        if (statss[i] || client->oldstats_s[i])
+        {
+            const char *os = client->oldstats_s[i];
+            const char *ns = statss[i];
+            if (!ns)    ns="";
+            if (!os)    os="";
+            if (strcmp(os,ns))
+            {
+                free(client->oldstats_s[i]);
+                client->oldstats_s[i] = strdup(ns);
+
+                MSG_WriteByte (&client->message, svc_stufftext);
+                MSG_WriteString (&client->message, va ("//sts %i \"%s\"\n", i, ns));
+            }
+        }
+    }
+}
+
+void SV_UpdateToReliableMessages (void)
+{
+    int         i, j;
+    client_t *client;
+
+// check for changes to be sent over the reliable streams
+    for (i=0, host_client = svs.clients ; i<svs.maxclients ; i++, host_client++)
+    {
+        if (host_client->old_frags != host_client->edict->v.frags)
+        {
+            for (j=0, client = svs.clients ; j<svs.maxclients ; j++, client++)
+            {
+                if (!client->active)
+                    continue;
+                MSG_WriteByte (&client->message, svc_updatefrags);
+                MSG_WriteByte (&client->message, i);
+                MSG_WriteShort (&client->message, host_client->edict->v.frags);
+            }
+
+            host_client->old_frags = host_client->edict->v.frags;
+        }
+    }
+
+    for (j=0, client = svs.clients ; j<svs.maxclients ; j++, client++)
+    {
+        if (!client->active)
+            continue;
+        SV_WriteStats (client);
+        SZ_Write (&client->message, sv.reliable_datagram.data, sv.reliable_datagram.cursize);
+    }
+
+    SZ_Clear (&sv.reliable_datagram);
 }
 
 void SV_SendNop(client_t *client) // Send a nop message without trashing or

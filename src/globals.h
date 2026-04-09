@@ -390,16 +390,17 @@ EX cmd_source_t cmd_source;                                             // cmd.h
 void Cmd_Init();
 void Cbuf_Init();
 void Cbuf_AddText(const s8 *text);
+void Cbuf_AddTextLen (const char *text, int l);
 void Cbuf_InsertText(s8 *text);
 void Cbuf_Execute();
-void Cmd_AddCommand(s8 *cmd_name, xcommand_t function);
+cmd_function_t *Cmd_AddCommand2 (const char *cmd_name, xcommand_t function, cmd_source_t srctype, bool qcinterceptable);
 bool Cmd_Exists(const s8 *cmd_name);
 s32 Cmd_ListCompletions(const s8 *text);
 s8 *Cmd_CompleteCommand(s8 *partial);
 s32 Cmd_Argc();
 s8 *Cmd_Argv(s32 arg);
 s8 *Cmd_Args();
-void Cmd_ExecuteString(const s8 *text, cmd_source_t src);
+bool Cmd_ExecuteString(const s8 *text, cmd_source_t src);
 void Cmd_ForwardToServer();
 void S_Init();                                                      // q_sound.h
 void S_Shutdown();

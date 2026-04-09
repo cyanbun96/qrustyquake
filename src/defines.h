@@ -249,6 +249,9 @@
 #define SURFCACHE_SIZE_AT_320X200 600*1024
 #define FOG_LUT_LEVELS 32
 #define MAX_ALIAS_NAME 32 // cmd.h
+#define Cmd_AddCommand_ClientCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_client,false)   //command is meant to be safe for anyone to execute.
+#define Cmd_AddCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_command,false)                //regular console commands
+#define Cmd_AddCommand_ServerCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_server,false)   //command came from a server
 #define MAX_ARGS 80
 #define MOVE_NORMAL 0 // world.h
 #define MOVE_NOMONSTERS 1
@@ -486,7 +489,9 @@
 #define MAX_SOUNDS 2048 // so they cannot be blindly increased
 #define SAVEGAME_COMMENT_LENGTH 39
 #define MAX_STYLESTRING 64
-#define MAX_CL_STATS 32 // stats are integers communicated to
+#define CL_SetHudStat(stat) cl.statsf[stat] = cl.stats[stat]
+#define MAX_CL_BASE_STATS 32
+#define MAX_CL_STATS 256 // stats are integers communicated to
 #define STAT_HEALTH 0 // the client by the server
 #define STAT_FRAGS 1
 #define STAT_WEAPON 2
@@ -498,10 +503,12 @@
 #define STAT_ROCKETS 8
 #define STAT_CELLS 9
 #define STAT_ACTIVEWEAPON 10
+#define STAT_NONCLIENT 11 // first stat not included in svc_clientdata
 #define STAT_TOTALSECRETS 11
 #define STAT_TOTALMONSTERS 12
 #define STAT_SECRETS 13 // bumped on client side by svc_foundsecret
 #define STAT_MONSTERS 14 // bumped by svc_killedmonster
+#define STAT_ITEMS 15 // replaces clc_clientdata info
 #define IT_SHOTGUN 1 // stock defines
 #define IT_SUPER_SHOTGUN 2
 #define IT_NAILGUN 4

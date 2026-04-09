@@ -1201,13 +1201,22 @@ typedef struct cmdalias_s {
 	s8 name[MAX_ALIAS_NAME];
 	s8 *value;
 } cmdalias_t;
+typedef enum
+{
+	src_client,     // came in over a net connection as a clc_stringcmd
+			// host_client will be valid during this state.
+	src_command,    // from the command buffer
+	src_server      // from a svc_stufftext
+} cmd_source_t;
+extern  cmd_source_t    cmd_source;
 typedef struct cmd_function_s {
 	struct cmd_function_s *next;
 	s8 *name;
 	xcommand_t function;
+	cmd_source_t srctype;
 	bool dynamic;
+	bool qcinterceptable;
 } cmd_function_t;
-typedef enum { src_client, src_command } cmd_source_t;
 
 typedef struct { s32 left; s32 right; } portable_samplepair_t;      // q_sound.h
 typedef struct sfx_s { s8 name[MAX_QPATH]; cache_user_t cache; } sfx_t;
@@ -1551,6 +1560,8 @@ typedef struct {
 	usercmd_t cmd; // last command sent to the server
 	usercmd_t pendingcmd;
 	s32 stats[MAX_CL_STATS]; // health, etc
+	f32 statsf[MAX_CL_STATS];
+	s8 *statss[MAX_CL_STATS];
 	s32 items; // inventory bit flags
 	f32 item_gettime[32]; // cl.time of aquiring item, for blinking
 	f32 faceanimtime; // use anim frame if cl.time < this
@@ -1595,6 +1606,7 @@ typedef struct {
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
 	bool sendprespawn;
+	s8 stuffcmdbuf[1024]; //comment-extensions are a thing with certain servers, make sure we can handle them properly without further hacks/breakages. there's also some server->client only console commands that we might as well try to handle a bit better, like reconnect
 	qcvm_t qcvm; //for csqc.
 } client_state_t;
 typedef struct {
@@ -1708,6 +1720,9 @@ typedef struct client_s {
 	s32 num_pings; // ping_times[num_pings%NUM_PING_TIMES]
 	f32 spawn_parms[NUM_SPAWN_PARMS];
 	s32 old_frags;
+	s32 oldstats_i[MAX_CL_STATS]; //previous values of stats.
+	f32 oldstats_f[MAX_CL_STATS]; //if these differ from the current values,
+	s8 *oldstats_s[MAX_CL_STATS]; //reflag resendstats.
 } client_t;
 
 typedef struct {                                                   // d_polyse.c

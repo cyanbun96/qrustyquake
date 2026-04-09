@@ -4,11 +4,43 @@
 
 static efrag_t cl_efrags[MAX_EFRAGS];
 
+void CL_SetStat_f (void)
+{
+    int i, argc, stnum;
+    double value;
+
+    for (i = 1, argc = Cmd_Argc (); i + 1 < argc; i += 2)
+    {
+        stnum = atoi (Cmd_Argv (i));
+        if (stnum < 0 || stnum >= MAX_CL_STATS)
+            Host_Error ("CL_SetStat_f: stnum(%d) >= MAX_CL_STATS\n", stnum);
+
+        value = atof (Cmd_Argv (i + 1));
+        cl.statsf[stnum] = (float)value;
+        cl.stats[stnum] = (int)value;
+    }
+}
+
+void CL_SetStatString_f (void)
+{
+    int i, argc, stnum;
+
+    for (i = 1, argc = Cmd_Argc (); i + 1 < argc; i += 2)
+    {
+        stnum = atoi (Cmd_Argv (i));
+        if (stnum < 0 || stnum >= MAX_CL_STATS)
+            Host_Error ("CL_SetStatString_f: stnum(%d) >= MAX_CL_STATS\n", stnum);
+
+        free (cl.statss[stnum]);
+        cl.statss[stnum] = strdup (Cmd_Argv (i + 1));
+    }
+}
+
 void CL_FreeState(void)
 {
-    //TODO int i;
-    //TODO for (i = 0; i < MAX_CL_STATS; i++)
-    //TODO     free (cl.statss[i]);
+    int i;
+    for (i = 0; i < MAX_CL_STATS; i++)
+        free (cl.statss[i]);
     PR_ClearProgs (&cl.qcvm);
     memset (&cl, 0, sizeof(cl));
 }
@@ -426,4 +458,6 @@ void CL_Init()
 	Cmd_AddCommand("stop", CL_Stop_f);
 	Cmd_AddCommand("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand("timedemo", CL_TimeDemo_f);
+	Cmd_AddCommand_ServerCommand ("st", CL_SetStat_f);
+	Cmd_AddCommand_ServerCommand ("sts", CL_SetStatString_f);
 }
