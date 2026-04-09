@@ -959,6 +959,7 @@ void Sbar_IntermissionOverlay()
 		G_FLOAT(OFS_PARM1) = sb_showscores;
 		PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawScores);
 		PR_SwitchQCVM(NULL);
+		drawlayer = lyr_main.value;
 		return;
 	}
 	qpic_t *pic = Draw_CachePic("gfx/complete.lmp"); // plaque is 192px wide
