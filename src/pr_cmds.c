@@ -1919,7 +1919,7 @@ static void PF_cl_drawpic(void)
     float srcpos[2] = {0, 0};
     float srcsize[2] = {1, 1};
 
-    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize);
+    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize, rgb, alpha);
 }
 static void PF_cl_drawsubpic(void)
 {
@@ -1932,7 +1932,7 @@ static void PF_cl_drawsubpic(void)
     float alpha = G_FLOAT (OFS_PARM6);
 //  int flags   = G_FLOAT (OFS_PARM7);
 
-    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize);
+    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize, rgb, alpha);
 }
 static void PF_cl_getstat_int(void)
 {

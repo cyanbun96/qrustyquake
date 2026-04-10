@@ -330,29 +330,49 @@ void Draw_TransPicTranslateScaled(s32 x, s32 y, qpic_t *p, u8 *tl, s32 scale)
 	}
 }
 
-void Draw_Pic_Ex(vec_t *pos,vec_t *sz,qpic_t *pic,vec_t *srcpos,vec_t *srcsz)
-{
-    s32 draw_w = (int)sz[0];
-    s32 draw_h = (int)sz[1];
-    s32 pic_w = pic->width;
-    s32 pic_h = pic->height;
-    for (s32 desty = 0; desty < draw_h; desty++) {
-        s32 y = srcpos[1] * pic_h + (srcsz[1] * pic_h) * ((f32)desty / draw_h);
-        if (y < 0) y = 0;
-        if (y >= pic_h) y = pic_h - 1;
-        u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
-		+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
-	u8 *destmax = (u8*)scrbuffs[drawlayer]->pixels + vid.width * vid.height;
-	if (dest >= destmax) return;
-        for (s32 destx = 0; destx < draw_w; destx++) {
-            s32 x = srcpos[0] * pic_w + (srcsz[0] * pic_w) * ((f32)destx / draw_w);
-            if (x < 0) x = 0;
-            if (x >= pic_w) x = pic_w - 1;
-            u8 *source = pic->data + y * pic_w + x;
-            if(*source!=TRANSPARENT_COLOR)
-		    dest[destx] = *source;
-        }
-    }
+void Draw_Pic_Ex(f32 *pos,f32 *sz,qpic_t *pic,f32 *srcpos,f32 *srcsz,f32 *color,f32 alpha)
+{ // CSQC version with scaling, alpha, and RGB colors
+	if(alpha <= 0) return;
+	s32 al = (1-alpha) * FOG_LUT_LEVELS;
+	if(al > FOG_LUT_LEVELS - 1) al = FOG_LUT_LEVELS - 1;
+	if(al < 0) return;
+	if(!fog_lut_built) R_BuildColorMixLUT(0);
+	bool defcolor = 0;
+	s32 c;
+	if(color[0] == 1.0 && color[1] == 1.0 && color[2] == 1.0) defcolor = 1;
+	else {
+		u8 (*convfunc)(u8,u8,u8)=r_labmixpal.value==1?rgbtoi_lab:rgbtoi;
+		c = convfunc(color[0]*255, color[1]*255, color[2]*255);
+	}
+	s32 c2;
+	s32 draw_w = (int)sz[0];
+	s32 draw_h = (int)sz[1];
+	s32 pic_w = pic->width;
+	s32 pic_h = pic->height;
+	for (s32 desty = 0; desty < draw_h; desty++) {
+		s32 y = srcpos[1] * pic_h + (srcsz[1] * pic_h) * ((f32)desty / draw_h);
+		if (y < 0) y = 0;
+		if (y >= pic_h) y = pic_h - 1;
+		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
+			+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
+		u8 *destmax = (u8*)scrbuffs[drawlayer]->pixels + vid.width * vid.height;
+		if (dest >= destmax) return;
+		for (s32 destx = 0; destx < draw_w; destx++) {
+			s32 x = srcpos[0] * pic_w + (srcsz[0] * pic_w) * ((f32)destx / draw_w);
+			if (x < 0) x = 0;
+			if (x >= pic_w) x = pic_w - 1;
+			u8 *source = pic->data + y * pic_w + x;
+			if(*source!=TRANSPARENT_COLOR){
+				s32 charcolor = defcolor ? *source :
+				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
+				if (dest[destx] != TRANSPARENT_COLOR)
+					c2 = dest[destx];
+				else
+					c2=((u8*)scrbuffs[0]->pixels)[dest-(u8*)scrbuffs[drawlayer]->pixels];
+				dest[destx] = color_mix_lut[charcolor][c2][al];
+			}
+		}
+	}
 }
 
 void Draw_CharToConback(s32 num, u8 *dest)
