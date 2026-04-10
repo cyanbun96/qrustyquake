@@ -447,10 +447,12 @@ void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c)
 
 void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha)
 { // CSQC version with alpha and RGB colors
+	if(alpha <= 0) return;
 	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	u8 c = convfunc(rgb[0]*255, rgb[1]*255, rgb[2]*255);
 	s32 al = (1-alpha) * FOG_LUT_LEVELS;
 	if(al > FOG_LUT_LEVELS - 1) al = FOG_LUT_LEVELS - 1;
+	if(al < 0) return;
 	if(al == FOG_LUT_LEVELS - 1) Draw_Fill(x, y, w, h, c);
 	if(!fog_lut_built) R_BuildColorMixLUT(0);
 	s32 c2;
