@@ -445,6 +445,27 @@ void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c)
 		memset(dest, c, w); // Fast horizontal fill
 }
 
+void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha)
+{ // CSQC version with alpha and RGB colors
+	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
+	u8 c = convfunc(rgb[0]*255, rgb[1]*255, rgb[2]*255);
+	s32 al = (1-alpha) * FOG_LUT_LEVELS;
+	if(al > FOG_LUT_LEVELS - 1) al = FOG_LUT_LEVELS - 1;
+	if(al == FOG_LUT_LEVELS - 1) Draw_Fill(x, y, w, h, c);
+	if(!fog_lut_built) R_BuildColorMixLUT(0);
+	s32 c2;
+        u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
+        for (s32 v = 0; v < h; v++, dest += vid.width) {
+		for (s32 i = 0; i < w; i++) {
+			if (dest[i] != TRANSPARENT_COLOR)
+				c2 = dest[i];
+			else
+				c2=((u8*)scrbuffs[0]->pixels)[y*vid.width+x+i];
+			dest[i] = color_mix_lut[c][c2][al];
+		}
+	}
+}
+
 void Draw_InitBrightnessDOSLUT()
 { // Used only for the DOS screen fade effect, thus the range [0x10-0x1F]
 	dos_brightness_lut_init++;

@@ -1230,8 +1230,7 @@ static void PF_nextent()
 
 static void PF_checkcommand(void)
 {
-	puts("TODO: PF_checkcommand");
-    /*const char *name = G_STRING(OFS_PARM0);
+    const char *name = G_STRING(OFS_PARM0);
     if (Cmd_Exists(name))
         G_FLOAT(OFS_RETURN) = 1;
     else if (Cmd_AliasExists(name))
@@ -1239,7 +1238,7 @@ static void PF_checkcommand(void)
     else if (Cvar_FindVar(name))
         G_FLOAT(OFS_RETURN) = 3;
     else
-        G_FLOAT(OFS_RETURN) = 0;*/
+        G_FLOAT(OFS_RETURN) = 0;
 }
 static void PF_clientcommand(void)
 {
@@ -1721,8 +1720,6 @@ static void PF_strzone(void)
 }
 static void PF_strunzone(void)
 {
-	puts("TODO PF_strunzone");
-	/*
     size_t id;
     const char *foo = G_STRING(OFS_PARM0);
 
@@ -1736,7 +1733,7 @@ static void PF_strunzone(void)
         Z_Free((void*)foo);
     }
     else
-        Con_DPrintf("PF_strunzone: string wasn't strzoned\n");*/
+        Con_DPrintf("PF_strunzone: string wasn't strzoned\n");
 }
 
 static bool qc_isascii(unsigned int u)
@@ -1783,8 +1780,7 @@ static void PF_cl_drawfill(void)
     float alpha = G_FLOAT (OFS_PARM3);
 //  int flags   = G_FLOAT (OFS_PARM4);
 
-    puts("TODO PF_cl_drawfill");
-    //Draw_FillEx (pos[0], pos[1], size[0], size[1], rgb, alpha);
+    Draw_FillEx (pos[0], pos[1], size[0], size[1], rgb, alpha);
 }
 
 static void PF_cl_getimagesize(void)

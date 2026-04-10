@@ -225,6 +225,17 @@ void Cmd_Unalias_f() // -- johnfitz
 	}
 }
 
+bool Cmd_AliasExists (const char *aliasname)
+{
+    cmdalias_t *a;
+    for (a=cmd_alias ; a ; a=a->next)
+    {
+        if (!q_strcasecmp (aliasname, a->name))
+            return true;
+    }
+    return false;
+}
+
 void Cmd_Unaliasall_f() // -- johnfitz
 {
 	while(cmd_alias){

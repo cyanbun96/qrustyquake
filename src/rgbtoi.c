@@ -114,4 +114,3 @@ void R_BuildLitLUT()
 	}}}
 	lit_lut_initialized = 1;
 }
-
