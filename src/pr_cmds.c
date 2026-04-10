@@ -23,6 +23,12 @@ void PF_Fixme (void) { if(developer.value)PR_RunError ("unimplemented builtin");
 
 static qpic_t *DrawQC_CachePic(const char *picname1, unsigned int flags)
 {   //okay, so this is silly. we've ended up with 3 different cache levels. qcpics, pics, and images.
+    for (int i = 0; i < numqcpics; i++) // Remove broken pics
+    { // TODO find out what breaks them in the first place
+	    if(qcpics[i].pic)
+		    if(qcpics[i].pic->width == 0 || qcpics[i].pic->height == 0)
+			    qcpics[i].pic = 0;
+    }
     char picname[MAX_OSPATH] = "gfx/";
     if(strncmp(picname, picname1, 4))
 	    strncpy(picname+4, picname1, MAX_OSPATH-4-4);
