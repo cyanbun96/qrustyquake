@@ -1795,26 +1795,28 @@ static void PF_cl_drawcharacter(void)
 {
     float *pos  = G_VECTOR(OFS_PARM0);
     int charcode= (int)G_FLOAT (OFS_PARM1) & 0xff;
-//  float *size = G_VECTOR(OFS_PARM2);
-//  float *rgb  = G_VECTOR(OFS_PARM3);
-//  float alpha = G_FLOAT (OFS_PARM4);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
     if (charcode == 32)
         return; //don't waste time on spaces
 
-    Draw_CharacterScaled(pos[0], pos[1], charcode, uiscale);
+    Draw_Character_Ex(pos, size, charcode, rgb, alpha);
 }
 static void PF_cl_drawrawstring(void)
 {
     float *pos  = G_VECTOR(OFS_PARM0);
     const char *text = G_STRING (OFS_PARM1);
-//  float *size = G_VECTOR(OFS_PARM2);
-//  float *rgb  = G_VECTOR(OFS_PARM3);
-//  float alpha = G_FLOAT (OFS_PARM4);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
-    float x = pos[0];
+    float pos2[2];
+    pos2[0] = pos[0];
+    pos2[1] = pos[1];
     int c;
 
     if (!*text)
@@ -1822,36 +1824,32 @@ static void PF_cl_drawrawstring(void)
 
     while ((c = *text++))
     {
-        Draw_CharacterScaled (x, pos[1], c, uiscale);
-        x += 8*uiscale;//size[0];
+	Draw_Character_Ex(pos2, size, c, rgb, alpha);
+        pos2[0] += size[0];
     }
 }
 static void PF_cl_drawstring(void)
-{
+{ // TODO markup?
     float *pos  = G_VECTOR(OFS_PARM0);
     const char *text = G_STRING (OFS_PARM1);
-    //float *size = G_VECTOR(OFS_PARM2);
-    //float *rgb  = G_VECTOR(OFS_PARM3);
-    //float alpha = G_FLOAT (OFS_PARM4);
+    float *size = G_VECTOR(OFS_PARM2);
+    float *rgb  = G_VECTOR(OFS_PARM3);
+    float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
-    //float x = pos[0];
-    //struct markup_s mu;
-    //int c;
+    float pos2[2];
+    pos2[0] = pos[0];
+    pos2[1] = pos[1];
+    int c;
 
     if (!*text)
         return; //don't waste time on spaces
 
-    Draw_StringScaled(pos[0], pos[1], text, uiscale);
-    //PR_Markup_Begin(&mu, text, rgb, alpha);
-
-    //while ((c = PR_Markup_Parse(&mu)))
-    //{
-    //    GL_SetCanvasColor (mu.colour[0], mu.colour[1], mu.colour[2], mu.colour[3]);
-    //    DrawQC_CharacterQuad (x, pos[1], c, size[0], size[1]);
-    //    x += size[0];
-    //}
-    //GL_SetCanvasColor (1.f, 1.f, 1.f, 1.f);
+    while ((c = *text++))
+    {
+	Draw_Character_Ex(pos2, size, c, rgb, alpha);
+        pos2[0] += size[0];
+    }
 }
 static void PF_cl_precachepic(void)
 {

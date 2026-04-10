@@ -142,6 +142,50 @@ void Draw_Init()
 	r_rectdesc.rowbytes = draw_backtile->width;
 }
 
+void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
+{ // CSQC version with alpha and RGB colors
+	if(alpha <= 0) return;
+	s32 al = (1-alpha) * FOG_LUT_LEVELS;
+	if(al > FOG_LUT_LEVELS - 1) al = FOG_LUT_LEVELS - 1;
+	if(al < 0) return;
+	if(!fog_lut_built) R_BuildColorMixLUT(0);
+	bool defcolor = 0;
+	s32 c;
+	if(color[0] == 1.0 && color[1] == 1.0 && color[2] == 1.0) defcolor = 1;
+	else {
+		u8 (*convfunc)(u8,u8,u8)=r_labmixpal.value==1?rgbtoi_lab:rgbtoi;
+		c = convfunc(color[0]*255, color[1]*255, color[2]*255);
+	}
+	s32 c2;
+	s32 draw_w = (s32)sz[0];
+	s32 draw_h = (s32)sz[1];
+	num &= 255;
+	s32 row = num >> 4;
+	s32 col = num & 15;
+	u8 *char_base = draw_chars + (row << 10) + (col << 3);
+	for (s32 desty = 0; desty < draw_h; desty++) {
+		s32 src_y = (s32)(8.0f * ((f32)desty / draw_h));
+		if (src_y < 0) src_y = 0;
+		if (src_y > 7) src_y = 7;
+		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
+			+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
+		for (s32 destx = 0; destx < draw_w; destx++) {
+			s32 src_x = (s32)(8.0f * ((f32)destx / draw_w));
+			if (src_x < 0) src_x = 0;
+			if (src_x > 7) src_x = 7;
+			u8 *source = char_base + src_y * 128 + src_x;
+			if (*source) {
+				s32 charcolor = defcolor ? *source :
+				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
+				if (dest[destx] != TRANSPARENT_COLOR)
+					c2 = dest[destx];
+				else
+					c2=((u8*)scrbuffs[0]->pixels)[dest-(u8*)scrbuffs[drawlayer]->pixels];
+				dest[destx] = color_mix_lut[charcolor][c2][al];
+			}
+		}
+	}
+}
 
 void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
 { // Draws one 8*8 graphics character with 0 being transparent.

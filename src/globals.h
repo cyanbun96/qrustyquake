@@ -157,6 +157,7 @@ void Datagram_Shutdown();
 EX qpic_t *draw_disc;                                                  // draw.h
 void Draw_Init();
 void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale);
+void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha);
 void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale);
 void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s);
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale);
