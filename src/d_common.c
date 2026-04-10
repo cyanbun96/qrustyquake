@@ -160,20 +160,33 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 		u8 (*convfunc)(u8,u8,u8)=r_labmixpal.value==1?rgbtoi_lab:rgbtoi;
 		c = convfunc(color[0]*255, color[1]*255, color[2]*255);
 	}
-	s32 c2;
 	s32 draw_w = (s32)sz[0];
 	s32 draw_h = (s32)sz[1];
 	num &= 255;
 	s32 row = num >> 4;
 	s32 col = num & 15;
 	u8 *char_base = draw_chars + (row << 10) + (col << 3);
-	for (s32 desty = 0; desty < draw_h; desty++) {
+	s32 base_x = (s32)pos[0];
+	s32 base_y = (s32)pos[1];
+	s32 clipx0 = cliprectx0 == -1 ? 0 : cliprectx0;
+	s32 clipx1 = cliprectx1 == -1 ? (s32)vid.width : cliprectx1;
+	s32 clipy0 = cliprecty0 == -1 ? 0 : cliprecty0;
+	s32 clipy1 = cliprecty1 == -1 ? (s32)vid.height : cliprecty1;
+	s32 startx = base_x < clipx0 ? clipx0 : base_x;
+        s32 starty = base_y < clipy0 ? clipy0 : base_y;
+        s32 endx = (base_x + draw_w) > clipx1 ? clipx1 : (base_x + draw_w);
+        s32 endy = (base_y + draw_h) > clipy1 ? clipy1 : (base_y + draw_h);
+	if(startx >= endx || starty >= endy) return;
+	u8 *fb = (u8*)scrbuffs[drawlayer]->pixels;
+	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
+	for (s32 dy = starty; dy < endy; dy++) {
+		s32 desty = dy - base_y;
 		s32 src_y = (s32)(8.0f * ((f32)desty / draw_h));
 		if (src_y < 0) src_y = 0;
 		if (src_y > 7) src_y = 7;
-		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
-			+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
-		for (s32 destx = 0; destx < draw_w; destx++) {
+		u8 *dest = fb + dy * vid.width + startx;
+		for (s32 dx = startx; dx < endx; dx++) {
+			s32 destx = dx - base_x;
 			s32 src_x = (s32)(8.0f * ((f32)destx / draw_w));
 			if (src_x < 0) src_x = 0;
 			if (src_x > 7) src_x = 7;
@@ -181,12 +194,14 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 			if (*source) {
 				s32 charcolor = defcolor ? *source :
 				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
-				if (dest[destx] != TRANSPARENT_COLOR)
-					c2 = dest[destx];
+				s32 c2;
+				if (*dest != TRANSPARENT_COLOR)
+					c2 = *dest;
 				else
-					c2=((u8*)scrbuffs[0]->pixels)[dest-(u8*)scrbuffs[drawlayer]->pixels];
-				dest[destx] = color_mix_lut[charcolor][c2][al];
+					c2 = fb0[dest - fb];
+				*dest = color_mix_lut[charcolor][c2][al];
 			}
+			dest++;
 		}
 	}
 }
@@ -381,7 +396,7 @@ void Draw_Pic_Ex(f32 *pos,f32 *sz,qpic_t *pic,f32 *srcpos,f32 *srcsz,f32 *color,
 			u8 *source = pic->data + y * pic_w + x;
 			if(*source != TRANSPARENT_COLOR) {
 				s32 charcolor = defcolor ? *source :
-					color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
+				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
 				s32 c2;
 				if (*dest != TRANSPARENT_COLOR)
 					c2 = *dest;
@@ -536,20 +551,40 @@ void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha)
 	s32 al = (1-alpha) * FOG_LUT_LEVELS;
 	if(al > FOG_LUT_LEVELS - 1) al = FOG_LUT_LEVELS - 1;
 	if(al < 0) return;
-	if(al == FOG_LUT_LEVELS - 1) Draw_Fill(x, y, w, h, c);
+	s32 clipx0 = cliprectx0 == -1 ? 0 : cliprectx0;
+	s32 clipx1 = cliprectx1 == -1 ? (s32)vid.width : cliprectx1;
+	s32 clipy0 = cliprecty0 == -1 ? 0 : cliprecty0;
+	s32 clipy1 = cliprecty1 == -1 ? (s32)vid.height : cliprecty1;
+	s32 startx = x < clipx0 ? clipx0 : x;
+        s32 starty = y < clipy0 ? clipy0 : y;
+        s32 endx = (x + w) > clipx1 ? clipx1 : (x + w);
+        s32 endy = (y + h) > clipy1 ? clipy1 : (y + h);
+	if(startx >= endx || starty >= endy) return;
+	if(al == FOG_LUT_LEVELS - 1) {
+		Draw_Fill(startx, starty, endx - startx, endy - starty, c);
+		return;
+	}
 	if(!fog_lut_built) R_BuildColorMixLUT(0);
-	s32 c2;
-        u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
-        for (s32 v = 0; v < h; v++, dest += vid.width) {
-		for (s32 i = 0; i < w; i++) {
-			if (dest[i] != TRANSPARENT_COLOR)
-				c2 = dest[i];
+	u8 *fb  = (u8*)scrbuffs[drawlayer]->pixels;
+	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
+	for (s32 dy = starty; dy < endy; dy++) {
+		u8 *dest = fb + dy * vid.width + startx;
+		for (s32 dx = startx; dx < endx; dx++) {
+			s32 c2;
+			if (*dest != TRANSPARENT_COLOR)
+				c2 = *dest;
 			else
-				c2=((u8*)scrbuffs[0]->pixels)[y*vid.width+x+i];
-			dest[i] = color_mix_lut[c][c2][al];
+				c2 = fb0[dest - fb];
+			*dest = color_mix_lut[c][c2][al];
+			dest++;
 		}
 	}
 }
+
+void Draw_SetClipRect(s32 x0, s32 x1, s32 y0, s32 y1)
+{ cliprectx0 = x0; cliprectx1 = x1; cliprecty0 = y0; cliprecty1 = y1; }
+void Draw_ResetClipping()
+{ cliprectx0 = -1; cliprectx1 = -1; cliprecty0 = -1; cliprecty1 = -1; }
 
 void Draw_InitBrightnessDOSLUT()
 { // Used only for the DOS screen fade effect, thus the range [0x10-0x1F]

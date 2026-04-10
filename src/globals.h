@@ -167,6 +167,8 @@ void Draw_ConsoleBackground(s32 lines);
 void Draw_TileClear(s32 x, s32 y, s32 w, s32 h);
 void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c);
 void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha);
+void Draw_SetClipRect(s32 x0, s32 x1, s32 y0, s32 y1);
+void Draw_ResetClipping();
 void Draw_FadeScreen();
 void Draw_StringScaled(s32 x, s32 y, s8 *str, s32 scale);
 qpic_t *Draw_PicFromWad(s8 *name);

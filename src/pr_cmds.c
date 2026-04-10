@@ -1871,23 +1871,21 @@ static void PF_cl_iscachedpic(void)
 }
 static void PF_cl_drawsetclip(void)
 {
-	Con_DPrintf("TODO PF_cl_drawsetclip");
-    //float x = G_FLOAT(OFS_PARM0);
-    //float y = G_FLOAT(OFS_PARM1);
-    //float w = G_FLOAT(OFS_PARM2);
-    //float h = G_FLOAT(OFS_PARM3);
-    //Draw_SetClipRect (x, y, w, h);
+    float x = G_FLOAT(OFS_PARM0);
+    float y = G_FLOAT(OFS_PARM1);
+    float w = G_FLOAT(OFS_PARM2);
+    float h = G_FLOAT(OFS_PARM3);
+    Draw_SetClipRect (x, y, w, h);
 }
 static void PF_cl_drawresetclip(void)
 {
-	Con_DPrintf("TODO PF_cl_drawresetclip");
-    //Draw_ResetClipping ();
+    Draw_ResetClipping ();
 }
 
 static void PF_cl_stringwidth(void)
-{
+{ // TODO
     const char *text = G_STRING (OFS_PARM0);
-    G_FLOAT(OFS_RETURN) = strlen(text) * 8*uiscale;
+    G_FLOAT(OFS_RETURN) = strlen(text) * 8;
     /*bool usecolours = G_FLOAT(OFS_PARM1);
     static const float defaultfontsize[] = {8,8};
     const float *fontsize = (qcvm->argc>2)?G_VECTOR (OFS_PARM2):defaultfontsize;
