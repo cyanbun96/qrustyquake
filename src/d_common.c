@@ -2,6 +2,10 @@
 // this is the only file outside the refresh that touches the vid buffer
 #include "quakedef.h"
 
+static s32 cliprectx0 = -1;
+static s32 cliprectx1 = -1;
+static s32 cliprecty0 = -1;
+static s32 cliprecty1 = -1;
 static rectdesc_t r_rectdesc;
 static cachepic_t menu_cachepics[MAX_CACHED_PICS];
 static s32 menu_numcachepics;
@@ -344,33 +348,48 @@ void Draw_Pic_Ex(f32 *pos,f32 *sz,qpic_t *pic,f32 *srcpos,f32 *srcsz,f32 *color,
 		u8 (*convfunc)(u8,u8,u8)=r_labmixpal.value==1?rgbtoi_lab:rgbtoi;
 		c = convfunc(color[0]*255, color[1]*255, color[2]*255);
 	}
-	s32 c2;
 	s32 draw_w = (int)sz[0];
 	s32 draw_h = (int)sz[1];
 	s32 pic_w = pic->width;
 	s32 pic_h = pic->height;
-	for (s32 desty = 0; desty < draw_h; desty++) {
-		s32 y = srcpos[1] * pic_h + (srcsz[1] * pic_h) * ((f32)desty / draw_h);
+	s32 base_x = (s32)pos[0];
+	s32 base_y = (s32)pos[1];
+	s32 clipx0 = cliprectx0 == -1 ? 0 : cliprectx0;
+	s32 clipx1 = cliprectx1 == -1 ? (s32)vid.width : cliprectx1;
+	s32 clipy0 = cliprecty0 == -1 ? 0 : cliprecty0;
+	s32 clipy1 = cliprecty1 == -1 ? (s32)vid.height : cliprecty1;
+	s32 startx = base_x < clipx0 ? clipx0 : base_x;
+	s32 starty = base_y < clipy0 ? clipy0 : base_y;
+	s32 endx = (base_x + draw_w) > clipx1 ? clipx1 : (base_x + draw_w);
+	s32 endy = (base_y + draw_h) > clipy1 ? clipy1 : (base_y + draw_h);
+	if(startx >= endx || starty >= endy) return;
+	u8 *fb = (u8*)scrbuffs[drawlayer]->pixels;
+	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
+	for (s32 dy = starty; dy < endy; dy++) {
+		s32 desty = dy - base_y;
+		s32 y = srcpos[1] * pic_h +
+			(srcsz[1] * pic_h) * ((f32)desty / draw_h);
 		if (y < 0) y = 0;
 		if (y >= pic_h) y = pic_h - 1;
-		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels
-			+ ((s32)pos[1] + desty) * vid.width + (s32)pos[0];
-		u8 *destmax = (u8*)scrbuffs[drawlayer]->pixels + vid.width * vid.height;
-		if (dest >= destmax) return;
-		for (s32 destx = 0; destx < draw_w; destx++) {
-			s32 x = srcpos[0] * pic_w + (srcsz[0] * pic_w) * ((f32)destx / draw_w);
+		u8 *dest = fb + dy * vid.width + startx;
+		for (s32 dx = startx; dx < endx; dx++) {
+			s32 destx = dx - base_x;
+			s32 x = srcpos[0] * pic_w +
+				(srcsz[0] * pic_w) * ((f32)destx / draw_w);
 			if (x < 0) x = 0;
 			if (x >= pic_w) x = pic_w - 1;
 			u8 *source = pic->data + y * pic_w + x;
-			if(*source!=TRANSPARENT_COLOR){
+			if(*source != TRANSPARENT_COLOR) {
 				s32 charcolor = defcolor ? *source :
-				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
-				if (dest[destx] != TRANSPARENT_COLOR)
-					c2 = dest[destx];
+					color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
+				s32 c2;
+				if (*dest != TRANSPARENT_COLOR)
+					c2 = *dest;
 				else
-					c2=((u8*)scrbuffs[0]->pixels)[dest-(u8*)scrbuffs[drawlayer]->pixels];
-				dest[destx] = color_mix_lut[charcolor][c2][al];
+					c2 = fb0[dest - fb];
+				*dest = color_mix_lut[charcolor][c2][al];
 			}
+			dest++;
 		}
 	}
 }
