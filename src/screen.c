@@ -164,7 +164,8 @@ void SCR_Init()
 	Cvar_RegisterVariable(&scr_centertime);
 	Cvar_RegisterVariable(&scr_printspeed);
 	Cvar_RegisterVariable(&scr_showfps);
-	Cvar_RegisterVariable (&scr_hudstyle);
+	Cvar_RegisterVariable(&scr_sbaralpha); // only affects CSQC HUDs
+	Cvar_RegisterVariable(&scr_hudstyle);
 	Cvar_SetCallback (&scr_hudstyle, SCR_HUDStyle_f);
 	Cmd_AddCommand("screenshot", SCR_ScreenShot_f);
 	Cmd_AddCommand("sizeup", SCR_SizeUp_f);
