@@ -248,23 +248,63 @@ static void PF_setmodel (void)
 static void PF_bprint() // broadcast print to everyone on server
 { s8 *s = PF_VarString(0); SV_BroadcastPrintf("%s", s); }
 
+#define MAXQCTOKENS 64
+static struct {
+    char *token;
+    unsigned int start;
+    unsigned int end;
+} qctoken[MAXQCTOKENS];
+static unsigned int qctoken_count;
+
+static int tokenizeqc(const char *str, bool dpfuckage)
+{
+    //FIXME: if dpfuckage, then we should handle punctuation specially, as well as /*.
+    const char *start = str;
+    while(qctoken_count > 0)
+    {
+        qctoken_count--;
+        free(qctoken[qctoken_count].token);
+    }
+    qctoken_count = 0;
+    while (qctoken_count < MAXQCTOKENS)
+    {
+        /*skip whitespace here so the token's start is accurate*/
+        while (*str && *(const unsigned char*)str <= ' ')
+            str++;
+
+        if (!*str)
+            break;
+
+        qctoken[qctoken_count].start = str - start;
+//      if (dpfuckage)
+//          str = COM_ParseDPFuckage(str);
+//      else
+            str = COM_Parse(str);
+        if (!str)
+            break;
+
+        qctoken[qctoken_count].token = strdup(com_token);
+
+        qctoken[qctoken_count].end = str - start;
+        qctoken_count++;
+    }
+    return qctoken_count;
+}
+
 /*KRIMZON_SV_PARSECLIENTCOMMAND added these two - note that for compatibility with DP, this tokenize builtin is veeery vauge and doesn't match the console*/
 static void PF_Tokenize(void)
 {
-	puts("TODO PF_Tokenize");
-    //G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), true);
+    G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), true);
 }
 
 static void PF_tokenize_console(void)
 {
-	puts("TODO PF_tokenize_console");
-    //G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), false);
+    G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), false);
 }
 
 static void PF_ArgV(void)
 {
-	puts("TODO PF_ArgV");
-    /*int idx = G_FLOAT(OFS_PARM0);
+    int idx = G_FLOAT(OFS_PARM0);
 
     //negative indexes are relative to the end
     if (idx < 0)
@@ -277,13 +317,12 @@ static void PF_ArgV(void)
         char *ret = PR_GetTempString();
         q_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
         G_INT(OFS_RETURN) = PR_SetEngineString(ret);
-    }*/
+    }
 }
 
 static void PF_ArgC(void)
 {
-	puts("TODO PF_ArgC");
-    //G_FLOAT(OFS_RETURN) = qctoken_count;
+    G_FLOAT(OFS_RETURN) = qctoken_count;
 }
 
 static void PF_sprintf_internal (const char *s, int firstarg, char *outbuf, int outbuflen)
