@@ -377,7 +377,7 @@ s32 Cmd_ListCompletions(const s8 *text)
 	for(cvar_t *cvar = cvar_vars; cvar; cvar = cvar->next)
 		if(!len || !strncmp(text, cvar->name, len))
 			++tot;
-	if(tot == 1) return tot;
+	if(tot <= 1) return tot;
 	Con_Printf("\n");
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
 		if(!len || !Q_strncmp(text, cmd->name, len))
