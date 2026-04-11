@@ -4,10 +4,58 @@
 
 static efrag_t cl_efrags[MAX_EFRAGS];
 
+void CL_SetStat_f (void)
+{
+    int i, argc, stnum;
+    double value;
+
+    for (i = 1, argc = Cmd_Argc (); i + 1 < argc; i += 2)
+    {
+        stnum = atoi (Cmd_Argv (i));
+        if (stnum < 0 || stnum >= MAX_CL_STATS)
+            Host_Error ("CL_SetStat_f: stnum(%d) >= MAX_CL_STATS\n", stnum);
+
+        value = atof (Cmd_Argv (i + 1));
+        cl.statsf[stnum] = (float)value;
+        cl.stats[stnum] = (int)value;
+    }
+}
+
+void CL_SetStatString_f (void)
+{
+    int i, argc, stnum;
+
+    for (i = 1, argc = Cmd_Argc (); i + 1 < argc; i += 2)
+    {
+        stnum = atoi (Cmd_Argv (i));
+        if (stnum < 0 || stnum >= MAX_CL_STATS)
+            Host_Error ("CL_SetStatString_f: stnum(%d) >= MAX_CL_STATS\n", stnum);
+
+        free (cl.statss[stnum]);
+        cl.statss[stnum] = strdup (Cmd_Argv (i + 1));
+    }
+}
+
+void CL_FreeState(void)
+{
+    int i;
+    for (i = 0; i < MAX_CL_STATS; i++)
+        free (cl.statss[i]);
+    PR_ClearProgs (&cl.qcvm);
+    memset (&cl, 0, sizeof(cl));
+}
+
 void CL_ClearState()
 {
+	if (cl.qcvm.extfuncs.CSQC_Shutdown) {
+		PR_SwitchQCVM(&cl.qcvm);
+		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
+		qcvm->extfuncs.CSQC_Shutdown = 0;
+		PR_SwitchQCVM(NULL);
+	}
 	if (!sv.active) Host_ClearMemory();
 	memset(&cl, 0, sizeof(cl)); // wipe the entire cl structure
+	CL_FreeState();
 	SZ_Clear(&cls.message);
 	memset(cl_efrags, 0, sizeof(cl_efrags)); // clear other arrays
 	memset(cl_entities, 0, sizeof(cl_entities));
@@ -41,6 +89,7 @@ void CL_Disconnect() // Sends a disconnect message to the server
 	}
 	cls.demoplayback = cls.timedemo = 0;
 	cls.signon = 0;
+	cl.sendprespawn = 0;
 }
 
 void CL_Disconnect_f()
@@ -67,8 +116,7 @@ void CL_SignonReply()
 	Con_DPrintf("CL_SignonReply: %i\n", cls.signon);
 	switch (cls.signon) {
 	case 1:
-		MSG_WriteByte(&cls.message, clc_stringcmd);
-		MSG_WriteString(&cls.message, "prespawn");
+		cl.sendprespawn = 1;
 		break;
 	case 2:
 		MSG_WriteByte(&cls.message, clc_stringcmd);
@@ -410,4 +458,6 @@ void CL_Init()
 	Cmd_AddCommand("stop", CL_Stop_f);
 	Cmd_AddCommand("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand("timedemo", CL_TimeDemo_f);
+	Cmd_AddCommand_ServerCommand ("st", CL_SetStat_f);
+	Cmd_AddCommand_ServerCommand ("sts", CL_SetStatString_f);
 }

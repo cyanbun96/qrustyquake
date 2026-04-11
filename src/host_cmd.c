@@ -146,38 +146,63 @@ void Host_Ping_f()
 
 static void Host_Map_f()
 { // map <servername> command from console. Active clients are kicked off.
-	s32 i;
-	s8 name[MAX_QPATH], *p;
-	if(Cmd_Argc() < 2){ //no map name given
-		if(cls.state == ca_dedicated) {
-			if(sv.active) Con_Printf("Current map: %s\n", sv.name);
-			else Con_Printf("Server not active\n");
-		}
-		else if(cls.state == ca_connected)
-		Con_Printf("Current map: %s( %s )\n", cl.levelname, cl.mapname);
-		else Con_Printf("map <levelname>: start a new server\n");
-		return;
-	}
-	if(cmd_source != src_command) return;
-	cls.demonum = -1; // stop demo loop in case this fails
-	CL_Disconnect();
-	Host_ShutdownServer(0);
-	key_dest = key_game; // remove console or menu
-	SCR_BeginLoadingPlaque();
-	svs.serverflags = 0; // haven't completed an episode yet
-	q_strlcpy(name, Cmd_Argv(1), sizeof(name));
-	p = strstr(name, ".bsp"); // remove trailing ".bsp" from mapname -- S.A.
-	if(p && p[4] == '\0') *p = '\0';
-	SV_SpawnServer(name);
-	if(!sv.active) return;
-	if(cls.state != ca_dedicated) {
-		memset(cls.spawnparms, 0, MAX_MAPSTRING);
-		for(i = 2; i < Cmd_Argc(); i++) {
-			q_strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
-			q_strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
-		}
-		Cmd_ExecuteString("connect local", src_command);
-	}
+    int     i;
+    char    name[MAX_QPATH], *p;
+
+    if (Cmd_Argc() < 2) //no map name given
+    {
+        if (cls.state == ca_dedicated)
+        {
+            if (sv.active)
+                Con_Printf ("Current map: %s\n", sv.name);
+            else
+                Con_Printf ("Server not active\n");
+        }
+        else if (cls.state == ca_connected)
+        {
+            Con_Printf ("Current map: %s ( %s )\n", cl.levelname, cl.mapname);
+        }
+        else
+        {
+            Con_Printf ("map <levelname>: start a new server\n");
+        }
+        return;
+    }
+
+    if (cmd_source != src_command)
+        return;
+
+    cls.demonum = -1;       // stop demo loop in case this fails
+
+    CL_Disconnect ();
+    Host_ShutdownServer(false);
+
+    key_dest = key_game;            // remove console or menu
+    SCR_BeginLoadingPlaque ();
+
+    svs.serverflags = 0;            // haven't completed an episode yet
+    q_strlcpy (name, Cmd_Argv(1), sizeof(name));
+    // remove (any) trailing ".bsp" from mapname -- S.A.
+    p = strstr(name, ".bsp");
+    if (p && p[4] == '\0')
+        *p = '\0';
+    PR_SwitchQCVM(&sv.qcvm);
+    SV_SpawnServer (name);
+    PR_SwitchQCVM(NULL);
+    if (!sv.active)
+        return;
+
+    if (cls.state != ca_dedicated)
+    {
+        memset (cls.spawnparms, 0, MAX_MAPSTRING);
+        for (i = 2; i < Cmd_Argc(); i++)
+        {
+            q_strlcat (cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
+            q_strlcat (cls.spawnparms, " ", MAX_MAPSTRING);
+        }
+
+        Cmd_ExecuteString ("connect local", src_command);
+    }
 }
 
 void Host_Changelevel_f()
@@ -191,9 +216,12 @@ void Host_Changelevel_f()
 		Con_Printf("Only the server may changelevel\n");
 		return;
 	}
-	SV_SaveSpawnparms();
 	strcpy(level, Cmd_Argv(1));
+	key_dest = key_game;
+	PR_SwitchQCVM(&sv.qcvm);
+	SV_SaveSpawnparms();
 	SV_SpawnServer(level);
+	PR_SwitchQCVM(NULL);
 }
 
 void Host_Restart_f()
@@ -202,7 +230,9 @@ void Host_Restart_f()
 	if(cls.demoplayback || !sv.active) return;
 	if(cmd_source != src_command) return;
 	strcpy(mapname, sv.name); // must copy out, because it gets
+	PR_SwitchQCVM(&sv.qcvm);
 	SV_SpawnServer(mapname); // cleared in sv_spawnserver
+	PR_SwitchQCVM(NULL);
 }
 
 
@@ -262,6 +292,7 @@ if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_AddExtension(name, ".sav", sizeof(name));
 	Con_Printf("Saving game to %s...\n", name);
+	PR_SwitchQCVM (&sv.qcvm);
 	FILE *f = fopen(name, "w");
 	if(!f){ Con_Printf("ERROR: couldn't open.\n"); return; }
 	fprintf(f, "%i\n", SAVEGAME_VERSION);
@@ -271,17 +302,18 @@ if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
 		fprintf(f, "%f\n", svs.clients->spawn_parms[i]);
 	fprintf(f, "%d\n", current_skill);
 	fprintf(f, "%s\n", sv.name);
-	fprintf(f, "%f\n", sv.time);
+	fprintf(f, "%f\n", qcvm->time);
 	for(s32 i = 0; i < MAX_LIGHTSTYLES; i++){ // write the light styles
 		if(sv.lightstyles[i]) fprintf(f, "%s\n", sv.lightstyles[i]);
 		else fprintf(f, "m\n");
 	}
 	ED_WriteGlobals(f);
-	for(s32 i = 0; i < sv.num_edicts; i++){
+	for(s32 i = 0; i < qcvm->num_edicts; i++){
 		ED_Write(f, EDICT_NUM(i));
 		fflush(f);
 	}
 	fclose(f);
+	PR_SwitchQCVM (NULL);
 	Con_Printf("done.\n");
 }
 
@@ -321,8 +353,13 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	f32 time;
 	fscanf(f, "%f\n", &time);
 	CL_Disconnect_f();
+	PR_SwitchQCVM(&sv.qcvm);
 	SV_SpawnServer(mapname);
-	if(!sv.active){ Con_Printf("Couldn't load map\n"); return; }
+	if(!sv.active){
+		PR_SwitchQCVM(NULL);
+		Con_Printf("Couldn't load map\n");
+		return; 
+	}
 	sv.paused = 1; // pause until all clients connect
 	sv.loadgame = 1;
 	refresh_palette = 10;
@@ -351,19 +388,28 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		if(entnum == -1){ ED_ParseGlobals(start);
 		} else { // parse an edict
 			edict_t *ent = EDICT_NUM(entnum);
-			memset(&ent->v, 0, progs->entityfields * 4);
-			ent->free = 0;
-			ED_ParseEdict(start, ent);
-			if(!ent->free) // link it into the bsp tree
-				SV_LinkEdict(ent, 0);
+			if (entnum < qcvm->num_edicts) { ED_ClearEdict (ent); }
+			else {
+				memset(ent, 0, qcvm->edict_size);
+				ent->baseline.scale = ENTSCALE_DEFAULT;
+			}
+			start = ED_ParseEdict (start, ent);
+			if (!ent->free) // link it into the bsp tree
+				SV_LinkEdict (ent, false);
 		}
 		entnum++;
 	}
-	sv.num_edicts = entnum;
-	sv.time = time;
+	// Free edicts allocated during map loading but no longer used after restoring saved game state
+	// Note: we use ED_ClearEdict instead of ED_Free to avoid placing entities >= num_edicts in the free list
+	// This is different from QuakeSpasm, which doesn't use a free list
+	for (i = entnum; i < qcvm->num_edicts; i++)
+		ED_ClearEdict (EDICT_NUM (i));
+	qcvm->num_edicts = entnum;
+	qcvm->time = time;
 	fclose(f);
 	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++)
 		svs.clients->spawn_parms[i] = spawn_parms[i];
+	PR_SwitchQCVM(NULL);
 	if(cls.state != ca_dedicated){
 		CL_EstablishConnection("local");
 		Host_Reconnect_f();
@@ -510,7 +556,7 @@ void Host_Kill_f()
 		SV_ClientPrintf("Can't suicide -- allready dead!\n");
 		return;
 	}
-	pr_global_struct->time = sv.time;
+	pr_global_struct->time = qcvm->time;
 	pr_global_struct->self = EDICT_TO_PROG(sv_player);
 	PR_ExecuteProgram(pr_global_struct->ClientKill);
 }
@@ -548,85 +594,121 @@ void Host_PreSpawn_f()
 	host_client->signonidx = 0;
 }
 
-static void Host_Spawn_f()
+static void Host_Spawn_f (void)
 {
-	VID_SetPalette(CURWORLDPAL, screen);
-	if(cmd_source == src_command) {
-		Con_Printf("spawn is not valid from the console\n");
-		return;
-	}
-	if(host_client->spawned) {
-		Con_Printf("Spawn not valid -- already spawned\n");
-		return;
-	}
-	// run the entrance script
-	if(sv.loadgame) // loaded games are fully inited already
-		sv.paused = 0; //if this is last client to be connected, unpause
-	else {
-		edict_t *ent = host_client->edict; // set up the edict
-		memset(&ent->v, 0, progs->entityfields * 4);
-		ent->v.colormap = NUM_FOR_EDICT(ent);
-		ent->v.team = (host_client->colors & 15) + 1;
-		ent->v.netname = PR_SetEngineString(host_client->name);
-		for(s32 i = 0; i < NUM_SPAWN_PARMS; i++) // copy out of client_t
-		    (&pr_global_struct->parm1)[i] = host_client->spawn_parms[i];
-		// call the spawn function
-		pr_global_struct->time = sv.time;
-		pr_global_struct->self = EDICT_TO_PROG(sv_player);
-		PR_ExecuteProgram(pr_global_struct->ClientConnect);
-		if((Sys_DoubleTime() - host_client->netconnection->connecttime)
-				<= sv.time)
-			Sys_Printf("%s entered the game\n", host_client->name);
-		PR_ExecuteProgram(pr_global_struct->PutClientInServer);
-	}
+    int     i;
+    client_t    *client;
+    edict_t *ent;
 
-	SZ_Clear(&host_client->message);//send all current names colors frags
-	MSG_WriteByte(&host_client->message, svc_time); // send time of update
-	MSG_WriteFloat(&host_client->message, sv.time);
-	client_t *client = svs.clients;
-	for(s32 i = 0; i < svs.maxclients; i++, client++) {
-		MSG_WriteByte(&host_client->message, svc_updatename);
-		MSG_WriteByte(&host_client->message, i);
-		MSG_WriteString(&host_client->message, client->name);
-		MSG_WriteByte(&host_client->message, svc_updatefrags);
-		MSG_WriteByte(&host_client->message, i);
-		MSG_WriteShort(&host_client->message, client->old_frags);
-		MSG_WriteByte(&host_client->message, svc_updatecolors);
-		MSG_WriteByte(&host_client->message, i);
-		MSG_WriteByte(&host_client->message, client->colors);
-	}
-	for(s32 i = 0; i < MAX_LIGHTSTYLES; i++){//send all current light styles
-		MSG_WriteByte(&host_client->message, svc_lightstyle);
-		MSG_WriteByte(&host_client->message, (s8)i);
-		MSG_WriteString(&host_client->message, sv.lightstyles[i]);
-	}
-	MSG_WriteByte(&host_client->message, svc_updatestat); // send some stats
-	MSG_WriteByte(&host_client->message, STAT_TOTALSECRETS);
-	MSG_WriteLong(&host_client->message, pr_global_struct->total_secrets);
-	MSG_WriteByte(&host_client->message, svc_updatestat);
-	MSG_WriteByte(&host_client->message, STAT_TOTALMONSTERS);
-	MSG_WriteLong(&host_client->message, pr_global_struct->total_monsters);
-	MSG_WriteByte(&host_client->message, svc_updatestat);
-	MSG_WriteByte(&host_client->message, STAT_SECRETS);
-	MSG_WriteLong(&host_client->message, pr_global_struct->found_secrets);
-	MSG_WriteByte(&host_client->message, svc_updatestat);
-	MSG_WriteByte(&host_client->message, STAT_MONSTERS);
-	MSG_WriteLong(&host_client->message, pr_global_struct->killed_monsters);
-	// send a fixangle
-	// Never send a roll angle, because savegames can catch the server
-	// in a state where it is expecting the client to correct the angle
-	// and it won't happen if the game was just loaded, so you wind up
-	// with a permanent head tilt
-	edict_t *ent = EDICT_NUM( 1 + (host_client - svs.clients) );
-	MSG_WriteByte(&host_client->message, svc_setangle);
-	for(s32 i = 0; i < 2; i++)
-		MSG_WriteAngle(&host_client->message,ent->v.angles[i],
-				sv.protocolflags);
-	MSG_WriteAngle(&host_client->message, 0, sv.protocolflags );
-	SV_WriteClientdataToMessage(sv_player, &host_client->message);
-	MSG_WriteByte(&host_client->message, svc_signonnum);
-	MSG_WriteByte(&host_client->message, 3);
-	host_client->sendsignon = PRESPAWN_FLUSH;
+    if (cmd_source == src_command)
+    {
+        Con_Printf ("spawn is not valid from the console\n");
+        return;
+    }
+
+    if (host_client->spawned)
+    {
+        Con_Printf ("Spawn not valid -- already spawned\n");
+        return;
+    }
+
+// run the entrance script
+    if (sv.loadgame)
+    {   // loaded games are fully inited already
+        // if this is the last client to be connected, unpause
+        sv.paused = false;
+    }
+    else
+    {
+        // set up the edict
+        ent = host_client->edict;
+
+        memset (&ent->v, 0, qcvm->progs->entityfields * 4);
+        ent->v.colormap = NUM_FOR_EDICT(ent);
+        ent->v.team = (host_client->colors & 15) + 1;
+        ent->v.netname = PR_SetEngineString(host_client->name);
+
+        // copy spawn parms out of the client_t
+        for (i=0 ; i< NUM_SPAWN_PARMS ; i++)
+            (&pr_global_struct->parm1)[i] = host_client->spawn_parms[i];
+        // call the spawn function
+        pr_global_struct->time = qcvm->time;
+        pr_global_struct->self = EDICT_TO_PROG(sv_player);
+        PR_ExecuteProgram (pr_global_struct->ClientConnect);
+
+	if((Sys_DoubleTime() - host_client->netconnection->connecttime) <= qcvm->time)
+            Sys_Printf ("%s entered the game\n", host_client->name);
+
+        PR_ExecuteProgram (pr_global_struct->PutClientInServer);
+    }
+
+// send all current names, colors, and frag counts
+    SZ_Clear (&host_client->message);
+
+// send time of update
+    MSG_WriteByte (&host_client->message, svc_time);
+    MSG_WriteFloat (&host_client->message, qcvm->time);
+
+    for (i = 0, client = svs.clients; i < svs.maxclients; i++, client++)
+    {
+        MSG_WriteByte (&host_client->message, svc_updatename);
+        MSG_WriteByte (&host_client->message, i);
+        MSG_WriteString (&host_client->message, client->name);
+        MSG_WriteByte (&host_client->message, svc_updatefrags);
+        MSG_WriteByte (&host_client->message, i);
+        MSG_WriteShort (&host_client->message, client->old_frags);
+        MSG_WriteByte (&host_client->message, svc_updatecolors);
+        MSG_WriteByte (&host_client->message, i);
+        MSG_WriteByte (&host_client->message, client->colors);
+    }
+
+// send all current light styles
+    for (i = 0; i < MAX_LIGHTSTYLES; i++)
+    {
+        MSG_WriteByte (&host_client->message, svc_lightstyle);
+        MSG_WriteByte (&host_client->message, (char)i);
+        MSG_WriteString (&host_client->message, sv.lightstyles[i]);
+    }
+
+//
+// send some stats
+//
+    MSG_WriteByte (&host_client->message, svc_updatestat);
+    MSG_WriteByte (&host_client->message, STAT_TOTALSECRETS);
+    MSG_WriteLong (&host_client->message, pr_global_struct->total_secrets);
+
+    MSG_WriteByte (&host_client->message, svc_updatestat);
+    MSG_WriteByte (&host_client->message, STAT_TOTALMONSTERS);
+    MSG_WriteLong (&host_client->message, pr_global_struct->total_monsters);
+
+    MSG_WriteByte (&host_client->message, svc_updatestat);
+    MSG_WriteByte (&host_client->message, STAT_SECRETS);
+    MSG_WriteLong (&host_client->message, pr_global_struct->found_secrets);
+
+    MSG_WriteByte (&host_client->message, svc_updatestat);
+    MSG_WriteByte (&host_client->message, STAT_MONSTERS);
+    MSG_WriteLong (&host_client->message, pr_global_struct->killed_monsters);
+
+//
+// send a fixangle
+// Never send a roll angle, because savegames can catch the server
+// in a state where it is expecting the client to correct the angle
+// and it won't happen if the game was just loaded, so you wind up
+// with a permanent head tilt
+    ent = EDICT_NUM( 1 + (host_client - svs.clients) );
+    MSG_WriteByte (&host_client->message, svc_setangle);
+    for (i = 0; i < 2; i++)
+        if (sv.loadgame)
+            MSG_WriteAngle (&host_client->message, ent->v.v_angle[i], sv.protocolflags );
+        else
+            MSG_WriteAngle (&host_client->message, ent->v.angles[i], sv.protocolflags );
+    MSG_WriteAngle (&host_client->message, 0, sv.protocolflags );
+
+    SV_WriteClientdataToMessage (sv_player, &host_client->message);
+
+    MSG_WriteByte (&host_client->message, svc_signonnum);
+    MSG_WriteByte (&host_client->message, 3);
+    host_client->sendsignon = PRESPAWN_FLUSH;
 }
 
 void Host_Begin_f()
@@ -710,40 +792,40 @@ void Host_Give_f()
 	sv_player->v.items=(s32)sv_player-> v.items|(IT_SHOTGUN<<(t[0]-'2'));
 	break;
 	case 's':
-		if(rogue){ val = GetEdictFieldValue(sv_player, "ammo_shells1");
+		if(rogue){ val = GetEdictFieldValueByName(sv_player, "ammo_shells1");
 			if(val) val->_float = v; }
 		sv_player->v.ammo_shells = v; break;
 	case 'n':
-		if(rogue){ val = GetEdictFieldValue(sv_player, "ammo_nails1");
+		if(rogue){ val = GetEdictFieldValueByName(sv_player, "ammo_nails1");
 			if(val){ val->_float = v;
 				if(sv_player->v.weapon <= IT_LIGHTNING)
 					sv_player->v.ammo_nails = v; }
 		} else sv_player->v.ammo_nails = v; break;
 	case 'l':
-		if(rogue){val=GetEdictFieldValue(sv_player, "ammo_lava_nails");
+		if(rogue){val=GetEdictFieldValueByName(sv_player, "ammo_lava_nails");
 			if(val){ val->_float = v;
 				if(sv_player->v.weapon > IT_LIGHTNING)
 					sv_player->v.ammo_nails = v; } } break;
 	case 'r':
-		if(rogue){ val = GetEdictFieldValue(sv_player, "ammo_rockets1");
+		if(rogue){ val = GetEdictFieldValueByName(sv_player, "ammo_rockets1");
 			if(val){ val->_float = v;
 				if(sv_player->v.weapon <= IT_LIGHTNING)
 					sv_player->v.ammo_rockets = v; }
 		} else sv_player->v.ammo_rockets = v; break;
 	case 'm':
-	       if(rogue){val=GetEdictFieldValue(sv_player,"ammo_multi_rockets");
+	       if(rogue){val=GetEdictFieldValueByName(sv_player,"ammo_multi_rockets");
 			if(val){ val->_float = v;
 				if(sv_player->v.weapon > IT_LIGHTNING)
 					sv_player->v.ammo_rockets = v; }} break;
 	case 'h': sv_player->v.health = v; break;
 	case 'c':
-		if(rogue){ val = GetEdictFieldValue(sv_player, "ammo_cells1");
+		if(rogue){ val = GetEdictFieldValueByName(sv_player, "ammo_cells1");
 			if(val){ val->_float = v;
 				if(sv_player->v.weapon <= IT_LIGHTNING)
 					sv_player->v.ammo_cells = v; }
 		} else sv_player->v.ammo_cells = v; break;
 	case 'p':
-		if(rogue){ val = GetEdictFieldValue(sv_player, "ammo_plasma");
+		if(rogue){ val = GetEdictFieldValueByName(sv_player, "ammo_plasma");
 			if(val){ val->_float = v;
 				if(sv_player->v.weapon > IT_LIGHTNING)
 					sv_player->v.ammo_cells = v;
@@ -753,12 +835,14 @@ void Host_Give_f()
 
 edict_t *FindViewthing()
 {
-	for(s32 i = 0; i < sv.num_edicts; i++){
+	PR_SwitchQCVM(&sv.qcvm);
+	for(s32 i = 0; i < qcvm->num_edicts; i++){
 		edict_t *e = EDICT_NUM(i);
 		if(!strcmp(PR_GetString(e->v.classname), "viewthing"))
 			return e;
 	}
 	Con_Printf("No viewthing on map\n");
+	PR_SwitchQCVM(NULL);
 	return NULL;
 }
 
@@ -768,8 +852,10 @@ void Host_Viewmodel_f()
 	if(!e) return;
 	model_t *m = Mod_ForName(Cmd_Argv(1), 0);
 	if(!m){ Con_Printf("Can't load %s\n", Cmd_Argv(1)); return; }
+	PR_SwitchQCVM(&sv.qcvm);
 	e->v.frame = 0;
 	cl.model_precache[(s32)e->v.modelindex] = m;
+	PR_SwitchQCVM(NULL);
 }
 
 void Host_Viewframe_f()

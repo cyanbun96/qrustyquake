@@ -116,7 +116,8 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	r_refdef.fov_y = CalcFov(r_refdef.fov_x,
 		r_refdef.vrect.width, r_refdef.vrect.height);
 	f32 size = cl.intermission ? 120 : scr_viewsize.value;
-	if (size >= 120 || hudstyle != HUD_CLASSIC)
+	if (size >= 120 || hudstyle != HUD_CLASSIC || 
+			(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))
 		sb_lines = 0; // no status bar at all
 	else if (size >= 110)
 		sb_lines = 24 * uiscale; // no inventory
@@ -163,7 +164,9 @@ void SCR_Init()
 	Cvar_RegisterVariable(&scr_centertime);
 	Cvar_RegisterVariable(&scr_printspeed);
 	Cvar_RegisterVariable(&scr_showfps);
-	Cvar_RegisterVariable (&scr_hudstyle);
+	Cvar_RegisterVariable(&scr_sbaralpha); // only affects CSQC HUDs
+	Cvar_RegisterVariable(&scr_sbarscale); // only affects CSQC HUDs
+	Cvar_RegisterVariable(&scr_hudstyle);
 	Cvar_SetCallback (&scr_hudstyle, SCR_HUDStyle_f);
 	Cmd_AddCommand("screenshot", SCR_ScreenShot_f);
 	Cmd_AddCommand("sizeup", SCR_SizeUp_f);
