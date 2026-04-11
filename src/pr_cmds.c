@@ -1783,7 +1783,15 @@ static void PF_cl_drawfill(void)
     float alpha = G_FLOAT (OFS_PARM3);
 //  int flags   = G_FLOAT (OFS_PARM4);
 
-    Draw_FillEx (pos[0], pos[1], size[0], size[1], rgb, alpha);
+    float pos_s[2];
+    float size_s[2] = {size[0], size[1]};
+    float ax = vid.width * 0.5f; // anchor to bottom center of the screen
+    float ay = vid.height;
+    pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+    pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+    size_s[0] *= scr_qchudscale.value;
+    size_s[1] *= scr_qchudscale.value;
+    Draw_FillEx (pos_s[0], pos_s[1], size_s[0], size_s[1], rgb, alpha);
 }
 
 static void PF_cl_getimagesize(void)
@@ -1806,7 +1814,15 @@ static void PF_cl_drawcharacter(void)
     if (charcode == 32)
         return; //don't waste time on spaces
 
-    Draw_Character_Ex(pos, size, charcode, rgb, alpha);
+    float pos_s[2];
+    float size_s[2] = {size[0], size[1]};
+    float ax = vid.width * 0.5f; // anchor to bottom center of the screen
+    float ay = vid.height;
+    pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+    pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+    size_s[0] *= scr_qchudscale.value;
+    size_s[1] *= scr_qchudscale.value;
+    Draw_Character_Ex(pos_s, size_s, charcode, rgb, alpha);
 }
 static void PF_cl_drawrawstring(void)
 {
@@ -1817,9 +1833,18 @@ static void PF_cl_drawrawstring(void)
     float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
+    float pos_s[2];
+    float size_s[2] = {size[0], size[1]};
+    float ax = vid.width * 0.5f; // anchor to bottom center of the screen
+    float ay = vid.height;
+    pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+    pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+    size_s[0] *= scr_qchudscale.value;
+    size_s[1] *= scr_qchudscale.value;
+
     float pos2[2];
-    pos2[0] = pos[0];
-    pos2[1] = pos[1];
+    pos2[0] = pos_s[0];
+    pos2[1] = pos_s[1];
     int c;
 
     if (!*text)
@@ -1827,8 +1852,8 @@ static void PF_cl_drawrawstring(void)
 
     while ((c = *text++))
     {
-	Draw_Character_Ex(pos2, size, c, rgb, alpha);
-        pos2[0] += size[0];
+	Draw_Character_Ex(pos2, size_s, c, rgb, alpha);
+        pos2[0] += size_s[0];
     }
 }
 static void PF_cl_drawstring(void)
@@ -1840,9 +1865,18 @@ static void PF_cl_drawstring(void)
     float alpha = G_FLOAT (OFS_PARM4);
 //  int flags   = G_FLOAT (OFS_PARM5);
 
+    float pos_s[2];
+    float size_s[2] = {size[0], size[1]};
+    float ax = vid.width * 0.5f; // anchor to bottom center of the screen
+    float ay = vid.height;
+    pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+    pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+    size_s[0] *= scr_qchudscale.value;
+    size_s[1] *= scr_qchudscale.value;
+
     float pos2[2];
-    pos2[0] = pos[0];
-    pos2[1] = pos[1];
+    pos2[0] = pos_s[0];
+    pos2[1] = pos_s[1];
     int c;
 
     if (!*text)
@@ -1850,8 +1884,8 @@ static void PF_cl_drawstring(void)
 
     while ((c = *text++))
     {
-	Draw_Character_Ex(pos2, size, c, rgb, alpha);
-        pos2[0] += size[0];
+	Draw_Character_Ex(pos2, size_s, c, rgb, alpha);
+        pos2[0] += size_s[0];
     }
 }
 static void PF_cl_precachepic(void)
@@ -1920,7 +1954,15 @@ static void PF_cl_drawpic(void)
     float srcpos[2] = {0, 0};
     float srcsize[2] = {1, 1};
 
-    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize, rgb, alpha);
+    float pos_s[2];
+    float size_s[2] = {size[0], size[1]};
+    float ax = vid.width * 0.5f; // anchor to bottom center of the screen
+    float ay = vid.height;
+    pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+    pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+    size_s[0] *= scr_qchudscale.value;
+    size_s[1] *= scr_qchudscale.value;
+    if (pic) Draw_Pic_Ex(pos_s, size_s, pic, srcpos, srcsize, rgb, alpha);
 }
 static void PF_cl_drawsubpic(void)
 {
@@ -1933,7 +1975,15 @@ static void PF_cl_drawsubpic(void)
     float alpha = G_FLOAT (OFS_PARM6);
 //  int flags   = G_FLOAT (OFS_PARM7);
 
-    if (pic) Draw_Pic_Ex(pos, size, pic, srcpos, srcsize, rgb, alpha);
+    float pos_s[2];
+    float size_s[2] = {size[0], size[1]};
+    float ax = vid.width * 0.5f; // anchor to bottom center of the screen
+    float ay = vid.height;
+    pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+    pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+    size_s[0] *= scr_qchudscale.value;
+    size_s[1] *= scr_qchudscale.value;
+    if (pic) Draw_Pic_Ex(pos_s, size_s, pic, srcpos, srcsize, rgb, alpha);
 }
 static void PF_cl_getstat_int(void)
 {
