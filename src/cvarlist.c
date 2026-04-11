@@ -133,6 +133,7 @@ cvar_t scr_printspeed=                            {"scr_printspeed", "8", 0,ZR};
 cvar_t scr_showfps=                                  {"scr_showfps", "0", 1,ZR};
 cvar_t scr_hudstyle=                                    {"hudstyle", "0", 1,ZR};
 cvar_t scr_sbaralpha=                              {"scr_sbaralpha", "1", 1,ZR};
+cvar_t scr_sbarscale=                              {"scr_sbarscale", "2", 1,ZR};
 cvar_t d_mipcap=                                        {"d_mipcap", "0", 0,ZR};
 cvar_t d_mipscale=                                    {"d_mipscale", "1", 0,ZR};
 cvar_t sv_aim=                                            {"sv_aim", "1", 0,ZR};
