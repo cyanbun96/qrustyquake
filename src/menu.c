@@ -2070,7 +2070,13 @@ void M_Display_Draw()
 	if (newwinmode == 0)      M_Print(xoffset + 204, 112, "Windowed");
 	else if (newwinmode == 1) M_Print(xoffset + 204, 112, "Fullscreen");
 	else                      M_Print(xoffset + 204, 112, "Borderless");
-	if (display_cursor == 4) {
+	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
+	if (csqc_active && display_cursor == 2) {
+		M_DrawTextBox(52, 166, 25, 2);
+		M_Print(72, 174, "WARNING: Custom mod HUD");
+		M_Print(72, 182, "      is");
+		M_PrintWhite(72, 182, "         ACTIVE");
+	} else if (display_cursor == 4) {
 		M_DrawTextBox(84, 166, 17, 1);
 		M_Print(96, 174, "Press   for auto");
 		M_PrintWhite(96, 174, "      A");
