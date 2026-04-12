@@ -230,6 +230,19 @@ void adjust_saturation(u8 *r, u8 *g, u8 *b, f32 factor)
 	*b = CLAMP(0, fb, 255);
 }
 
+void adjust_contrast(u8 *r, u8 *g, u8 *b, f32 factor)
+{
+	f32 fr = *r;
+	f32 fg = *g;
+	f32 fb = *b;
+	fr = 128.0f + factor * (fr - 128.0f);
+	fg = 128.0f + factor * (fg - 128.0f);
+	fb = 128.0f + factor * (fb - 128.0f);
+	*r = CLAMP(0, fr, 255);
+	*g = CLAMP(0, fg, 255);
+	*b = CLAMP(0, fb, 255);
+}
+
 void V_UpdatePalette()
 {
 	V_CalcPowerupCshift();
@@ -281,6 +294,8 @@ void V_UpdatePalette()
 		u8 b2 = gammatable[b];
 		if(v_saturation.value != 1)
 			adjust_saturation(&r2, &g2, &b2, v_saturation.value);
+		if(v_contrast.value != 1)
+			adjust_contrast(&r2, &g2, &b2, v_contrast.value);
 		newpal[0] = r2;
 		newpal[1] = g2;
 		newpal[2] = b2;
@@ -535,6 +550,7 @@ void V_Init()
 	BuildGammaTable(1.0); // no gamma yet
 	Cvar_RegisterVariable(&v_gamma);
 	Cvar_RegisterVariable(&v_saturation);
+	Cvar_RegisterVariable(&v_contrast);
 	V_AllocLedges();
 	V_AllocLsurfs();
 }
