@@ -366,6 +366,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value);
 f32 Cvar_VariableValue(const s8 *var_name);
 const s8 *Cvar_VariableString(const s8 *var_name);
 bool Cvar_Command();
+void Cvar_Reset(const s8 *name);
 void Cvar_WriteVariables(FILE *f);
 cvar_t *Cvar_FindVar(const s8 *var_name);
 const s8 *Cvar_CompleteVariable(const s8 *partial);
