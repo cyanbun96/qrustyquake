@@ -56,7 +56,7 @@ bool SNDDMA_Init(dma_t *dma)
 		Con_Printf("Couldn't init SDL audio: %s\n", SDL_GetError());
 		return 0;
 	}
-	const SDL_AudioSpec desired = { SDL_AUDIO_U8, 2, 11025 }; // TODO configurable sample rates
+	const SDL_AudioSpec desired = { SDL_AUDIO_S16LE, 2, 44100 };
 	s32 samples = 256;
 	memset((void *) dma, 0, sizeof(dma_t));
 	shm = dma;
@@ -65,7 +65,7 @@ bool SNDDMA_Init(dma_t *dma)
 	// SDL will convert to hardware format for us if needed, hence we
 	// directly use the desired values here.
 	shm->samplebits = (desired.format & 0xFF); // first u8 of format is bits
-	shm->signed8 = (desired.format == SDL_AUDIO_S8);
+	shm->signed8 = (desired.format == SDL_AUDIO_S16LE);
 	shm->speed = desired.freq;
 	shm->channels = desired.channels;
 	s32 tmp = (samples * desired.channels) * 10;
