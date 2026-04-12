@@ -2640,6 +2640,30 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Color Space:");
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
 	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==501&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWWATER)
+			&& r_wateralpha.value && r_wateralpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==502&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWSLIME)
+			&& r_slimealpha.value && r_slimealpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==503&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWLAVA)
+			&& r_lavaalpha.value && r_lavaalpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==504&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWTELE)
+			&& r_telealpha.value && r_telealpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
 		M_Print(xoffset, 32, "Style:");
 		M_Print(xoffset+x2, 32, r_hlwater.value==0?"Classic":"HL");
 		M_Print(xoffset, 40, "Water Alpha:");
