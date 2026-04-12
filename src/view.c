@@ -218,6 +218,18 @@ void V_CalcPowerupCshift()
 	} else cl.cshifts[CSHIFT_POWERUP].percent = 0;
 }
 
+void adjust_saturation(u8 *r, u8 *g, u8 *b, f32 factor)
+{
+	f32 fr = *r, fg = *g, fb = *b;
+	f32 gray = 0.299f * fr + 0.587f * fg + 0.114f * fb;
+	fr = gray + factor * (fr - gray);
+	fg = gray + factor * (fg - gray);
+	fb = gray + factor * (fb - gray);
+	*r = CLAMP(0, fr, 255);
+	*g = CLAMP(0, fg, 255);
+	*b = CLAMP(0, fb, 255);
+}
+
 void V_UpdatePalette()
 {
 	V_CalcPowerupCshift();
@@ -264,9 +276,14 @@ void V_UpdatePalette()
 			b += (cl.cshifts[j].percent *
 					(cl.cshifts[j].destcolor[2] - b)) >> 8;
 		}
-		newpal[0] = gammatable[r];
-		newpal[1] = gammatable[g];
-		newpal[2] = gammatable[b];
+		u8 r2 = gammatable[r];
+		u8 g2 = gammatable[g];
+		u8 b2 = gammatable[b];
+		if(v_saturation.value != 1)
+			adjust_saturation(&r2, &g2, &b2, v_saturation.value);
+		newpal[0] = r2;
+		newpal[1] = g2;
+		newpal[2] = b2;
 		newpal += 3;
 	}
 	VID_SetPalette(pal, screen);
@@ -517,6 +534,7 @@ void V_Init()
 	Cvar_RegisterVariable(&v_kickpitch);
 	BuildGammaTable(1.0); // no gamma yet
 	Cvar_RegisterVariable(&v_gamma);
+	Cvar_RegisterVariable(&v_saturation);
 	V_AllocLedges();
 	V_AllocLsurfs();
 }
