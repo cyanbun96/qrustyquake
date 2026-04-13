@@ -50,40 +50,37 @@ static s8 *svc_strings[] = {
 };
 
 //mods and servers might not send the \n instantly.
-//some mods bug out and omit the \n entirely, this function helps prevent the damage from spreading too much.
-//some servers or mods use //prefixed commands as extensions to avoid spam about unrecognised commands.
+//some mods bug out and omit the \n entirely, this function helps prevent the
+//damage from spreading too much.
+//some servers or mods use //prefixed commands as extensions to avoid spam about
+//unrecognised commands.
 //proquake has its own extension coding thing.
-static void CL_ParseStuffText(const char *msg)
+static void CL_ParseStuffText(const s8 *msg)
 {
-    const char *str;
-    q_strlcat(cl.stuffcmdbuf, msg, sizeof(cl.stuffcmdbuf));
-    for (; (str = strchr(cl.stuffcmdbuf, '\n')); memmove(cl.stuffcmdbuf, str, Q_strlen(str)+1))
-    {
-        bool handled = false;
-
-        str++;//skip past the \n
-
-        if (*cl.stuffcmdbuf == 0x01 && cl.protocol == PROTOCOL_NETQUAKE) //proquake message, just strip this and try again (doesn't necessarily have a trailing \n straight away)
-        {
-            for (str = cl.stuffcmdbuf+1; *str >= 0x01 && *str <= 0x1f; str++)
-                ;//FIXME: parse properly
-            continue;
-        }
-
-        //handle special commands
-        if (cl.stuffcmdbuf[0] == '/' && cl.stuffcmdbuf[1] == '/')
-        {
-            handled = Cmd_ExecuteString(cl.stuffcmdbuf+2, src_server);
-            if (!handled)
-                Con_DPrintf("Server sent unknown command %s\n", Cmd_Argv(0));
-        }
-        else
-            handled = Cmd_ExecuteString(cl.stuffcmdbuf, src_server);
-
-        //let the server exec general user commands (massive security hole)
-        if (!handled)
-            Cbuf_AddTextLen(cl.stuffcmdbuf, str-cl.stuffcmdbuf);
-    }
+	q_strlcat(cl.stuffcmdbuf, msg, sizeof(cl.stuffcmdbuf));
+	const s8 *str;
+	for(; (str = strchr(cl.stuffcmdbuf, '\n'));
+			memmove(cl.stuffcmdbuf, str, Q_strlen(str)+1)) {
+		bool handled = false;
+		str++;//skip past the \n
+		if(*cl.stuffcmdbuf == 0x01 && cl.protocol == PROTOCOL_NETQUAKE){
+			//proquake message, just strip this and try again
+			//(doesn't necessarily have a trailing \n straight away)
+			for(str=cl.stuffcmdbuf+1;*str>=0x01&&*str<=0x1f;str++);
+			continue; //FIXME: parse properly
+		}
+		//handle special commands
+		if(cl.stuffcmdbuf[0] == '/' && cl.stuffcmdbuf[1] == '/') {
+			handled=Cmd_ExecuteString(cl.stuffcmdbuf+2, src_server);
+			if(!handled)
+		    Con_DPrintf("Server sent unknown command %s\n",Cmd_Argv(0));
+		}
+		else
+			handled = Cmd_ExecuteString(cl.stuffcmdbuf, src_server);
+	      //let the server exec general user commands(massive security hole)
+		if(!handled)
+			Cbuf_AddTextLen(cl.stuffcmdbuf, str-cl.stuffcmdbuf);
+	}
 }
 
 void V_RestoreAngles()
@@ -102,22 +99,21 @@ void R_CheckEfrags()
 
 void Fog_ParseServerMessage()
 {
-	f32 density, red, green, blue, time;
-	density = MSG_ReadByte() / 255.0;
-	red = MSG_ReadByte() / 255.0;
-	green = MSG_ReadByte() / 255.0;
-	blue = MSG_ReadByte() / 255.0;
-	time = MSG_ReadShort() / 100.0;
+	f32 density = MSG_ReadByte() / 255.0;
+	f32 red = MSG_ReadByte() / 255.0;
+	f32 green = MSG_ReadByte() / 255.0;
+	f32 blue = MSG_ReadByte() / 255.0;
+	f32 time = MSG_ReadShort() / 100.0;
 	if(time < 0.0f) time = 0.0f;
 	Fog_Update(density, red, green, blue);
 }
 
 entity_t *CL_EntityNum(s32 num)
 {
-	if(num >= cl.num_entities) {
+	if(num >= cl.num_entities){
 		if(num >= MAX_EDICTS)
 			Host_Error("CL_EntityNum: %i is an invalid number",num);
-		while(cl.num_entities<=num) {
+		while(cl.num_entities<=num){
 			cl_entities[cl.num_entities].colormap = CURWORLDCMAP;
 			cl_entities[cl.num_entities].baseline.scale =
 				ENTSCALE_DEFAULT;
@@ -137,16 +133,16 @@ void CL_ParseStartSoundPacket()
 	if(field_mask & SND_ATTENUATION) attn = MSG_ReadByte() / 64.0;
 	else attn = DEFAULT_SOUND_PACKET_ATTENUATION;
 	s32 ch, ent;
-	if(field_mask & SND_LARGEENTITY) { //johnfitz -- PROTOCOL_FITZQUAKE
-		ent =(u16) MSG_ReadShort ();
+	if(field_mask & SND_LARGEENTITY){ //johnfitz -- PROTOCOL_FITZQUAKE
+		ent =(u16) MSG_ReadShort();
 		ch = MSG_ReadByte();
 	} else {
-		ch =(u16) MSG_ReadShort ();
+		ch =(u16) MSG_ReadShort();
 		ent = ch >> 3;
 		ch &= 7;
 	}
 	s32 snum;
-	if(field_mask & SND_LARGESOUND) snum = (u16) MSG_ReadShort ();
+	if(field_mask & SND_LARGESOUND) snum = (u16) MSG_ReadShort();
 	else snum = MSG_ReadByte();
 	if(snum >= MAX_SOUNDS) //johnfitz -- check soundnum
 		Host_Error("CL_ParseStartSoundPacket: %i > MAX_SOUNDS", snum);
@@ -213,12 +209,12 @@ void CL_ParseServerInfo()
 			PROTOCOL_NETQUAKE, PROTOCOL_FITZQUAKE, PROTOCOL_RMQ);
 	}
 	cl.protocol = i; //johnfitz
-	if(cl.protocol == PROTOCOL_RMQ) {
+	if(cl.protocol == PROTOCOL_RMQ){
 		const u32 supportedflags = (PRFL_SHORTANGLE | PRFL_FLOATANGLE |
 			PRFL_24BITCOORD | PRFL_FLOATCOORD | PRFL_EDICTSCALE |
 			PRFL_INT32COORD);
 		// mh - read protocol flags from server so that we know what
-		cl.protocolflags =(u32) MSG_ReadLong (); // features to expect
+		cl.protocolflags =(u32) MSG_ReadLong(); // features to expect
 		if(0 != (cl.protocolflags & (~supportedflags))) Con_Printf(
 		   "PROTOCOL_RMQ protocolflags %i contains unsupported flags\n",
 		   cl.protocolflags);
@@ -226,7 +222,7 @@ void CL_ParseServerInfo()
 	else cl.protocolflags = 0;
 	cl.maxclients = MSG_ReadByte(); // parse maxclients
 	if(cl.maxclients < 1 || cl.maxclients > MAX_SCOREBOARD)
-		Host_Error("Bad maxclients (%u) from server", cl.maxclients);
+		Host_Error("Bad maxclients(%u) from server", cl.maxclients);
 	cl.scores =(scoreboard_t *) Hunk_AllocName
 		(cl.maxclients*sizeof(*cl.scores), "scores");
 	cl.gametype = MSG_ReadByte(); // parse gametype
@@ -240,7 +236,7 @@ void CL_ParseServerInfo()
 	// needlessly purge it
 	memset(cl.model_precache, 0, sizeof(cl.model_precache));
 	s32 nummodels = 1;
-	for(;; nummodels++) { // precache models
+	for(;; nummodels++){ // precache models
 		str = MSG_ReadString();
 		if(!str[0]) break;
 		if(nummodels == MAX_MODELS)
@@ -249,11 +245,11 @@ void CL_ParseServerInfo()
 		Mod_TouchModel(str);
 	}
 	if(nummodels >= 256) //johnfitz -- check for excessive models
-	    Con_DPrintf("%i models exceeds standard limit of 256 (max = %d).\n",
+	    Con_DPrintf("%i models exceeds standard limit of 256(max = %d).\n",
 			nummodels, MAX_MODELS);
 	memset(cl.sound_precache, 0, sizeof(cl.sound_precache));//precache sound
 	s32 numsounds = 1;
-	for(;; numsounds++) {
+	for(;; numsounds++){
 		str = MSG_ReadString();
 		if(!str[0]) break;
 		if(numsounds == MAX_SOUNDS)
@@ -262,18 +258,19 @@ void CL_ParseServerInfo()
 		S_TouchSound(str);
 	}
 	if(numsounds >= 256) //johnfitz -- check for excessive sounds
-	    Con_DPrintf("%i sounds exceeds standard limit of 256 (max = %d).\n",
+	    Con_DPrintf("%i sounds exceeds standard limit of 256(max = %d).\n",
 			numsounds, MAX_SOUNDS);
 	// now we try to load everything else until a cache allocation fails
 	// copy the naked name of the map file to the cl structure -- O.S
-	COM_StripExtension(COM_SkipPath(model_precache[1]), cl.mapname, sizeof(cl.mapname));
-	for(i = 1; i < nummodels; i++) {
+	COM_StripExtension(COM_SkipPath(model_precache[1]),
+			cl.mapname, sizeof(cl.mapname));
+	for(i = 1; i < nummodels; i++){
 		cl.model_precache[i] = Mod_ForName(model_precache[i], 0);
 		if(cl.model_precache[i] == NULL)
 			Host_Error("Model %s not found", model_precache[i]);
 		CL_KeepaliveMessage();
 	}
-	for(i = 1; i < numsounds; i++) {
+	for(i = 1; i < numsounds; i++){
 		cl.sound_precache[i] = S_PrecacheSound(sound_precache[i]);
 		CL_KeepaliveMessage();
 	}
@@ -292,7 +289,7 @@ void CL_ParseBaseline(entity_t *ent, s32 version) //johnfitz -- added argument
 		? MSG_ReadShort() : MSG_ReadByte();
 	ent->baseline.colormap = MSG_ReadByte();
 	ent->baseline.skin = MSG_ReadByte();
-	for(s32 i = 0; i < 3; i++) {
+	for(s32 i = 0; i < 3; i++){
 		ent->baseline.origin[i] = MSG_ReadCoord(cl.protocolflags);
 		ent->baseline.angles[i] = MSG_ReadAngle(cl.protocolflags);
 	} //johnfitz -- PROTOCOL_FITZQUAKE
@@ -308,7 +305,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		CL_SignonReply();
 	}
 	if(bits & U_MOREBITS) bits |= (MSG_ReadByte()<<8);
-	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ) {
+	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ){
 		if(bits & U_EXTEND1) bits |= MSG_ReadByte() << 16;
 		if(bits & U_EXTEND2) bits |= MSG_ReadByte() << 24;
 	}
@@ -343,20 +340,20 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		 MSG_ReadCoord(cl.protocolflags) : ent->baseline.origin[2];
 	ent->msg_angles[0][2] = bits & U_ANGLE3 ?
 		 MSG_ReadAngle(cl.protocolflags) : ent->baseline.angles[2];
-	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ) {
+	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ){
 		ent->alpha = bits&U_ALPHA ? MSG_ReadByte():ent->baseline.alpha;
 		ent->scale = bits&U_SCALE ? MSG_ReadByte():ent->baseline.scale;
 		if(bits & U_FRAME2)
 			ent->frame = (ent->frame & 0x00FF)|(MSG_ReadByte()<<8);
 		if(bits & U_MODEL2)
 			modnum = (modnum & 0x00FF) | (MSG_ReadByte() << 8);
-		if(bits & U_LERPFINISH) {
+		if(bits & U_LERPFINISH){
 			ent->lerpfinish=ent->msgtime+(f32)(MSG_ReadByte())/255;
 			ent->lerpflags |= LERP_FINISH;
 		} else ent->lerpflags &= ~LERP_FINISH;
 	}
-	else if(cl.protocol == PROTOCOL_NETQUAKE) {
-		if(bits & U_TRANS) { //HACK: if this bit is set, assume NEHAHRA
+	else if(cl.protocol == PROTOCOL_NETQUAKE){
+		if(bits & U_TRANS){ //HACK: if this bit is set, assume NEHAHRA
 			f32 a, b;
 			a = MSG_ReadFloat();
 			b = MSG_ReadFloat(); //alpha
@@ -367,13 +364,13 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		ent->scale = ent->baseline.scale;
 	}
 	model_t *model = cl.model_precache[modnum];
-	if(model != ent->model) { // automatic animation(torches, etc) can be
+	if(model != ent->model){ // automatic animation(torches, etc) can be
 		ent->model = model; // either all together or randomized
 		if(model)ent->syncbase = model->synctype == ST_RAND ?
 				(f32)(rand()&0x7fff) / 0x7fff : 0.0;
 		else forcelink = 1; // hack to make null model players work
 	}
-	if(forcelink) { // didn't have an update last message
+	if(forcelink){ // didn't have an update last message
 		VectorCopy(ent->msg_origins[0], ent->msg_origins[1]);
 		VectorCopy(ent->msg_origins[0], ent->origin);
 		VectorCopy(ent->msg_angles[0], ent->msg_angles[1]);
@@ -384,7 +381,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 
 void CL_ParseClientdata()
 {
-	s32 bits = (u16)MSG_ReadShort ();//johnfitz -- read bits here isntead of
+	s32 bits = (u16)MSG_ReadShort();//johnfitz -- read bits here isntead of
 	if(bits & SU_EXTEND1) // in CL_ParseServerMessage()
 		bits |= (MSG_ReadByte() << 16);
 	if(bits & SU_EXTEND2)
@@ -393,12 +390,12 @@ void CL_ParseClientdata()
 	cl.idealpitch = bits & SU_IDEALPITCH?MSG_ReadChar():0;
 	VectorCopy(cl.mvelocity[0], cl.mvelocity[1]);
 	s32 i, j;
-	for(i = 0; i < 3; i++) {
+	for(i = 0; i < 3; i++){
 		cl.punchangle[i] = bits & (SU_PUNCH1<<i) ? MSG_ReadChar() : 0;
 		cl.mvelocity[0][i] = bits&(SU_VELOCITY1<<i)?MSG_ReadChar()*16:0;
 	}
 	i = MSG_ReadLong();
-	if(cl.items != i) { // set flash times
+	if(cl.items != i){ // set flash times
 		Sbar_Changed();
 		for(j = 0; j < 32; j++)
 			if((i & (1<<j)) && !(cl.items & (1<<j)))
@@ -410,40 +407,40 @@ void CL_ParseClientdata()
 	cl.inwater = (bits & SU_INWATER) != 0;
 	cl.stats[STAT_WEAPONFRAME] = (bits&SU_WEAPONFRAME) ? MSG_ReadByte() : 0;
 	i = (bits & SU_ARMOR) ? MSG_ReadByte() : 0;
-	if (cl.stats[STAT_ARMOR] != i) {
+	if(cl.stats[STAT_ARMOR] != i){
 		cl.stats[STAT_ARMOR] = i;
 		Sbar_Changed();
 	}
 	i = (bits & SU_WEAPON) ? MSG_ReadByte() : 0;
-	if (cl.stats[STAT_WEAPON] != i) {
+	if(cl.stats[STAT_WEAPON] != i){
 		cl.stats[STAT_WEAPON] = i;
 		Sbar_Changed();
 	}
 	i = MSG_ReadShort();
-	if (cl.stats[STAT_HEALTH] != i) {
+	if(cl.stats[STAT_HEALTH] != i){
 		cl.stats[STAT_HEALTH] = i;
 		Sbar_Changed();
 	}
 	i = MSG_ReadByte();
-	if (cl.stats[STAT_AMMO] != i) {
+	if(cl.stats[STAT_AMMO] != i){
 		cl.stats[STAT_AMMO] = i;
 		Sbar_Changed();
 	}
-	for (i = 0; i < 4; i++) {
+	for(i = 0; i < 4; i++){
 		j = MSG_ReadByte();
-		if (cl.stats[STAT_SHELLS + i] != j) {
+		if(cl.stats[STAT_SHELLS + i] != j){
 			cl.stats[STAT_SHELLS + i] = j;
 			Sbar_Changed();
 		}
 	}
 	i = MSG_ReadByte();
-	if (standard_quake) {
-		if (cl.stats[STAT_ACTIVEWEAPON] != i) {
+	if(standard_quake){
+		if(cl.stats[STAT_ACTIVEWEAPON] != i){
 			cl.stats[STAT_ACTIVEWEAPON] = i;
 			Sbar_Changed();
 		}
 	} else {
-		if (cl.stats[STAT_ACTIVEWEAPON] != (1 << i)) {
+		if(cl.stats[STAT_ACTIVEWEAPON] != (1 << i)){
 			cl.stats[STAT_ACTIVEWEAPON] = (1 << i);
 			Sbar_Changed();
 		}
@@ -486,7 +483,7 @@ void CL_NewTranslation(s32 slot)
 	memcpy(dest, CURWORLDCMAP, sizeof(cl.scores[slot].translations));
 	s32 top = cl.scores[slot].colors & 0xf0;
 	s32 bottom =(cl.scores[slot].colors &15)<<4;
-	for(s32 i = 0; i < VID_GRADES; i++, dest += 256, source+=256) {
+	for(s32 i = 0; i < VID_GRADES; i++, dest += 256, source+=256){
 		if(top < 128) // the artists made some backwards ranges. sigh.
 			memcpy(dest + TOP_RANGE, source + top, 16);
 		else for(s32 j = 0; j < 16; j++)
@@ -544,28 +541,29 @@ void CL_ParseServerMessage()
 		if(cl_shownet.value==2)
 			Con_Printf("%3i:%s\n",msg_readcount-1,
 					"END OF MESSAGE");
-		if (*cl.stuffcmdbuf && net_message.cursize < 512)
-			CL_ParseStuffText("\n");    //there's a few mods that forget to write \ns, that then fuck up other things too. So make sure it gets flushed to the cbuf. the cursize check is to reduce backbuffer overflows that would give a false positive.
+		if(*cl.stuffcmdbuf && net_message.cursize < 512)
+			CL_ParseStuffText("\n");
+//there's a few mods that forget to write \ns, that then fuck up other things
+//too. So make sure it gets flushed to the cbuf. the cursize check is to reduce
+//backbuffer overflows that would give a false positive.
 		return; // end of message
 	}
 	// if the high bit of the command u8 is set, it is a fast update
 	if(cmd & U_SIGNAL){ //johnfitz -- was 128, changed for clarity
 		if(cl_shownet.value==2)
-			Con_Printf("%3i:%s\n",msg_readcount-1,
-					"fast update");
+			Con_Printf("%3i:%s\n",msg_readcount-1, "fast update");
 		CL_ParseUpdate(cmd&127);
 		continue;
 	}
 	if(cmd < (s32)Q_COUNTOF(svc_strings)){
 		if(cl_shownet.value==2)
-			Con_Printf("%3i:%s\n",msg_readcount-1,
-					svc_strings[cmd]);
+			Con_Printf("%3i:%s\n",msg_readcount-1,svc_strings[cmd]);
 	}
 	s32 i, j; // keep here for OpenBSD
-	switch(cmd) { // other commands
+	switch(cmd){ // other commands
 	default:
 		Host_Error(
-		"Illegible server message %d (previous was %s)",
+		"Illegible server message %d(previous was %s)",
 		cmd, svc_strings[lastcmd]);
 		break;
 	case svc_nop:
@@ -580,24 +578,23 @@ void CL_ParseServerMessage()
 		break;
 	case svc_version:
 		i = MSG_ReadLong();
-		if(i!=PROTOCOL_NETQUAKE&&i!=PROTOCOL_FITZQUAKE
-				&&i!=PROTOCOL_RMQ) Host_Error(
-		   "Server returned version %i, not %i or %i or %i", i,
-		   PROTOCOL_NETQUAKE, PROTOCOL_FITZQUAKE, PROTOCOL_RMQ);
+		if(i!=PROTOCOL_NETQUAKE&&i!=PROTOCOL_FITZQUAKE&&i!=PROTOCOL_RMQ)
+		    Host_Error("Server returned version %i, not %i or %i or %i",
+			i, PROTOCOL_NETQUAKE, PROTOCOL_FITZQUAKE, PROTOCOL_RMQ);
 		cl.protocol = i;
 		break;
 	case svc_disconnect:
 		Host_EndGame("Server disconnected\n");
 		break;
 	case svc_print:
-		Con_Printf("%s", MSG_ReadString ());
+		Con_Printf("%s", MSG_ReadString());
 		break;
 	case svc_centerprint:
 		str = MSG_ReadString();
 		SCR_CenterPrint(str);
 		break;
 	case svc_stufftext:
-		CL_ParseStuffText (MSG_ReadString ());
+		CL_ParseStuffText(MSG_ReadString());
 		break;
 	case svc_damage:
 		V_ParseDamage();
@@ -623,7 +620,7 @@ void CL_ParseServerMessage()
 		if(cl_lightstyle[i].length){ //save extra info
 			s32 total = 0;
 			cl_lightstyle[i].peak = 'a';
-			for(j = 0; j<cl_lightstyle[i].length; j++) {
+			for(j = 0; j<cl_lightstyle[i].length; j++){
 				total += cl_lightstyle[i].map[j] - 'a';
 				cl_lightstyle[i].peak = q_max(
 					cl_lightstyle[i].peak,
@@ -691,7 +688,7 @@ void CL_ParseServerMessage()
 		cls.signon = i;//if signonnum==2, signon packet has been fully
 		if(i==2){//parsed, so check for excessive static ents and efrags
 			if(cl.num_statics > 128) Con_DPrintf(
-		"%i static entities exceeds standard limit of 128 (max = %d).\n"
+		"%i static entities exceeds standard limit of 128(max = %d).\n"
 					, cl.num_statics, MAX_STATIC_ENTITIES);
 			R_CheckEfrags();
 		}
@@ -718,7 +715,7 @@ void CL_ParseServerMessage()
 	case svc_cdtrack:
 		cl.cdtrack = MSG_ReadByte();
 		cl.looptrack = MSG_ReadByte();
-		if((cls.demoplayback || cls.demorecording) && (cls.forcetrack != -1))
+		if((cls.demoplayback||cls.demorecording)&&(cls.forcetrack!=-1))
 			CDAudio_Play((u8)cls.forcetrack, true);
 		else
 			CDAudio_Play((u8)cl.cdtrack, true);
@@ -748,8 +745,7 @@ void CL_ParseServerMessage()
 	case svc_sellscreen:
 		Cmd_ExecuteString("help", src_command);
 		break;
-		//johnfitz -- new svc types
-	case svc_skybox:
+	case svc_skybox: //johnfitz -- new svc types
 		Sky_LoadSkyBox(MSG_ReadString());
 		break;
 	case svc_bf:
