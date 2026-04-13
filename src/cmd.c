@@ -14,8 +14,6 @@ static bool cmd_wait;
 static sizebuf_t cmd_text;
 static cmd_function_t *cmd_functions; // possible commands to execute
 
-void Cmd_ForwardToServer();
-
 // Causes execution of the remainder of the command buffer to be delayed until
 // next frame. This allows commands like:
 // bind g "impulse 5 ; +attack ; wait ; -attack ; impulse 2"
@@ -35,15 +33,14 @@ void Cbuf_AddText(const s8 *text)
 	}
 	SZ_Write(&cmd_text, text, Q_strlen(text));
 }
-void Cbuf_AddTextLen (const char *text, int l)
+
+void Cbuf_AddTextLen(const char *text, int l)
 {
-	if (cmd_text.cursize + l >= cmd_text.maxsize)
-	{
-		Con_Printf ("Cbuf_AddText: overflow\n");
+	if(cmd_text.cursize + l >= cmd_text.maxsize) {
+		Con_Printf("Cbuf_AddText: overflow\n");
 		return;
 	}
-
-	SZ_Write (&cmd_text, text, l);
+	SZ_Write(&cmd_text, text, l);
 }
 
 void Cbuf_InsertText(s8 *text)
@@ -153,7 +150,7 @@ s8 *CopyString(s8 *in)
 }
 
 void Cmd_Alias_f() // johnfitz -- rewritten
-{ // Creates a new command that executes a command string (possibly ; seperated)
+{ // Creates a new command that executes a command string(possibly ; seperated)
 	cmdalias_t *a;
 	s8 cmd[1024];
 	s8 *s;
@@ -225,15 +222,13 @@ void Cmd_Unalias_f() // -- johnfitz
 	}
 }
 
-bool Cmd_AliasExists (const char *aliasname)
+bool Cmd_AliasExists(const char *aliasname)
 {
-    cmdalias_t *a;
-    for (a=cmd_alias ; a ; a=a->next)
-    {
-        if (!q_strcasecmp (aliasname, a->name))
-            return true;
-    }
-    return false;
+	for(cmdalias_t *a = cmd_alias; a; a = a->next){
+		if(!q_strcasecmp(aliasname, a->name))
+			return true;
+	}
+	return false;
 }
 
 void Cmd_Unaliasall_f() // -- johnfitz
@@ -303,68 +298,53 @@ void Cmd_TokenizeString(const s8 *text)
 	}
 }
 
-cmd_function_t *Cmd_AddCommand2 (const char *cmd_name, xcommand_t function, cmd_source_t srctype, bool qcinterceptable)
+cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
+				cmd_source_t srctype, bool qcinterceptable)
 {
-    cmd_function_t  *cmd;
-    cmd_function_t  *cursor,*prev; //johnfitz -- sorted list insert
-
-// fail if the command is a variable name
-    if (Cvar_VariableString(cmd_name)[0])
-    {
-        Con_Printf ("Cmd_AddCommand: %s already defined as a var\n", cmd_name);
-        return NULL;
-    }
-
-// fail if the command already exists
-    for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
-    {
-        if (!Q_strcmp (cmd_name, cmd->name) && cmd->srctype == srctype)
-        {
-            if (cmd->function != function && function)
-                Con_Printf ("Cmd_AddCommand: %s already defined\n", cmd_name);
-            return NULL;
-        }
-    }
-
-    if (host_initialized)
-    {
-        cmd = (cmd_function_t *) malloc(sizeof(*cmd) + strlen(cmd_name)+1);
-        if (!cmd)
-            Sys_Error ("Cmd_AddCommand2: out of memory (%s)", cmd_name);
-        cmd->name = strcpy((char*)(cmd + 1), cmd_name);
-        cmd->dynamic = true;
-    }
-    else
-    {
-        cmd = (cmd_function_t *) Hunk_Alloc (sizeof(*cmd));
-        cmd->name = cmd_name;
-        cmd->dynamic = false;
-    }
-    cmd->function = function;
-    cmd->srctype = srctype;
-    cmd->qcinterceptable = qcinterceptable;
-
-    //johnfitz -- insert each entry in alphabetical order
-    if (cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0) //insert at front
-    {
-        cmd->next = cmd_functions;
-        cmd_functions = cmd;
-    }
-    else //insert later
-    {
-        prev = cmd_functions;
-        cursor = cmd_functions->next;
-        while ((cursor != NULL) && (strcmp(cmd->name, cursor->name) > 0))
-        {
-            prev = cursor;
-            cursor = cursor->next;
-        }
-        cmd->next = prev->next;
-        prev->next = cmd;
-    }
-    //johnfitz
-
-    return cmd;
+	cmd_function_t *cmd;
+	cmd_function_t *cursor,*prev; //johnfitz -- sorted list insert
+	// fail if the command is a variable name
+	if(Cvar_VariableString(cmd_name)[0]) {
+	  Con_Printf("Cmd_AddCommand: %s already defined as a var\n", cmd_name);
+		return NULL;
+	}
+	// fail if the command already exists
+	for(cmd=cmd_functions ; cmd ; cmd=cmd->next) {
+		if(!Q_strcmp(cmd_name, cmd->name) && cmd->srctype == srctype) {
+			if(cmd->function != function && function)
+		   Con_Printf("Cmd_AddCommand: %s already defined\n", cmd_name);
+			return NULL;
+		}
+	}
+	if(host_initialized) {
+		cmd = (cmd_function_t *)malloc(sizeof(*cmd)+strlen(cmd_name)+1);
+		if(!cmd)
+		    Sys_Error("Cmd_AddCommand2: out of memory(%s)", cmd_name);
+		cmd->name = strcpy((s8*)(cmd + 1), cmd_name);
+		cmd->dynamic = true;
+	} else {
+		cmd = (cmd_function_t *) Hunk_Alloc(sizeof(*cmd));
+		cmd->name = (s8*)cmd_name;
+		cmd->dynamic = false;
+	}
+	cmd->function = function;
+	cmd->srctype = srctype;
+	cmd->qcinterceptable = qcinterceptable;
+	//johnfitz -- insert each entry in alphabetical order
+	if(cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0){
+		cmd->next = cmd_functions; //insert at front
+		cmd_functions = cmd;
+	} else { //insert later
+		prev = cmd_functions;
+		cursor = cmd_functions->next;
+		while((cursor != NULL) && (strcmp(cmd->name,cursor->name) > 0)){
+			prev = cursor;
+			cursor = cursor->next;
+		}
+		cmd->next = prev->next;
+		prev->next = cmd;
+	}
+	return cmd;
 }
 
 s32 Cmd_ListCompletions(const s8 *text)
