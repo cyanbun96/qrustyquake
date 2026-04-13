@@ -9,16 +9,16 @@
 #define SIL static inline __attribute__((always_inline))
 #define RESTRICT __restrict
 #endif
-static inline bool GetBit (const uint32_t *arr, uint32_t i)
+static inline bool GetBit (const u32 *arr, u32 i)
 { return (arr[i/32u] & (1u<<(i%32u))) != 0u; }
 
-static inline void SetBit (uint32_t *arr, uint32_t i)
+static inline void SetBit (u32 *arr, u32 i)
 { arr[i/32u] |= 1u<<(i%32u); }
 
-static inline void ClearBit (uint32_t *arr, uint32_t i)
+static inline void ClearBit (u32 *arr, u32 i)
 { arr[i/32u] &= ~(1u<<(i%32u)); }
 
-static inline void ToggleBit (uint32_t *arr, uint32_t i)
+static inline void ToggleBit (u32 *arr, u32 i)
 { arr[i/32u] ^= 1u<<(i%32u); }
 
 SIL f32 DotProduct(const f32 *restrict a, const f32 *restrict b)
