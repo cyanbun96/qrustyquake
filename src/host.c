@@ -40,7 +40,6 @@ void Host_EndGame(s8 *message, ...)
 
 void Host_Error(s8 *error, ...)
 {
-	__asm__("int3");
 	va_list argptr;
 	s8 string[1024];
 	static bool inerror = 0;

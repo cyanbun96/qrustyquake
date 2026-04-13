@@ -68,7 +68,6 @@ void SV_CalcStats(client_t *client, int *statsi, float *statsf, const char **sta
         default:
             break;
         }
-	if(sv_cheats.value){__asm__("int3"); sv_cheats.value = 0;}
     }
 }
 
