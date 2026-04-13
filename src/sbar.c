@@ -1085,8 +1085,8 @@ void Sbar_CSQCHUD()
 		*qcvm->extglobals.player_localentnum = cl.viewentity;
 	pr_global_struct->time = cl.time;
 	Sbar_SortFrags ();
-	f32 float w = vid.width;
-	f32 float h = vid.height;
+	f32 w = vid.width;
+	f32 h = vid.height;
 	G_VECTORSET(OFS_PARM0, w, h, 0);
 	G_FLOAT(OFS_PARM1) = sb_showscores;
 	PR_ExecuteProgram(cl.qcvm.extfuncs.CSQC_DrawHud);
