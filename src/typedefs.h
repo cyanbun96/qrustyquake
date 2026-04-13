@@ -487,9 +487,7 @@ typedef struct {
 
 	vec3_t vieworg;
 	vec3_t viewangles;
-
 	f32 fov_x, fov_y;
-
 	s32 ambientlight;
 } refdef_t;
 
@@ -842,7 +840,6 @@ typedef struct qsocket_s {
 	u8 receiveMessage [NET_MAXMESSAGE];
 	struct qsockaddr addr;
 	s8 address[NET_NAMELEN];
-
 } qsocket_t;
 typedef struct {
 	const s8 *name;
@@ -1312,191 +1309,169 @@ struct pr_extfuncs_s
 {
 /*ssqc*/
 #define QCEXTFUNCS_SV \
-    QCEXTFUNC(SV_ParseClientCommand,    "void(string cmd)")     \
+	QCEXTFUNC(SV_ParseClientCommand, "void(string cmd)") \
 /*csqc*/
 #define QCEXTFUNCS_CS \
-    QCEXTFUNC(CSQC_Init,                "void(float apilevel, string enginename, float engineversion)") \
-    QCEXTFUNC(CSQC_Shutdown,            "void()")   \
-    QCEXTFUNC(CSQC_DrawHud,             "void(vector virtsize, float showscores)")                          /*simple: for the simple(+limited) hud-only csqc interface.*/   \
-    QCEXTFUNC(CSQC_DrawScores,          "void(vector virtsize, float showscores)")                          /*simple: (optional) for the simple hud-only csqc interface.*/      \
+	QCEXTFUNC(CSQC_Init, "void(float apilevel, string enginename, float engineversion)") \
+	QCEXTFUNC(CSQC_Shutdown, "void()") \
+	QCEXTFUNC(CSQC_DrawHud, "void(vector virtsize, float showscores)") /*simple: for the simple(+limited) hud-only csqc interface.*/ \
+	QCEXTFUNC(CSQC_DrawScores, "void(vector virtsize, float showscores)") /*simple: (optional) for the simple hud-only csqc interface.*/ \
 
 #define QCEXTFUNC(n,t) func_t n;
-    QCEXTFUNCS_SV
-    QCEXTFUNCS_CS
+	QCEXTFUNCS_SV
+		QCEXTFUNCS_CS
 #undef QCEXTFUNC
 };
 struct pr_extglobals_s
 {
 #define QCEXTGLOBALS_CSQC \
-    QCEXTGLOBAL_FLOAT(cltime)\
-    QCEXTGLOBAL_FLOAT(clframetime)\
-    QCEXTGLOBAL_FLOAT(maxclients)\
-    QCEXTGLOBAL_FLOAT(intermission)\
-    QCEXTGLOBAL_FLOAT(intermission_time)\
-    QCEXTGLOBAL_FLOAT(player_localnum)\
-    QCEXTGLOBAL_FLOAT(player_localentnum)\
-    QCEXTGLOBAL_VECTOR(view_angles)\
-    QCEXTGLOBAL_FLOAT(clientcommandframe)\
-    QCEXTGLOBAL_FLOAT(servercommandframe)\
-    //end
-#define QCEXTGLOBAL_FLOAT(n) float *n;
-#define QCEXTGLOBAL_INT(n) int *n;
-#define QCEXTGLOBAL_VECTOR(n) float *n;
-    QCEXTGLOBALS_CSQC
+	QCEXTGLOBAL_FLOAT(cltime)\
+	QCEXTGLOBAL_FLOAT(clframetime)\
+	QCEXTGLOBAL_FLOAT(maxclients)\
+	QCEXTGLOBAL_FLOAT(intermission)\
+	QCEXTGLOBAL_FLOAT(intermission_time)\
+	QCEXTGLOBAL_FLOAT(player_localnum)\
+	QCEXTGLOBAL_FLOAT(player_localentnum)\
+	QCEXTGLOBAL_VECTOR(view_angles)\
+	QCEXTGLOBAL_FLOAT(clientcommandframe)\
+	QCEXTGLOBAL_FLOAT(servercommandframe)\
+//end
+#define QCEXTGLOBAL_FLOAT(n) f32 *n;
+#define QCEXTGLOBAL_INT(n) s32 *n;
+#define QCEXTGLOBAL_VECTOR(n) f32 *n;
+	QCEXTGLOBALS_CSQC
 #undef QCEXTGLOBAL_FLOAT
 #undef QCEXTGLOBAL_INT
 #undef QCEXTGLOBAL_VECTOR
 };
 struct pr_extfields_s
-{   //various fields that might be wanted by the engine. -1 == invalid
-
+{ //various fields that might be wanted by the engine. -1 == invalid
 #define QCEXTFIELDS_ALL \
-    /*renderscene means we need a number of fields here*/   \
-    QCEXTFIELD(alpha,                   ".float")               /*float*/   \
-    QCEXTFIELD(scale,                   ".float")               /*float*/   \
-    QCEXTFIELD(colormod,                ".vector")          /*vector*/  \
-    /*end of list*/
-#define QCEXTFIELDS_GAME    \
-    /*stuff used by csqc+ssqc, but not menu*/   \
-    QCEXTFIELD(customphysics,           ".void()")/*function*/  \
-    QCEXTFIELD(gravity,                 ".float")           /*float*/   \
-    //end of list
-#define QCEXTFIELDS_SS  \
-    /*ssqc-only*/   \
-    QCEXTFIELD(items2,                  "//.float")             /*float*/   \
-    QCEXTFIELD(movement,                ".vector")          /*vector*/  \
-    QCEXTFIELD(viewmodelforclient,      ".entity")  /*entity*/  \
-    QCEXTFIELD(exteriormodeltoclient,   ".entity")  /*entity*/  \
-    QCEXTFIELD(traileffectnum,          ".float")       /*float*/   \
-    QCEXTFIELD(emiteffectnum,           ".float")       /*float*/   \
-    QCEXTFIELD(button3,                 ".float")           /*float*/   \
-    QCEXTFIELD(button4,                 ".float")           /*float*/   \
-    QCEXTFIELD(button5,                 ".float")           /*float*/   \
-    QCEXTFIELD(button6,                 ".float")           /*float*/   \
-    QCEXTFIELD(button7,                 ".float")           /*float*/   \
-    QCEXTFIELD(button8,                 ".float")           /*float*/   \
-    QCEXTFIELD(viewzoom,                ".float")           /*float*/   \
-    QCEXTFIELD(SendEntity,              ".float(entity to, float changedflags)")            /*function*/    \
-    QCEXTFIELD(SendFlags,               ".float")           /*float. :( */  \
-    //end of list
+	/*renderscene means we need a number of fields here*/ \
+	QCEXTFIELD(alpha, ".float") \
+	QCEXTFIELD(scale, ".float") \
+	QCEXTFIELD(colormod, ".vector") \
+	//end of list
+#define QCEXTFIELDS_GAME \
+	/*stuff used by csqc+ssqc, but not menu*/ \
+	QCEXTFIELD(customphysics, ".void()") \
+	QCEXTFIELD(gravity, ".float") \
+	//end of list
+#define QCEXTFIELDS_SS \
+	/*ssqc-only*/ \
+	QCEXTFIELD(items2, "//.float") \
+	QCEXTFIELD(movement, ".vector") \
+	QCEXTFIELD(viewmodelforclient, ".entity") \
+	QCEXTFIELD(exteriormodeltoclient, ".entity") \
+	QCEXTFIELD(traileffectnum, ".float") \
+	QCEXTFIELD(emiteffectnum, ".float") \
+	QCEXTFIELD(button3, ".float") \
+	QCEXTFIELD(button4, ".float") \
+	QCEXTFIELD(button5, ".float") \
+	QCEXTFIELD(button6, ".float") \
+	QCEXTFIELD(button7, ".float") \
+	QCEXTFIELD(button8, ".float") \
+	QCEXTFIELD(viewzoom, ".float") \
+	QCEXTFIELD(SendEntity, ".float(entity to, float changedflags)") \
+	QCEXTFIELD(SendFlags, ".float") \
+	//end of list
 
-#define QCEXTFIELD(n,t) int n;
-    QCEXTFIELDS_ALL
-    QCEXTFIELDS_GAME
-    QCEXTFIELDS_SS
+#define QCEXTFIELD(n,t) s32 n;
+	QCEXTFIELDS_ALL
+	QCEXTFIELDS_GAME
+	QCEXTFIELDS_SS
+
 #undef QCEXTFIELD
 };
 
-#define QCEXTENSIONS_ALL                        \
-    QCEXTENSION(FRIK_FILE)                      \
-    QCEXTENSION(FTE_STRINGS)                    \
-    QCEXTENSION(FTE_QC_CHECKCOMMAND)            \
-    QCEXTENSION(DP_QC_ETOS)                     \
-    QCEXTENSION(DP_QC_MINMAXBOUND)              \
-    QCEXTENSION(DP_QC_SINCOSSQRTPOW)            \
-    QCEXTENSION(DP_QC_ASINACOSATANATAN2TAN)     \
-    QCEXTENSION(DP_QC_VECTORVECTORS)            \
-    QCEXTENSION(DP_QC_STRING_CASE_FUNCTIONS)    \
-    QCEXTENSION(DP_QC_SPRINTF)                  \
-    QCEXTENSION(DP_QC_TOKENIZE_CONSOLE)         \
-    QCEXTENSION(DP_QC_STRFTIME)                 \
-    QCEXTENSION(KRIMZON_SV_PARSECLIENTCOMMAND)  \
+#define QCEXTENSIONS_ALL \
+	QCEXTENSION(FRIK_FILE) \
+	QCEXTENSION(FTE_STRINGS) \
+	QCEXTENSION(FTE_QC_CHECKCOMMAND) \
+	QCEXTENSION(DP_QC_ETOS) \
+	QCEXTENSION(DP_QC_MINMAXBOUND) \
+	QCEXTENSION(DP_QC_SINCOSSQRTPOW) \
+	QCEXTENSION(DP_QC_ASINACOSATANATAN2TAN) \
+	QCEXTENSION(DP_QC_VECTORVECTORS) \
+	QCEXTENSION(DP_QC_STRING_CASE_FUNCTIONS) \
+	QCEXTENSION(DP_QC_SPRINTF) \
+	QCEXTENSION(DP_QC_TOKENIZE_CONSOLE) \
+	QCEXTENSION(DP_QC_STRFTIME) \
+	QCEXTENSION(KRIMZON_SV_PARSECLIENTCOMMAND) \
 
 typedef enum
 {
-    STD_QC,
-
-    #define QCEXTENSION(name)       name,
-    QCEXTENSIONS_ALL
-    #undef QCEXTENSION
-
-    QCEXT_COUNT,
+	STD_QC,
+#define QCEXTENSION(name) name,
+	QCEXTENSIONS_ALL
+#undef QCEXTENSION
+	QCEXT_COUNT,
 } qcextension_t;
 
 typedef struct prhashtable_s
 {
-    int         capacity;
-    const char  **strings;
-    int         *indices;
+	s32 capacity;
+	const s8 **strings;
+	s32 *indices;
 } prhashtable_t;
 
 typedef struct qcvm_s
 {
-	dprograms_t     *progs;
-	dfunction_t     *functions;
-	dstatement_t    *statements;
-	float           *globals;   /* same as pr_global_struct */
-	ddef_t          *fielddefs; //yay reflection.
-
-	int             edict_size; /* in bytes */
-
-	int             effects_mask; // only enable 2021 rerelease quad/penta dlights when applicable
-
-	builtin_t       builtins[MAX_BUILTINS];
-	int             numbuiltins;
-
-	int             argc;
-
-	bool        trace;
-	dfunction_t     *xfunction;
-	int             xstatement;
-
-	unsigned short  crc;
-
+	dprograms_t *progs;
+	dfunction_t *functions;
+	dstatement_t *statements;
+	f32 *globals; // same as pr_global_struct
+	ddef_t *fielddefs; //yay reflection.
+	s32 edict_size; // in bytes
+	s32 effects_mask; // only enable 2021 rerelease quad/penta dlights when applicable
+	builtin_t builtins[MAX_BUILTINS];
+	s32 numbuiltins;
+	s32 argc;
+	bool trace;
+	dfunction_t *xfunction;
+	s32 xstatement;
+	u16 crc;
 	struct pr_extfuncs_s extfuncs;
 	struct pr_extglobals_s extglobals;
 	struct pr_extfields_s extfields;
-
-	qcextension_t   builtin_ext[MAX_BUILTINS];
-	uint32_t        warned_builtin[2][(MAX_BUILTINS + 31) / 32];
-	uint32_t        checked_ext[(QCEXT_COUNT + 31) / 32];
-	uint32_t        advertised_ext[(QCEXT_COUNT + 31) / 32];
-
-	//was static inside pr_edict
-	char            *strings;
-	int             stringssize;
-	const char      **knownstrings;
-	int             maxknownstrings;
-	int             numknownstrings;
-	const char      **firstfreeknownstring; // free list (singly linked)
-
-	unsigned char   *knownzone;
-	size_t          knownzonesize;
-
-	ddef_t          *globaldefs;
-
-	prhashtable_t   ht_fields;
-	prhashtable_t   ht_functions;
-	prhashtable_t   ht_globals;
-
+	qcextension_t builtin_ext[MAX_BUILTINS];
+	u32 warned_builtin[2][(MAX_BUILTINS + 31) / 32];
+	u32 checked_ext[(QCEXT_COUNT + 31) / 32];
+	u32 advertised_ext[(QCEXT_COUNT + 31) / 32];
+	char *strings; //was static inside pr_edict
+	s32 stringssize;
+	const s8 **knownstrings;
+	s32 maxknownstrings;
+	s32 numknownstrings;
+	const s8 **firstfreeknownstring; // free list (singly linked)
+	u8 *knownzone;
+	size_t knownzonesize;
+	ddef_t *globaldefs;
+	prhashtable_t ht_fields;
+	prhashtable_t ht_functions;
+	prhashtable_t ht_globals;
 	//originally defined in pr_exec, but moved into the switchable qcvm struct
-	prstack_t       stack[MAX_STACK_DEPTH];
-	int             depth;
-
-	int             localstack[LOCALSTACK_SIZE];
-	int             localstack_used;
-
+	prstack_t stack[MAX_STACK_DEPTH];
+	s32 depth;
+	s32 localstack[LOCALSTACK_SIZE];
+	s32 localstack_used;
 	//originally part of the sv_state_t struct
 	//FIXME: put worldmodel in here too.
-	double      time;
-	int         num_edicts;
-	int         reserved_edicts;
-	int         max_edicts;
-	link_t      free_edicts;        // linked list of free edicts
-	edict_t     *edicts;            // can NOT be array indexed, because
-					// edict_t is variable sized, but can
-					// be used to reference the world ent
-
-	int         numentityfields;
-	int         *entityfieldofs;
-	ddef_t      **entityfields;
-	int         *functionsizes;     // number of statements in each function
-
-	int         maxfieldofs;
-	int         *ofstofield;        // index of field at offset, or -1
-
-	int         maxglobalofs;
-	int         *ofstoglobal;       // index of global at offset, or -1
+	f64 time;
+	s32 num_edicts;
+	s32 reserved_edicts;
+	s32 max_edicts;
+	link_t free_edicts; // linked list of free edicts
+	edict_t *edicts; //can NOT be array indexed, because edict_t is variable
+			 //sized, but can be used to reference the world ent
+	s32 numentityfields;
+	s32 *entityfieldofs;
+	ddef_t **entityfields;
+	s32 *functionsizes; // number of statements in each function
+	s32 maxfieldofs;
+	s32 *ofstofield; // index of field at offset, or -1
+	s32 maxglobalofs;
+	s32 *ofstoglobal; // index of global at offset, or -1
 } qcvm_t;
 
 typedef struct {                                                     // client.h
@@ -1606,7 +1581,10 @@ typedef struct {
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
 	bool sendprespawn;
-	s8 stuffcmdbuf[1024]; //comment-extensions are a thing with certain servers, make sure we can handle them properly without further hacks/breakages. there's also some server->client only console commands that we might as well try to handle a bit better, like reconnect
+	s8 stuffcmdbuf[1024]; //comment-extensions are a thing with certain
+	//servers, make sure we can handle them properly without further
+	//hacks/breakages. there's also some server->client only console
+	//commands that we might as well try to handle better, like reconnect
 	qcvm_t qcvm; //for csqc.
 } client_state_t;
 typedef struct {
@@ -1615,11 +1593,11 @@ typedef struct {
 } kbutton_t;
 typedef struct builtindef_s
 {
-	const char      *name;
-	builtin_t       ssqcfunc;
-	builtin_t       csqcfunc;
-	int             number;
-	qcextension_t   ext;
+	const s8 *name;
+	builtin_t ssqcfunc;
+	builtin_t csqcfunc;
+	s32 number;
+	qcextension_t ext;
 } builtindef_t;
 
 typedef struct {                                                     // client.h
@@ -1637,7 +1615,7 @@ typedef struct {
 	bool nomonsters; // server started with 'nomonsters' cvar active
 	s32 lastcheck; // used by PF_checkclient
 	f64 lastchecktime;
-	qcvm_t qcvm;               // Spike: entire qcvm state
+	qcvm_t qcvm; // Spike: entire qcvm state
 	s8 name[64]; // map name
 	s8 modelname[64]; // maps/<name>.bsp, for model_precache[0]
 	struct model_s *worldmodel;
@@ -1656,44 +1634,37 @@ typedef struct {
 	sizebuf_t *signon_buffers[MAX_SIGNON_BUFFERS];
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
-	struct svcustomstat_s
-	{
-		int idx;
-		int type;
-		int fld;
+	struct svcustomstat_s {
+		s32 idx;
+		s32 type;
+		s32 fld;
 		eval_t *ptr;
 	} customstats[MAX_CL_STATS*2];  //strings or numeric...
-	size_t      numcustomstats;
-
-	char        lastsave[MAX_OSPATH];
-	bool    autoloading;
-
-	struct
-	{
-		float   secret_boost;
-		float   teleport_boost;
-		float   prev_health;
-		int     prev_secrets;
-		double  time;                   // last autosave time
-		double  hurt_time;              // last time the player was hurt
-		double  shoot_time;             // last time the player attacked
-		double  cheat;                  // time spent with cheats active since last autosave
-	}           autosave;
-
-	struct
-	{
-		bool    active;
-		int         numwarnings;
-
-		const char  *changelevel;
-		int         trigger_changelevel;
-		int         valid_changelevel;
-		int         intermission;
-		int         skill_triggers;
-		int         coop_spawns;
-		int         dm_spawns;
-		int         skill_ents[3];
-	}           mapchecks;              // additional map checks (for level designers)
+	size_t numcustomstats;
+	s8 lastsave[MAX_OSPATH];
+	bool autoloading;
+	struct {
+		f32 secret_boost;
+		f32 teleport_boost;
+		f32 prev_health;
+		s32 prev_secrets;
+		f64 time; // last autosave time
+		f64 hurt_time; // last time the player was hurt
+		f64 shoot_time; // last time the player attacked
+		f64 cheat; // time spent with cheats active since last autosave
+	} autosave;
+	struct {
+		bool active;
+		s32 numwarnings;
+		const char *changelevel;
+		s32 trigger_changelevel;
+		s32 valid_changelevel;
+		s32 intermission;
+		s32 skill_triggers;
+		s32 coop_spawns;
+		s32 dm_spawns;
+		s32 skill_ents[3];
+	} mapchecks; // additional map checks (for level designers)
 } server_t;
 enum sendsignon_e {
 	PRESPAWN_DONE,
@@ -1790,7 +1761,7 @@ typedef struct {
 	s32 numentries;
 	s32 maxnumentries;
 	s32 numindices;
-	unsigned *indices;
+	u32 *indices;
 	locentry_t *entries;
 	s8 *text;
 } localization_t;
