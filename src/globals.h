@@ -353,7 +353,6 @@ s32 NUM_FOR_EDICT(edict_t*);
 EX const s32 type_size[NUM_TYPE_SIZES];
 EX s32 pr_argc;
 EX bool pr_trace;
-EX dfunction_t *pr_xfunction;
 void PR_RunError(const s8 *error, ...);
 void ED_PrintEdicts();
 void ED_PrintNum(s32 ent);

@@ -4,9 +4,6 @@
 
 #include "quakedef.h"
 
-static prstack_t pr_stack[MAX_STACK_DEPTH];
-static s32 pr_depth;
-
 const s8 *PR_GlobalString(s32 ofs);
 const s8 *PR_GlobalStringNoContents(s32 ofs);
 
@@ -70,13 +67,19 @@ static void PR_PrintStatement(dstatement_t *s)
 
 static void PR_StackTrace()
 {
-	if(pr_depth == 0){ Con_Printf("<NO STACK>\n"); return; }
-	pr_stack[pr_depth].f = pr_xfunction;
-	for(s32 i = pr_depth; i >= 0; i--){
-		dfunction_t *f = pr_stack[i].f;
-		if(!f) Con_Printf("<NO FUNCTION>\n");
-		else Con_Printf("%12s : %s\n", PR_GetString(f->s_file),
-						PR_GetString(f->s_name));
+	dfunction_t *f;
+	if(qcvm->depth == 0){
+		Con_Printf("<NO STACK>\n");
+		return;
+	}
+	qcvm->stack[qcvm->depth].f = qcvm->xfunction;
+	for(s32 i = qcvm->depth; i >= 0; i--){
+		f = qcvm->stack[i].f;
+		if (!f)
+			Con_Printf("<NO FUNCTION>\n");
+		else
+			Con_Printf("%12s : %s\n", PR_GetString(f->s_file),
+					PR_GetString(f->s_name));
 	}
 }
 
@@ -118,7 +121,7 @@ void PR_RunError(const s8 *error, ...)
 	PR_PrintStatement(qcvm->statements + qcvm->xstatement);
 	PR_StackTrace();
 	Con_Printf("%s\n", string);
-	pr_depth = 0; // dump the stack so host_error can shutdown functions
+	qcvm->depth = 0; // dump the stack so host_error can shutdown functions
 	Host_Error("Program error");
 }
 

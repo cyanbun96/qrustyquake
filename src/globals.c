@@ -161,7 +161,6 @@ bool team_message = 0;
 s32 lwmark = 0;                                                      // d_scan.c
 u8 *litwater_base;
 bool pr_trace;                                                      // pr_exec.c
-dfunction_t *pr_xfunction;
 s32 pr_argc;
 bool insubmodel; // current entity info                               // r_bsp.c
 entity_t *currententity;

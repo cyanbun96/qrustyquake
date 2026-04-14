@@ -119,7 +119,7 @@ static void PF_error()
 { // This is a TERMINAL error, which will kill off the entire server.
 	s8 *s = PF_VarString(0);
 	Con_Printf("======SERVER ERROR in %s:\n%s\n",
-			PR_GetString(pr_xfunction->s_name), s);
+			PR_GetString(qcvm->xfunction->s_name), s);
 	edict_t *ed = PROG_TO_EDICT(pr_global_struct->self);
 	ED_Print(ed);
 	Host_Error("Program error");
@@ -130,7 +130,7 @@ static void PF_objerror() // Dumps out self, then an error message. The program
 { // is aborted and self is removed, but the level can continue.
 	s8 *s = PF_VarString(0);
 	Con_Printf("======OBJECT ERROR in %s:\n%s\n",
-			PR_GetString(pr_xfunction->s_name), s);
+			PR_GetString(qcvm->xfunction->s_name), s);
 	edict_t *ed = PROG_TO_EDICT(pr_global_struct->self);
 	ED_Print(ed);
 	ED_Free(ed);
@@ -1004,10 +1004,10 @@ static void PF_walkmove()
 	move[1] = sin(yaw) * dist;
 	move[2] = 0;
 	// save program state, because SV_movestep may call other progs
-	dfunction_t *oldf = pr_xfunction;
+	dfunction_t *oldf = qcvm->xfunction;
 	s32 oldself = pr_global_struct->self;
 	G_FLOAT(OFS_RETURN) = SV_movestep(ent, move, 1);
-	pr_xfunction = oldf; // restore program state
+	qcvm->xfunction = oldf; // restore program state
 	pr_global_struct->self = oldself;
 }
 
