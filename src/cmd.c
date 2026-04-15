@@ -14,8 +14,6 @@ static bool cmd_wait;
 static sizebuf_t cmd_text;
 static cmd_function_t *cmd_functions; // possible commands to execute
 
-void Cmd_ForwardToServer();
-
 // Causes execution of the remainder of the command buffer to be delayed until
 // next frame. This allows commands like:
 // bind g "impulse 5 ; +attack ; wait ; -attack ; impulse 2"
@@ -34,6 +32,15 @@ void Cbuf_AddText(const s8 *text)
 		return;
 	}
 	SZ_Write(&cmd_text, text, Q_strlen(text));
+}
+
+void Cbuf_AddTextLen(const char *text, int l)
+{
+	if(cmd_text.cursize + l >= cmd_text.maxsize) {
+		Con_Printf("Cbuf_AddText: overflow\n");
+		return;
+	}
+	SZ_Write(&cmd_text, text, l);
 }
 
 void Cbuf_InsertText(s8 *text)
@@ -143,7 +150,7 @@ s8 *CopyString(s8 *in)
 }
 
 void Cmd_Alias_f() // johnfitz -- rewritten
-{ // Creates a new command that executes a command string (possibly ; seperated)
+{ // Creates a new command that executes a command string(possibly ; seperated)
 	cmdalias_t *a;
 	s8 cmd[1024];
 	s8 *s;
@@ -215,6 +222,15 @@ void Cmd_Unalias_f() // -- johnfitz
 	}
 }
 
+bool Cmd_AliasExists(const char *aliasname)
+{
+	for(cmdalias_t *a = cmd_alias; a; a = a->next){
+		if(!q_strcasecmp(aliasname, a->name))
+			return true;
+	}
+	return false;
+}
+
 void Cmd_Unaliasall_f() // -- johnfitz
 {
 	while(cmd_alias){
@@ -282,41 +298,53 @@ void Cmd_TokenizeString(const s8 *text)
 	}
 }
 
-void Cmd_AddCommand(s8 *cmd_name, xcommand_t function)
+cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
+				cmd_source_t srctype, bool qcinterceptable)
 {
-	if(host_initialized) // because hunk allocation would get stomped
-		Sys_Error("Cmd_AddCommand after host_initialized");
-	if(Cvar_VariableString(cmd_name)[0]){
-		Con_Printf("Cmd_AddCommand: %s already defined as a var\n",
-				cmd_name);
-		return;
-	}
 	cmd_function_t *cmd;
-	for(cmd = cmd_functions; cmd; cmd = cmd->next){
-		if(!Q_strcmp(cmd_name, cmd->name)){
-			Con_Printf("Cmd_AddCommand: %s already defined\n",
-					cmd_name);
-			return;
+	cmd_function_t *cursor,*prev; //johnfitz -- sorted list insert
+	// fail if the command is a variable name
+	if(Cvar_VariableString(cmd_name)[0]) {
+	  Con_Printf("Cmd_AddCommand: %s already defined as a var\n", cmd_name);
+		return NULL;
+	}
+	// fail if the command already exists
+	for(cmd=cmd_functions ; cmd ; cmd=cmd->next) {
+		if(!Q_strcmp(cmd_name, cmd->name) && cmd->srctype == srctype) {
+			if(cmd->function != function && function)
+		   Con_Printf("Cmd_AddCommand: %s already defined\n", cmd_name);
+			return NULL;
 		}
 	}
-	cmd = Hunk_Alloc(sizeof(cmd_function_t));
-	cmd->name = cmd_name;
+	if(host_initialized) {
+		cmd = (cmd_function_t *)malloc(sizeof(*cmd)+strlen(cmd_name)+1);
+		if(!cmd)
+		    Sys_Error("Cmd_AddCommand2: out of memory(%s)", cmd_name);
+		cmd->name = strcpy((s8*)(cmd + 1), cmd_name);
+		cmd->dynamic = true;
+	} else {
+		cmd = (cmd_function_t *) Hunk_Alloc(sizeof(*cmd));
+		cmd->name = (s8*)cmd_name;
+		cmd->dynamic = false;
+	}
 	cmd->function = function;
-	// johnfitz -- insert each entry in alphabetical order
-	if(cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0)
-	{ //insert at front
-		cmd->next = cmd_functions;
+	cmd->srctype = srctype;
+	cmd->qcinterceptable = qcinterceptable;
+	//johnfitz -- insert each entry in alphabetical order
+	if(cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0){
+		cmd->next = cmd_functions; //insert at front
 		cmd_functions = cmd;
 	} else { //insert later
-		cmd_function_t *prev = cmd_functions; // sorted list insert
-		cmd_function_t *cursor = cmd_functions->next;
-		while((cursor!=NULL) && (strcmp(cmd->name, cursor->name) > 0)){
+		prev = cmd_functions;
+		cursor = cmd_functions->next;
+		while((cursor != NULL) && (strcmp(cmd->name,cursor->name) > 0)){
 			prev = cursor;
 			cursor = cursor->next;
 		}
 		cmd->next = prev->next;
 		prev->next = cmd;
 	}
+	return cmd;
 }
 
 s32 Cmd_ListCompletions(const s8 *text)
@@ -329,7 +357,7 @@ s32 Cmd_ListCompletions(const s8 *text)
 	for(cvar_t *cvar = cvar_vars; cvar; cvar = cvar->next)
 		if(!len || !strncmp(text, cvar->name, len))
 			++tot;
-	if(tot == 1) return tot;
+	if(tot <= 1) return tot;
 	Con_Printf("\n");
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
 		if(!len || !Q_strncmp(text, cmd->name, len))
@@ -357,23 +385,24 @@ s8 *Cmd_CompleteCommand(s8 *partial)
 	return NULL;
 }
 
-void Cmd_ExecuteString(const s8 *text, cmd_source_t src)
+bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
 { // A complete command line has been parsed, so try to execute it
-	cmd_source = src;
-	Cmd_TokenizeString(text);
-	if(!Cmd_Argc()) return; // no tokens
-	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
-			cmd->function();
-			return;
-		}
-	for(cmdalias_t *a = cmd_alias; a; a = a->next) // check alias
-		if(!q_strcasecmp(cmd_argv[0], a->name)){
-			Cbuf_InsertText(a->value);
-			return;
-		}
-	if(!Cvar_Command()) // check cvars
-		Con_Printf("Unknown command \"%s\"\n", Cmd_Argv(0));
+        cmd_source = src;
+        Cmd_TokenizeString(text);
+        if(!Cmd_Argc()) return 1; // no tokens
+        for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
+                if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
+                        cmd->function();
+                        return 1;
+                }
+        for(cmdalias_t *a = cmd_alias; a; a = a->next) // check alias
+                if(!q_strcasecmp(cmd_argv[0], a->name)){
+                        Cbuf_InsertText(a->value);
+                        return 1;
+                }
+        if(!Cvar_Command()) // check cvars
+                Con_Printf("Unknown command \"%s\"\n", Cmd_Argv(0));
+	return 1;
 }
 
 void Cmd_ForwardToServer()

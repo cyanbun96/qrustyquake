@@ -168,9 +168,9 @@ void SV_TouchLinks(edict_t *ent)
 {
 	s32 old_self, old_other;
 	s32 mark = Hunk_LowMark();
-	edict_t **list = (edict_t **)Hunk_Alloc(sv.num_edicts*sizeof(edict_t*));
+	edict_t **list = (edict_t **)Hunk_Alloc(qcvm->num_edicts*sizeof(edict_t*));
 	s32 listcount = 0;
-	SV_AreaTriggerEdicts(ent, sv_areanodes, list, &listcount,sv.num_edicts);
+	SV_AreaTriggerEdicts(ent, sv_areanodes, list, &listcount,qcvm->num_edicts);
 	for(s32 i = 0; i < listcount; i++) {
 		edict_t *touch = list[i];
 		// re-validate in case of PR_ExecuteProgram having side effects
@@ -187,7 +187,7 @@ void SV_TouchLinks(edict_t *ent)
 		old_other = pr_global_struct->other;
 		pr_global_struct->self = EDICT_TO_PROG(touch);
 		pr_global_struct->other = EDICT_TO_PROG(ent);
-		pr_global_struct->time = sv.time;
+		pr_global_struct->time = qcvm->time;
 		PR_ExecuteProgram(touch->v.touch);
 		pr_global_struct->self = old_self;
 		pr_global_struct->other = old_other;
@@ -217,7 +217,7 @@ void SV_LinkEdict(edict_t *ent, bool touch_triggers)
 {
 	if(((u64)ent->area.prev) & 0xFF00000000000000) return; // corrupt entity
 	if(ent->area.prev) SV_UnlinkEdict(ent); // unlink from old position
-	if(ent == sv.edicts) return; // don't add the world
+	if(ent == qcvm->edicts) return; // don't add the world
 	if(ent->free) return;
 	VectorAdd(ent->v.origin, ent->v.mins, ent->v.absmin); // set the abs box
 	VectorAdd(ent->v.origin, ent->v.maxs, ent->v.absmax);
@@ -285,7 +285,7 @@ edict_t *SV_TestEntityPosition(edict_t *ent)
 {
 	trace_t trace = SV_Move(ent->v.origin, ent->v.mins, ent->v.maxs,
 			ent->v.origin, 0, ent);
-	if(trace.startsolid) return sv.edicts;
+	if(trace.startsolid) return qcvm->edicts;
 	return NULL;
 }
 
@@ -429,7 +429,7 @@ trace_t SV_Move(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 	moveclip_t clip;
 	memset(&clip, 0, sizeof( moveclip_t ));
 	// clip to world
-	clip.trace = SV_ClipMoveToEntity(sv.edicts, start, mins, maxs, end);
+	clip.trace = SV_ClipMoveToEntity(qcvm->edicts, start, mins, maxs, end);
 	clip.start = start;
 	clip.end = end;
 	clip.mins = mins;

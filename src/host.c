@@ -71,7 +71,7 @@ void Host_FindMaxClients()
 	i = COM_CheckParm("-listen");
 	if(i){
 		if(cls.state == ca_dedicated)
-	       Sys_Error ("Only one of -dedicated or -listen can be specified");
+	       Sys_Error("Only one of -dedicated or -listen can be specified");
 		if(i!=(com_argc - 1)) svs.maxclients = Q_atoi(com_argv[i + 1]);
 		else svs.maxclients = 8;
 	}
@@ -111,6 +111,7 @@ void Host_InitLocal()
 	Cvar_RegisterVariable(&campaign);
 	Cvar_RegisterVariable(&horde);
 	Cvar_RegisterVariable(&sv_cheats);
+	Cvar_RegisterVariable(&cl_nocsqc);
 	Host_FindMaxClients();
 	host_time = 1.0; // so a think at time 0 won't get called
 }
@@ -213,57 +214,68 @@ void SV_DropClient(bool crash)
 
 void Host_ShutdownServer(bool crash)
 { // This only happens at the end of a game, not between levels
+	sizebuf_t buf;
 	u8 message[4];
-	if(!sv.active) return;
-	sv.active = 0;
-	if(cls.state == ca_connected) // stop all client sounds immediately
+	if(!sv.active)
+		return;
+	sv.active = false;
+	// stop all client sounds immediately
+	if(cls.state == ca_connected)
 		CL_Disconnect();
-	f64 start = Sys_DoubleTime(); // flush any pending messages like score
-	s32 count;
+	// flush any pending messages - like the score!!!
+	f64 start = Sys_DoubleTime();
+	s32 i, count;
 	do {
 		count = 0;
-		s32 i = 0;
-		for(host_client=svs.clients;i<svs.maxclients;i++,host_client++){
-			if(!(host_client->active&&host_client->message.cursize))
-				continue;
-			if(NET_CanSendMessage(host_client->netconnection)){
-				NET_SendMessage(host_client-> netconnection,
-						&host_client->message);
-				SZ_Clear(&host_client->message);
-			} else {
-				NET_GetMessage(host_client-> netconnection);
-				count++;
+		for(i = 0, host_client = svs.clients; i<svs.maxclients; i++, host_client++){
+			if(host_client->active && host_client->message.cursize){
+				if(NET_CanSendMessage(host_client->netconnection)){
+					NET_SendMessage(host_client->netconnection, &host_client->message);
+					SZ_Clear(&host_client->message);
+				} else {
+					NET_GetMessage(host_client->netconnection);
+					count++;
+				}
 			}
 		}
 		if((Sys_DoubleTime() - start) > 3.0)
 			break;
-	} while(count);
-	sizebuf_t buf; // make sure all the clients know we're disconnecting
+	}
+	while(count);
+	// make sure all the clients know we're disconnecting
 	buf.data = message;
 	buf.maxsize = 4;
 	buf.cursize = 0;
 	MSG_WriteByte(&buf, svc_disconnect);
-	count = NET_SendToAll(&buf, 5);
+	count = NET_SendToAll(&buf, 5.0);
 	if(count)
-Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
-	s32 i = 0;
-	for(host_client = svs.clients; i < svs.maxclients; i++, host_client++)
-		if(host_client->active) SV_DropClient(crash);
-	free(sv.edicts);
-	memset(&sv, 0, sizeof(sv)); // clear structures
-	memset(svs.clients, 0, svs.maxclientslimit * sizeof(client_t));
+		Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
+
+	PR_SwitchQCVM(&sv.qcvm);
+	for(i = 0, host_client = svs.clients; i < svs.maxclients; i++, host_client++)
+		if(host_client->active)
+			SV_DropClient(crash);
+	PR_SwitchQCVM(NULL);
+	// clear structures
+	memset(svs.clients, 0, svs.maxclientslimit*sizeof(client_t));
 }
 
 void Host_ClearMemory() // This clears all the memory used by both the client
 { // and server, but does not reinitialize anything.
 	Con_DPrintf("Clearing memory\n");
+	if(cl.qcvm.extfuncs.CSQC_Shutdown){
+		PR_SwitchQCVM(&cl.qcvm);
+		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
+		qcvm->extfuncs.CSQC_Shutdown = 0;
+		PR_SwitchQCVM(NULL);
+	}
 	D_FlushCaches(0);
 	Mod_ClearAll();
 	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
 	cls.signon = 0;
-	free(sv.edicts);
+	PR_ClearProgs(&sv.qcvm);
+	PR_ClearProgs(&cl.qcvm);
 	memset(&sv, 0, sizeof(sv));
-	memset(&cl, 0, sizeof(cl));
 }
 
 f64 Host_GetFrameInterval()
@@ -328,6 +340,64 @@ void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
 	Con_Printf("%s\n", line);
 }
 
+static void CL_LoadCSProgs()
+{
+	PR_ClearProgs(&cl.qcvm);
+	if(!(pr_checkextension.value && !cl_nocsqc.value))
+		return; // only try to use csqc if qc extensions are enabled.
+	PR_SwitchQCVM(&cl.qcvm);
+	// try csprogs.dat first, then fall back on progs.dat in case someone
+	// tried merging the two. we only care about it if it actually contains
+	// a CSQC_DrawHud, otherwise its either just a(misnamed) ssqc progs or a
+	// full csqc progs that would just crash us on 3d stuff.
+	if((PR_LoadProgs("csprogs.dat", false) &&
+	    (qcvm->extfuncs.CSQC_DrawHud||qcvm->extfuncs.CSQC_DrawScores))||
+	    (PR_LoadProgs("progs.dat",false)&&qcvm->extfuncs.CSQC_DrawHud)){
+		qcvm->max_edicts =
+			CLAMP(MIN_EDICTS, (s32)max_edicts.value, MAX_EDICTS);
+		qcvm->edicts =
+			(edict_t *)malloc(qcvm->max_edicts * qcvm->edict_size);
+		qcvm->num_edicts = qcvm->reserved_edicts = 1;
+		memset(qcvm->edicts, 0, qcvm->num_edicts * qcvm->edict_size);
+		if(!qcvm->extfuncs.CSQC_DrawHud){
+		// no simplecsqc entry points... abort entirely!
+			PR_ClearProgs(qcvm);
+			PR_SwitchQCVM(NULL);
+			return;
+		}
+		// set a few globals, if they exist
+		if(qcvm->extglobals.maxclients)
+			*qcvm->extglobals.maxclients = cl.maxclients;
+		pr_global_struct->time = cl.time;
+		pr_global_struct->mapname = PR_SetEngineString(cl.mapname);
+		pr_global_struct->total_monsters = cl.stats[STAT_TOTALMONSTERS];
+		pr_global_struct->total_secrets = cl.stats[STAT_TOTALSECRETS];
+		pr_global_struct->deathmatch = cl.gametype;
+		pr_global_struct->coop =
+			(cl.gametype == GAME_COOP) && cl.maxclients != 1;
+		if(qcvm->extglobals.player_localnum)
+			*qcvm->extglobals.player_localnum = cl.viewentity - 1;
+			// this is a guess, but is important for scoreboards.
+		// set a few worldspawn fields too
+		qcvm->edicts->v.solid = SOLID_BSP;
+		qcvm->edicts->v.modelindex = 1;
+		qcvm->edicts->v.model = PR_SetEngineString(cl.worldmodel->name);
+		VectorCopy(cl.worldmodel->mins, qcvm->edicts->v.mins);
+		VectorCopy(cl.worldmodel->maxs, qcvm->edicts->v.maxs);
+		qcvm->edicts->v.message = PR_SetEngineString(cl.levelname);
+		// and call the init function... if it exists.
+		if(qcvm->extfuncs.CSQC_Init){
+			G_FLOAT(OFS_PARM0) = false;
+			G_INT(OFS_PARM1) = PR_SetEngineString("QrustyQuake");
+			G_FLOAT(OFS_PARM2) = 10000 * VERSION;
+			PR_ExecuteProgram(qcvm->extfuncs.CSQC_Init);
+		}
+	}
+	else
+		PR_ClearProgs(qcvm);
+	PR_SwitchQCVM(NULL);
+}
+
 void _Host_Frame(f32 time)
 { // Runs all active servers
 	static f64 accumtime = 0;
@@ -343,6 +413,13 @@ void _Host_Frame(f32 time)
 	Sys_SendKeyEvents(); // get new key events
 	Cbuf_Execute(); // process console commands
 	NET_Poll();
+	if(cl.sendprespawn){
+		CL_LoadCSProgs();
+		cl.sendprespawn = 0;
+		MSG_WriteByte(&cls.message, clc_stringcmd);
+		MSG_WriteString(&cls.message, "prespawn");
+		vid.recalc_refdef = 1;
+	}
 	CL_AccumulateCmd();
 	// Run the server+networking(client->server->client), at a different 
 	// rate from everything else
@@ -359,8 +436,11 @@ void _Host_Frame(f32 time)
 		else
 			accumtime -= host_netinterval;
 		CL_SendCmd();
-		if(sv.active)
+		if(sv.active){
+			PR_SwitchQCVM(&sv.qcvm);
 			Host_ServerFrame();
+			PR_SwitchQCVM(NULL);
+		}
 		host_frametime = realframetime;
 		Cbuf_Waited();
 		ranserver = 1;
@@ -375,8 +455,8 @@ void _Host_Frame(f32 time)
 	if(cls.signon == SIGNONS){ // update audio
 		S_Update(r_origin, vpn, vright, vup);
 		CL_DecayLights();
-	} else
-		S_Update(vec3_origin, vec3_origin, vec3_origin, vec3_origin);
+	}// else FIXME this causes crashes on map changes
+	//	S_Update(vec3_origin, vec3_origin, vec3_origin, vec3_origin);
 	CDAudio_Update();
 	if(host_speeds.value){
 		static f64 pass[3] = {0.0, 0.0, 0.0};

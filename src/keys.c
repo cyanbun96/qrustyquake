@@ -143,7 +143,7 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if(key == K_TAB){ // command completion
-		if(Cmd_ListCompletions(key_lines[edit_line] + 1) != 1) return;
+		Cmd_ListCompletions(key_lines[edit_line] + 1);
 		const s8 *cmd = Cmd_CompleteCommand(key_lines[edit_line] + 1);
 		if(!cmd) cmd = Cvar_CompleteVariable(key_lines[edit_line] + 1);
 		if(cmd){

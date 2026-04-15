@@ -12,11 +12,11 @@ void Cvar_List_f()
 	cvar_t *cvar;
 	s32 len = 0, count = 0;
 	const s8 *partial = NULL;
-	if(Cmd_Argc() > 1) {
+	if(Cmd_Argc() > 1){
 		partial = Cmd_Argv(1);
 		len = strlen(partial);
 	}
-	for(cvar = cvar_vars ; cvar ; cvar = cvar->next) {
+	for(cvar = cvar_vars ; cvar ; cvar = cvar->next){
 		if(partial && strncmp(partial, cvar->name, len)) continue;
 		Con_SafePrintf("%s%s %s \"%s\"\n",
 				(cvar->flags & CVAR_ARCHIVE) ? "*" : " ",
@@ -26,13 +26,13 @@ void Cvar_List_f()
 		count++;
 	}
 	Con_SafePrintf("%i cvars", count);
-	if(partial) { Con_SafePrintf(" beginning with \"%s\"", partial); }
+	if(partial){ Con_SafePrintf(" beginning with \"%s\"", partial); }
 	Con_SafePrintf("\n");
 }
 
 void Cvar_Inc_f()
 {
-	switch(Cmd_Argc()) {
+	switch(Cmd_Argc()){
 	default:
 	case 1:
 		Con_Printf("inc <cvar> [amount] : increment cvar\n");
@@ -48,7 +48,7 @@ Cvar_SetValue(Cmd_Argv(1),Cvar_VariableValue(Cmd_Argv(1))+Q_atof(Cmd_Argv(2)));
 
 void Cvar_Toggle_f()
 {
-	switch(Cmd_Argc()) {
+	switch(Cmd_Argc()){
 	default:
 	case 1:
 		Con_Printf("toggle <cvar> : toggle cvar\n");
@@ -63,19 +63,19 @@ void Cvar_Toggle_f()
 
 void Cvar_Cycle_f()
 {
-	if(Cmd_Argc() < 3) {
+	if(Cmd_Argc() < 3){
 Con_Printf("cycle <cvar> <value list>: cycle cvar through a list of values\n");
 		return; }
 // loop through the args until you find one that matches the current cvar value.
 // yes, this will get stuck on a list that contains the same value twice.
 // it's not worth dealing with, and i'm not even sure it can be dealt with.
 	s32 i = 2;
-	for(; i < Cmd_Argc(); i++) {
+	for(; i < Cmd_Argc(); i++){
 // zero is assumed to be a string, even though it could actually be zero. The
 // worst case is that the first time you call this command, it won't match on
 // zero when it should, but after that, it will be comparing strings that all
 // had the same source(the user) so it will work.
-		if(Q_atof(Cmd_Argv(i)) == 0) {
+		if(Q_atof(Cmd_Argv(i)) == 0){
 		      if(!strcmp(Cmd_Argv(i), Cvar_VariableString(Cmd_Argv(1))))
 				break;
 		}else if(Q_atof(Cmd_Argv(i)) == Cvar_VariableValue(Cmd_Argv(1)))
@@ -98,7 +98,7 @@ void Cvar_Reset(const s8 *name)
 
 void Cvar_Reset_f()
 {
-	switch(Cmd_Argc()) {
+	switch(Cmd_Argc()){
 	default:
 	case 1: Con_Printf("reset <cvar> : reset cvar to default\n"); break;
 	case 2: Cvar_Reset(Cmd_Argv(1)); break; }
@@ -135,13 +135,13 @@ cvar_t *Cvar_FindVar(const s8 *var_name)
 cvar_t *Cvar_FindVarAfter(const s8 *prev_name, u32 with_flags)
 {
 	cvar_t *var = cvar_vars;
-	if(*prev_name) {
+	if(*prev_name){
 		var = Cvar_FindVar(prev_name);
 		if(!var) return NULL;
 		var = var->next;
 	}
 	// search for the next cvar matching the needed flags
-	while(var) {
+	while(var){
 		if((var->flags & with_flags) || !with_flags) break;
 		var = var->next;
 	}
@@ -200,7 +200,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 		if(!strcmp(var->string, value)) return; // no change
 		var->flags |= CVAR_CHANGED;
 		s32 len = strlen(value);
-		if((u64)len != strlen(var->string)) {
+		if((u64)len != strlen(var->string)){
 			Z_Free((void *)var->string);
 			var->string = (s8 *) Z_Malloc(len + 1);
 		}
@@ -210,13 +210,14 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 	//johnfitz -- save initial value for "reset" command
 	if(!var->default_string) var->default_string = Z_Strdup(var->string);
 	//johnfitz -- during initialization, update default too
-	else if(!host_initialized) {
+	else if(!host_initialized){
 		Con_DPrintf("changing default of %s: %s -> %s\n", var->name,
 				var->default_string, var->string);
 		Z_Free((void *)var->default_string);
 		var->default_string = Z_Strdup(var->string);
 	}
 	if(var->callback) var->callback(var);
+	if(var->flags & CVAR_AUTOCVAR) PR_AutoCvarChanged(var);
 }
 
 void Cvar_SetValueQuick(cvar_t *var, const f32 value)
@@ -235,7 +236,7 @@ void Cvar_SetValueQuick(cvar_t *var, const f32 value)
 void Cvar_Set(const s8 *var_name, const s8 *value)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
-	if(!var) { // there is an error in C code if this happens
+	if(!var){ // there is an error in C code if this happens
 		Con_Printf("Cvar_Set: variable %s not found\n", var_name);
 		return;
 	}
@@ -258,7 +259,7 @@ void Cvar_SetValue(const s8 *var_name, const f32 value)
 void Cvar_SetROM(const s8 *var_name, const s8 *value)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
-	if(var) {
+	if(var){
 		var->flags &= ~CVAR_ROM;
 		Cvar_SetQuick(var, value);
 		var->flags |= CVAR_ROM;
@@ -268,7 +269,7 @@ void Cvar_SetROM(const s8 *var_name, const s8 *value)
 void Cvar_SetValueROM(const s8 *var_name, const f32 value)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
-	if(var) {
+	if(var){
 		var->flags &= ~CVAR_ROM;
 		Cvar_SetValueQuick(var, value);
 		var->flags |= CVAR_ROM;
@@ -278,22 +279,22 @@ void Cvar_SetValueROM(const s8 *var_name, const f32 value)
 void Cvar_RegisterVariable(cvar_t *variable)
 { // Adds a freestanding variable to the variable list.
 	s8 value[512];
-	if(Cvar_FindVar(variable->name)) { // first check if already defined
+	if(Cvar_FindVar(variable->name)){ // first check if already defined
     Con_Printf("Can't register variable %s, already defined\n", variable->name);
 		return; }
-	if(Cmd_Exists(variable->name)) { // check for overlap with a command
+	if(Cmd_Exists(variable->name)){ // check for overlap with a command
 	 Con_Printf("Cvar_RegisterVariable: %s is a command\n", variable->name);
 		return; }
 	// link the variable in
 	//johnfitz -- insert each entry in alphabetical order
-	if(cvar_vars == NULL || strcmp(variable->name, cvar_vars->name) < 0) {
+	if(cvar_vars == NULL || strcmp(variable->name, cvar_vars->name) < 0){
 		variable->next = cvar_vars; // insert at front
 		cvar_vars = variable;
 	}
 	else { // insert later
 		cvar_t *prev = cvar_vars;
 		cvar_t *cursor = cvar_vars->next;
-		while(cursor && (strcmp(variable->name, cursor->name) > 0)) {
+		while(cursor && (strcmp(variable->name, cursor->name) > 0)){
 			prev = cursor;
 			cursor = cursor->next;
 		}
@@ -321,19 +322,17 @@ void Cvar_SetCallback(cvar_t *var, cvarcallback_t func)
 	else var->flags &= ~CVAR_CALLBACK;
 }
 
-
 bool Cvar_Command()
 { // Handles variable inspection and changing from the console
 	cvar_t *v = Cvar_FindVar(Cmd_Argv(0)); // check variables
 	if(!v) return 0;
-	if(Cmd_Argc() == 1) { // perform a variable print or set
+	if(Cmd_Argc() == 1){ // perform a variable print or set
 		Con_Printf("\"%s\" is \"%s\"\n", v->name, v->string);
 		return 1;
 	}
 	Cvar_Set(v->name, Cmd_Argv(1));
 	return 1;
 }
-
 
 void Cvar_WriteVariables(FILE *f) // Write lines containing "set variable value"
 { // for all variables with the archive flag set to 1.
@@ -342,3 +341,22 @@ void Cvar_WriteVariables(FILE *f) // Write lines containing "set variable value"
 			fprintf(f, "%s \"%s\"\n", var->name, var->string);
 }
 
+// Creates a cvar if it does not already exist, otherwise does nothing.
+// Must not be used until after all other cvars are registered.
+// Cvar will be persistent. -- spike
+cvar_t *Cvar_Create(const s8 *name, const s8 *value)
+{
+	cvar_t *newvar;
+	newvar = Cvar_FindVar(name);
+	if(newvar)
+		return newvar; //already exists.
+	if(Cmd_Exists(name))
+		return NULL; //error! panic! oh noes!
+	newvar = Z_Malloc(sizeof(cvar_t) + strlen(name)+1);
+	newvar->name = (s8*)(newvar+1);
+	strcpy((s8*)(newvar+1), name);
+	newvar->flags = CVAR_USERDEFINED;
+	newvar->string = value;
+	Cvar_RegisterVariable(newvar);
+	return newvar;
+}

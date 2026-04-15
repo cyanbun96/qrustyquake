@@ -218,6 +218,76 @@ void V_CalcPowerupCshift()
 	} else cl.cshifts[CSHIFT_POWERUP].percent = 0;
 }
 
+void adjust_saturation(u8 *r, u8 *g, u8 *b, f32 factor)
+{
+	f32 fr = *r, fg = *g, fb = *b;
+	f32 gray = 0.299f * fr + 0.587f * fg + 0.114f * fb;
+	fr = gray + factor * (fr - gray);
+	fg = gray + factor * (fg - gray);
+	fb = gray + factor * (fb - gray);
+	*r = CLAMP(0, fr, 255);
+	*g = CLAMP(0, fg, 255);
+	*b = CLAMP(0, fb, 255);
+}
+
+void adjust_contrast(u8 *r, u8 *g, u8 *b, f32 factor)
+{
+	f32 fr = *r;
+	f32 fg = *g;
+	f32 fb = *b;
+	fr = 128.0f + factor * (fr - 128.0f);
+	fg = 128.0f + factor * (fg - 128.0f);
+	fb = 128.0f + factor * (fb - 128.0f);
+	*r = CLAMP(0, fr, 255);
+	*g = CLAMP(0, fg, 255);
+	*b = CLAMP(0, fb, 255);
+}
+
+void adjust_hue(u8 *r, u8 *g, u8 *b, f32 angle)
+{
+	f32 fr = *r, fg = *g, fb = *b;
+	f32 cosA = cosf(angle);
+	f32 sinA = sinf(angle);
+	f32 wR = 0.299f;
+	f32 wG = 0.587f;
+	f32 wB = 0.114f;
+	f32 m00 = wR + (1.0f - wR) * cosA - wR * sinA;
+	f32 m01 = wG - wG * cosA - wG * sinA;
+	f32 m02 = wB - wB * cosA + (1.0f - wB) * sinA;
+	f32 m10 = wR - wR * cosA + 0.143f * sinA;
+	f32 m11 = wG + (1.0f - wG) * cosA + 0.140f * sinA;
+	f32 m12 = wB - wB * cosA - 0.283f * sinA;
+	f32 m20 = wR - wR * cosA - (1.0f - wR) * sinA;
+	f32 m21 = wG - wG * cosA + wG * sinA;
+	f32 m22 = wB + (1.0f - wB) * cosA + wB * sinA;
+	f32 nr = m00 * fr + m01 * fg + m02 * fb;
+	f32 ng = m10 * fr + m11 * fg + m12 * fb;
+	f32 nb = m20 * fr + m21 * fg + m22 * fb;
+	*r = CLAMP(0, nr, 255);
+	*g = CLAMP(0, ng, 255);
+	*b = CLAMP(0, nb, 255);
+}
+
+void adjust_vibrance(u8 *r, u8 *g, u8 *b, f32 k)
+{
+	k *= 5.0;
+	f32 fr = *r;
+	f32 fg = *g;
+	f32 fb = *b;
+	f32 maxc = fr;
+	if (fg > maxc) maxc = fg;
+	if (fb > maxc) maxc = fb;
+	f32 avg = (fr + fg + fb) / 3.0f;
+	f32 d = (maxc - avg) / 255.0f;
+	f32 scale = 1.0f + k * d;
+	fr = avg + (fr - avg) * scale;
+	fg = avg + (fg - avg) * scale;
+	fb = avg + (fb - avg) * scale;
+	*r = CLAMP(0, fr, 255);
+	*g = CLAMP(0, fg, 255);
+	*b = CLAMP(0, fb, 255);
+}
+
 void V_UpdatePalette()
 {
 	V_CalcPowerupCshift();
@@ -264,9 +334,23 @@ void V_UpdatePalette()
 			b += (cl.cshifts[j].percent *
 					(cl.cshifts[j].destcolor[2] - b)) >> 8;
 		}
-		newpal[0] = gammatable[r];
-		newpal[1] = gammatable[g];
-		newpal[2] = gammatable[b];
+		u8 r2 = CLAMP(0, gammatable[r] * v_redlevel.value, 255);
+		u8 g2 = CLAMP(0, gammatable[g] * v_greenlevel.value, 255);
+		u8 b2 = CLAMP(0, gammatable[b] * v_bluelevel.value, 255);
+		r2 = CLAMP(0, r2 + v_brightness.value * 32.0f, 255);
+		g2 = CLAMP(0, g2 + v_brightness.value * 32.0f, 255);
+		b2 = CLAMP(0, b2 + v_brightness.value * 32.0f, 255);
+		if(v_saturation.value != 1.0f)
+			adjust_saturation(&r2, &g2, &b2, v_saturation.value);
+		if(v_vibrance.value != 0.0f)
+			adjust_vibrance(&r2, &g2, &b2, v_vibrance.value);
+		if(v_contrast.value != 1.0f)
+			adjust_contrast(&r2, &g2, &b2, v_contrast.value);
+		if(v_hue.value != 0.0f)
+			adjust_hue(&r2, &g2, &b2, v_hue.value*M_PI);
+		newpal[0] = r2;
+		newpal[1] = g2;
+		newpal[2] = b2;
 		newpal += 3;
 	}
 	VID_SetPalette(pal, screen);
@@ -408,10 +492,13 @@ void V_CalcRefdef()
 	view->origin[2] += bob;
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
-	if(scr_viewsize.value == 110) view->origin[2] += 1;
-	else if(scr_viewsize.value == 100) view->origin[2] += 2;
-	else if(scr_viewsize.value == 90) view->origin[2] += 1;
-	else if(scr_viewsize.value == 80) view->origin[2] += 0.5;
+	if(scr_hudstyle.value == 0 && 
+	    !(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value)) {
+		if(scr_viewsize.value == 110) view->origin[2] += 1;
+		else if(scr_viewsize.value == 100) view->origin[2] += 2;
+		else if(scr_viewsize.value == 90) view->origin[2] += 1;
+		else if(scr_viewsize.value == 80) view->origin[2] += 0.5;
+	}
 	view->model = cl.model_precache[cl.stats[STAT_WEAPON]];
 	view->frame = cl.stats[STAT_WEAPONFRAME];
 	view->colormap = CURWORLDCMAP;
@@ -514,6 +601,14 @@ void V_Init()
 	Cvar_RegisterVariable(&v_kickpitch);
 	BuildGammaTable(1.0); // no gamma yet
 	Cvar_RegisterVariable(&v_gamma);
+	Cvar_RegisterVariable(&v_redlevel);
+	Cvar_RegisterVariable(&v_greenlevel);
+	Cvar_RegisterVariable(&v_bluelevel);
+	Cvar_RegisterVariable(&v_saturation);
+	Cvar_RegisterVariable(&v_vibrance);
+	Cvar_RegisterVariable(&v_contrast);
+	Cvar_RegisterVariable(&v_hue);
+	Cvar_RegisterVariable(&v_brightness);
 	V_AllocLedges();
 	V_AllocLsurfs();
 }

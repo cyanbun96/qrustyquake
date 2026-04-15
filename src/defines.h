@@ -17,20 +17,21 @@
 #define NUM_TYPE_SIZES 8 // progs.h
 #define MAX_ENT_LEAFS 32
 #define EDICT_FROM_AREA(l) STRUCT_FROM_LINK(l,edict_t,area)
-#define NEXT_EDICT(e) ((edict_t*)((u8*)e + pr_edict_size))
-#define EDICT_TO_PROG(e) (s32)((u8*)e - (u8*)sv.edicts)
-#define PROG_TO_EDICT(e) ((edict_t*)((u8*)sv.edicts + e))
-#define G_FLOAT(o) (pr_globals[o])
-#define G_INT(o) (*(s32*)&pr_globals[o])
-#define G_EDICT(o) ((edict_t*)((u8*)sv.edicts+ *(s32*)&pr_globals[o]))
+#define NEXT_EDICT(e) ((edict_t*)((u8*)e + qcvm->edict_size))
+#define EDICT_TO_PROG(e) (s32)((u8*)e - (u8*)qcvm->edicts)
+#define PROG_TO_EDICT(e) ((edict_t*)((u8*)qcvm->edicts + e))
+#define G_FLOAT(o) (qcvm->globals[o])
+#define G_INT(o) (*(s32*)&qcvm->globals[o])
+#define G_EDICT(o) ((edict_t *)((u8*)qcvm->edicts+ *(s32*)&qcvm->globals[o]))
 #define G_EDICTNUM(o) NUM_FOR_EDICT(G_EDICT(o))
-#define G_VECTOR(o) (&pr_globals[o])
-#define G_STRING(o) (PR_GetString(*(string_t*)&pr_globals[o]))
-#define G_FUNCTION(o) (*(func_t*)&pr_globals[o])
+#define G_VECTOR(o) (&qcvm->globals[o])
+#define G_STRING(o) (PR_GetString(*(string_t *)&qcvm->globals[o]))
+#define G_FUNCTION(o) (*(func_t *)&qcvm->globals[o])
 #define E_FLOAT(e,o) (((f32*)&e->v)[o])
 #define E_INT(e,o) (*(s32*)&((f32*)&e->v)[o])
 #define E_VECTOR(e,o) (&((f32*)&e->v)[o])
 #define E_STRING(e,o) (PR_GetString(*(string_t*)&((f32*)&e->v)[o]))
+#define G_VECTORSET(r,x,y,z) do{G_FLOAT((r)+0) = x; G_FLOAT((r)+1) = y;G_FLOAT((r)+2) = z;}while(0)
 #define PROGHEADER_CRC 5927
 #define WAV_FORMAT_PCM 1 // q_sound.h
 #define MAX_CHANNELS 1024
@@ -237,6 +238,8 @@
 #define CVAR_LOCKED (1U << 8) // locked temporarily
 #define CVAR_REGISTERED (1U << 10) // the var is added to the list of variables
 #define CVAR_CALLBACK (1U << 16) // var has a callback
+#define CVAR_USERDEFINED (1U << 17) // cvar was created by the user/mod, and needs to be saved a bit differently.
+#define CVAR_AUTOCVAR (1U << 18) // cvar changes need to feed back to qc global changes.
 #define NET_NAMELEN 64 // net.h
 #define NET_MAXMESSAGE 65535 // ericw -- was 32000
 #define R_SKY_SMASK 0x007F0000 // d_local.h
@@ -246,6 +249,9 @@
 #define SURFCACHE_SIZE_AT_320X200 600*1024
 #define FOG_LUT_LEVELS 32
 #define MAX_ALIAS_NAME 32 // cmd.h
+#define Cmd_AddCommand_ClientCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_client,false)   //command is meant to be safe for anyone to execute.
+#define Cmd_AddCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_command,false)                //regular console commands
+#define Cmd_AddCommand_ServerCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_server,false)   //command came from a server
 #define MAX_ARGS 80
 #define MOVE_NORMAL 0 // world.h
 #define MOVE_NOMONSTERS 1
@@ -274,6 +280,7 @@
 #define DEAD_NO 0 // edict->deadflag values
 #define DEAD_DYING 1
 #define DEAD_DEAD 2
+#define DEAD_RESPAWNABLE 3
 #define DAMAGE_NO 0
 #define DAMAGE_YES 1
 #define DAMAGE_AIM 2
@@ -290,10 +297,6 @@
 #define FL_PARTIALGROUND 1024 // not all corners are valid
 #define FL_WATERJUMP 2048 // player jumping out of water
 #define FL_JUMPRELEASED 4096 // for jump debouncing
-#define EF_BRIGHTFIELD 1 // entity effects
-#define EF_MUZZLEFLASH 2
-#define EF_BRIGHTLIGHT 4
-#define EF_DIMLIGHT 8
 #define SPAWNFLAG_NOT_EASY 256
 #define SPAWNFLAG_NOT_MEDIUM 512
 #define SPAWNFLAG_NOT_HARD 1024
@@ -486,7 +489,9 @@
 #define MAX_SOUNDS 2048 // so they cannot be blindly increased
 #define SAVEGAME_COMMENT_LENGTH 39
 #define MAX_STYLESTRING 64
-#define MAX_CL_STATS 32 // stats are integers communicated to
+#define CL_SetHudStat(stat) cl.statsf[stat] = cl.stats[stat]
+#define MAX_CL_BASE_STATS 32
+#define MAX_CL_STATS 256 // stats are integers communicated to
 #define STAT_HEALTH 0 // the client by the server
 #define STAT_FRAGS 1
 #define STAT_WEAPON 2
@@ -498,10 +503,12 @@
 #define STAT_ROCKETS 8
 #define STAT_CELLS 9
 #define STAT_ACTIVEWEAPON 10
+#define STAT_NONCLIENT 11 // first stat not included in svc_clientdata
 #define STAT_TOTALSECRETS 11
 #define STAT_TOTALMONSTERS 12
 #define STAT_SECRETS 13 // bumped on client side by svc_foundsecret
 #define STAT_MONSTERS 14 // bumped by svc_killedmonster
+#define STAT_ITEMS 15 // replaces clc_clientdata info
 #define IT_SHOTGUN 1 // stock defines
 #define IT_SUPER_SHOTGUN 2
 #define IT_NAILGUN 4
@@ -740,13 +747,28 @@
 #define TEXPREF_FULLBRIGHT 0x0100 // use fullbright mask palette
 #define TEXPREF_NOBRIGHT 0x0200 // use nobright mask palette
 #define TEXPREF_CONCHARS 0x0400 // use conchars palette
-#define TEXPREF_WARPIMAGE 0x0800 // resize this texture when warpimagesize changes
+#define TEXPREF_ARRAY 0x0800 // array texture
+#define TEXPREF_CUBEMAP 0x1000 // cubemap texture
+#define TEXPREF_BINDLESS 0x2000 // enable bindless usage
+#define TEXPREF_ALPHABRIGHT 0x4000 // use palette with lighting mask in alpha channel (0=fullbright, 1=lit)
+#define TEXPREF_CLAMP 0x8000 // clamp UVs
+#define TEXPREF_ALPHAPIXELS 0x10000 // has demonstratable alpha pixels, mostly used for md3
+#define TEXPREF_UNCOMPRESSED 0x20000 // disable compression
+#define TEXPREF_HASALPHA (TEXPREF_ALPHA|TEXPREF_ALPHABRIGHT) // texture has alpha channel
+#define PICFLAG_AUTO 0 //value used when no flags known
+#define PICFLAG_WAD (1u<<0) //name matches that of a wad lump
+//#define PICFLAG_TEMP (1u<<1)
+#define PICFLAG_WRAP (1u<<2) //make sure npot stuff doesn't break wrapping.
+#define PICFLAG_MIPMAP (1u<<3) //disable use of scrap...
+//#define PICFLAG_DOWNLOAD (1u<<8) //request to download it from the gameserver if its not stored locally.
+#define PICFLAG_BLOCK (1u<<9) //wait until the texture is fully loaded.
+#define PICFLAG_NOLOAD (1u<<31)
 //johnfitz -- extra flags for rendering
 #define MOD_NOLERP 256 // don't lerp when animating
 #define MOD_NOSHADOW 512 // don't cast a shadow
 #define MOD_FBRIGHTHACK 1024 // when fullbrights are disabled, use a hack to render this model brighter
 
-#define MAX_CACHED_PICS 128 // draw.c
+#define MAX_CACHED_PICS 1024 // was 128 // draw.c
 
 #define MAXLEFTCLIPEDGES 100 // r_draw.c
 #define FULLY_CLIPPED_CACHED 0x80000000
@@ -775,8 +797,9 @@
 #define MAXGAMEDIRLEN 1000
 #define MAXPRINTMSG 4096
 
-#define MAX_STACK_DEPTH 64 // pr_exec.c
-#define LOCALSTACK_SIZE 2048
+#define MAX_STACK_DEPTH 1024 // pr_exec.c
+#define LOCALSTACK_SIZE 16384
+#define MAX_BUILTINS 1280
 
 #define CRC_INIT_VALUE 0xffff // crc.c
 #define CRC_XOR_VALUE 0x0000
@@ -826,15 +849,14 @@
 #define LOADFILE_MALLOC 5
 
 #define MAX_FIELD_LEN 64 // pr_edict.c
-#define GEFV_CACHESIZE 2
 #define PR_STRING_ALLOCSLOTS 256
 
 #define STEPSIZE 18 // sv_move.c
 #define DI_NODIR -1
 
-#define STRINGTEMP_BUFFERS 16 // pr_cmds.c
+#define STRINGTEMP_BUFFERS 1024 // pr_cmds.c
 #define STRINGTEMP_LENGTH 1024
-#define RETURN_EDICT(e) (((s32 *)pr_globals)[OFS_RETURN] = EDICT_TO_PROG(e))
+#define RETURN_EDICT(e) (((s32 *)qcvm->globals)[OFS_RETURN] = EDICT_TO_PROG(e))
 #define MSG_BROADCAST 0 // unreliable to all
 #define MSG_ONE 1 // reliable to one (msg_entity)
 #define MSG_ALL 2 // reliable to all

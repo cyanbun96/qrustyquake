@@ -61,7 +61,7 @@ bool SV_movestep(edict_t *ent, vec3_t move, bool relink)
 		for(s32 i = 0; i < 2; i++) {
 			VectorAdd(ent->v.origin, move, neworg);
 			edict_t *enemy = PROG_TO_EDICT(ent->v.enemy);
-			if(i == 0 && enemy != sv.edicts) {
+			if(i == 0 && enemy != qcvm->edicts) {
 				f32 dz = ent->v.origin[2] - 
 				    PROG_TO_EDICT(ent->v.enemy)->v.origin[2];
 				if(dz > 40) neworg[2] -= 8;
@@ -77,7 +77,7 @@ bool SV_movestep(edict_t *ent, vec3_t move, bool relink)
 				if(relink) SV_LinkEdict(ent, 1);
 				return 1;
 			}
-			if(enemy == sv.edicts) break;
+			if(enemy == qcvm->edicts) break;
 		}
 		return 0;
 	}
@@ -212,7 +212,7 @@ void SV_MoveToGoal()
 		return;
 	}
 	// if the next step hits the enemy, return immediately
-	if(PROG_TO_EDICT(ent->v.enemy)!=sv.edicts&&SV_CloseEnough(ent,goal,dst))
+	if(PROG_TO_EDICT(ent->v.enemy)!=qcvm->edicts&&SV_CloseEnough(ent,goal,dst))
 		return;
 	// bump around...
 	if((rand()&3)==1 || !SV_StepDirection(ent, ent->v.ideal_yaw, dst))

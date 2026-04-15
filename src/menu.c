@@ -25,6 +25,8 @@ static s32 options_cursor;
 static s32 keys_cursor;
 static s32 bind_grab;
 static s32 new_cursor;
+static s32 csqc_cursor;
+static s32 palette_cursor;
 static s32 mods_cursor;
 static s32 mods_scroll;
 static s32 mods_total;
@@ -186,7 +188,7 @@ s8 *quitMessage[] = {
 
 	" Milord, methinks that  ",
 	"   thou art a lowly     ",
-	" quitter. Is this 1? ",
+	" quitter. Is this true? ",
 	"                        ",
 
 	" Do I need to bust your ",
@@ -222,7 +224,8 @@ s8 *quitMessage[] = {
 
 enum { m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup,
 m_net, m_options, m_video, m_keys, m_new, m_gamepad, m_display, m_graphics, 
-m_help, m_quit, m_lanconfig, m_gameoptions, m_search, m_slist, m_maps, m_mods
+m_help, m_quit, m_lanconfig, m_gameoptions, m_search, m_slist, m_maps, m_mods,
+m_csqc, m_palette
 } m_state;
 
 void M_Menu_Main_f();
@@ -253,6 +256,8 @@ void M_Options_Draw();
 void M_Keys_Draw();
 void M_New_Draw();
 void M_Mods_Draw();
+void M_CSQC_Draw();
+void M_Palette_Draw();
 void M_Maps_Draw();
 void M_Video_Draw();
 void M_Help_Draw();
@@ -1620,6 +1625,205 @@ void M_Mods_List_Update()
 		mods_scroll = q_max(0, mods_total - 19);
 }
 
+void M_Palette_Draw()
+{
+	s8 temp[32];
+	s32 xoffset = 0;
+	M_DrawCursor(192, 32+palette_cursor*8);
+	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
+	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
+	M_DrawTransPic((320 - p->width) / 2, 4, p);
+	M_Print(xoffset, 32, "            Brightness");
+	M_Print(xoffset, 40, "                 Gamma");
+	M_Print(xoffset, 48, "              Contrast");
+	M_Print(xoffset, 56, "            Saturation");
+	M_Print(xoffset, 64, "              Vibrance");
+	M_Print(xoffset, 72, "             Hue Shift");
+	M_Print(xoffset, 80, "             Red Level");
+	M_Print(xoffset, 88, "           Green Level");
+	M_Print(xoffset, 96, "            Blue Level");
+	sprintf(temp, "%0.1f\n", v_brightness.value);
+	M_Print(xoffset + 204, 32, temp);
+	sprintf(temp, "%0.1f\n", v_gamma.value);
+	M_Print(xoffset + 204, 40, temp);
+	sprintf(temp, "%0.1f\n", v_contrast.value);
+	M_Print(xoffset + 204, 48, temp);
+	sprintf(temp, "%0.1f\n", v_saturation.value);
+	M_Print(xoffset + 204, 56, temp);
+	sprintf(temp, "%0.1f\n", v_vibrance.value);
+	M_Print(xoffset + 204, 64, temp);
+	sprintf(temp, "%0.1f\n", v_hue.value);
+	M_Print(xoffset + 204, 72, temp);
+	sprintf(temp, "%0.1f\n", v_redlevel.value);
+	M_Print(xoffset + 204, 80, temp);
+	sprintf(temp, "%0.1f\n", v_greenlevel.value);
+	M_Print(xoffset + 204, 88, temp);
+	sprintf(temp, "%0.1f\n", v_bluelevel.value);
+	M_Print(xoffset + 204, 96, temp);
+	M_Print(xoffset + 204, 104, "Reset");
+}
+
+void M_Palette_Key(s32 k)
+{
+	switch (k) {
+	case K_ESCAPE:
+		M_Menu_New_f();
+		break;
+	case K_LEFTARROW:
+		S_LocalSound("misc/menu3.wav");
+		switch(palette_cursor) {
+		case 0: Cvar_SetValue("v_brightness",
+			CLAMP(-1, v_brightness.value - 0.1, 1)); break;
+		case 1: Cvar_SetValue("gamma",
+			CLAMP(0, v_gamma.value - 0.1, 2)); break;
+		case 2: Cvar_SetValue("v_contrast",
+			CLAMP(0, v_contrast.value - 0.1, 2)); break;
+		case 3: Cvar_SetValue("v_saturation",
+			CLAMP(0, v_saturation.value - 0.1, 2)); break;
+		case 4: Cvar_SetValue("v_vibrance",
+			CLAMP(-1, v_vibrance.value - 0.1, 1)); break;
+		case 5: Cvar_SetValue("v_hue",
+			CLAMP(-1, v_hue.value - 0.1, 1)); break;
+		case 6: Cvar_SetValue("v_redlevel",
+			CLAMP(0, v_redlevel.value - 0.1, 2)); break;
+		case 7: Cvar_SetValue("v_greenlevel",
+			CLAMP(0, v_greenlevel.value - 0.1, 2)); break;
+		case 8: Cvar_SetValue("v_bluelevel",
+			CLAMP(0, v_bluelevel.value - 0.1, 2)); break;
+		}
+		break;
+	case K_RIGHTARROW:
+	case K_ENTER:
+		S_LocalSound("misc/menu3.wav");
+		switch(palette_cursor) {
+		case 0: Cvar_SetValue("v_brightness",
+			CLAMP(-1, v_brightness.value + 0.1, 1)); break;
+		case 1: Cvar_SetValue("gamma",
+			CLAMP(0, v_gamma.value + 0.1, 2)); break;
+		case 2: Cvar_SetValue("v_contrast",
+			CLAMP(0, v_contrast.value + 0.1, 2)); break;
+		case 3: Cvar_SetValue("v_saturation",
+			CLAMP(0, v_saturation.value + 0.1, 2)); break;
+		case 4: Cvar_SetValue("v_vibrance",
+			CLAMP(-1, v_vibrance.value + 0.1, 1)); break;
+		case 5: Cvar_SetValue("v_hue",
+			CLAMP(-1, v_hue.value + 0.1, 1)); break;
+		case 6: Cvar_SetValue("v_redlevel",
+			CLAMP(0, v_redlevel.value + 0.1, 2)); break;
+		case 7: Cvar_SetValue("v_greenlevel",
+			CLAMP(0, v_greenlevel.value + 0.1, 2)); break;
+		case 8: Cvar_SetValue("v_bluelevel",
+			CLAMP(0, v_bluelevel.value + 0.1, 2)); break;
+		case 9:
+			Cvar_Reset("v_brightness");
+			Cvar_Reset("gamma");
+			Cvar_Reset("v_contrast");
+			Cvar_Reset("v_saturation");
+			Cvar_Reset("v_vibrance");
+			Cvar_Reset("v_hue");
+			Cvar_Reset("v_redlevel");
+			Cvar_Reset("v_greenlevel");
+			Cvar_Reset("v_bluelevel");
+		}
+		break;
+	case K_UPARROW:
+		S_LocalSound("misc/menu1.wav");
+		if (palette_cursor == 0) palette_cursor = 9;
+		else palette_cursor--;
+		break;
+	case K_DOWNARROW:
+		S_LocalSound("misc/menu1.wav");
+		if (palette_cursor == 9) palette_cursor = 0;
+		else palette_cursor++;
+		break;
+	default:
+		break;
+	}
+}
+void M_CSQC_Draw()
+{
+	s8 temp[32];
+	s32 xoffset = 0;
+	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
+	M_DrawCursor(192, 48+csqc_cursor*8);
+	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
+	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
+	M_DrawTransPic((320 - p->width) / 2, 4, p);
+	M_DrawTextBox(64, 28, 21, 1);
+	M_Print(80, 36, "Custom HUD:");
+	if(csqc_active) M_PrintWhite(80, 36, "            Active");
+	else M_Print(80, 36, "            Inactive");
+	M_Print(xoffset, 48, "      Allow Custom HUD");
+	M_Print(xoffset, 56, "             HUD Alpha");
+	M_Print(xoffset, 64, "           HUD Scale 1");
+	M_Print(xoffset, 72, "           HUD Scale 2");
+	M_Print(xoffset + 204, 48, (s32)cl_nocsqc.value==0 ? "yes":"no");
+	sprintf(temp, "%0.1f\n", scr_sbaralpha.value);
+	M_Print(xoffset + 204, 56, temp);
+	sprintf(temp, "%0.1f\n", scr_sbarscale.value);
+	M_Print(xoffset + 204, 64, temp);
+	sprintf(temp, "%0.1f\n", scr_qchudscale.value);
+	M_Print(xoffset + 204, 72, temp);
+	M_DrawTextBox(52, 158, 30, 2);
+	if(csqc_cursor == 0) {
+		M_Print(64, 166, "Defined by mod's");
+		M_PrintWhite(64, 166, "                 csprogs.dat");
+		M_Print(64, 174, "Map reload required to enable");
+	} else if(csqc_cursor == 1 || csqc_cursor == 2) {
+		M_Print(64, 166, "   This setting's behavior");
+		M_Print(64, 174, "    is defined by the mod");
+	} else if(csqc_cursor == 3) {
+		M_Print(64, 166, "   This setting's behavior");
+		M_Print(64, 174, "  is independent of the mod");
+	}
+}
+
+void M_CSQC_Key(s32 k)
+{
+	switch (k) {
+	case K_ESCAPE:
+		M_Menu_New_f();
+		break;
+	case K_LEFTARROW:
+		S_LocalSound("misc/menu3.wav");
+		switch(csqc_cursor) {
+		case 0: Cvar_SetValue("cl_nocsqc", !cl_nocsqc.value); break;
+		case 1: Cvar_SetValue("scr_sbaralpha",
+			CLAMP(0, scr_sbaralpha.value - 0.1, 1)); break;
+		case 2: Cvar_SetValue("scr_sbarscale",
+			CLAMP(0, scr_sbarscale.value - 0.1, 4)); break;
+		case 3: Cvar_SetValue("scr_qchudscale",
+			CLAMP(0, scr_qchudscale.value - 0.1, 4)); break;
+		}
+		break;
+	case K_RIGHTARROW:
+	case K_ENTER:
+		S_LocalSound("misc/menu3.wav");
+		switch(csqc_cursor) {
+		case 0: Cvar_SetValue("cl_nocsqc", !cl_nocsqc.value); break;
+		case 1: Cvar_SetValue("scr_sbaralpha",
+			CLAMP(0, scr_sbaralpha.value + 0.1, 1)); break;
+		case 2: Cvar_SetValue("scr_sbarscale",
+			CLAMP(0, scr_sbarscale.value + 0.1, 4)); break;
+		case 3: Cvar_SetValue("scr_qchudscale",
+			CLAMP(0, scr_qchudscale.value + 0.1, 4)); break;
+		}
+		break;
+	case K_UPARROW:
+		S_LocalSound("misc/menu1.wav");
+		if (csqc_cursor == 0) csqc_cursor = 3;
+		else csqc_cursor--;
+		break;
+	case K_DOWNARROW:
+		S_LocalSound("misc/menu1.wav");
+		if (csqc_cursor == 3) csqc_cursor = 0;
+		else csqc_cursor++;
+		break;
+	default:
+		break;
+	}
+}
+
 void M_Mods_Draw()
 {
 	s8 temp[32];
@@ -1881,6 +2085,20 @@ void M_Display_Key(s32 k)
 	}
 }
 
+void M_Menu_Palette_f()
+{
+	key_dest = key_menu;
+	m_state = m_palette;
+	m_entersound = 1;
+}
+
+void M_Menu_CSQC_f()
+{
+	key_dest = key_menu;
+	m_state = m_csqc;
+	m_entersound = 1;
+}
+
 void M_Menu_Mods_f()
 {
 	key_dest = key_menu;
@@ -1976,7 +2194,13 @@ void M_Display_Draw()
 	if (newwinmode == 0)      M_Print(xoffset + 204, 112, "Windowed");
 	else if (newwinmode == 1) M_Print(xoffset + 204, 112, "Fullscreen");
 	else                      M_Print(xoffset + 204, 112, "Borderless");
-	if (display_cursor == 4) {
+	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
+	if (csqc_active && display_cursor == 2) {
+		M_DrawTextBox(52, 166, 25, 2);
+		M_Print(72, 174, "WARNING: Custom mod HUD");
+		M_Print(72, 182, "      is");
+		M_PrintWhite(72, 182, "         ACTIVE");
+	} else if (display_cursor == 4) {
 		M_DrawTextBox(84, 166, 17, 1);
 		M_Print(96, 174, "Press   for auto");
 		M_PrintWhite(96, 174, "      A");
@@ -2416,6 +2640,30 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Color Space:");
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
 	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==501&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWWATER)
+			&& r_wateralpha.value && r_wateralpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==502&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWSLIME)
+			&& r_slimealpha.value && r_slimealpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==503&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWLAVA)
+			&& r_lavaalpha.value && r_lavaalpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==504&&
+			!(cl.worldmodel->contentstransparent&SURF_DRAWTELE)
+			&& r_telealpha.value && r_telealpha.value < 1) {
+			M_DrawTextBox(12, 150, 33, 1);
+			M_Print(28, 158, "Not supported by the current map");
+		}
 		M_Print(xoffset, 32, "Style:");
 		M_Print(xoffset+x2, 32, r_hlwater.value==0?"Classic":"HL");
 		M_Print(xoffset, 40, "Water Alpha:");
@@ -2545,6 +2793,8 @@ void M_New_Draw()
 	M_Print(xoffset + 204, 64, "Gamepad...");
 	M_Print(xoffset + 204, 72, "Custom maps...");
 	M_Print(xoffset + 204, 80, "Mods...");
+	M_Print(xoffset + 204, 88, "Custom HUD...");
+	M_Print(xoffset + 204, 96, "Palette...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -2649,12 +2899,12 @@ void M_New_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 6;
+		if (new_cursor == 0) new_cursor = 8;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 6) new_cursor = 0;
+		if (new_cursor == 8) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_RIGHTARROW:
@@ -2670,6 +2920,8 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 4) M_Menu_Gamepad_f();
 		else if (new_cursor == 5) M_Menu_Maps_f();
 		else if (new_cursor == 6) M_Menu_Mods_f();
+		else if (new_cursor == 7) M_Menu_CSQC_f();
+		else if (new_cursor == 8) M_Menu_Palette_f();
 		break;
 	}
 }
@@ -3451,6 +3703,8 @@ void M_Init()
 	Cmd_AddCommand("menu_gamepad", M_Menu_Gamepad_f);
 	Cmd_AddCommand("menu_maps", M_Menu_Maps_f);
 	Cmd_AddCommand("menu_mods", M_Menu_Mods_f);
+	Cmd_AddCommand("menu_csqc", M_Menu_CSQC_f);
+	Cmd_AddCommand("menu_palette", M_Menu_Palette_f);
 	Cmd_AddCommand("menu_display", M_Menu_Display_f);
 	Cmd_AddCommand("menu_graphics", M_Menu_Graphics_f);
 	Cmd_AddCommand("help", M_Menu_Help_f);
@@ -3486,6 +3740,8 @@ void M_Draw()
 		case m_display: M_Display_Draw(); break;
 		case m_maps: M_Maps_Draw(); break;
 		case m_mods: M_Mods_Draw(); break;
+		case m_csqc: M_CSQC_Draw(); break;
+		case m_palette: M_Palette_Draw(); break;
 		case m_graphics: M_Graphics_Draw(); break;
 		case m_video: M_Video_Draw(); break;
 		case m_help: M_Help_Draw(); break;
@@ -3520,6 +3776,8 @@ void M_Keydown(s32 key)
 		case m_display: M_Display_Key(key); return;
 		case m_maps: M_Maps_Key(key); return;
 		case m_mods: M_Mods_Key(key); return;
+		case m_csqc: M_CSQC_Key(key); return;
+		case m_palette: M_Palette_Key(key); return;
 		case m_graphics: M_Graphics_Key(key); return;
 		case m_help: M_Help_Key(key); return;
 		case m_quit: M_Quit_Key(key); return;
