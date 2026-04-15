@@ -25,7 +25,9 @@ static qpic_t *DrawQC_CachePic(const s8 *picname1, u32 flags)
 	for(s32 i = 0; i < (s32)numqcpics; i++) // Remove broken pics
 	{ // TODO find out what breaks them in the first place
 		if(qcpics[i].pic)
-			if(qcpics[i].pic->width==0 || qcpics[i].pic->height==0)
+			if(qcpics[i].pic->width==0 || qcpics[i].pic->height==0
+				|| qcpics[i].pic->width > MAXWIDTH
+				|| qcpics[i].pic->height > MAXHEIGHT)
 				qcpics[i].pic = 0;
 	}
 	s8 picname[MAX_OSPATH] = "gfx/";
