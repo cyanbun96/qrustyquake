@@ -292,6 +292,33 @@ void Mod_LoadTextures(lump_t *l)
 			mt->offsets[j] = LittleLong(mt->offsets[j]);
 		if((mt->width & 15) || (mt->height & 15))
 			Sys_Error("Texture %s is not 16 aligned", mt->name);
+		bool is_water = (mt->name[0] == '*');
+		//CyanBun96: turbulent rendering code only supports 64x64
+		//textures, and i'm NOT trying to rewrite it to support more.
+		if (is_water && (mt->width != 64 || mt->height != 64)) {
+			u8 *src = (u8 *)mt + mt->offsets[0];
+			u8 resized[64 * 64];
+			//simple nearest-neighbor downscale
+			for(s32 y = 0; y < 64; y++){
+				s32 src_y = y * mt->height / 64;
+				for(s32 x = 0; x < 64; x++){
+					s32 src_x = x * mt->width / 64;
+					resized[y * 64 + x] = src[src_y * mt->width + src_x];
+				}
+			}
+			s32 pixels = 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8;
+			texture_t *tx = Hunk_AllocName(sizeof(texture_t) + pixels, loadname);
+			loadmodel->textures[i] = tx;
+			memcpy(tx->name, mt->name, sizeof(tx->name));
+			tx->width = 64;
+			tx->height = 64;
+			tx->offsets[0] = sizeof(texture_t);//mips are not used
+			tx->offsets[1] = sizeof(texture_t);//for water
+			tx->offsets[2] = sizeof(texture_t);
+			tx->offsets[3] = sizeof(texture_t);
+			memcpy((u8*)tx + tx->offsets[0], resized, 64 * 64);
+			continue;
+		}
 		s32 pixels = mt->width * mt->height / 64 * 85;
 		texture_t *tx=Hunk_AllocName(sizeof(texture_t)+pixels,loadname);
 		loadmodel->textures[i] = tx;
