@@ -375,6 +375,7 @@ void *Z_Malloc(s32 size);
 void *Z_Realloc(void *ptr, s32 size);
 s8 *Z_Strdup(const s8 *s);
 void *Hunk_Alloc(s32 size);
+void *Hunk_AllocNoFill(s32 size);
 void *Hunk_AllocName(s32 size, const s8 *name);
 void *Hunk_HighAllocName(s32 size, const s8 *name);
 s32 Hunk_LowMark();
