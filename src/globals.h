@@ -589,6 +589,7 @@ EX dlight_t cl_dlights[MAX_DLIGHTS];
 EX s32 cl_numvisedicts;
 EX entity_t *cl_visedicts[MAX_VISEDICTS];
 void CL_AccumulateCmd();
+void CL_FreeState();
 EX entity_t cl_temp_entities[MAX_TEMP_ENTITIES];                    // cl_tent.c
 EX beam_t cl_beams[MAX_BEAMS];
 void Cbuf_Waited();                                                     // cmd.c

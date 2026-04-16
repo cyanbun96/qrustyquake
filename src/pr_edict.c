@@ -1393,7 +1393,7 @@ static void PR_FillOffsetTables()
 bool PR_LoadProgs(const s8 *filename, bool fatal)
 {
 	PR_ClearProgs(qcvm);//just in case.
-	qcvm->progs = (dprograms_t *)COM_LoadMallocFile(filename, NULL);
+	qcvm->progs = (dprograms_t *)COM_LoadHunkFile(filename, NULL);
 	if(!qcvm->progs)
 		return false;
 	Con_DPrintf("Programs occupy %" SDL_PRIs64 "K.\n", com_filesize/1024);

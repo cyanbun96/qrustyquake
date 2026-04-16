@@ -29,6 +29,12 @@ void CL_SetStatString_f()
 
 void CL_FreeState()
 {
+	if (cl.qcvm.extfuncs.CSQC_Shutdown){
+		PR_SwitchQCVM(&cl.qcvm);
+		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
+		qcvm->extfuncs.CSQC_Shutdown = 0;
+		PR_SwitchQCVM(NULL);
+	}
 	for(s32 i = 0; i < MAX_CL_STATS; i++)
 		free(cl.statss[i]);
 	PR_ClearProgs(&cl.qcvm);
