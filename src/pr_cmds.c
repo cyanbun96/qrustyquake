@@ -14,6 +14,7 @@ static struct {
 	s8 name[MAX_QPATH];
 	u32 flags;
 	qpic_t *pic;
+	bool malloced;
 } *qcpics;
 static s32 numqcpics;
 static s32 maxqcpics;
@@ -22,14 +23,6 @@ void PF_Fixme(){ if(developer.value)PR_RunError("unimplemented builtin"); }
 
 static qpic_t *DrawQC_CachePic(const s8 *picname1, u32 flags)
 { // CyanBun96: this is in dire need of rewrite
-	for(s32 i = 0; i < (s32)numqcpics; i++) // Remove broken pics
-	{ // TODO find out what breaks them in the first place
-		if(qcpics[i].pic)
-			if(qcpics[i].pic->width==0 || qcpics[i].pic->height==0
-				|| qcpics[i].pic->width > MAXWIDTH
-				|| qcpics[i].pic->height > MAXHEIGHT)
-				qcpics[i].pic = 0;
-	}
 	s8 picname[MAX_OSPATH] = "gfx/";
 	if(strncmp(picname, picname1, 4))
 		strncpy(picname+4, picname1, MAX_OSPATH-4-4);
@@ -66,8 +59,11 @@ static qpic_t *DrawQC_CachePic(const s8 *picname1, u32 flags)
 //I just hope we have npot support.
 	if(flags & PICFLAG_MIPMAP)
 		texflags |= TEXPREF_MIPMAP;
-	//try to load it from a wad if applicable.
+	qcpics[i].malloced = false;
 	qcpics[i].pic = Draw_TryCachePic(picname);
+	if(qcpics[i].pic){
+		qcpics[i].malloced = true;
+	}
 	if(!qcpics[i].pic){
 		qcpics[i].pic = Draw_PicFromWad((s8*)picname1+(strncmp(picname1,
 						"gfx/", 4)?0:4));
@@ -77,8 +73,15 @@ static qpic_t *DrawQC_CachePic(const s8 *picname1, u32 flags)
 		numqcpics++;
 	return qcpics[i].pic;
 }
+
 void PR_ReloadPics(SDL_UNUSED bool purge)
 {
+	for(s32 i = 0; i < (s32)numqcpics; i++){
+		if(qcpics[i].pic && qcpics[i].malloced){
+			free(qcpics[i].pic);
+			qcpics[i].pic = 0;
+		}
+	}
 	numqcpics = 0;
 	free(qcpics);
 	qcpics = NULL;

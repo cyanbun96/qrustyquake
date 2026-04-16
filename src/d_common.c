@@ -108,22 +108,7 @@ qpic_t *Draw_CachePic(s8 *path)
 
 qpic_t *Draw_TryCachePic(s8 *path)
 {
-	cachepic_t *pic = menu_cachepics;
-	s32 i = 0;
-	for(; i < menu_numcachepics; pic++, i++)
-		if(!strcmp(path, pic->name))
-			break;
-	if(i == menu_numcachepics){
-		if(menu_numcachepics == MAX_CACHED_PICS)
-			Sys_Error("menu_numcachepics == MAX_CACHED_PICS");
-		menu_numcachepics++;
-		strcpy(pic->name, path);
-	}
-	qpic_t *dat = Cache_Check(&pic->cache);
-	if(dat)
-		return dat;
-	COM_LoadCacheFile(path, &pic->cache, NULL); // load the pic from disk
-	dat = (qpic_t *) pic->cache.data;
+	qpic_t *dat = (qpic_t*)COM_LoadMallocFile(path, NULL);
 	if(!dat){
 		Con_DPrintf("Draw_TryCachePic: failed to load %s\n", path);
 		return NULL;
