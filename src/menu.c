@@ -188,7 +188,7 @@ s8 *quitMessage[] = {
 
 	" Milord, methinks that  ",
 	"   thou art a lowly     ",
-	" quitter. Is this 1? ",
+	" quitter. Is this true? ",
 	"                        ",
 
 	" Do I need to bust your ",
