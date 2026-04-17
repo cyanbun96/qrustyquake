@@ -30,7 +30,7 @@ static vec3_t box_vecs[6][2] = { {{0,-1,0}, {-1,0,0} }, { {0,1,0}, {0,0,-1} },
 				{ {0,-1,0}, {1,0,0} },  { {1,0,0}, {0,0,-1} },
 				{ {0,-1,0}, {0,0,-1} }, { {-1,0,0}, {0,0,-1}}};
 static vec3_t box_bigvecs[6][2] = { {{0,-2,0}, {-2,0,0} }, {{0,2,0}, {0,0,-2} },
-			 	   { {0,-2,0}, {2,0,0} }, { {2,0,0}, {0,0,-2} },
+				   { {0,-2,0}, {2,0,0} }, { {2,0,0}, {0,0,-2} },
 				   { {0,-2,0}, {0,0,-2}}, {{-2,0,0}, {0,0,-2}}};
 static vec3_t box_bigbigvecs[6][2] = {{{0,-4,0},{-4,0,0} },{{0,4,0}, {0,0,-4}},
 				     { {0,-4,0},{4,0,0} }, {{4,0,0}, {0,0,-4}},
@@ -337,7 +337,7 @@ void Sky_NewMap()
 		if (!strcmp("sky", key))
 			Sky_LoadSkyBox(value);
 		if (!strcmp("skyfog", key))
-		        Cvar_SetValue("r_skyfog", atof(value)); // also accept non-standard keys
+			Cvar_SetValue("r_skyfog", atof(value)); // also accept non-standard keys
 		else if (!strcmp("skyname", key)) // half-life
 			Sky_LoadSkyBox(value);
 		else if (!strcmp("qlsky", key)) // quake lives
@@ -365,7 +365,7 @@ void Sky_Init()
 	Cvar_RegisterVariable (&r_enableskybox);
 	Cvar_RegisterVariable (&r_skyfog);
 	Cvar_RegisterVariable (&r_skynoise);
-        skybox_name[0] = 0;
+	skybox_name[0] = 0;
 }
 
 void R_InitSky(texture_t *mt)
@@ -434,12 +434,12 @@ void R_GenSkyTile(void *pdest)
 
 void R_SetSkyFrame ()
 {
-        skyspeed = iskyspeed;
-        skyspeed2 = iskyspeed2;
-        s32 g = GreatestCommonDivisor (iskyspeed, iskyspeed2);
-        s32 s1 = iskyspeed / g;
-        s32 s2 = iskyspeed2 / g;
-        f32 temp = SKYSIZE * s1 * s2;
-        skytime = cl.time - ((s32)(cl.time / temp) * temp);
+	skyspeed = iskyspeed;
+	skyspeed2 = iskyspeed2;
+	s32 g = GreatestCommonDivisor (iskyspeed, iskyspeed2);
+	s32 s1 = iskyspeed / g;
+	s32 s2 = iskyspeed2 / g;
+	f32 temp = SKYSIZE * s1 * s2;
+	skytime = cl.time - ((s32)(cl.time / temp) * temp);
 	r_skymade = 0;
 }

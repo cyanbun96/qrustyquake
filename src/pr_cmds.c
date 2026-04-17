@@ -276,15 +276,15 @@ static void PF_ArgC()
 
 static void PF_sprintf_internal(const s8 *s, s32 firstarg, s8 *outbuf, s32 outbuflen)
 {
-        const s8 *s0;
-        s8 *o = outbuf, *end = outbuf + outbuflen, *err;
-        s32 width, precision, thisarg, flags;
-        s8 formatbuf[16];
-        s8 *f;
-        s32 argpos = firstarg;
-        s32 isfloat;
-        static s32 dummyivec[3] = {0, 0, 0};
-        static f32 dummyvec[3] = {0, 0, 0};
+	const s8 *s0;
+	s8 *o = outbuf, *end = outbuf + outbuflen, *err;
+	s32 width, precision, thisarg, flags;
+	s8 formatbuf[16];
+	s8 *f;
+	s32 argpos = firstarg;
+	s32 isfloat;
+	static s32 dummyivec[3] = {0, 0, 0};
+	static f32 dummyvec[3] = {0, 0, 0};
 
 #define PRINTF_ALTERNATE 1
 #define PRINTF_ZEROPAD 2
@@ -298,7 +298,7 @@ static void PF_sprintf_internal(const s8 *s, s32 firstarg, s8 *outbuf, s32 outbu
 #define GETARG_INTVECTOR(a) (((a)>=firstarg && (a)<qcvm->argc) ? ((s32*) G_VECTOR(OFS_PARM0 + 3 * (a))) : dummyivec)
 #define GETARG_STRING(a) (((a)>=firstarg && (a)<qcvm->argc) ? (G_STRING(OFS_PARM0 + 3 * (a))) : "")
 
-        formatbuf[0] = '%';
+	formatbuf[0] = '%';
 
 	for(;;) {
 		s0 = s;
@@ -568,7 +568,7 @@ verbatim:
 		}
 	}
 finished:
-        *o = 0;
+	*o = 0;
 }
 
 static void PF_sprintf()

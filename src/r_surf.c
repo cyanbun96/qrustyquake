@@ -59,10 +59,10 @@ void R_AddDynamicLights()
 		u32 *bl = blocklights;
 		u32 *bl_g = blocklights_g;
 		u32 *bl_b = blocklights_b;
-                cred = cl_dlights[lnum].color[0] * 256.0f;
-                cgreen = cl_dlights[lnum].color[1] * 256.0f;
-                cblue = cl_dlights[lnum].color[2] * 256.0f;
-                //johnfitz
+		cred = cl_dlights[lnum].color[0] * 256.0f;
+		cgreen = cl_dlights[lnum].color[1] * 256.0f;
+		cblue = cl_dlights[lnum].color[2] * 256.0f;
+		//johnfitz
 		for (s32 t = 0; t < tmax; t++) {
 			s32 td = local[1] - t * 16;
 			if (td < 0)

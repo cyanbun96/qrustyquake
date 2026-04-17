@@ -610,7 +610,7 @@ void R_RenderView()
 	if(r_dspeeds.value) d_times[12] = Sys_DoubleTime();
 	if(r_dowarp) D_WarpScreen();
 	if(r_dspeeds.value) d_times[13] = Sys_DoubleTime();
-        if(fog_density < 1) R_DrawFog();
+	if(fog_density < 1) R_DrawFog();
 	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
 }

@@ -110,15 +110,15 @@ void R_ReadPointFile_f()
 
 void R_ParseParticleEffect ()
 {
-        vec3_t org, dir;
-        for (s32 i=0 ; i<3 ; i++)
-                org[i] = MSG_ReadCoord (cl.protocolflags);
-        for (s32 i=0 ; i<3 ; i++)
-                dir[i] = MSG_ReadChar () * (1.0/16);
-        s32 msgcount = MSG_ReadByte ();
-        s32 color = MSG_ReadByte ();
-        s32 count = msgcount == 255 ? 1024 : msgcount;
-        R_RunParticleEffect (org, dir, color, count);
+	vec3_t org, dir;
+	for (s32 i=0 ; i<3 ; i++)
+		org[i] = MSG_ReadCoord (cl.protocolflags);
+	for (s32 i=0 ; i<3 ; i++)
+		dir[i] = MSG_ReadChar () * (1.0/16);
+	s32 msgcount = MSG_ReadByte ();
+	s32 color = MSG_ReadByte ();
+	s32 count = msgcount == 255 ? 1024 : msgcount;
+	R_RunParticleEffect (org, dir, color, count);
 }
 
 // CyanBun96: TODO a lot of shared code between these. consolidate?

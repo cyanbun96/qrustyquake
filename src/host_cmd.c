@@ -735,12 +735,12 @@ void Host_Give_f()
 	case '5': case '6': case '7': case '8': case '9':
 	if(hipnotic){
 	  if(t[0]=='6')
-	   	sv_player->v.items=(s32)sv_player-> v.items|(t[1]=='a'?
-	   			HIT_PROXIMITY_GUN :IT_GRENADE_LAUNCHER);
+		sv_player->v.items=(s32)sv_player-> v.items|(t[1]=='a'?
+				HIT_PROXIMITY_GUN :IT_GRENADE_LAUNCHER);
 	  else if(t[0]=='9')
-	   	sv_player->v.items=(s32)sv_player-> v.items|HIT_LASER_CANNON;
+		sv_player->v.items=(s32)sv_player-> v.items|HIT_LASER_CANNON;
 	  else if(t[0]=='0')
-	   	sv_player->v.items=(s32)sv_player-> v.items|HIT_MJOLNIR;
+		sv_player->v.items=(s32)sv_player-> v.items|HIT_MJOLNIR;
 	  else if(t[0]>='2')
 	   sv_player->v.items=(s32)sv_player-> v.items|(IT_SHOTGUN<<(t[0]-'2'));
 	} else if(t[0]>='2')

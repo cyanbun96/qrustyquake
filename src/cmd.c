@@ -387,21 +387,21 @@ s8 *Cmd_CompleteCommand(s8 *partial)
 
 bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
 { // A complete command line has been parsed, so try to execute it
-        cmd_source = src;
-        Cmd_TokenizeString(text);
-        if(!Cmd_Argc()) return 1; // no tokens
-        for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-                if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
-                        cmd->function();
-                        return 1;
-                }
-        for(cmdalias_t *a = cmd_alias; a; a = a->next) // check alias
-                if(!q_strcasecmp(cmd_argv[0], a->name)){
-                        Cbuf_InsertText(a->value);
-                        return 1;
-                }
-        if(!Cvar_Command()) // check cvars
-                Con_Printf("Unknown command \"%s\"\n", Cmd_Argv(0));
+	cmd_source = src;
+	Cmd_TokenizeString(text);
+	if(!Cmd_Argc()) return 1; // no tokens
+	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
+		if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
+			cmd->function();
+			return 1;
+		}
+	for(cmdalias_t *a = cmd_alias; a; a = a->next) // check alias
+		if(!q_strcasecmp(cmd_argv[0], a->name)){
+			Cbuf_InsertText(a->value);
+			return 1;
+		}
+	if(!Cvar_Command()) // check cvars
+		Con_Printf("Unknown command \"%s\"\n", Cmd_Argv(0));
 	return 1;
 }
 

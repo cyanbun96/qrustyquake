@@ -1130,7 +1130,7 @@ static void Mod_LoadNodes_L1(lump_t *l)
 					    (mnode_t *)(loadmodel->leafs + p);
 				else {
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-						        p, loadmodel->numleafs);
+							p, loadmodel->numleafs);
 					out->children[j] =
 			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
 				}
@@ -1168,7 +1168,7 @@ static void Mod_LoadNodes_L2(lump_t *l)
 					    (mnode_t *)(loadmodel->leafs + p);
 				else {
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-		    					p, loadmodel->numleafs);
+							p, loadmodel->numleafs);
 					out->children[j] =
 			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
 				}
