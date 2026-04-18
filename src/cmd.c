@@ -392,6 +392,8 @@ bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
 	if(!Cmd_Argc()) return 1; // no tokens
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
 		if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
+			if(src == src_server && cmd->srctype != src_server)
+				continue;//src_server may only execute server commands (such commands must be safe to parse within the context of a network message, so no disconnect/connect/playdemo/etc)
 			cmd->function();
 			return 1;
 		}
@@ -400,6 +402,8 @@ bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
 			Cbuf_InsertText(a->value);
 			return 1;
 		}
+	if (src != src_command)
+		return 0;
 	if(!Cvar_Command()) // check cvars
 		Con_Printf("Unknown command \"%s\"\n", Cmd_Argv(0));
 	return 1;
