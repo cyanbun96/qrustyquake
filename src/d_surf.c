@@ -41,12 +41,17 @@ void D_InitCaches(void *buffer, s32 size)
 
 void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 {
-	surfcache_t *c;
 	if (!sc_base)
 		return;
-	for (c = sc_base; c; c = c->next)
-		if (c->owner && !((u64)sc_rover->owner & 0xFF00000000000000))
+	for(surfcache_t *c = sc_base; c; c = c->next)
+		if(c->owner){
+			uintptr_t owner_addr = (uintptr_t)c->owner;
+			if (owner_addr < (uintptr_t)host_parms.membase || owner_addr >=
+				(uintptr_t)((uintptr_t)host_parms.membase+host_parms.memsize)) {
+				Con_DPrintf("D_FlushCaches: corrupt owner pointer\n");
+			}
 			*c->owner = NULL;
+		}
 	sc_rover = sc_base;
 	sc_base->next = NULL;
 	sc_base->owner = NULL;
