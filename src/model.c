@@ -713,7 +713,8 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		out->plane = loadmodel->planes + planenum;
 		out->texinfo = loadmodel->texinfo + texinfon;
 		CalcSurfaceExtents(out);
-		if(out->extents[0] > 2000 || out->extents[1] > 2000) {
+		if((out->extents[0] > 2000 || out->extents[1] > 2000) &&
+				!(out->texinfo->flags & TEX_SPECIAL)) {
 			out->flags |= SURF_NOTEXTURE; // not a real fix FIXME
 			out->samples = NULL; // just prevents crashes
 		}
