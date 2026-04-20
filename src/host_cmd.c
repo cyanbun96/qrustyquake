@@ -1214,24 +1214,30 @@ void Cmd_Resurrect_f()
 {
     edict_t *ent;
     int w, old_self;
-    
-    if (pr_global_struct->deathmatch) return;
+
+    PR_SwitchQCVM(&sv.qcvm);
     
     if (!sv.active || cls.demoplayback) {
         Con_Printf("You must be in a game to resurrect.\n");
-        return;
+	goto resurrect_ret;
     }
     
-    if (sv.max_edicts <= 1) return;
+    if (pr_global_struct->deathmatch) {
+	goto resurrect_ret;
+    }
+    
+    if (sv.qcvm.max_edicts <= 1) {
+	goto resurrect_ret;
+    }
     ent = EDICT_NUM(1);
     
     if (!ent || ent->free){
         Con_Printf("Error: PLAYER edict missing/freed.\n");
-        return;
+	goto resurrect_ret;
     }
     if (ent->v.health > 0) {
 	Con_Printf("You are still alive!\n");
-	return;
+	goto resurrect_ret;
     }
     // 2. Chained assignments compress the Physics & Camera resets
     ent->v.health = 100;
@@ -1259,6 +1265,9 @@ void Cmd_Resurrect_f()
     pr_global_struct->self = old_self;
 
     Con_Printf("Resurrection successful.\n");
+
+resurrect_ret:
+    PR_SwitchQCVM(NULL);
 }
 
 void Host_InitCommands()
