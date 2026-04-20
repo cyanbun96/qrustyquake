@@ -212,6 +212,7 @@ void PR_ExecuteProgram(func_t fnum)
 	dstatement_t *st = &qcvm->statements[PR_EnterFunction(f)];
 	s32 startprofile = 0;
 	s32 profile = 0;
+	edict_t *ed;
 	while(1){
 		st++;//next statement
 		if(++profile > 0x1000000){//was 100000
@@ -362,7 +363,7 @@ void PR_ExecuteProgram(func_t fnum)
 			ptr->vector[2] = OPA->vector[2];
 			break;
 		case OP_ADDRESS:
-			edict_t *ed = PROG_TO_EDICT(OPA->edict);
+			ed = PROG_TO_EDICT(OPA->edict);
 			if(ed==(edict_t *)qcvm->edicts && sv.state==ss_active){
 				qcvm->xstatement = st - qcvm->statements;
 				PR_RunError("assignment to world entity");
