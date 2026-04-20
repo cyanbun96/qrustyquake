@@ -1212,8 +1212,6 @@ void Host_Mods_f()
 
 void Cmd_Resurrect_f()
 {
-	// Known issues:
-	// Sometimes doesn't restore the weapon, and shooting restarts the level
 	PR_SwitchQCVM(&sv.qcvm);
 	if(!sv.active || cls.demoplayback){
 		Con_Printf("You must be in a game to resurrect.\n");
@@ -1228,6 +1226,10 @@ void Cmd_Resurrect_f()
 	}
 	if(ent->v.health > 0){
 		Con_Printf("You are still alive!\n");
+		goto resurrect_ret;
+	}
+	if(ent->v.nextthink != -1){
+		Con_Printf("Not fully dead yet.\n");
 		goto resurrect_ret;
 	}
 	// 2. Chained assignments compress the Physics & Camera resets
