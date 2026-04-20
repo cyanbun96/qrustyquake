@@ -232,16 +232,16 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	} else if (cur_ent_alpha < 1 && r_entalpha.value == 1)
 		winquake_surface_liquid_alpha = cur_ent_alpha;
 	else winquake_surface_liquid_alpha = 1;
-        // Baker: Fully transparent = invisible = don't render
-        if (!winquake_surface_liquid_alpha)
-                return;
-        // Baker: If this is the alpha water pass and we aren't alpha water, get out!
-        if (r_alphapass && winquake_surface_liquid_alpha == 1)
-                return;
-        if (!r_alphapass && winquake_surface_liquid_alpha < 1) {
-                r_foundtranswater = 1;
-                return;
-        }
+	// Baker: Fully transparent = invisible = don't render
+	if (!winquake_surface_liquid_alpha)
+		return;
+	// Baker: If this is the alpha water pass and we aren't alpha water, get out!
+	if (r_alphapass && winquake_surface_liquid_alpha == 1)
+		return;
+	if (!r_alphapass && winquake_surface_liquid_alpha < 1) {
+		r_foundtranswater = 1;
+		return;
+	}
 	if ((surface_p) >= surf_max) { // skip out if no more surfs
 		r_outofsurfaces++;
 		return;
@@ -381,16 +381,16 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 	} else if (cur_ent_alpha < 1 && r_entalpha.value == 1)
 		winquake_surface_liquid_alpha = cur_ent_alpha;
 	else winquake_surface_liquid_alpha = 1;
-        // Baker: Fully transparent = invisible = don't render
-        if (!winquake_surface_liquid_alpha)
-                return;
-        // Baker: If this is the alpha water pass and we aren't alpha water, get out!
-        if (r_alphapass && winquake_surface_liquid_alpha == 1)
-                return;
-        if (!r_alphapass && winquake_surface_liquid_alpha < 1) {
-                r_foundtranswater = 1;
-                return;
-        }
+	// Baker: Fully transparent = invisible = don't render
+	if (!winquake_surface_liquid_alpha)
+		return;
+	// Baker: If this is the alpha water pass and we aren't alpha water, get out!
+	if (r_alphapass && winquake_surface_liquid_alpha == 1)
+		return;
+	if (!r_alphapass && winquake_surface_liquid_alpha < 1) {
+		r_foundtranswater = 1;
+		return;
+	}
 	if (surface_p >= surf_max) { // skip out if no more surfs
 		r_outofsurfaces++;
 		return;

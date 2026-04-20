@@ -146,63 +146,46 @@ void Host_Ping_f()
 
 static void Host_Map_f()
 { // map <servername> command from console. Active clients are kicked off.
-    int     i;
-    char    name[MAX_QPATH], *p;
-
-    if(Cmd_Argc() < 2) //no map name given
-    {
-        if(cls.state == ca_dedicated)
-        {
-            if(sv.active)
-                Con_Printf("Current map: %s\n", sv.name);
-            else
-                Con_Printf("Server not active\n");
-        }
-        else if(cls.state == ca_connected)
-        {
-            Con_Printf("Current map: %s( %s )\n", cl.levelname, cl.mapname);
-        }
-        else
-        {
-            Con_Printf("map <levelname>: start a new server\n");
-        }
-        return;
-    }
-
-    if(cmd_source != src_command)
-        return;
-
-    cls.demonum = -1;       // stop demo loop in case this fails
-
-    CL_Disconnect();
-    Host_ShutdownServer(false);
-
-    key_dest = key_game;            // remove console or menu
-    SCR_BeginLoadingPlaque();
-
-    svs.serverflags = 0;            // haven't completed an episode yet
-    q_strlcpy(name, Cmd_Argv(1), sizeof(name));
-    // remove(any) trailing ".bsp" from mapname -- S.A.
-    p = strstr(name, ".bsp");
-    if(p && p[4] == '\0')
-        *p = '\0';
-    PR_SwitchQCVM(&sv.qcvm);
-    SV_SpawnServer(name);
-    PR_SwitchQCVM(NULL);
-    if(!sv.active)
-        return;
-
-    if(cls.state != ca_dedicated)
-    {
-        memset(cls.spawnparms, 0, MAX_MAPSTRING);
-        for(i = 2; i < Cmd_Argc(); i++)
-        {
-            q_strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
-            q_strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
-        }
-
-        Cmd_ExecuteString("connect local", src_command);
-    }
+	if(Cmd_Argc() < 2){//no map name given
+		if(cls.state == ca_dedicated){
+			if(sv.active)
+				Con_Printf("Current map: %s\n", sv.name);
+			else
+				Con_Printf("Server not active\n");
+		}else if(cls.state == ca_connected)
+			Con_Printf("Current map: %s( %s )\n",
+					cl.levelname, cl.mapname);
+		else
+			Con_Printf("map <levelname>: start a new server\n");
+		return;
+	}
+	if(cmd_source != src_command)
+		return;
+	cls.demonum = -1;// stop demo loop in case this fails
+	CL_Disconnect();
+	Host_ShutdownServer(false);
+	key_dest = key_game;// remove console or menu
+	SCR_BeginLoadingPlaque();
+	svs.serverflags = 0;// haven't completed an episode yet
+	s8 name[MAX_QPATH];
+	q_strlcpy(name, Cmd_Argv(1), sizeof(name));
+	// remove(any) trailing ".bsp" from mapname -- S.A.
+	s8 *p = strstr(name, ".bsp");
+	if(p && p[4] == '\0')
+		*p = '\0';
+	PR_SwitchQCVM(&sv.qcvm);
+	SV_SpawnServer(name);
+	PR_SwitchQCVM(NULL);
+	if(!sv.active)
+		return;
+	if(cls.state != ca_dedicated){
+		memset(cls.spawnparms, 0, MAX_MAPSTRING);
+		for(s32 i = 2; i < Cmd_Argc(); i++){
+			q_strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
+			q_strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
+		}
+		Cmd_ExecuteString("connect local", src_command);
+	}
 }
 
 void Host_Changelevel_f()
@@ -752,12 +735,12 @@ void Host_Give_f()
 	case '5': case '6': case '7': case '8': case '9':
 	if(hipnotic){
 	  if(t[0]=='6')
-	   	sv_player->v.items=(s32)sv_player-> v.items|(t[1]=='a'?
-	   			HIT_PROXIMITY_GUN :IT_GRENADE_LAUNCHER);
+		sv_player->v.items=(s32)sv_player-> v.items|(t[1]=='a'?
+				HIT_PROXIMITY_GUN :IT_GRENADE_LAUNCHER);
 	  else if(t[0]=='9')
-	   	sv_player->v.items=(s32)sv_player-> v.items|HIT_LASER_CANNON;
+		sv_player->v.items=(s32)sv_player-> v.items|HIT_LASER_CANNON;
 	  else if(t[0]=='0')
-	   	sv_player->v.items=(s32)sv_player-> v.items|HIT_MJOLNIR;
+		sv_player->v.items=(s32)sv_player-> v.items|HIT_MJOLNIR;
 	  else if(t[0]>='2')
 	   sv_player->v.items=(s32)sv_player-> v.items|(IT_SHOTGUN<<(t[0]-'2'));
 	} else if(t[0]>='2')
@@ -918,59 +901,59 @@ time_t Mod_GetMapDate(const s8 *map)
 	SDL_PathInfo info;
 	SDL_GetPathInfo(path, &info);
 	u64 ns = info.modify_time;
-        time_t seconds = ns / 1000000000ULL;
+	time_t seconds = ns / 1000000000ULL;
 	return seconds;
 }
 
 void FileList_Add(const char *name, const char *desc, filelist_item_t **list)
 {
-        filelist_item_t *item,*cursor,*prev;
-        for(item = *list; item; item = item->next) // ignore duplicate
-                if(!Q_strcmp(name, item->name)) return;
-        item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-        q_strlcpy(item->name, name, sizeof(item->name));
-        if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
-        // insert each entry in alphabetical order
-        if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
-                item->next = *list; //insert at front
-                *list = item;
-        } else { //insert later
-                prev = *list;
-                cursor = (*list)->next;
-                while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
-                        prev = cursor;
-                        cursor = cursor->next;
-                }
-                item->next = prev->next;
-                prev->next = item;
-        }
+	filelist_item_t *item,*cursor,*prev;
+	for(item = *list; item; item = item->next) // ignore duplicate
+		if(!Q_strcmp(name, item->name)) return;
+	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
+	q_strlcpy(item->name, name, sizeof(item->name));
+	if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
+	// insert each entry in alphabetical order
+	if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
+		item->next = *list; //insert at front
+		*list = item;
+	} else { //insert later
+		prev = *list;
+		cursor = (*list)->next;
+		while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
+			prev = cursor;
+			cursor = cursor->next;
+		}
+		item->next = prev->next;
+		prev->next = item;
+	}
 }
 
 void FileList_AddMap(const char *name, const char *desc, filelist_item_t **list)
 {
-        filelist_item_t *item,*cursor,*prev;
-        for(item = *list; item; item = item->next) // ignore duplicate
-                if(!Q_strcmp(name, item->name)) return;
-        item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-        q_strlcpy(item->name, name, sizeof(item->name));
-        if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
+	filelist_item_t *item,*cursor,*prev;
+	for(item = *list; item; item = item->next) // ignore duplicate
+		if(!Q_strcmp(name, item->name)) return;
+	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
+	q_strlcpy(item->name, name, sizeof(item->name));
+	if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
 	item->data1 = Mod_CountMonsters(name);
 	item->data2 = Mod_CountSecrets(name);
 	item->date = Mod_GetMapDate(name);
-        // insert each entry in alphabetical order
-        if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
-                item->next = *list; //insert at front
-                *list = item;
-        } else { //insert later
-                prev = *list;
-                cursor = (*list)->next;
-                while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
-                        prev = cursor;
-                        cursor = cursor->next;
-                }
-                item->next = prev->next;
-                prev->next = item;
-        }
+	// insert each entry in alphabetical order
+	if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
+		item->next = *list; //insert at front
+		*list = item;
+	} else { //insert later
+		prev = *list;
+		cursor = (*list)->next;
+		while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
+			prev = cursor;
+			cursor = cursor->next;
+		}
+		item->next = prev->next;
+		prev->next = item;
+	}
 }
 
 void ExtraMaps_Add(const s8 *name, const s8 *game)
@@ -1055,12 +1038,12 @@ void ExtraMaps_Init()
 
 static void FileList_Clear(filelist_item_t **list)
 {
-        filelist_item_t *blah;
-        while(*list){
-                blah = (*list)->next;
-                Z_Free(*list);
-                *list = blah;
-        }
+	filelist_item_t *blah;
+	while(*list){
+		blah = (*list)->next;
+		Z_Free(*list);
+		*list = blah;
+	}
 }
 
 static void ExtraMaps_Clear()
@@ -1071,8 +1054,8 @@ static void ExtraMaps_Clear()
 
 void ExtraMaps_NewGame()
 {
-        ExtraMaps_Clear();
-        ExtraMaps_Init();
+	ExtraMaps_Clear();
+	ExtraMaps_Init();
 }
 
 static const s8 *RightPad(const s8 *str, size_t minlen, s8 c)
@@ -1153,23 +1136,23 @@ char *Modlist_ReadDescription(const char *mod_path)
 #ifdef _WIN32
 void Modlist_Init()
 {
-        WIN32_FIND_DATA fdat;
-        HANDLE fhnd;
-        DWORD attribs;
-        s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
-        q_snprintf(dir_string, sizeof(dir_string), "%s/*", com_basedir);
-        fhnd = FindFirstFile(dir_string, &fdat);
+	WIN32_FIND_DATA fdat;
+	HANDLE fhnd;
+	DWORD attribs;
+	s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
+	q_snprintf(dir_string, sizeof(dir_string), "%s/*", com_basedir);
+	fhnd = FindFirstFile(dir_string, &fdat);
 	maxmodnamelen = 0;
-        if(fhnd == INVALID_HANDLE_VALUE) return;
-        do {
-                if(!strcmp(fdat.cFileName,".") || !strcmp(fdat.cFileName,".."))
-                        continue;
-                q_snprintf(mod_string, sizeof(mod_string), "%s/%s",
+	if(fhnd == INVALID_HANDLE_VALUE) return;
+	do {
+		if(!strcmp(fdat.cFileName,".") || !strcmp(fdat.cFileName,".."))
+			continue;
+		q_snprintf(mod_string, sizeof(mod_string), "%s/%s",
 					com_basedir, fdat.cFileName);
-                attribs = GetFileAttributes(mod_string);
-                if(attribs != INVALID_FILE_ATTRIBUTES &&
+		attribs = GetFileAttributes(mod_string);
+		if(attribs != INVALID_FILE_ATTRIBUTES &&
 				(attribs & FILE_ATTRIBUTE_DIRECTORY)){
-                        // don't bother testing for pak files / progs.dat
+			// don't bother testing for pak files / progs.dat
 			s8 *file_desc = Modlist_ReadDescription(mod_string);
 			s8 *desc = file_desc ? file_desc :
 				Modlist_KnownDescription(fdat.cFileName);
@@ -1177,54 +1160,54 @@ void Modlist_Init()
 				maxmodnamelen = Q_strlen(fdat.cFileName);
 			Modlist_Add(fdat.cFileName, desc);
 
-                }
-        } while(FindNextFile(fhnd, &fdat));
-        FindClose(fhnd);
+		}
+	} while(FindNextFile(fhnd, &fdat));
+	FindClose(fhnd);
 }
 #else
 void Modlist_Init()
 {
-        DIR *dir_p, *mod_dir_p;
-        struct dirent *dir_t;
-        s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
-        q_snprintf(dir_string, sizeof(dir_string), "%s/", com_basedir);
-        dir_p = opendir(dir_string);
+	DIR *dir_p, *mod_dir_p;
+	struct dirent *dir_t;
+	s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
+	q_snprintf(dir_string, sizeof(dir_string), "%s/", com_basedir);
+	dir_p = opendir(dir_string);
 	maxmodnamelen = 0;
-        if(dir_p == NULL) return;
-        while((dir_t = readdir(dir_p)) != NULL){
-                if(!strcmp(dir_t->d_name, ".") || !strcmp(dir_t->d_name, ".."))
-                        continue;
-                if(!q_strcasecmp(COM_FileGetExtension(dir_t->d_name), "app"))
-                        continue; // skip .app bundles on macOS
-                q_snprintf(mod_string, sizeof(mod_string), "%s%s/",
+	if(dir_p == NULL) return;
+	while((dir_t = readdir(dir_p)) != NULL){
+		if(!strcmp(dir_t->d_name, ".") || !strcmp(dir_t->d_name, ".."))
+			continue;
+		if(!q_strcasecmp(COM_FileGetExtension(dir_t->d_name), "app"))
+			continue; // skip .app bundles on macOS
+		q_snprintf(mod_string, sizeof(mod_string), "%s%s/",
 				dir_string, dir_t->d_name);
-                mod_dir_p = opendir(mod_string);
-                if(mod_dir_p == NULL)
-                        continue;
-                // don't bother testing for pak files / progs.dat
+		mod_dir_p = opendir(mod_string);
+		if(mod_dir_p == NULL)
+			continue;
+		// don't bother testing for pak files / progs.dat
 		char *file_desc = Modlist_ReadDescription(mod_string);
 		const char *desc = file_desc ? file_desc
 				: Modlist_KnownDescription(dir_t->d_name);
 		if(maxmodnamelen < Q_strlen(dir_t->d_name))
 			maxmodnamelen = Q_strlen(dir_t->d_name);
 		Modlist_Add(dir_t->d_name, desc);
-                closedir(mod_dir_p);
-        }
-        closedir(dir_p);
+		closedir(mod_dir_p);
+	}
+	closedir(dir_p);
 }
 #endif
 
 void Host_Mods_f()
 {//list all potential mod directories(contain either a pak file or a progs.dat)
-        s32 i;
-        filelist_item_t *mod;
+	s32 i;
+	filelist_item_t *mod;
 	s8 padchar = '.' | 0x80;
-        for(mod = modlist, i=0; mod; mod = mod->next, i++)
+	for(mod = modlist, i=0; mod; mod = mod->next, i++)
 		Con_Printf("   %s%c%s\n", RightPad(mod->name,
 			maxmodnamelen, padchar), padchar, mod->desc);
 	if(i == 1) Con_Printf("1 mod\n");
-        if(i) Con_Printf("%i mods\n", i);
-        else Con_Printf("no mods found\n");
+	if(i) Con_Printf("%i mods\n", i);
+	else Con_Printf("no mods found\n");
 }
 
 void Cmd_Resurrect_f()

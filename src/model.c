@@ -639,7 +639,7 @@ static void CalcSurfaceExtents(msurface_t *s)
 		s->texturemins[i] = bmins[i] * 16;
 		s->extents[i] = (bmaxs[i] - bmins[i]) * 16;
 		if(!(tex->flags & TEX_SPECIAL) && s->extents[i] > 2000)
-			Sys_Error("Bad surface extents");
+			Con_Printf("Bad surface extents %d (max 2000)\n", s->extents[i]);
 	}
 }
 
@@ -713,6 +713,11 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		out->plane = loadmodel->planes + planenum;
 		out->texinfo = loadmodel->texinfo + texinfon;
 		CalcSurfaceExtents(out);
+		if((out->extents[0] > 2000 || out->extents[1] > 2000) &&
+				!(out->texinfo->flags & TEX_SPECIAL)) {
+			out->flags |= SURF_NOTEXTURE; // not a real fix FIXME
+			out->samples = NULL; // just prevents crashes
+		}
 		Mod_CalcSurfaceBounds(out); //jfitz-per-surface frustum culling
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
@@ -1130,7 +1135,7 @@ static void Mod_LoadNodes_L1(lump_t *l)
 					    (mnode_t *)(loadmodel->leafs + p);
 				else {
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-						        p, loadmodel->numleafs);
+							p, loadmodel->numleafs);
 					out->children[j] =
 			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
 				}
@@ -1168,7 +1173,7 @@ static void Mod_LoadNodes_L2(lump_t *l)
 					    (mnode_t *)(loadmodel->leafs + p);
 				else {
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-		    					p, loadmodel->numleafs);
+							p, loadmodel->numleafs);
 					out->children[j] =
 			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
 				}

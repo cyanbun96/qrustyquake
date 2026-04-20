@@ -108,22 +108,7 @@ qpic_t *Draw_CachePic(s8 *path)
 
 qpic_t *Draw_TryCachePic(s8 *path)
 {
-	cachepic_t *pic = menu_cachepics;
-	s32 i = 0;
-	for(; i < menu_numcachepics; pic++, i++)
-		if(!strcmp(path, pic->name))
-			break;
-	if(i == menu_numcachepics){
-		if(menu_numcachepics == MAX_CACHED_PICS)
-			Sys_Error("menu_numcachepics == MAX_CACHED_PICS");
-		menu_numcachepics++;
-		strcpy(pic->name, path);
-	}
-	qpic_t *dat = Cache_Check(&pic->cache);
-	if(dat)
-		return dat;
-	COM_LoadCacheFile(path, &pic->cache, NULL); // load the pic from disk
-	dat = (qpic_t *) pic->cache.data;
+	qpic_t *dat = (qpic_t*)COM_LoadMallocFile(path, NULL);
 	if(!dat){
 		Con_DPrintf("Draw_TryCachePic: failed to load %s\n", path);
 		return NULL;
@@ -170,9 +155,9 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 	s32 clipy0 = cliprecty0 == -1 ? 0 : cliprecty0;
 	s32 clipy1 = cliprecty1 == -1 ? (s32)vid.height : cliprecty1;
 	s32 startx = base_x < clipx0 ? clipx0 : base_x;
-        s32 starty = base_y < clipy0 ? clipy0 : base_y;
-        s32 endx = (base_x + draw_w) > clipx1 ? clipx1 : (base_x + draw_w);
-        s32 endy = (base_y + draw_h) > clipy1 ? clipy1 : (base_y + draw_h);
+	s32 starty = base_y < clipy0 ? clipy0 : base_y;
+	s32 endx = (base_x + draw_w) > clipx1 ? clipx1 : (base_x + draw_w);
+	s32 endy = (base_y + draw_h) > clipy1 ? clipy1 : (base_y + draw_h);
 	if(startx >= endx || starty >= endy) return;
 	u8 *fb = (u8*)scrbuffs[drawlayer]->pixels;
 	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
@@ -279,27 +264,27 @@ void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 
 void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
 {
-        u8 *source = p->data;
+	u8 *source = p->data;
 		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
-        for(u32 v = 0; v < (u32)p->height; v++){
-                if(v * s + y >= vid.height || v > (u32)h)
-                        return;
-                if(v < (u32)t){
+	for(u32 v = 0; v < (u32)p->height; v++){
+		if(v * s + y >= vid.height || v > (u32)h)
+			return;
+		if(v < (u32)t){
 			source += p->width;
-                        continue;
+			continue;
 		}
-                for(s32 k = 0; k < s; k++){
-                        for(u32 i = 0; i < (u32)p->width; i++){
-                                if(i < (u32)l || i >= (u32)w)
-                                        continue;
-                                for(s32 j = 0; j < s; j++)
-                                        if(i * s + j + x < vid.width)
-                                                dest[i * s + j] = source[i];
-                        }
-                        dest += vid.width;
-                }
-                source += p->width;
-        }	
+		for(s32 k = 0; k < s; k++){
+			for(u32 i = 0; i < (u32)p->width; i++){
+				if(i < (u32)l || i >= (u32)w)
+					continue;
+				for(s32 j = 0; j < s; j++)
+					if(i * s + j + x < vid.width)
+						dest[i * s + j] = source[i];
+			}
+			dest += vid.width;
+		}
+		source += p->width;
+	}	
 }
 
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
@@ -554,9 +539,9 @@ void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha)
 	s32 clipy0 = cliprecty0 == -1 ? 0 : cliprecty0;
 	s32 clipy1 = cliprecty1 == -1 ? (s32)vid.height : cliprecty1;
 	s32 startx = x < clipx0 ? clipx0 : x;
-        s32 starty = y < clipy0 ? clipy0 : y;
-        s32 endx = (x + w) > clipx1 ? clipx1 : (x + w);
-        s32 endy = (y + h) > clipy1 ? clipy1 : (y + h);
+	s32 starty = y < clipy0 ? clipy0 : y;
+	s32 endx = (x + w) > clipx1 ? clipx1 : (x + w);
+	s32 endy = (y + h) > clipy1 ? clipy1 : (y + h);
 	if(startx >= endx || starty >= endy) return;
 	if(al == FOG_LUT_LEVELS - 1){
 		Draw_Fill(startx, starty, endx - startx, endy - starty, c);

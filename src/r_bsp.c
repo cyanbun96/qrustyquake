@@ -96,10 +96,10 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 // CyanBun96: comparison of lastside and side against a low threshold instead of
 // 0 prevents corruption in some edge cases (no pun intended)
 		s32 lastside = (lastdist > 0.001) ? 0 : 1;
-                mvertex_t *pvert = pedges->v[1];
-                f32 dist = DotProduct(pvert->position, tplane.normal)
-                        - tplane.dist;
-                s32 side = (dist > 0.001) ? 0 : 1;
+		mvertex_t *pvert = pedges->v[1];
+		f32 dist = DotProduct(pvert->position, tplane.normal)
+			- tplane.dist;
+		s32 side = (dist > 0.001) ? 0 : 1;
 		if (side != lastside) {
 			if (numbverts >= MAX_BMODEL_VERTS) // clipped
 				return;

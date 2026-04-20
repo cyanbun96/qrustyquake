@@ -135,7 +135,9 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 {
 	const s32 kernelsize = filter->kernelsize;
 	const f32 *kernel = filter->kernel;
-	f32 *input = (f32 *) malloc(sizeof(f32) * (filter->kernelsize + count));
+	s32 mark = Hunk_LowMark ();
+	size_t inputsize = sizeof(f32) * (filter->kernelsize + count);
+	float *input = (f32*) Hunk_AllocNoFill (inputsize);
 	// set up the input buffer
 	// memory holds the previous filter->kernelsize samples of input.
 	memcpy(input, filter->memory, filter->kernelsize * sizeof(f32));
@@ -160,7 +162,7 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 		parity = (parity + 1) % 4;
 	}
 	filter->parity = parity;
-	free(input);
+	Hunk_FreeToLowMark (mark);
 }
 
 // lowpass filters 24-bit integer samples in 'data' (stored in 32-bit ints).

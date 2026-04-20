@@ -9,14 +9,14 @@
 #define BB 0x49 // base
 #define LL 0x4d // lit
 static qpic_t shield_r = { 8, 8, {
-        TT,SS,SS,SS,SS,SS, 0,TT,
-        SS,BB,BB,LL,BB,BB,SS, 0,
-        SS,BB,LL,BB,BB,BB,SS, 0,
-        SS,BB,LL,BB,BB,BB,SS, 0,
-        SS,BB,BB,BB,BB,BB,SS, 0,
-        TT,SS,BB,BB,BB,SS, 0,TT,
-        TT,TT,SS,BB,SS, 0,TT,TT,
-        TT,TT,TT,SS, 0,TT,TT,TT,
+	TT,SS,SS,SS,SS,SS, 0,TT,
+	SS,BB,BB,LL,BB,BB,SS, 0,
+	SS,BB,LL,BB,BB,BB,SS, 0,
+	SS,BB,LL,BB,BB,BB,SS, 0,
+	SS,BB,BB,BB,BB,BB,SS, 0,
+	TT,SS,BB,BB,BB,SS, 0,TT,
+	TT,TT,SS,BB,SS, 0,TT,TT,
+	TT,TT,TT,SS, 0,TT,TT,TT,
 }};
 #undef SS
 #undef BB
@@ -25,14 +25,14 @@ static qpic_t shield_r = { 8, 8, {
 #define BB 0xc6 // base
 #define LL 0xc2 // lit
 static qpic_t shield_y = { 8, 8, {
-        TT,SS,SS,SS,SS,SS, 0,TT,
-        SS,BB,BB,LL,BB,BB,SS, 0,
-        SS,BB,LL,BB,BB,BB,SS, 0,
-        SS,BB,LL,BB,BB,BB,SS, 0,
-        SS,BB,BB,BB,BB,BB,SS, 0,
-        TT,SS,BB,BB,BB,SS, 0,TT,
-        TT,TT,SS,BB,SS, 0,TT,TT,
-        TT,TT,TT,SS, 0,TT,TT,TT,
+	TT,SS,SS,SS,SS,SS, 0,TT,
+	SS,BB,BB,LL,BB,BB,SS, 0,
+	SS,BB,LL,BB,BB,BB,SS, 0,
+	SS,BB,LL,BB,BB,BB,SS, 0,
+	SS,BB,BB,BB,BB,BB,SS, 0,
+	TT,SS,BB,BB,BB,SS, 0,TT,
+	TT,TT,SS,BB,SS, 0,TT,TT,
+	TT,TT,TT,SS, 0,TT,TT,TT,
 }};
 #undef SS
 #undef BB
@@ -41,27 +41,27 @@ static qpic_t shield_y = { 8, 8, {
 #define BB 0xb6 // base
 #define LL 0xb2 // lit
 static qpic_t shield_g = { 8, 8, {
-        TT,SS,SS,SS,SS,SS, 0,TT,
-        SS,BB,BB,LL,BB,BB,SS, 0,
-        SS,BB,LL,BB,BB,BB,SS, 0,
-        SS,BB,LL,BB,BB,BB,SS, 0,
-        SS,BB,BB,BB,BB,BB,SS, 0,
-        TT,SS,BB,BB,BB,SS, 0,TT,
-        TT,TT,SS,BB,SS, 0,TT,TT,
-        TT,TT,TT,SS, 0,TT,TT,TT,
+	TT,SS,SS,SS,SS,SS, 0,TT,
+	SS,BB,BB,LL,BB,BB,SS, 0,
+	SS,BB,LL,BB,BB,BB,SS, 0,
+	SS,BB,LL,BB,BB,BB,SS, 0,
+	SS,BB,BB,BB,BB,BB,SS, 0,
+	TT,SS,BB,BB,BB,SS, 0,TT,
+	TT,TT,SS,BB,SS, 0,TT,TT,
+	TT,TT,TT,SS, 0,TT,TT,TT,
 }};
 #undef SS
 #undef BB
 #undef LL
 static qpic_t pent8x8 = { 8, 8, {
-        0x4d,0x4a,0xff,0xff,0xff,0xff,0x4a,0x4d,
-        0x4a,0x4f,0x4f,0x46,0x46,0x4f,0x4f,0x4a,
-        0x46,0x4a,0x4f,0xf8,0xf8,0x4f,0x4a,0x46,
-        0xff,0x4d,0xf8,0x48,0x48,0xf8,0x4d,0xff,
-        0x4d,0x4f,0xf8,0x4b,0x4b,0xf8,0x4d,0x4b,
-        0x46,0x46,0x4a,0x4f,0x4f,0x4a,0x46,0x46,
-        0xff,0xff,0x46,0x4f,0x4d,0x46,0xff,0xff,
-        0xff,0xff,0xff,0x4a,0x48,0xff,0xff,0xff,
+	0x4d,0x4a,0xff,0xff,0xff,0xff,0x4a,0x4d,
+	0x4a,0x4f,0x4f,0x46,0x46,0x4f,0x4f,0x4a,
+	0x46,0x4a,0x4f,0xf8,0xf8,0x4f,0x4a,0x46,
+	0xff,0x4d,0xf8,0x48,0x48,0xf8,0x4d,0xff,
+	0x4d,0x4f,0xf8,0x4b,0x4b,0xf8,0x4d,0x4b,
+	0x46,0x46,0x4a,0x4f,0x4f,0x4a,0x46,0x46,
+	0xff,0xff,0x46,0x4f,0x4d,0x46,0xff,0xff,
+	0xff,0xff,0xff,0x4a,0x48,0xff,0xff,0xff,
 }};
 static qpic_t shell8x8 = { 8, 8, {
 	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
@@ -702,7 +702,7 @@ void Sbar_DrawInventory()
 	}
 	switch ((s32)scr_hudstyle.value) {
 	default: case 0: case 3: Sbar_ItemsClassic(); break;
-	         case 1: case 2: Sbar_ItemsModern();  break;
+		 case 1: case 2: Sbar_ItemsModern();  break;
 	}
 }
 

@@ -89,33 +89,33 @@ static const s8 *PR_UglyValueString(s32 type, eval_t *val)
     type &= ~DEF_SAVEGLOBAL;
     switch(type) {
     case ev_string:
-        q_snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
-        break;
+	q_snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
+	break;
     case ev_entity:
-        q_snprintf(line, sizeof(line), "%i", 
+	q_snprintf(line, sizeof(line), "%i", 
 				NUM_FOR_EDICT(PROG_TO_EDICT(val->edict)));
-        break;
+	break;
     case ev_function:
-        f = qcvm->functions + val->function;
-        q_snprintf(line, sizeof(line), "%s", PR_GetString(f->s_name));
-        break;
+	f = qcvm->functions + val->function;
+	q_snprintf(line, sizeof(line), "%s", PR_GetString(f->s_name));
+	break;
     case ev_field:
-        def = ED_FieldAtOfs( val->_int );
-        q_snprintf(line, sizeof(line), "%s", PR_GetString(def->s_name));
-        break;
+	def = ED_FieldAtOfs( val->_int );
+	q_snprintf(line, sizeof(line), "%s", PR_GetString(def->s_name));
+	break;
     case ev_void:
-        q_snprintf(line, sizeof(line), "void");
-        break;
+	q_snprintf(line, sizeof(line), "void");
+	break;
     case ev_float:
-        q_snprintf(line, sizeof(line), "%f", val->_float);
-        break;
+	q_snprintf(line, sizeof(line), "%f", val->_float);
+	break;
     case ev_vector:
-        q_snprintf(line, sizeof(line), "%f %f %f", val->vector[0],
+	q_snprintf(line, sizeof(line), "%f %f %f", val->vector[0],
 						val->vector[1], val->vector[2]);
-        break;
+	break;
     default:
-        q_snprintf(line, sizeof(line), "bad type %i", type);
-        break;
+	q_snprintf(line, sizeof(line), "bad type %i", type);
+	break;
     }
     return line;
 }
@@ -1393,7 +1393,7 @@ static void PR_FillOffsetTables()
 bool PR_LoadProgs(const s8 *filename, bool fatal)
 {
 	PR_ClearProgs(qcvm);//just in case.
-	qcvm->progs = (dprograms_t *)COM_LoadMallocFile(filename, NULL);
+	qcvm->progs = (dprograms_t *)COM_LoadHunkFile(filename, NULL);
 	if(!qcvm->progs)
 		return false;
 	Con_DPrintf("Programs occupy %" SDL_PRIs64 "K.\n", com_filesize/1024);

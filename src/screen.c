@@ -283,12 +283,14 @@ void SCR_SetUpToDrawConsole()
 	else
 		scr_conlines = 0; // none visible
 	if (scr_conlines < scr_con_current) {
-		scr_con_current -= scr_conspeed.value * host_frametime *uiscale;
+		scr_con_current -= scr_conspeed.value * host_frametime
+			* (vid.height/200);
 		if (scr_conlines > scr_con_current)
 			scr_con_current = scr_conlines;
 
 	} else if (scr_conlines > scr_con_current) {
-		scr_con_current += scr_conspeed.value * host_frametime *uiscale;
+		scr_con_current += scr_conspeed.value * host_frametime
+			* (vid.height/200);
 		if (scr_conlines < scr_con_current)
 			scr_con_current = scr_conlines;
 	}

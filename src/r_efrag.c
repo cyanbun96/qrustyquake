@@ -29,25 +29,25 @@ void R_RemoveEfrags(entity_t *ent)
 
 static efrag_t *R_GetEfrag () // based on RMQEngine
 {
-        // we could just Hunk_Alloc a single efrag_t and return it, but since
-        // the struct is so small (2 pointers) allocate groups of them
-        // to avoid wasting too much space on the hunk allocation headers.
-        if (cl.free_efrags) {
-                efrag_t *ef = cl.free_efrags;
-                cl.free_efrags = ef->leafnext;
-                ef->leafnext = NULL;
-                cl.num_efrags++;
-                return ef;
-        }
-        else {
-                cl.free_efrags = (efrag_t *) Hunk_AllocName (EXTRA_EFRAGS * sizeof (efrag_t), "efrags");
+	// we could just Hunk_Alloc a single efrag_t and return it, but since
+	// the struct is so small (2 pointers) allocate groups of them
+	// to avoid wasting too much space on the hunk allocation headers.
+	if (cl.free_efrags) {
+		efrag_t *ef = cl.free_efrags;
+		cl.free_efrags = ef->leafnext;
+		ef->leafnext = NULL;
+		cl.num_efrags++;
+		return ef;
+	}
+	else {
+		cl.free_efrags = (efrag_t *) Hunk_AllocName (EXTRA_EFRAGS * sizeof (efrag_t), "efrags");
 		s32 i = 0;
-                for (; i < EXTRA_EFRAGS - 1; i++)
-                        cl.free_efrags[i].leafnext = &cl.free_efrags[i + 1];
-                cl.free_efrags[i].leafnext = NULL;
-                // call recursively to get a newly allocated free efrag
-                return R_GetEfrag ();
-        }
+		for (; i < EXTRA_EFRAGS - 1; i++)
+			cl.free_efrags[i].leafnext = &cl.free_efrags[i + 1];
+		cl.free_efrags[i].leafnext = NULL;
+		// call recursively to get a newly allocated free efrag
+		return R_GetEfrag ();
+	}
 }
 
 void R_SplitEntityOnNode(mnode_t *node)

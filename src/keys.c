@@ -210,7 +210,7 @@ void Key_Console(s32 key) // Line typing into the console
 			con_backscroll += 20;
 		else
 			con_backscroll += 2;
-		if((u32)con_backscroll > con_bottom)
+		if(con_backscroll > con_bottom)
 			con_backscroll = con_bottom;
 		return;
 	}

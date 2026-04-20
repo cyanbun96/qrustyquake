@@ -219,7 +219,7 @@ void Hunk_Print(bool all)
 
 void Hunk_Print_f() { Hunk_Print(0); }
 
-void *Hunk_AllocName(s32 size, const s8 *name)
+void *Hunk_AllocInternal(s32 size, const s8 *name, bool clear)
 {
 	if(size < 0) Sys_Error("Hunk_Alloc: bad size: %i", size);
 	size = sizeof(hunk_t) + ((size+15)&~15);
@@ -228,12 +228,18 @@ void *Hunk_AllocName(s32 size, const s8 *name)
 	hunk_t *h = (hunk_t *)(hunk_base + hunk_low_used);
 	hunk_low_used += size;
 	Cache_FreeLow(hunk_low_used);
-	memset(h, 0, size);
+	if(clear)memset(h, 0, size);
 	h->size = size;
 	h->sentinel = HUNK_SENTINEL;
 	q_strlcpy(h->name, name, HUNKNAME_LEN);
 	return(void *)(h+1);
 }
+
+void *Hunk_AllocNoFill(s32 size)
+{ return Hunk_AllocInternal(size, "nofill", 0); }
+
+void *Hunk_AllocName(s32 size, const s8 *name)
+{ return Hunk_AllocInternal(size, name, 1); }
 
 void *Hunk_Alloc(s32 size)
 { return Hunk_AllocName(size, "unknown"); }

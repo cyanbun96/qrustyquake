@@ -268,7 +268,12 @@ void D_DrawSurfaces()
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
 		if (s->insubmodel) D_SwitchSubModelOn(s);
-		if (s->flags & SURF_DRAWSKY) {
+		if (s->flags & SURF_NOTEXTURE) {
+			Con_DPrintf("D_DrawSurfaces: drawing SURF_NOTEXTURE\n");
+			D_DrawSolidSurface(s, 0);
+			D_DrawZSpans(s->spans);
+			s->spans = NULL;
+		} else if (s->flags & SURF_DRAWSKY) {
 			if (!skybox_name[0]) D_DrawSky(s);
 			else D_DrawZSpans(s->spans);
 			s->spans = NULL;

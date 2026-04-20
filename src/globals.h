@@ -375,6 +375,7 @@ void *Z_Malloc(s32 size);
 void *Z_Realloc(void *ptr, s32 size);
 s8 *Z_Strdup(const s8 *s);
 void *Hunk_Alloc(s32 size);
+void *Hunk_AllocNoFill(s32 size);
 void *Hunk_AllocName(s32 size, const s8 *name);
 void *Hunk_HighAllocName(s32 size, const s8 *name);
 s32 Hunk_LowMark();
@@ -588,6 +589,7 @@ EX dlight_t cl_dlights[MAX_DLIGHTS];
 EX s32 cl_numvisedicts;
 EX entity_t *cl_visedicts[MAX_VISEDICTS];
 void CL_AccumulateCmd();
+void CL_FreeState();
 EX entity_t cl_temp_entities[MAX_TEMP_ENTITIES];                    // cl_tent.c
 EX beam_t cl_beams[MAX_BEAMS];
 void Cbuf_Waited();                                                     // cmd.c

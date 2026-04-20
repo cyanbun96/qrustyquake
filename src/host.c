@@ -271,11 +271,12 @@ void Host_ClearMemory() // This clears all the memory used by both the client
 	}
 	D_FlushCaches(0);
 	Mod_ClearAll();
-	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
-	cls.signon = 0;
 	PR_ClearProgs(&sv.qcvm);
 	PR_ClearProgs(&cl.qcvm);
+	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
+	cls.signon = 0;
 	memset(&sv, 0, sizeof(sv));
+	CL_FreeState();
 }
 
 f64 Host_GetFrameInterval()

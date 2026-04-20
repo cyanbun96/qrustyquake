@@ -126,6 +126,7 @@ void R_Init()
 	Cvar_SetCallback(&r_slimealpha, R_SetSlimealpha_f);
 	Cvar_SetCallback(&r_fovmode, R_ViewChangedCallback);
 	Cvar_SetCallback(&r_renderscale, VID_SetRenderScaleCommand_f);
+	Cvar_SetCallback(&r_ambient, D_FlushCaches);
 	Cvar_SetCallback(&yaspectscale, R_ViewChangedCallback);
 	view_clipplanes[0].leftedge = 1;
 	view_clipplanes[1].rightedge = 1;
@@ -610,7 +611,7 @@ void R_RenderView()
 	if(r_dspeeds.value) d_times[12] = Sys_DoubleTime();
 	if(r_dowarp) D_WarpScreen();
 	if(r_dspeeds.value) d_times[13] = Sys_DoubleTime();
-        if(fog_density < 1) R_DrawFog();
+	if(fog_density < 1) R_DrawFog();
 	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
 }

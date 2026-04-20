@@ -7,9 +7,9 @@ s32 fog_initialized = 0;                                              // d_fog.c
 f32 fog_density;
 u8 fog_pal_index;
 u32 oldmodes[NUM_OLDMODES * 2] = {                                  // vid_sdl.c
-        320, 240,       640, 480,       800, 600,
-        320, 200,       320, 240,       640, 350,
-        640, 400,       640, 480,       800, 600 };
+	320, 240,       640, 480,       800, 600,
+	320, 200,       320, 240,       640, 350,
+	640, 400,       640, 480,       800, 600 };
 SDL_Window *window;
 SDL_Surface *windowSurface;
 // scrbuffs[0] = screen; 1 = screentop; 2 = screenui; 3 = screensbar;
