@@ -1213,7 +1213,6 @@ void Host_Mods_f()
 void Cmd_Resurrect_f()
 {
 	// Known issues:
-	// Doesn't restore proper height when gibbed
 	// Sometimes doesn't restore the weapon, and shooting restarts the level
 	PR_SwitchQCVM(&sv.qcvm);
 	if(!sv.active || cls.demoplayback){
@@ -1231,9 +1230,13 @@ void Cmd_Resurrect_f()
 		Con_Printf("You are still alive!\n");
 		goto resurrect_ret;
 	}
-	printf("CUR EFF %f:\n", ent->v.effects);
-	printf("CUR ITM %f:\n", ent->v.items);
 	// 2. Chained assignments compress the Physics & Camera resets
+	if(ent->v.health < -40){ // gibbed
+		ent->v.origin[2] += 24;
+		ent->v.flags = (u64)ent->v.flags & ~FL_ONGROUND;
+		ent->v.mins[2] = -24;
+		ent->v.maxs[2] = 32;
+	}
 	ent->v.health = 100;
 	ent->v.deadflag = DEAD_NO;
 	ent->v.takedamage = DAMAGE_AIM;
