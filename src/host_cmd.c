@@ -1212,62 +1212,51 @@ void Host_Mods_f()
 
 void Cmd_Resurrect_f()
 {
-    edict_t *ent;
-    int w, old_self;
-
-    PR_SwitchQCVM(&sv.qcvm);
-    
-    if (!sv.active || cls.demoplayback) {
-        Con_Printf("You must be in a game to resurrect.\n");
-	goto resurrect_ret;
-    }
-    
-    if (pr_global_struct->deathmatch) {
-	goto resurrect_ret;
-    }
-    
-    if (sv.qcvm.max_edicts <= 1) {
-	goto resurrect_ret;
-    }
-    ent = EDICT_NUM(1);
-    
-    if (!ent || ent->free){
-        Con_Printf("Error: PLAYER edict missing/freed.\n");
-	goto resurrect_ret;
-    }
-    if (ent->v.health > 0) {
-	Con_Printf("You are still alive!\n");
-	goto resurrect_ret;
-    }
-    // 2. Chained assignments compress the Physics & Camera resets
-    ent->v.health = 100;
-    ent->v.deadflag = DEAD_NO;
-    ent->v.takedamage = DAMAGE_AIM;
-    ent->v.solid = SOLID_SLIDEBOX;
-    ent->v.movetype = MOVETYPE_WALK;
-    ent->v.modelindex = 1;
-
-    ent->v.punchangle[0] = ent->v.punchangle[1] = ent->v.punchangle[2] = 0;
-    cl.punchangle[0] = cl.punchangle[1] = cl.punchangle[2] = 0;
-
-    ent->v.view_ofs[0] = ent->v.view_ofs[1] = ent->v.angles[2] = cl.viewangles[2] = 0;
-    ent->v.view_ofs[2] = cl.viewheight = 22;
-
-    // 3. Compact Weapon Logic (Ternary Chain)
-    w = (int)ent->v.weapon;
-    ent->v.weapon = 0;
-    ent->v.impulse = (w==IT_AXE)?1 : (w==IT_SHOTGUN)?2 : (w==IT_SUPER_SHOTGUN)?3 : (w==IT_NAILGUN)?4 : (w==IT_SUPER_NAILGUN)?5 : (w==IT_GRENADE_LAUNCHER)?6 : (w==IT_ROCKET_LAUNCHER)?7 : (w==IT_LIGHTNING)?8 : 10;
-
-    // 4. Synchronous VM Execution
-    old_self = pr_global_struct->self;
-    pr_global_struct->self = EDICT_TO_PROG(ent);
-    PR_ExecuteProgram(pr_global_struct->PlayerPostThink);
-    pr_global_struct->self = old_self;
-
-    Con_Printf("Resurrection successful.\n");
-
+	// Known issues:
+	// Doesn't restore proper height when gibbed
+	// Breaks powerups, e.g. if you died with quad the effects will stay on
+	// Sometimes doesn't restore the weapon, and shooting restarts the level
+	PR_SwitchQCVM(&sv.qcvm);
+	if(!sv.active || cls.demoplayback){
+		Con_Printf("You must be in a game to resurrect.\n");
+		goto resurrect_ret;
+	}
+	if(pr_global_struct->deathmatch || sv.qcvm.max_edicts <= 1)
+		goto resurrect_ret;
+	edict_t *ent = EDICT_NUM(1);
+	if(!ent || ent->free){
+		Con_Printf("Error: PLAYER edict missing/freed.\n");
+		goto resurrect_ret;
+	}
+	if(ent->v.health > 0){
+		Con_Printf("You are still alive!\n");
+		goto resurrect_ret;
+	}
+	// 2. Chained assignments compress the Physics & Camera resets
+	ent->v.health = 100;
+	ent->v.deadflag = DEAD_NO;
+	ent->v.takedamage = DAMAGE_AIM;
+	ent->v.solid = SOLID_SLIDEBOX;
+	ent->v.movetype = MOVETYPE_WALK;
+	ent->v.modelindex = 1;
+	ent->v.punchangle[0] = ent->v.punchangle[1] = ent->v.punchangle[2] = 0;
+	cl.punchangle[0] = cl.punchangle[1] = cl.punchangle[2] = 0;
+	ent->v.view_ofs[0] = ent->v.view_ofs[1] = ent->v.angles[2] = cl.viewangles[2] = 0;
+	ent->v.view_ofs[2] = cl.viewheight = 22;
+	// 3. Compact Weapon Logic (Ternary Chain)
+	s32 w = ent->v.weapon;
+	ent->v.weapon = 0;
+	ent->v.impulse=(w==IT_AXE)?1:(w==IT_SHOTGUN)?2:(w==IT_SUPER_SHOTGUN)?3:
+	  (w==IT_NAILGUN)?4:(w==IT_SUPER_NAILGUN)?5:(w==IT_GRENADE_LAUNCHER)?6:
+	  (w==IT_ROCKET_LAUNCHER)?7:(w==IT_LIGHTNING)?8:10;
+	// 4. Synchronous VM Execution
+	s32 old_self = pr_global_struct->self;
+	pr_global_struct->self = EDICT_TO_PROG(ent);
+	PR_ExecuteProgram(pr_global_struct->PlayerPostThink);
+	pr_global_struct->self = old_self;
+	Con_Printf("Resurrection successful.\n");
 resurrect_ret:
-    PR_SwitchQCVM(NULL);
+	PR_SwitchQCVM(NULL);
 }
 
 void Host_InitCommands()
