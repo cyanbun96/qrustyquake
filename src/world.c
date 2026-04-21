@@ -135,7 +135,6 @@ static void SV_AreaTriggerEdicts(edict_t *ent, areanode_t *node, edict_t **list,
 		s32 *listcount, const s32 listspace )
 {
 	link_t *next;
-	s32 i = 0;
 	// touch linked edicts
 	for(link_t*l=node->trigger_edicts.next;l!=&node->trigger_edicts;l=next){ 
 		next = l->next;
@@ -151,7 +150,6 @@ static void SV_AreaTriggerEdicts(edict_t *ent, areanode_t *node, edict_t **list,
 		if(*listcount == listspace) return; // should never happen
 		list[*listcount] = touch;
 		(*listcount)++;
-		++i;
 	}
 	if(node->axis == -1) return; // recurse down both sides
 	if(ent->v.absmax[node->axis] > node->dist)

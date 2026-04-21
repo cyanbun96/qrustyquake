@@ -176,7 +176,6 @@ void Hunk_Check()
 void Hunk_Print(bool all)
 {
 	s8 name[HUNKNAME_LEN];
-	s32 count = 0;
 	s32 sum = 0;
 	s32 totalblocks = 0;
 	hunk_t *h = (hunk_t *)hunk_base;
@@ -199,7 +198,6 @@ void Hunk_Print(bool all)
 				(u8 *)h - hunk_base > hunk_size)
 			Sys_Error("Hunk_Check: bad size");
 		hunk_t *next = (hunk_t *)((u8 *)h+h->size);
-		count++;
 		totalblocks++;
 		sum += h->size;
 		memcpy(name, h->name, HUNKNAME_LEN); // print the single block
@@ -207,7 +205,6 @@ void Hunk_Print(bool all)
 		if(next == endlow || next == endhigh ||
 				strncmp(h->name, next->name, HUNKNAME_LEN - 1)){
 			if(!all) Con_Printf(" :%8i %8s(TOTAL)\n",sum, name);
-			count = 0;
 			sum = 0;
 		}
 		h = next;

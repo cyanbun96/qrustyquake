@@ -1076,9 +1076,10 @@ void Host_Maps_f()
 {
 	s32 i;
 	s32 tot = 0;
-	s8 padchar = '.' | 0x80;
+	s8 padchar = (s8)('.' | 0x80);
+	s8 padchar2 = (s8)('-' | 0x80);
 	filelist_item_t *level;
-	Con_Printf("%s\n", RightPad("id1", 32, '-'|0x80));
+	Con_Printf("%s\n", RightPad("id1", 32, padchar2));
 	for(level = extralevels, i = 0; level; level = level->next, i++){
 		Con_Printf("   %s%c%s\n", RightPad(level->name,
 			maxlevelnamelen, padchar), padchar, level->desc);
@@ -1086,7 +1087,7 @@ void Host_Maps_f()
 	}
 	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		goto host_maps_f_fin;
-	Con_Printf("%s\n", RightPad(COM_SkipPath(com_gamedir), 32, '-'|0x80));
+	Con_Printf("%s\n", RightPad(COM_SkipPath(com_gamedir), 32, padchar2));
 	for(level = extralevels_mod, i = 0; level; level = level->next, i++){
 		Con_Printf("   %s%c%s\n", RightPad(level->name,
 			maxlevelnamelen, padchar), padchar, level->desc);
@@ -1201,7 +1202,7 @@ void Host_Mods_f()
 {//list all potential mod directories(contain either a pak file or a progs.dat)
 	s32 i;
 	filelist_item_t *mod;
-	s8 padchar = '.' | 0x80;
+	s8 padchar = (s8)('.' | 0x80);
 	for(mod = modlist, i=0; mod; mod = mod->next, i++)
 		Con_Printf("   %s%c%s\n", RightPad(mod->name,
 			maxmodnamelen, padchar), padchar, mod->desc);
