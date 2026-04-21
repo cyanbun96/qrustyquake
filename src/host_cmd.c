@@ -977,7 +977,7 @@ static void ExtraMaps_Init_SearchDir(searchpath_t *search)
 	q_snprintf(filestring, sizeof(filestring), "%s/maps/*.bsp",
 							search->filename);
 	fhnd = FindFirstFile(filestring, &fdat);
-	if(fhnd == INVALID_HANDLE_VALUE) continue;
+	if(fhnd == INVALID_HANDLE_VALUE) return;
 	do {
 		COM_StripExtension(fdat.cFileName, mapname, sizeof(mapname));
 		if(maxlevelnamelen < Q_strlen(mapname))
