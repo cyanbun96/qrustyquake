@@ -199,6 +199,7 @@ void Key_Console(s32 key) // Line typing into the console
 		if(history_line == edit_line){
 			key_lines[edit_line][0] = ']';
 			key_linepos = 1;
+			memset(&key_lines[edit_line][1], 0, MAXCMDLINE-1);
 		} else {
 			Q_strcpy(key_lines[edit_line], key_lines[history_line]);
 			key_linepos = Q_strlen(key_lines[edit_line]);
