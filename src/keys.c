@@ -206,6 +206,13 @@ void Key_Console(s32 key) // Line typing into the console
 		}
 		return;
 	}
+	if(keydown[K_CTRL] && (key == 'c' || key == 'C')){
+		history_line = edit_line;
+		key_lines[edit_line][0] = ']';
+		key_linepos = 1;
+		memset(&key_lines[edit_line][1], 0, MAXCMDLINE-1);
+		return;
+	}
 	if(key == K_PGUP || key == K_MWHEELUP){
 		if (keydown[K_CTRL] || keydown[K_SHIFT])
 			con_backscroll += 20;
