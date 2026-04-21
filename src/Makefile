@@ -45,6 +45,10 @@ endif
 DEBUG_FLAGS ?= -g -O0 -DDEBUG
 RELEASE_FLAGS ?= -O3 -flto=auto -g
 
+ifeq ($(CC),clang)
+LDFLAGS += -fuse-ld=lld
+endif
+
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += $(DEBUG_FLAGS)
 	ifeq ($(ASAN), 1)
