@@ -39,4 +39,5 @@ lyr_console, lyr_notify, lyr_crosshair, con_logcenterprint, scr_menubgstyle,
 r_hlripplescale, r_hlwavescale, r_hlwaterquality, r_particlestyle, cl_nocsqc,
 r_particlesize, r_particlealpha, r_renderscale, r_skynoise, pr_checkextension,
 scr_sbaralpha, scr_sbarscale, scr_qchudscale, v_saturation, v_contrast,
-v_redlevel, v_greenlevel, v_bluelevel, v_hue, v_vibrance, v_brightness;
+v_redlevel, v_greenlevel, v_bluelevel, v_hue, v_vibrance, v_brightness,
+sv_autosave, sv_autosave_interval, sv_autoload;

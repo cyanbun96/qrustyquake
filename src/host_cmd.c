@@ -207,14 +207,40 @@ void Host_Changelevel_f()
 	PR_SwitchQCVM(NULL);
 }
 
+static bool Host_AutoLoad ()
+{
+	if(!sv_autoload.value || !sv.lastsave[0] ||
+			svs.maxclients != 1 || cl.intermission)
+		return false;
+	if(sv_autoload.value < 2.f){
+		if(!SCR_ModalMessage ("Load last save? (y/n)")){
+			sv.lastsave[0] = '\0';
+			return false;
+		}
+	}
+	else if(sv_autoload.value < 3.f && sv_player->v.health > 0.f)
+		return false;
+	sv.autoloading = true;
+	Con_Printf("Autoloading...\n");
+	Cbuf_AddText(va("load auto_%s\n", sv.name));
+	Cbuf_Execute();
+	if(sv.autoloading){
+		sv.autoloading = false;
+		Con_Printf ("Autoload failed!\n");
+		return false;
+	}
+	return true;
+}
+
 void Host_Restart_f()
 { // Restarts the current server for a dead player
 	s8 mapname[MAX_QPATH];
 	if(cls.demoplayback || !sv.active) return;
 	if(cmd_source != src_command) return;
+	if(Host_AutoLoad()) return;
 	strcpy(mapname, sv.name); // must copy out, because it gets
-	PR_SwitchQCVM(&sv.qcvm);
-	SV_SpawnServer(mapname); // cleared in sv_spawnserver
+	PR_SwitchQCVM(&sv.qcvm); // cleared in sv_spawnserver
+	SV_SpawnServer(mapname);
 	PR_SwitchQCVM(NULL);
 }
 
@@ -239,6 +265,12 @@ void Host_Connect_f()
 	Host_Reconnect_f();
 }
 
+static void Host_InvalidateSave (const char *relname)
+{
+	if (!strcmp (sv.lastsave, relname))
+		sv.lastsave[0] = '\0';
+}
+
 void Host_SavegameComment(s8 *text)
 { // Writes a SAVEGAME_COMMENT_LENGTH character comment describing the current
 	s8 kills[20];
@@ -255,14 +287,19 @@ void Host_SavegameComment(s8 *text)
 }
 
 void Host_Savegame_f()
-{
+{//CyanBun96: send 3 arguments for a quiet save
 	s8 name[256];
+	s8 orgname[256];
+	Q_strncpy(orgname, name, sizeof(name));
 	s8 comment[SAVEGAME_COMMENT_LENGTH + 1];
 	if(cmd_source != src_command) return;
 if(!sv.active){ Con_Printf("Not playing a local game.\n"); return; }
 if(cl.intermission){ Con_Printf("Can't save in intermission.\n"); return; }
 if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
-if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
+	if(Cmd_Argc() != 2 && Cmd_Argc() != 3){
+		Con_Printf("save <savename> : save a game\n");
+		return;
+	}
 	if(strstr(Cmd_Argv(1), "..")){
 		Con_Printf("Relative pathnames are not allowed.\n");
 		return;
@@ -274,10 +311,10 @@ if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
 		} 
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_AddExtension(name, ".sav", sizeof(name));
-	Con_Printf("Saving game to %s...\n", name);
-	PR_SwitchQCVM(&sv.qcvm);
+	if(Cmd_Argc()!=3)Con_Printf("Saving game to %s...\n", name);
 	FILE *f = fopen(name, "w");
 	if(!f){ Con_Printf("ERROR: couldn't open.\n"); return; }
+	PR_SwitchQCVM(&sv.qcvm);
 	fprintf(f, "%i\n", SAVEGAME_VERSION);
 	Host_SavegameComment(comment);
 	fprintf(f, "%s\n", comment);
@@ -297,12 +334,15 @@ if(Cmd_Argc() != 2){ Con_Printf("save <savename> : save a game\n"); return; }
 	}
 	fclose(f);
 	PR_SwitchQCVM(NULL);
-	Con_Printf("done.\n");
+	if(Cmd_Argc()!=3)Con_Printf("done.\n");
+	q_strlcpy(sv.lastsave, orgname, sizeof(orgname));
 }
 
 void Host_Loadgame_f()
 {
 	s8 name[MAX_OSPATH+2];
+	s8 orgname[MAX_OSPATH+2];
+	Q_strncpy(orgname, name, sizeof(name));
 	s8 mapname[MAX_QPATH];
 	s8 str[32768];
 	f32 spawn_parms[NUM_SPAWN_PARMS];
@@ -316,12 +356,17 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	// SCR_BeginLoadingPlaque();
 	Con_Printf("Loading game from %s...\n", name);
 	FILE *f = fopen(name, "r");
-	if(!f){ Con_Printf("ERROR: couldn't open.\n"); return; }
+	if(!f){
+		Con_Printf("ERROR: couldn't open.\n"); 
+		Host_InvalidateSave(name);
+		return;
+	}
 	s32 version;
 	fscanf(f, "%i\n", &version);
 	if(version != SAVEGAME_VERSION){
 		fclose(f);
       Con_Printf("Savegame is version %i, not %i\n", version, SAVEGAME_VERSION);
+		Host_InvalidateSave(name);
 		return;
 	}
 	fscanf(f, "%s\n", str);
@@ -393,6 +438,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++)
 		svs.clients->spawn_parms[i] = spawn_parms[i];
 	PR_SwitchQCVM(NULL);
+	q_strlcpy(sv.lastsave, orgname, sizeof(orgname));
 	if(cls.state != ca_dedicated){
 		CL_EstablishConnection("local");
 		Host_Reconnect_f();

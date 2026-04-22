@@ -104,6 +104,9 @@ void SV_Init()
 	Cvar_RegisterVariable(&sv_freezenonclients);
 	Cvar_RegisterVariable(&pr_checkextension);
 	Cvar_RegisterVariable(&sv_altnoclip); //johnfitz
+	Cvar_RegisterVariable(&sv_autosave);
+	Cvar_RegisterVariable(&sv_autosave_interval);
+	Cvar_RegisterVariable(&sv_autoload);
 	Cmd_AddCommand("sv_protocol", &SV_Protocol_f); //johnfitz
 	for(s32 i = 0; i < MAX_MODELS; i++)
 		sprintf(localmodels[i], "*%i", i);

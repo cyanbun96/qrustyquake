@@ -308,6 +308,77 @@ static void Host_AdvanceTime(f64 dt)
 		host_frametime = CLAMP(0.0001, host_frametime, 0.1);
 }
 
+static void Host_CheckAutosave()
+{
+	f32 health_change, speed, elapsed, score;
+	if(!sv_autosave.value || sv_autosave_interval.value <= 0.f ||
+	  svs.maxclients != 1 || sv_player->v.health <= 0.f || cl.intermission)
+		return;
+	if(cls.signon == SIGNONS){
+		// Track new secrets
+		if(pr_global_struct->found_secrets != sv.autosave.prev_secrets){
+			sv.autosave.prev_secrets=pr_global_struct->found_secrets;
+			sv.autosave.secret_boost = 1.f;
+		}
+		else
+			sv.autosave.secret_boost = q_max(0.f,
+				sv.autosave.secret_boost-host_frametime/1.5f);
+	}
+	if(!sv.autosave.prev_health)//Track health changes
+		sv.autosave.prev_health = sv_player->v.health;
+	health_change = sv_player->v.health - sv.autosave.prev_health;
+	if(health_change < 0.f)
+		if(health_change < -3.f || sv_player->v.health < 100.f ||
+				sv_player->v.watertype == CONTENTS_SLIME ||
+				sv_player->v.watertype == CONTENTS_LAVA)
+			sv.autosave.hurt_time = qcvm->time;
+	sv.autosave.prev_health = sv_player->v.health;
+	if(sv_player->v.button0)//Track attacking
+		sv.autosave.shoot_time = qcvm->time;
+	// Time spent with cheats active doesn't count
+	if(sv_player->v.movetype == MOVETYPE_NOCLIP || (s32)sv_player->v.flags
+			& (FL_GODMODE|FL_NOTARGET)){
+		sv.autosave.cheat += host_frametime;
+		return;
+	}
+	if(qcvm->time - sv.autosave.hurt_time < 3.f)
+		return;//Don't save if the player has been hurt recently
+	if(qcvm->time - sv.autosave.shoot_time < 3.f)
+		return;//Don't save if the player has fired recently
+	speed = VectorLength (sv_player->v.velocity);
+	if(speed > 100.f)
+		return;//Only save when the player slows down a bit
+	//Copper's func_void holds the player at the bottom for a bit before
+	//inflicting damage, so we can't assume it's safe to save just because
+	//we're no longer falling
+	if((s32)sv_player->v.movetype == MOVETYPE_NONE)
+		return;
+	elapsed = qcvm->time - sv.autosave.time - sv.autosave.cheat;
+	if(elapsed < 3.f)
+		return;//Don't save too often
+	//Compute a normalized autosave score
+	//Base value is the fraction of the autosave interval already passed
+	score = elapsed / sv_autosave_interval.value;
+	//Scale down the score if health + armor is below 100
+	//(save less often with lower health)
+	score *= q_min(100.f, (sv_player->v.health + sv_player->v.armortype
+				* sv_player->v.armorvalue)) / 100.f;
+	//Boost the score right after picking up health
+	score += q_max(0.f, health_change) / 100.f;
+	//Lower score a bit based on speed (favor standing still/slowing down)
+	score -= (speed / 100.f) * 0.25f;
+	//Boost the score after finding a secret
+	score += sv.autosave.secret_boost * 0.25f;
+	//Boost the score after teleporting
+	score += CLAMP(0.f, 1.f - (qcvm->time - sv_player->v.teleport_time)
+			/ 1.5f, 1.f) * 0.5f;
+	//Only save if the score is high enough
+	if(score < 1.f) return;
+	sv.autosave.time = qcvm->time;
+	sv.autosave.cheat = 0;
+	Cbuf_AddText(va("save auto_%s 0\n", sv.name));
+}
+
 void Host_ServerFrame()
 {
 	pr_global_struct->frametime = host_frametime; // run the world state
@@ -319,6 +390,7 @@ void Host_ServerFrame()
 	if(!sv.paused && (svs.maxclients > 1 || key_dest == key_game))
 		SV_Physics();
 	SV_SendClientMessages(); // send all messages to the clients
+	Host_CheckAutosave ();
 }
 
 void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
