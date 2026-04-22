@@ -18,7 +18,7 @@ void Sys_Quit()
 	if(registered.value) screen = (Uint16 *)COM_LoadHunkFile("end2.bin", 0);
 	else screen = (Uint16 *)COM_LoadHunkFile("end1.bin", 0);
 	SDL_SetWindowSize(window, 640, 400);
-	if(screen) vgatext_main(window, screen);
+	if(screen && !quickexit.value) vgatext_main(window, screen);
 	Host_Shutdown();
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();

@@ -484,7 +484,11 @@ void M_Main_Key(s32 key)
 			M_Menu_Help_f();
 			break;
 		case 4:
-			M_Menu_Quit_f();
+			if(quickexit.value){
+				CL_Disconnect();
+				Host_ShutdownServer(0);
+				Sys_Quit();
+			}else M_Menu_Quit_f();
 			break;
 		}
 	}

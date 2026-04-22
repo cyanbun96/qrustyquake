@@ -232,6 +232,7 @@ cvar_t v_hue=                                                {"v_hue","0",1,ZR};
 cvar_t sv_autosave=                                    {"sv_autosave","0",1,ZR};
 cvar_t sv_autosave_interval=                 {"sv_autosave_interval","30",1,ZR};
 cvar_t sv_autoload=                                    {"sv_autoload","0",1,ZR};
+cvar_t quickexit=                                        {"quickexit","0",1,ZR};
 cvar_t registered=                               {"registered","1",CVAR_ROM,ZR};
 cvar_t cmdline=                                      {"cmdline","",CVAR_ROM,ZR};
 cvar_t vid_mode=                                 {"vid_mode", "0", CVAR_ROM,ZR};
