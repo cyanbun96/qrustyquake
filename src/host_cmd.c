@@ -188,25 +188,6 @@ static void Host_Map_f()
 	}
 }
 
-void Host_Changelevel_f()
-{ // Goes to a new map, taking all clients along
-	s8 level[MAX_QPATH];
-	if(Cmd_Argc() != 2){
-	Con_Printf("changelevel <levelname> : continue game on a new level\n");
-		return;
-	}
-	if(!sv.active || cls.demoplayback){
-		Con_Printf("Only the server may changelevel\n");
-		return;
-	}
-	strcpy(level, Cmd_Argv(1));
-	key_dest = key_game;
-	PR_SwitchQCVM(&sv.qcvm);
-	SV_SaveSpawnparms();
-	SV_SpawnServer(level);
-	PR_SwitchQCVM(NULL);
-}
-
 static bool Host_AutoLoad ()
 {
 	if(!sv_autoload.value || !sv.lastsave[0] ||
@@ -230,6 +211,27 @@ static bool Host_AutoLoad ()
 		return false;
 	}
 	return true;
+}
+
+void Host_Changelevel_f()
+{ // Goes to a new map, taking all clients along
+	s8 level[MAX_QPATH];
+	if(Cmd_Argc() != 2){
+	Con_Printf("changelevel <levelname> : continue game on a new level\n");
+		return;
+	}
+	if(!sv.active || cls.demoplayback){
+		Con_Printf("Only the server may changelevel\n");
+		return;
+	}
+	strcpy(level, Cmd_Argv(1));
+	if(!strcmp(sv.name, level) && Host_AutoLoad ())
+		return;
+	key_dest = key_game;
+	PR_SwitchQCVM(&sv.qcvm);
+	SV_SaveSpawnparms();
+	SV_SpawnServer(level);
+	PR_SwitchQCVM(NULL);
 }
 
 void Host_Restart_f()
