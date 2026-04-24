@@ -2794,13 +2794,20 @@ void M_New_Draw()
 	M_Print(xoffset, 40, "         Y Mouse Speed");
 	sprintf(temp, "x%0.1f\n", sensitivityyscale.value);
 	M_Print(xoffset + 204, 40, temp);
-	M_Print(xoffset + 204, 48, "Display...");
-	M_Print(xoffset + 204, 56, "Graphics...");
-	M_Print(xoffset + 204, 64, "Gamepad...");
-	M_Print(xoffset + 204, 72, "Custom maps...");
-	M_Print(xoffset + 204, 80, "Mods...");
-	M_Print(xoffset + 204, 88, "Custom HUD...");
-	M_Print(xoffset + 204, 96, "Palette...");
+	M_Print(xoffset, 48, "            Quick Exit");
+	M_DrawCheckbox(xoffset + 204, 48, quickexit.value);
+	M_Print(xoffset, 56, "         Autosave/Load");
+	M_DrawCheckbox(xoffset + 204, 56, sv_autosave.value);
+	M_Print(xoffset, 64, "         Save Interval");
+	sprintf(temp, "%d\n", (s32)sv_autosave_interval.value);
+	M_Print(xoffset + 204, 64, temp);
+	M_Print(xoffset + 204, 72, "Display...");
+	M_Print(xoffset + 204, 80, "Graphics...");
+	M_Print(xoffset + 204, 88, "Gamepad...");
+	M_Print(xoffset + 204, 96, "Custom maps...");
+	M_Print(xoffset + 204, 104, "Mods...");
+	M_Print(xoffset + 204, 112, "Custom HUD...");
+	M_Print(xoffset + 204, 120, "Palette...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -2902,15 +2909,24 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 1 && sensitivityyscale.value >= 0.1)
 			Cvar_SetValue("sensitivityyscale",
 				      sensitivityyscale.value - 0.1);
+		else if (new_cursor == 2)
+			Cvar_SetValue("quickexit", !quickexit.value);
+		else if (new_cursor == 3){
+			Cvar_SetValue("sv_autosave", !sv_autosave.value);
+			Cvar_SetValue("sv_autoload", sv_autoload.value);
+		}
+		else if (new_cursor == 4)
+			Cvar_SetValue("sv_autosave_interval",
+				CLAMP(1,sv_autosave_interval.value - 1,60));
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 8;
+		if (new_cursor == 0) new_cursor = 11;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 8) new_cursor = 0;
+		if (new_cursor == 11) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_RIGHTARROW:
@@ -2921,13 +2937,22 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 1 && sensitivityyscale.value >= 0.1)
 			Cvar_SetValue("sensitivityyscale",
 				      sensitivityyscale.value + 0.1);
-		else if (new_cursor == 2) M_Menu_Display_f();
-		else if (new_cursor == 3) M_Menu_Graphics_f();
-		else if (new_cursor == 4) M_Menu_Gamepad_f();
-		else if (new_cursor == 5) M_Menu_Maps_f();
-		else if (new_cursor == 6) M_Menu_Mods_f();
-		else if (new_cursor == 7) M_Menu_CSQC_f();
-		else if (new_cursor == 8) M_Menu_Palette_f();
+		else if (new_cursor == 2)
+			Cvar_SetValue("quickexit", !quickexit.value);
+		else if (new_cursor == 3){
+			Cvar_SetValue("sv_autosave", !sv_autosave.value);
+			Cvar_SetValue("sv_autoload", sv_autoload.value);
+		}
+		else if (new_cursor == 4)
+			Cvar_SetValue("sv_autosave_interval",
+				CLAMP(1,sv_autosave_interval.value + 1,60));
+		else if (new_cursor == 5) M_Menu_Display_f();
+		else if (new_cursor == 6) M_Menu_Graphics_f();
+		else if (new_cursor == 7) M_Menu_Gamepad_f();
+		else if (new_cursor == 8) M_Menu_Maps_f();
+		else if (new_cursor == 9) M_Menu_Mods_f();
+		else if (new_cursor == 10) M_Menu_CSQC_f();
+		else if (new_cursor == 11) M_Menu_Palette_f();
 		break;
 	}
 }
