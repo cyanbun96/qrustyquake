@@ -2913,7 +2913,7 @@ void M_New_Key(s32 k)
 			Cvar_SetValue("quickexit", !quickexit.value);
 		else if (new_cursor == 3){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
-			Cvar_SetValue("sv_autoload", sv_autoload.value);
+			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
 		else if (new_cursor == 4)
 			Cvar_SetValue("sv_autosave_interval",
@@ -2941,7 +2941,7 @@ void M_New_Key(s32 k)
 			Cvar_SetValue("quickexit", !quickexit.value);
 		else if (new_cursor == 3){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
-			Cvar_SetValue("sv_autoload", sv_autoload.value);
+			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
 		else if (new_cursor == 4)
 			Cvar_SetValue("sv_autosave_interval",
