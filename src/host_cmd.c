@@ -1316,6 +1316,7 @@ void Cmd_Resurrect_f()
         case IT_GRENADE_LAUNCHER: ent->v.impulse = 6; break;
         case IT_ROCKET_LAUNCHER:  ent->v.impulse = 7; break;
         case IT_LIGHTNING:        ent->v.impulse = 8; break;
+		case IT_SUPER_LIGHTNING   ent->v.impulse = 1; break;
         default:                  ent->v.impulse = 10; break;
     }
 	ent->v.button0 = ent->v.button1 = ent->v.button2 = 0;
