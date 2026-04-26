@@ -290,8 +290,25 @@ void Mod_LoadTextures(lump_t *l)
 		mt->height = LittleLong(mt->height);
 		for(s32 j = 0; j < MIPLEVELS; j++)
 			mt->offsets[j] = LittleLong(mt->offsets[j]);
-		if((mt->width & 15) || (mt->height & 15))
-			Sys_Error("Texture %s is not 16 aligned", mt->name);
+		if((mt->width & 15) || (mt->height & 15)){
+			Con_Printf("Texture %s is not 16 aligned\n", mt->name);
+			s32 w = 64, h = 64;//fallback: 64x64 grey texture
+			s32 pixels = w*h+(w/2)*(h/2)+(w/4)*(h/4)+(w/8)*(h/8);
+			texture_t *tx = Hunk_AllocName(
+					sizeof(texture_t) + pixels, loadname);
+			loadmodel->textures[i] = tx;
+			memcpy(tx->name, mt->name, sizeof(tx->name));
+			tx->width = w;
+			tx->height = h;
+			tx->offsets[0] = sizeof(texture_t);
+			tx->offsets[1] = tx->offsets[0] + w*h;
+			tx->offsets[2] = tx->offsets[1] + (w/2)*(h/2);
+			tx->offsets[3] = tx->offsets[2] + (w/4)*(h/4);
+			memset((u8*)tx + tx->offsets[0], 7, pixels);
+			if(!Q_strncmp(mt->name, "sky", 3))
+				R_InitSky(tx);
+			continue;
+		}
 		bool is_water = (mt->name[0] == '*');
 		//CyanBun96: turbulent rendering code only supports 64x64
 		//textures, and i'm NOT trying to rewrite it to support more.
