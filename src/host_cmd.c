@@ -1307,19 +1307,10 @@ void Cmd_Resurrect_f()
 	// 4. Compact Weapon Logic (Ternary Chain)
 	s32 w = ent->v.weapon;
 	ent->v.weapon = 0;
-    switch (w) {
-        case IT_AXE:              ent->v.impulse = 1; break;
-        case IT_SHOTGUN:          ent->v.impulse = 2; break;
-        case IT_SUPER_SHOTGUN:    ent->v.impulse = 3; break;
-        case IT_NAILGUN:          ent->v.impulse = 4; break;
-        case IT_SUPER_NAILGUN:    ent->v.impulse = 5; break;
-        case IT_GRENADE_LAUNCHER: ent->v.impulse = 6; break;
-        case IT_ROCKET_LAUNCHER:  ent->v.impulse = 7; break;
-        case IT_LIGHTNING:        ent->v.impulse = 8; break;
-		case IT_SUPER_LIGHTNING   ent->v.impulse = 1; break;
-        default:                  ent->v.impulse = 10; break;
-    }
-	ent->v.button0 = ent->v.button1 = ent->v.button2 = 0;
+	ent->v.impulse=(w==IT_AXE)?1:(w==IT_SHOTGUN)?2:(w==IT_SUPER_SHOTGUN)?3:
+		(w==IT_NAILGUN)?4:(w==IT_SUPER_NAILGUN)?5:
+		(w==IT_GRENADE_LAUNCHER)?6:(w==IT_ROCKET_LAUNCHER)?7:
+		(w==IT_LIGHTNING)?8:(w==IT_SUPER_LIGHTNING)?1:10;
 	// 5. Synchronous VM Execution
 	s32 old_self = pr_global_struct->self;
 	pr_global_struct->self = EDICT_TO_PROG(ent);
