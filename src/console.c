@@ -150,8 +150,8 @@ void Con_DebugLog(s8 *file, s8 *fmt, ...)
 {
 	va_list argptr;
 	va_start(argptr, fmt);
-	static s8 data[1024];
-	vsprintf(data, fmt, argptr);
+	static s8 data[MAXPRINTMSG];
+	vsnprintf(data, sizeof(data), fmt, argptr);
 	va_end(argptr);
 	s32 fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
 	write(fd, data, strlen(data));
@@ -163,7 +163,7 @@ void Con_Printf(const s8 *fmt, ...)
 	va_list argptr;
 	va_start(argptr, fmt);
 	s8 msg[MAXPRINTMSG];
-	vsprintf(msg, fmt, argptr);
+	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 	Sys_Printf("%s", msg);// also echo to debugging console
 	if(con_debuglog) // log all messages to file
@@ -180,17 +180,17 @@ void Con_DPrintf(s8 *fmt, ...)
 	if(!developer.value)
 		return; // don't confuse non-developers with techie stuff...
 	va_start(argptr, fmt);
-	vsprintf(msg, fmt, argptr);
+	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 	Con_Printf("%s", msg);
 }
 
 void Con_SafePrintf(s8 *fmt, ...)
 { // Okay to call even when the screen can't be updated
-	s8 msg[1024];
+	s8 msg[MAXPRINTMSG];
 	va_list argptr;
 	va_start(argptr, fmt);
-	vsprintf(msg, fmt, argptr);
+	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 	s32 temp = scr_disabled_for_loading;
 	scr_disabled_for_loading = 1;
