@@ -70,6 +70,7 @@ void CL_ClearState()
 void CL_Disconnect() // Sends a disconnect message to the server
 { // This is also called on Host_Error, so it shouldn't cause any errors
 	S_StopAllSounds(1); // stop sounds(especially looping!)
+	CDAudio_Stop();
 	if(cls.demoplayback) // if running a local server, shut it down
 		CL_StopPlayback();
 	else if(cls.state == ca_connected){
