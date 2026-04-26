@@ -136,6 +136,10 @@ s32 R_LoadSkybox (const s8 *name)
 		q_snprintf (pathname, sizeof(pathname), "gfx/env/%s%s", name, suf[r_skysideimage[i]]);
 		s32 width, height;
 		u8 *pic = Image_LoadImage (pathname, &width, &height);
+		if (!pic) {
+			Con_Printf ("Couldn't load %s", pathname);
+			return 0;
+		}
 		u8 *pdest = pic; // CyanBun96: palettize in place
 		u8 *psrc = pic; // with some noise dithering
 		if (!rgb_lut_built)
@@ -152,10 +156,6 @@ s32 R_LoadSkybox (const s8 *name)
 				width, height, &width, &height);
 		u8 *origpic = pic;
 		pic = final_pic;
-		if (!pic) {
-			Con_Printf ("Couldn't load %s", pathname);
-			return 0;
-		}
 		s32 target = 1024;
 		s32 m = width > height ? width : height;
 		bool freescaled = false;
