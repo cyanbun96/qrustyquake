@@ -4,6 +4,8 @@ Quake like you remember it.
 
 A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and easy portability.
 
+Compatible with most modern mods, check [Compatibility List](https://github.com/cyanbun96/qrustyquake/wiki/Compatibility-List) for details.
+
 # Features
 
 - A "New Options" menu, can be toggled with "newoptions 0/1"
