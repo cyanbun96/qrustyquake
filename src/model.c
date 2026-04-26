@@ -660,23 +660,6 @@ static void CalcSurfaceExtents(msurface_t *s)
 	}
 }
 
-static void Mod_CalcSurfaceBounds(msurface_t *s) // -- johnfitz
-{ // calculate bounding box for per-surface frustum culling
-	s->mins[0] = s->mins[1] = s->mins[2] = FLT_MAX;
-	s->maxs[0] = s->maxs[1] = s->maxs[2] = -FLT_MAX;
-	for(s32 i = 0; i < s->numedges; i++){
-		s32 e = loadmodel->surfedges[s->firstedge+i];
-		mvertex_t *v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
-		if(e >= 0) v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
-		if(s->mins[0] > v->position[0]) s->mins[0] = v->position[0];
-		if(s->mins[1] > v->position[1]) s->mins[1] = v->position[1];
-		if(s->mins[2] > v->position[2]) s->mins[2] = v->position[2];
-		if(s->maxs[0] < v->position[0]) s->maxs[0] = v->position[0];
-		if(s->maxs[1] < v->position[1]) s->maxs[1] = v->position[1];
-		if(s->maxs[2] < v->position[2]) s->maxs[2] = v->position[2];
-	}
-}
-
 static void Mod_LoadFaces(lump_t *l, bool bsp2)
 {
 	dface_t *ins;
@@ -735,7 +718,6 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 			out->flags |= SURF_NOTEXTURE; // not a real fix FIXME
 			out->samples = NULL; // just prevents crashes
 		}
-		Mod_CalcSurfaceBounds(out); //jfitz-per-surface frustum culling
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
 		if(!q_strncasecmp(out->texinfo->texture->name,"sky",3))
