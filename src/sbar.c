@@ -905,6 +905,7 @@ void Sbar_DeathmatchOverlay()
 		y = 40*SCL;
 	}
 	for (s32 i = 0; i < scoreboardlines; i++) {
+		if (!sb_showscores && y > HH - 60*SCL) break;
 		s32 k = fragsort[i];
 		scoreboard_t *s = &cl.scores[k];
 		if (!s->name[0])
