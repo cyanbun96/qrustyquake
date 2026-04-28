@@ -45,6 +45,7 @@ void Host_Error(s8 *error, ...)
 	static bool inerror = 0;
 	if(inerror) Sys_Error("Host_Error: recursively entered");
 	inerror = 1;
+	PR_SwitchQCVM(NULL);
 	SCR_EndLoadingPlaque();	// reenable screen updates
 	va_start(argptr, error);
 	vsprintf(string, error, argptr);

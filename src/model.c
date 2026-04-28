@@ -290,8 +290,25 @@ void Mod_LoadTextures(lump_t *l)
 		mt->height = LittleLong(mt->height);
 		for(s32 j = 0; j < MIPLEVELS; j++)
 			mt->offsets[j] = LittleLong(mt->offsets[j]);
-		if((mt->width & 15) || (mt->height & 15))
-			Sys_Error("Texture %s is not 16 aligned", mt->name);
+		if((mt->width & 15) || (mt->height & 15)){
+			Con_Printf("Texture %s is not 16 aligned\n", mt->name);
+			s32 w = 64, h = 64;//fallback: 64x64 grey texture
+			s32 pixels = w*h+(w/2)*(h/2)+(w/4)*(h/4)+(w/8)*(h/8);
+			texture_t *tx = Hunk_AllocName(
+					sizeof(texture_t) + pixels, loadname);
+			loadmodel->textures[i] = tx;
+			memcpy(tx->name, mt->name, sizeof(tx->name));
+			tx->width = w;
+			tx->height = h;
+			tx->offsets[0] = sizeof(texture_t);
+			tx->offsets[1] = tx->offsets[0] + w*h;
+			tx->offsets[2] = tx->offsets[1] + (w/2)*(h/2);
+			tx->offsets[3] = tx->offsets[2] + (w/4)*(h/4);
+			memset((u8*)tx + tx->offsets[0], 7, pixels);
+			if(!Q_strncmp(mt->name, "sky", 3))
+				R_InitSky(tx);
+			continue;
+		}
 		bool is_water = (mt->name[0] == '*');
 		//CyanBun96: turbulent rendering code only supports 64x64
 		//textures, and i'm NOT trying to rewrite it to support more.
@@ -643,23 +660,6 @@ static void CalcSurfaceExtents(msurface_t *s)
 	}
 }
 
-static void Mod_CalcSurfaceBounds(msurface_t *s) // -- johnfitz
-{ // calculate bounding box for per-surface frustum culling
-	s->mins[0] = s->mins[1] = s->mins[2] = FLT_MAX;
-	s->maxs[0] = s->maxs[1] = s->maxs[2] = -FLT_MAX;
-	for(s32 i = 0; i < s->numedges; i++){
-		s32 e = loadmodel->surfedges[s->firstedge+i];
-		mvertex_t *v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
-		if(e >= 0) v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
-		if(s->mins[0] > v->position[0]) s->mins[0] = v->position[0];
-		if(s->mins[1] > v->position[1]) s->mins[1] = v->position[1];
-		if(s->mins[2] > v->position[2]) s->mins[2] = v->position[2];
-		if(s->maxs[0] < v->position[0]) s->maxs[0] = v->position[0];
-		if(s->maxs[1] < v->position[1]) s->maxs[1] = v->position[1];
-		if(s->maxs[2] < v->position[2]) s->maxs[2] = v->position[2];
-	}
-}
-
 static void Mod_LoadFaces(lump_t *l, bool bsp2)
 {
 	dface_t *ins;
@@ -718,7 +718,6 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 			out->flags |= SURF_NOTEXTURE; // not a real fix FIXME
 			out->samples = NULL; // just prevents crashes
 		}
-		Mod_CalcSurfaceBounds(out); //jfitz-per-surface frustum culling
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
 		if(!q_strncasecmp(out->texinfo->texture->name,"sky",3))

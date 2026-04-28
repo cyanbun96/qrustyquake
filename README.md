@@ -4,6 +4,8 @@ Quake like you remember it.
 
 A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and easy portability.
 
+Compatible with most modern mods, check [Compatibility List](https://github.com/cyanbun96/qrustyquake/wiki/Compatibility-List) for details.
+
 # Features
 
 - A "New Options" menu, can be toggled with "newoptions 0/1"
@@ -58,7 +60,7 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
   
   - Transparent UI elements for modern mods
 
-- VGA text blurbs after shutdown
+- VGA text blurbs after shutdown (can be disabled with the "quickexit" cvar)
 
 - Custom menu BG fading options
   
@@ -103,6 +105,30 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 - Custom palette support (put the files at gfx/custompalette.lmp and gfx/palette.lmp)
   
   - Also settable through worldspawn flags in custom maps
+
+- CSQC HUD support
+
+  - Can be configured through the "Custom HUD" menu
+
+  - scr_sbaralpha and scr_sbarscale cvars from modern engines work ONLY on CSQC HUDs
+
+  - scr_qchudscale to adjust the CSQC HUD size independently of mod logic
+
+- Modern console features
+
+  - Movable cursor (vanilla just erased characters when you pressed "left")
+
+  - Hold Ctrl to erase/move whole words
+
+  - Paste from clipboard with Ctrl+V
+
+  - Ctrl+C to clear input
+
+  - Hold Crtl/Shift when scrolling with PgUp/PgDn to scroll faster
+
+- Autosaving/loading
+
+  - sv_autosave, sv_autoload, and sv_autosave_interval cvars
 
 - Software imitations of modern rendering features
   
@@ -170,23 +196,27 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
   
   - r_mipscale for LOD distance adjustment
 
+- Palette customization menu
+
+  - v_saturation, v_contrast, v_redlevel, v_greenlevel, v_bluelevel, v_vibrance, v_brightness, and v_hue cvars
+
+- "Custom Maps" menu
+
+  - Sorting by name, monsters, secrets, and date
+
+  - Quick scroll with D/U or PgDn/PgUp keys
+
+- "Mods" menu
+
+- "quickexit" cvar for skipping exit messages
+
+- "resurrect" command
+
 # Planned
 
 - An actual design document. Lots of documentation, really.
 
-- Overhaul, modernization and trimming of the source code - removal of dead platforms and platform-specific code in favor of portable, properly formatted and readable code.
-  
-  - The long-term goal for this port keeping it as well-maintained as a 1996 game can be.
-
-- Other modern features (optional)
-  
-  - More modern console
-  
-  - "Mods" menu
-  
-  - CSQC for custom HUD elements in modern mods
-  
-  - More palette options
+- Modernization of the rendering engine to support more demanding custom maps
 
 - Probably not
   
@@ -212,25 +242,23 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.7.0
+- Arch Linux [HW] v0.8.0
   
   - The main platform that this port is developed on. The most likely one to work
   
-  - Tweaked and built on kernel 6.12.10-arch1-1 with TCC by erysdren
-  
-  - TODO other compilers, Alpine
+  - Tested with gcc, clang, and tcc
 
 - Debian 11 [VM] v0.5.1
   
   - The oldest tested distro
 
-- FreeBSD [HW] v0.6.1
+- FreeBSD [HW] v0.8.0
   
   - Seemingly perfect
 
-- OpenBSD [HW] v0.6.1
+- OpenBSD [HW] v0.8.0
   
-  - The SDL3_mixer build under "openbsd/" compiles, but doesn't support many formats
+  - Seemingly perfect
 
 - Ubuntu [HW, MangoPi MQ Pro, RISC-V] v0.3
   
@@ -242,7 +270,7 @@ VM is VirtualBox unless specified otherwise.
   
   - Default heapsize crashes on launch, works with "-heapsize 100000"
 
-- Android [HW, Termux, AARCH64, clang] v0.7.0 (since commit ccbe834)
+- Android [HW, Termux, AARCH64, clang] v0.8.0
   
   - Ran through X11 with touch controls. *unpleasant*
 
@@ -252,13 +280,13 @@ VM is VirtualBox unless specified otherwise.
   
   - Compiles with Makefile and SDL3 from brew on MacOS 15.7.2 (mixer not tested)
 
-- Emscripten [Browsers with WebAssembly] v0.7.0
+- Emscripten [Browsers with WebAssembly] v0.8.0
   
   - Dark magic performed by Erysdren, please don't ask me about it
 
   - Updated CMakeLists by Pup Luka (since commit 5b68511)
 
-- Windows [VM, HW] v0.7.0
+- Windows [VM, HW] v0.8.0
 
 # Credits
 
@@ -278,7 +306,7 @@ Izhido heroically made the native windows build possible, and in the process bro
 
 The FitzQuake protocol implementation, both client and server, sound system, model loading, filesystem functions, cvars and a whole lot more has been pulled directly from QuakeSpasm.
 
-A lot of code is adapted from Ironwail. Most of the netcode is a direct copy, other chunks are adapted with minor changes. QCVM/CSQC code is mostly taken from IW too.
+A lot of code is adapted from Ironwail. Most of the netcode is a direct copy, other chunks are adapted with minor changes. QCVM/CSQC code is mostly taken from IW too. Also the autosave system has been practically copy-pasted from Ironwail.
 
 TGA image loading code taken from MarkV, along with lots of other software rendering code. Most of it comes from ToChriS engine by Vic.
 

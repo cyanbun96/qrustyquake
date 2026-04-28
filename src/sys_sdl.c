@@ -4,9 +4,9 @@ static FILE *sys_handles[MAX_HANDLES];
 void Sys_Printf(const s8 *fmt, ...)
 {
 	va_list argptr;
-	s8 text[1024];
+	s8 text[MAXPRINTMSG];
 	va_start(argptr, fmt);
-	vsprintf(text, fmt, argptr);
+	vsnprintf(text, sizeof(text), fmt, argptr);
 	va_end(argptr);
 	fprintf(stderr, "%s", text);
 }
@@ -33,7 +33,7 @@ void Sys_Error(const s8 *error, ...)
 	s8 str[1024];
 	CDAudio_Stop();
 	va_start(argptr, error);
-	vsprintf(str, error, argptr);
+	vsnprintf(str, sizeof(str), error, argptr);
 	va_end(argptr);
 	fprintf(stderr, "Error: %s\n", str);
 #ifdef DEBUG
