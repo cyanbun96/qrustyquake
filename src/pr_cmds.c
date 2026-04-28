@@ -85,7 +85,7 @@ static s8 *PR_GetTempString()
 static const s8* PF_GetStringArg(s32 idx, void* userdata)
 {
 	if(userdata) idx += *(s32*)userdata;
-	if(idx < 0 || idx >= pr_argc) return "";
+	if(idx < 0 || idx >= qcvm->argc) return "";
 	return LOC_GetString(G_STRING(OFS_PARM0 + idx * 3));
 }
 
@@ -981,8 +981,8 @@ PR_RunError("PF_Precache_*: Precache can only be done in spawn functions");
 }
 
 static void PF_coredump(){ ED_PrintEdicts(); }
-static void PF_traceon(){ pr_trace = 1; }
-static void PF_traceoff(){ pr_trace = 0; }
+static void PF_traceon(){ qcvm->trace = 1; }
+static void PF_traceoff(){ qcvm->trace = 0; }
 static void PF_eprint(){ ED_PrintNum(G_EDICTNUM(OFS_PARM0)); }
 
 static void PF_walkmove()

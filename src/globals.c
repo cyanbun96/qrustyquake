@@ -160,8 +160,6 @@ s8 chat_buffer[32];
 bool team_message = 0;
 s32 lwmark = 0;                                                      // d_scan.c
 u8 *litwater_base;
-bool pr_trace;                                                      // pr_exec.c
-s32 pr_argc;
 bool insubmodel; // current entity info                               // r_bsp.c
 entity_t *currententity;
 vec3_t modelorg, base_modelorg; // viewpoint reletive to currently rendering ent

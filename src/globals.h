@@ -351,8 +351,6 @@ void ED_LoadFromFile(const s8 *data);
 edict_t *EDICT_NUM(s32);
 s32 NUM_FOR_EDICT(edict_t*);
 EX const s32 type_size[NUM_TYPE_SIZES];
-EX s32 pr_argc;
-EX bool pr_trace;
 void PR_RunError(const s8 *error, ...);
 void ED_PrintEdicts();
 void ED_PrintNum(s32 ent);
