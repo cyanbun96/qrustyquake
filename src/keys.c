@@ -137,6 +137,7 @@ void Key_Console(s32 key) // Line typing into the console
 		edit_line = (edit_line + 1) & 31;
 		history_line = edit_line;
 		key_lines[edit_line][0] = ']';
+		key_lines[edit_line][1] = 0;
 		key_linepos = 1;
 		if(cls.state == ca_disconnected) // force an update because
 			SCR_UpdateScreen(); // the command may take some time
