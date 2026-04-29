@@ -360,6 +360,7 @@ void Cvar_SetCallback(cvar_t *var, cvarcallback_t func);               // cvar.h
 void Cvar_Set(const s8 *var_name, const s8 *value);
 void Cvar_SetValue(const s8 *var_name, const f32 value);
 void Cvar_SetQuick(cvar_t *var, const s8 *value);
+void Cvar_SetROM(const s8 *var_name, const s8 *value);
 f32 Cvar_VariableValue(const s8 *var_name);
 const s8 *Cvar_VariableString(const s8 *var_name);
 bool Cvar_Command();

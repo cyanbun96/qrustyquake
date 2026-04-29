@@ -826,7 +826,7 @@ Sys_Error("You must have the registered version to use modified games.\n\n"
 	for(i = 0; com_cmdline[i]; i++)
 		if(com_cmdline[i]!= ' ')
 			break;
-	Cvar_Set("cmdline", &com_cmdline[i]);
+	Cvar_SetROM("cmdline", &com_cmdline[i]);
 	Cvar_Set("registered", "1");
 	Con_Printf("Playing registered version.\n");
 }
