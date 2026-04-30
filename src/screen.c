@@ -27,6 +27,7 @@ void SCR_CenterPrint(const s8 *str) // Called for important messages
 	if (con_logcenterprint.value) {
 		Con_Print((s8*)str, 0);
 		Con_Print("\n", 0);
+		Sys_Printf("%s\n", str);
 	}
 	strncpy(scr_centerstring, str, sizeof(scr_centerstring) - 1);
 	scr_centertime_off = scr_centertime.value;
