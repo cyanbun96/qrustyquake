@@ -7,9 +7,9 @@
 
 static s32 iskyspeed = 8;
 static s32 iskyspeed2 = 2;
-static u8 bottomsky[128 * 131];
-static u8 bottommask[128 * 131];
-static u8 newsky[128 * 256];	
+static u8 bottomsky[MAXSKIES][128 * 131];
+static u8 bottommask[MAXSKIES][128 * 131];
+static s32 xlast[MAXSKIES] = {-1}, ylast[8] = {-1};
 static msurface_t *r_skyfaces;
 static mplane_t r_skyplanes[6]; // Manoel Kasimier - edited
 static mtexinfo_t r_skytexinfo[6];
@@ -368,68 +368,67 @@ void Sky_Init()
 	skybox_name[0] = 0;
 }
 
+s32 R_SkyIndexForTexture(texture_t *mt)
+{
+	for(s32 i = 0; i < MAXSKIES; ++i)
+		if(!strncmp(mt->name, r_skyname[i], 16))
+			return i;
+	Sys_Error("Sky not found: %s\n", mt->name);
+	return 0;
+}
+
 void R_InitSky(texture_t *mt)
 { // A sky texture is 256*128, with the right side being a masked overlay
+	s32 newi = 0;
+	for(; newi < MAXSKIES + 1; ++newi) {
+		if(r_skyname[newi][0] == 0){
+			strncpy(r_skyname[newi], mt->name, 16);
+			break;
+		}
+		if(newi == MAXSKIES){
+			Host_Error("No space for sky: %s\n", mt->name);
+			return;
+		}
+	}
 	u8 *src = (u8 *) mt + mt->offsets[0];
 	for (s32 i = 0; i < 128; i++)
 		for (s32 j = 0; j < 128; j++)
-			newsky[(i * 256) + j + 128] = src[i * 256 + j + 128];
+			r_skysource[newi][(i*256)+j+128] = src[i*256+j+128];
 	for (s32 i = 0; i < 128; i++)
 		for (s32 j = 0; j < 131; j++) {
 			if (src[i * 256 + (j & 0x7F)]) {
-				bottomsky[(i * 131) + j] =
+				bottomsky[newi][(i * 131) + j] =
 				    src[i * 256 + (j & 0x7F)];
-				bottommask[(i * 131) + j] = 0;
+				bottommask[newi][(i * 131) + j] = 0;
 			} else {
-				bottomsky[(i * 131) + j] = 0;
-				bottommask[(i * 131) + j] = 0xff;
+				bottomsky[newi][(i * 131) + j] = 0;
+				bottommask[newi][(i * 131) + j] = 0xff;
 			}
 		}
-	r_skysource = newsky;
 }
 
-void R_MakeSky()
+void R_MakeSky(texture_t *mt)
 {
-	static s32 xlast = -1, ylast = -1;
+	s32 skyi = R_SkyIndexForTexture(mt);
 	s32 xshift = skytime * skyspeed;
 	s32 yshift = skytime * skyspeed;
-	if ((xshift == xlast) && (yshift == ylast))
+	if ((xshift == xlast[skyi]) && (yshift == ylast[skyi]))
 		return;
-	xlast = xshift;
-	ylast = yshift;
-	u32 *pnewsky = (u32 *)&newsky[0];
+	xlast[skyi] = xshift;
+	ylast[skyi] = yshift;
+	u32 *pnewsky = (u32 *)&r_skysource[skyi];
 	for (s32 y = 0; y < SKYSIZE; y++) {
 		s32 baseofs = ((y + yshift) & SKYMASK) * 131;
 		for (s32 x = 0; x < SKYSIZE; x++) {
 			s32 ofs = baseofs + ((x + xshift) & SKYMASK);
 			*(u8 *) pnewsky = (*((u8 *) pnewsky + 128) &
-					*(u8 *) & bottommask[ofs]) |
-					*(u8 *) & bottomsky[ofs];
+					*(u8 *) & bottommask[skyi][ofs]) |
+					*(u8 *) & bottomsky[skyi][ofs];
 			pnewsky = (unsigned *)((u8 *) pnewsky + 1);
 		}
 		pnewsky += 128 / sizeof(unsigned);
 	}
-	r_skymade = 1;
-}
-
-void R_GenSkyTile(void *pdest)
-{
-	s32 xshift = skytime * skyspeed;
-	s32 yshift = skytime * skyspeed;
-	u32 *pnewsky = (u32 *)&newsky[0];
-	u32 *pd = (u32 *)pdest;
-	for (s32 y = 0; y < SKYSIZE; y++) {
-		s32 baseofs = ((y + yshift) & SKYMASK) * 131;
-		for (s32 x = 0; x < SKYSIZE; x++) {
-			s32 ofs = baseofs + ((x + xshift) & SKYMASK);
-			*(u8 *) pd = (*((u8 *) pnewsky + 128) &
-					*(u8 *) & bottommask[ofs]) |
-			    *(u8 *) & bottomsky[ofs];
-			pnewsky = (u32 *)((u8 *) pnewsky + 1);
-			pd = (u32 *)((u8 *) pd + 1);
-		}
-		pnewsky += 128 / sizeof(u32);
-	}
+	r_skymade[skyi] = 1;
 }
 
 void R_SetSkyFrame ()
@@ -441,5 +440,6 @@ void R_SetSkyFrame ()
 	s32 s2 = iskyspeed2 / g;
 	f32 temp = SKYSIZE * s1 * s2;
 	skytime = cl.time - ((s32)(cl.time / temp) * temp);
-	r_skymade = 0;
+	for(s32 skyi = 0; skyi < MAXSKIES; ++skyi)
+		r_skymade[skyi] = 0;
 }

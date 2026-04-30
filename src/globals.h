@@ -250,7 +250,9 @@ EX f32 skytime;
 EX s32 c_surf;
 EX vrect_t scr_vrect;
 EX u8 *r_warpbuffer;
-EX u8 *r_skysource;
+EX u8 r_skysource[MAXSKIES][128*256];
+EX s32 r_skymade[MAXSKIES];
+EX s8 r_skyname[MAXSKIES][16];
 void D_PolysetDraw();
 void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts);
 void D_DrawParticle(particle_t *pparticle);
@@ -280,10 +282,9 @@ EX f32 xscale, yscale;
 EX f32 xscaleinv, yscaleinv;
 EX f32 xscaleshrink, yscaleshrink;
 EX s32 d_lightstylevalue[256];
-EX s32 r_skymade;
 EX s8 skybox_name[1024];
 EX surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
-void R_MakeSky();
+void R_MakeSky(texture_t *mt);
 void Sky_LoadSkyBox(const s8 *name);
 void R_EmitSkyBox();
 void SV_ClearWorld();                                                 // world.h
@@ -306,9 +307,10 @@ void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
 void Turbulent(espan_t *pspan, f32 opacity);
-void D_DrawSkyScans(espan_t *pspan);
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface);
 void D_DrawSkyScansOnlyFog(espan_t *pspan);
-void D_DrawSkyScansFog(espan_t *pspan);
+void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface);
+s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 s32 D_Dither(u8 *pos, f32 opacity);
 EX s32 DEFAULTnet_hostport;                                             // net.h
@@ -772,7 +774,7 @@ void R_ParseWorldspawn();
 void R_InitSkyBox();                                                  // r_sky.c
 void Sky_NewMap();
 void Sky_Init();
-EX s32 r_skyframe;
+EX s32 r_skyframe[MAXSKIES];
 EX u8 lit_loaded;                                                     //r_surf.c
 EX u8 worldpal[768];                                                 // common.c
 EX u8 worldcmap[64*256];

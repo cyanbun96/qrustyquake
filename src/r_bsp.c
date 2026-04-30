@@ -344,6 +344,6 @@ void R_RenderWorld()
 	model_t *clmodel = currententity->model;
 	r_pcurrentvertbase = clmodel->vertexes;
 	R_RecursiveWorldNode(clmodel->nodes, 15);
-	if(r_skyframe == r_framecount)
+	if(r_skyframe[0] == r_framecount)
 		R_EmitSkyBox();
 }

@@ -92,14 +92,15 @@ void D_DrawSurfacesFlat()
 	}
 }
 
-static void D_DrawSky(surf_t *s)
+static void D_DrawSky(surf_t *s, msurface_t *pface)
 {
-	if (!r_skymade) R_MakeSky();
+	s32 skyi = R_SkyIndexForTexture(pface->texinfo->texture);
+	if (!r_skymade[skyi]) R_MakeSky(pface->texinfo->texture);
 	if (fog_density>0){
 		if(r_skyfog.value>=1) D_DrawSkyScansOnlyFog(s->spans);
-		else D_DrawSkyScansFog(s->spans);
+		else D_DrawSkyScansFog(s->spans, pface);
 	}
-	else D_DrawSkyScans(s->spans);
+	else D_DrawSkyScans(s->spans, pface);
 	D_DrawZSpans(s->spans);
 }
 
@@ -236,7 +237,7 @@ void D_DrawSurfaces()
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
 	s32 foundcutouts = 0;
-	if (skybox_name[0] && r_skyframe == r_framecount) {
+	if (skybox_name[0] && r_skyframe[0] == r_framecount) {
 		for (surf_t *s = skybox_surf_p; s < surface_p; s++) {
 			if (!s->spans) continue;
 			if (s->flags & SURF_DRAWSKYBOX) {
@@ -277,7 +278,7 @@ void D_DrawSurfaces()
 			D_DrawZSpans(s->spans);
 			s->spans = NULL;
 		} else if (s->flags & SURF_DRAWSKY) {
-			if (!skybox_name[0]) D_DrawSky(s);
+			if (!skybox_name[0]) D_DrawSky(s, pface);
 			else D_DrawZSpans(s->spans);
 			s->spans = NULL;
 		} else if (s->flags & SURF_DRAWTURB) {

@@ -200,11 +200,12 @@ server_static_t svs;
 globalvars_t *pr_global_struct;                                    // pr_edict.c
 qcvm_t *qcvm;
 u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                   // r_sky.c
-s32 r_skyframe;
+s32 r_skyframe[MAXSKIES];
 f32 skyspeed, skyspeed2;
 f32 skytime;
-u8 *r_skysource;
-s32 r_skymade;
+u8 r_skysource[MAXSKIES][128*256];
+s32 r_skymade[MAXSKIES];
+s8 r_skyname[MAXSKIES][16];
 s8 skybox_name[1024]; // name of current skybox, or "" if no skybox
 drawsurf_t r_drawsurf;                                               // r_surf.c
 u8 lit_loaded = 0;
