@@ -467,7 +467,7 @@
 #define WADID ('W' | ('A' << 8) | ('D' << 16) | ('2' << 24))
 #define WADID_VALVE ('W' | ('A' << 8) | ('D' << 16) | ('3' << 24))
 #define WADFILENAME "gfx.wad" //johnfitz -- filename is now hard-coded for honesty
-#define VERSION 0.80 // quakedef.h
+#define VERSION 0.81 // quakedef.h
 #define FITZQUAKE_VERSION 0.85
 #define GAMENAME "id1"
 #define CMDLINE_LENGTH 256
