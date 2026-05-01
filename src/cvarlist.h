@@ -1,5 +1,5 @@
 extern cvar_t vid_mode, _vid_default_mode_win, scr_uiscale, sensitivityyscale,
-_windowed_mouse, newoptions, aspectr, realwidth, realheight, r_draworder,
+_windowed_mouse, win_quit, newoptions, aspectr, realwidth, realheight, r_draworder,
 r_speeds, r_timegraph, r_graphheight, r_clearcolor, r_waterwarp, r_fullbright,
 r_drawentities, r_drawviewmodel, r_aliasstats, r_dspeeds, r_drawflat, r_ambient,
 r_reportsurfout, r_numsurfs, r_reportedgeout, r_novis, r_particlescale,
