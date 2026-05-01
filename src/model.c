@@ -292,8 +292,30 @@ void Mod_LoadTextures(lump_t *l)
 			mt->offsets[j] = LittleLong(mt->offsets[j]);
 		if((mt->width & 15) || (mt->height & 15)){
 			Con_Printf("Texture %s is not 16 aligned\n", mt->name);
-			s32 w = 64, h = 64;//fallback: 64x64 grey texture
-			s32 pixels = w*h+(w/2)*(h/2)+(w/4)*(h/4)+(w/8)*(h/8);
+			s32 srcw = mt->width;
+			s32 srch = mt->height;
+			s32 w = srcw;
+			s32 h = srch;
+			w = (w + 15) & ~15;
+			h = (h + 15) & ~15;
+			s32 maxdim = (w > h) ? w : h;
+			s32 target = 1;
+			while(target < maxdim){
+				target <<= 1;
+				if(target >= maxdim) break;
+			}
+			if(target > 512) target = 512;
+			s32 scale = target / ((srcw > srch) ? srcw : srch);
+			if(scale < 1) scale = 1;
+			w = srcw * scale;
+			h = srch * scale;
+			w = (w + 15) & ~15;
+			h = (h + 15) & ~15;
+			s32 mip0 = w * h;
+			s32 mip1 = (w >> 1) * (h >> 1);
+			s32 mip2 = (w >> 2) * (h >> 2);
+			s32 mip3 = (w >> 3) * (h >> 3);
+			s32 pixels = mip0 + mip1 + mip2 + mip3;
 			texture_t *tx = Hunk_AllocName(
 					sizeof(texture_t) + pixels, loadname);
 			loadmodel->textures[i] = tx;
@@ -301,10 +323,38 @@ void Mod_LoadTextures(lump_t *l)
 			tx->width = w;
 			tx->height = h;
 			tx->offsets[0] = sizeof(texture_t);
-			tx->offsets[1] = tx->offsets[0] + w*h;
-			tx->offsets[2] = tx->offsets[1] + (w/2)*(h/2);
-			tx->offsets[3] = tx->offsets[2] + (w/4)*(h/4);
-			memset((u8*)tx + tx->offsets[0], 7, pixels);
+			tx->offsets[1] = tx->offsets[0] + mip0;
+			tx->offsets[2] = tx->offsets[1] + mip1;
+			tx->offsets[3] = tx->offsets[2] + mip2;
+			u8 *dst = (u8*)tx + tx->offsets[0];
+			if(mt->offsets[0] <= 0){
+				memset(dst, 0, pixels);
+				continue;
+			}
+			u8 *src = (u8*)mt + mt->offsets[0];
+			for(s32 y = 0; y < h; y++){
+				s32 sy = y * srch / h;
+				for(s32 x = 0; x < w; x++){
+					s32 sx = x * srcw / w;
+					dst[y * w + x] = src[sy * srcw + sx];
+				}
+			}
+			for(s32 level = 1; level < MIPLEVELS; level++){
+				u8 *prev = (u8*)tx + tx->offsets[level - 1];
+				u8 *mip  = (u8*)tx + tx->offsets[level];
+				s32 pw = (level == 1) ? w : (w >> (level - 1));
+				s32 ph = (level == 1) ? h : (h >> (level - 1));
+				s32 mw = pw / 2;
+				s32 mh = ph / 2;
+				if(mw < 1) mw = 1;
+				if(mh < 1) mh = 1;
+				for(s32 y = 0; y < mh; y++){
+					for(s32 x = 0; x < mw; x++){
+						mip[y * mw + x] =
+						  prev[(y * 2) * pw + (x * 2)];
+					}
+				}
+			}
 			if(!Q_strncmp(mt->name, "sky", 3))
 				R_InitSky(tx);
 			continue;
