@@ -242,7 +242,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.8.0
+- Arch Linux [HW] v0.8.1
   
   - The main platform that this port is developed on. The most likely one to work
   
@@ -270,7 +270,7 @@ VM is VirtualBox unless specified otherwise.
   
   - Default heapsize crashes on launch, works with "-heapsize 100000"
 
-- Android [HW, Termux, AARCH64, clang] v0.8.0
+- Android [HW, Termux, AARCH64, clang] v0.8.1
   
   - Ran through X11 with touch controls. *unpleasant*
 
@@ -286,7 +286,7 @@ VM is VirtualBox unless specified otherwise.
 
   - Updated CMakeLists by Pup Luka (since commit 5b68511)
 
-- Windows [VM, HW] v0.8.0
+- Windows [VM, HW] v0.8.1
 
 # Credits
 
