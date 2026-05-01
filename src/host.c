@@ -530,8 +530,7 @@ void _Host_Frame(f32 time)
 	if(cls.signon == SIGNONS){ // update audio
 		S_Update(r_origin, vpn, vright, vup);
 		CL_DecayLights();
-	}// else FIXME this causes crashes on map changes
-	//	S_Update(vec3_origin, vec3_origin, vec3_origin, vec3_origin);
+	} else S_Update(vec3_origin, vec3_origin, vec3_origin, vec3_origin);
 	CDAudio_Update();
 	if(host_speeds.value){
 		static f64 pass[3] = {0.0, 0.0, 0.0};
