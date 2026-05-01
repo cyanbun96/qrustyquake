@@ -3722,6 +3722,7 @@ void M_Init()
 {
 	Cmd_AddCommand("togglemenu", M_ToggleMenu_f);
 	Cmd_AddCommand("menu_main", M_Menu_Main_f);
+	Cmd_AddCommand("menu_credits", M_Menu_Help_f); // for DOPA remaster
 	Cmd_AddCommand("menu_singleplayer", M_Menu_SinglePlayer_f);
 	Cmd_AddCommand("menu_load", M_Menu_Load_f);
 	Cmd_AddCommand("menu_save", M_Menu_Save_f);
