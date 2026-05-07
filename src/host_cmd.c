@@ -1298,6 +1298,14 @@ void Cmd_Resurrect_f()
 	cl.punchangle[0] = cl.punchangle[1] = cl.punchangle[2] = 0;
 	ent->v.view_ofs[0] = ent->v.view_ofs[1] = ent->v.angles[2] = cl.viewangles[2] = 0;
 	ent->v.view_ofs[2] = cl.viewheight = 22;
+	if(ent->v.mins[0] == 0){ // squished
+		ent->v.mins[0] = -16;
+		ent->v.maxs[0] = 16;
+		ent->v.mins[1] = -16;
+		ent->v.maxs[1] = 16;
+		ent->v.mins[2] = -24;
+		ent->v.maxs[2] = 32;
+	}
 	// 3. Reset powerups
 	ent->v.effects = 0;
 	ent->v.items = (u64)ent->v.items & ~IT_QUAD;
