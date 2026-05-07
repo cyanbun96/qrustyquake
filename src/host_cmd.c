@@ -1305,12 +1305,8 @@ void Cmd_Resurrect_f()
 	ent->v.items = (u64)ent->v.items & ~IT_INVISIBILITY;
 	ent->v.items = (u64)ent->v.items & ~IT_INVULNERABILITY;
 	// 4. Compact Weapon Logic (Ternary Chain)
-	s32 w = ent->v.weapon;
 	ent->v.weapon = 0;
-	ent->v.impulse=(w==IT_AXE)?1:(w==IT_SHOTGUN)?2:(w==IT_SUPER_SHOTGUN)?3:
-		(w==IT_NAILGUN)?4:(w==IT_SUPER_NAILGUN)?5:
-		(w==IT_GRENADE_LAUNCHER)?6:(w==IT_ROCKET_LAUNCHER)?7:
-		(w==IT_LIGHTNING)?8:(w==IT_SUPER_LIGHTNING)?1:10;
+	ent->v.impulse = 1; // switch to axe (other weapons sometimes crash the game)
 	// 5. Synchronous VM Execution
 	s32 old_self = pr_global_struct->self;
 	pr_global_struct->self = EDICT_TO_PROG(ent);
