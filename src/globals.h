@@ -611,6 +611,7 @@ EX s32(*BigLong) (s32 l);
 EX s32(*LittleLong) (s32 l);
 EX f32(*BigFloat) (f32 l);
 EX f32(*LittleFloat) (f32 l);
+size_t UTF8_FromQuake(s8 *dst, size_t maxbytes, const s8 *src);
 const char *COM_SkipSpace (const char *str);
 void Host_WriteConfiguration();
 void Q_memset(void *dest, s32 fill, size_t count);

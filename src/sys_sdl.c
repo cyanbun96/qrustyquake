@@ -4,11 +4,13 @@ static FILE *sys_handles[MAX_HANDLES];
 void Sys_Printf(const s8 *fmt, ...)
 {
 	va_list argptr;
-	s8 text[MAXPRINTMSG];
+	s8 qtext[MAXPRINTMSG];
+	s8 u8text[MAXPRINTMSG*4];
 	va_start(argptr, fmt);
-	vsnprintf(text, sizeof(text), fmt, argptr);
+	q_vsnprintf(qtext, sizeof(qtext), fmt, argptr);
 	va_end(argptr);
-	fprintf(stderr, "%s", text);
+	UTF8_FromQuake(u8text, sizeof(u8text), qtext);
+	printf("%s", u8text);
 }
 
 void Sys_Quit()
