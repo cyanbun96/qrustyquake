@@ -6,6 +6,8 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
 Compatible with most modern mods, check [Compatibility List](https://github.com/cyanbun96/qrustyquake/wiki/Compatibility-List) for details.
 
+Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.com/cyanbun96/qrustyquake/wiki/Known-Issues) list first.
+
 # Features
 
 - A "New Options" menu, can be toggled with "newoptions 0/1"
