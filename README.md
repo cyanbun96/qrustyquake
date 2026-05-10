@@ -276,6 +276,8 @@ VM is VirtualBox unless specified otherwise.
   
   - Ran through X11 with touch controls. *unpleasant*
 
+  - Windows build runs through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
+
 - macOS [HW] v0.6.2
   
   - Built without SDL3_mixer, with cmake and SDL3 from brew, on 14.6.1
@@ -289,6 +291,8 @@ VM is VirtualBox unless specified otherwise.
   - Updated CMakeLists by Pup Luka (since commit 5b68511)
 
 - Windows [VM, HW] v0.8.1
+
+  - Runs on Android through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
 
 # Credits
 
