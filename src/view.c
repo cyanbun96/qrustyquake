@@ -492,8 +492,8 @@ void V_CalcRefdef()
 	view->origin[2] += bob;
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
-	if(scr_hudstyle.value == 0 && 
-	    !(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value)) {
+	if(v_oldviewmodelpos.value || (scr_hudstyle.value == 0 && 
+	    !(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))) {
 		if(scr_viewsize.value == 110) view->origin[2] += 1;
 		else if(scr_viewsize.value == 100) view->origin[2] += 2;
 		else if(scr_viewsize.value == 90) view->origin[2] += 1;
@@ -583,6 +583,7 @@ void V_Init()
 	Cvar_RegisterVariable(&v_iroll_level);
 	Cvar_RegisterVariable(&v_ipitch_level);
 	Cvar_RegisterVariable(&v_idlescale);
+	Cvar_RegisterVariable(&v_oldviewmodelpos);
 	Cvar_RegisterVariable(&crosshair);
 	Cvar_RegisterVariable(&cl_crossx);
 	Cvar_RegisterVariable(&cl_crossy);
