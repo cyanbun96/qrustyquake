@@ -9,7 +9,7 @@ static qpic_t *scr_turtle;
 static u32 clearconsole;
 static bool scr_drawloading;
 static f32 scr_disabled_time;
-static s8 scr_centerstring[1024]; // center printing
+static s8 scr_centerstring[MAXPRINTMSG]; // center printing
 static f32 scr_centertime_start; // for slow victory printing
 static s32 scr_center_lines;
 static s32 scr_erase_lines;
@@ -24,11 +24,8 @@ void SCR_HUDStyle_f (cvar_t *cvar);
 
 void SCR_CenterPrint(const s8 *str) // Called for important messages
 { // that should stay in the center of the screen for a few moments
-	if (con_logcenterprint.value) {
-		Con_Print((s8*)str, 0);
-		Con_Print("\n", 0);
-		Sys_Printf("%s\n", str);
-	}
+	if(con_logcenterprint.value)
+		Con_LogCenterPrint(str);
 	strncpy(scr_centerstring, str, sizeof(scr_centerstring) - 1);
 	scr_centertime_off = scr_centertime.value;
 	scr_centertime_start = cl.time;

@@ -132,6 +132,8 @@ void NET_FreeQSocket(qsocket_t *);
 f64 SetNetTime();
 void SchedulePollProcedure(PollProcedure *pp, f64 timeOffset);
 void Con_CheckResize();                                             // console.h
+void Con_LogCenterPrint(const s8 *str);
+void Con_CenterPrintf(s32 linewidth, const s8 *fmt, ...);
 void Con_Init();
 void Con_DrawConsole(s32 lines, bool drawinput);
 void Con_Print(s8 *txt, s32 notify);
