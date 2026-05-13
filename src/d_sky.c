@@ -3,19 +3,17 @@
 
 void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 {
-	f32 temp = r_refdef.vrect.width >= r_refdef.vrect.height ?
-		(f32)r_refdef.vrect.width : (f32)r_refdef.vrect.height;
-	f32 wu = 8192.0 * (f32)(u - ((s32)vid.width >> 1)) / temp;
-	f32 wv = 8192.0 * (f32)(((s32)vid.height >> 1) - v) / temp;
+	f32 du = (u - xcenter) / xscale;
+	f32 dv = (ycenter - v) / yscale;
 	vec3_t end;
-	end[0] = 4096 * vpn[0] + wu * vright[0] + wv * vup[0];
-	end[1] = 4096 * vpn[1] + wu * vright[1] + wv * vup[1];
-	end[2] = 4096 * vpn[2] + wu * vright[2] + wv * vup[2];
+	end[0] = vpn[0] + du * vright[0] + dv * vup[0];
+	end[1] = vpn[1] + du * vright[1] + dv * vup[1];
+	end[2] = vpn[2] + du * vright[2] + dv * vup[2];
 	end[2] *= 3;
 	VectorNormalize(end);
-	temp = skytime * skyspeed; // TODO: add D_SetupFrame & set this there
-	*s = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[0]) * 0x10000);
-	*t = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[1]) * 0x10000);
+	f32 temp = skytime * skyspeed;
+	*s = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[0]) * 65536.0f);
+	*t = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[1]) * 65536.0f);
 }
 
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
