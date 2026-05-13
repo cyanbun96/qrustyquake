@@ -338,7 +338,7 @@ void VID_Update()
 	if (SDL_LockTexture(texture, 0, &argbbuffer->pixels, &argbbuffer->pitch)){
 		if(blitscreensbar)
 			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen, &scRect, SDL_SCALEMODE_NEAREST);
-		if(fadescreen == 1) Draw_FadeScreen();
+		if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
 		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst, SDL_SCALEMODE_NEAREST);
 		if(blitscreenui)
 			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer, &scRect2, SDL_SCALEMODE_NEAREST);

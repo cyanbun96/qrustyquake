@@ -3748,10 +3748,9 @@ void M_Draw()
 	if (m_state == m_none || key_dest != key_menu)
 		return;
 	if (!m_recursiveDraw) {
-		if (scr_con_current) {
-			Draw_ConsoleBackground(vid.height);
-		} else
-			fadescreen = 1;
+		if (scr_con_current) Draw_ConsoleBackground(vid.height);
+		else if (lyr_menu.value != 0) fadescreen = 1;
+		else Draw_FadeScreen();
 		scr_fullupdate = 0;
 	} else {
 		m_recursiveDraw = 0;
