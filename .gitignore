@@ -8,6 +8,8 @@ src/tags
 cmake-build*/
 build*/
 
+CMakeUserPresets.json
+
 # Prerequisites
 *.d
 
