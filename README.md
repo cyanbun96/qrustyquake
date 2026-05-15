@@ -18,8 +18,6 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - Auto-resolution fullscreen with -fullscreen_desktop
 
-- Hardware-accelerated frame > screen rendering
-
 - r_renderscale cvar that can be used to render at lower resolutions in exclusive fullscreen
   
   - In console, use "r_renderscale 2" and "vid_setmode 320 240 1" to render at 320x240 in 640x480 fullscreen
