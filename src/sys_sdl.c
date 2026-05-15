@@ -197,6 +197,14 @@ int main(int c, char **v)
 		if(t < c) host_parms.memsize = Q_atoi(v[t]) * 1024;
 	}
 	host_parms.membase = malloc(host_parms.memsize);
+	if(host_parms.membase == NULL){
+		printf("WARNING: Allocation of requested %d bytes failed.\n",
+				host_parms.memsize);
+		host_parms.memsize = 16*1024*1024;
+		printf("WARNING: Using fallback %d byte heap size.\n",
+				host_parms.memsize);
+		host_parms.membase = malloc(host_parms.memsize);
+	}
 	host_parms.basedir = ".";
 	host_parms.userdir = ".";
 	Host_Init();
