@@ -51,7 +51,7 @@ else()
 		find_package(SDL3_mixer CONFIG)
 	else()
 		find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3)
-		find_package(SDL3_mixer REQUIRED CONFIG COMPONENTS SDL3_mixer)
+		find_package(SDL3_mixer REQUIRED CONFIG)
 	endif()
 endif()
 
