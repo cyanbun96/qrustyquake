@@ -460,7 +460,7 @@ void Draw_ConsoleBackground(s32 lines)
 void R_DrawRect(vrect_t *prect, s32 rowbytes, u8 *psrc, s32 transparent)
 {
 	u8 *pdest = (u8*)scrbuffs[drawlayer]->pixels + (prect->y * vid.width) + prect->x;
-	u64 maxdest = (u64)(unsigned long long)scrbuffs[drawlayer]->pixels+vid.width*vid.height;
+	u64 maxdest = (u64)(ul64)scrbuffs[drawlayer]->pixels+vid.width*vid.height;
 	if(transparent){
 		s32 srcdelta = rowbytes - prect->width;
 		s32 destdelta = vid.width - prect->width;
@@ -477,7 +477,7 @@ void R_DrawRect(vrect_t *prect, s32 rowbytes, u8 *psrc, s32 transparent)
 		}
 	} else {
 		for(s32 i = 0; i < prect->height; i++){
-			if((u64)(unsigned long long)pdest+prect->width >= maxdest) break;
+			if((u64)(ul64)pdest+prect->width > maxdest) break;
 			memcpy(pdest, psrc, prect->width);
 			psrc += rowbytes;
 			pdest += vid.width;
