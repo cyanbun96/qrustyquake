@@ -475,6 +475,7 @@ void Key_Init()
 	consolekeys[K_PGDN] = 1;
 	consolekeys[K_SHIFT] = 1;
 	consolekeys[K_MWHEELUP] = 1;
+	consolekeys[K_MWHEELDOWN] = 1;
 	consolekeys[K_DEL] = 1;
 	consolekeys[K_HOME] = 1;
 	consolekeys[K_END] = 1;
