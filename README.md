@@ -260,9 +260,9 @@ VM is VirtualBox unless specified otherwise.
   
   - Seemingly perfect
 
-- Ubuntu [HW, MangoPi MQ Pro, RISC-V] v0.3
+- Ubuntu [HW, MangoPi MQ Pro, RISC-V] v0.8.1
   
-  - Works just fine at a playable framerate (20-30~ FPS)
+  - "timedemo demo1" at 320x200 with all graphics layers set to 0 gets 17 FPS
 
 - HaikuOS [HW] v0.6.1
   
