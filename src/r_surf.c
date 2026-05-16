@@ -23,9 +23,9 @@ static u32 blocklights[18 * 18];
 static u32 blocklights_g[18 * 18];
 static u32 blocklights_b[18 * 18];
 
-void R_DrawSurfaceBlock(s32 miplvl);
-void R_DrawSurfaceBlockRGBMono(s32 miplvl);
-void R_DrawSurfaceBlockRGB(s32 miplvl);
+void R_DrawSurfaceBlock();
+void R_DrawSurfaceBlockRGBMono();
+void R_DrawSurfaceBlockRGB();
 
 void R_AddDynamicLights()
 {
@@ -160,7 +160,7 @@ texture_t *R_TextureAnimation(texture_t *base)
 }
 
 s32 R_DrawSurface()
-{
+{ // Reworked to support 8-aligned textures by Izhido
 	R_BuildLightMap(); // calculate the lightings
 	surfrowbytes = r_drawsurf.rowbytes;
 	texture_t *mt = r_drawsurf.texture;
@@ -168,12 +168,20 @@ s32 R_DrawSurface()
 	// the fractional light values should range from 0 to (VID_GRADES - 1)
 	// << 16 from a source range of 0 - 255
 	s32 texwidth = mt->width >> r_drawsurf.surfmip;
-	blocksize = 16 >> r_drawsurf.surfmip;
-	blockdivshift = 4 - r_drawsurf.surfmip;
-	blockdivmask = (1 << blockdivshift) - 1;
-	r_lightwidth = (r_drawsurf.surf->extents[0] >> 4) + 1;
-	r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
-	r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
+	if((mt->width & 15) || (mt->height & 15)){
+		blocksize = 8 >> r_drawsurf.surfmip;
+		blockdivshift = 3 - r_drawsurf.surfmip;
+		blockdivmask = (1 << blockdivshift) - 1;
+		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
+		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
+	}else{
+		blocksize = 16 >> r_drawsurf.surfmip;
+		blockdivshift = 4 - r_drawsurf.surfmip;
+		blockdivmask = (1 << blockdivshift) - 1;
+		r_lightwidth = (r_drawsurf.surf->extents[0] >> 4) + 1;
+		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
+		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
+	}
 	// TODO: only needs to be set when there is a display settings change
 	s32 horzblockstep = blocksize;
 	s32 smax = mt->width >> r_drawsurf.surfmip;
@@ -199,9 +207,9 @@ s32 R_DrawSurface()
 		r_lightptr_b = blocklights_b + u;
 		prowdestbase = pcolumndest;
 		pbasesource = basetptr + soffset;
-		if (!lit_loaded) R_DrawSurfaceBlock(r_drawsurf.surfmip);
-		else if (!r_rgblighting.value) R_DrawSurfaceBlockRGBMono(r_drawsurf.surfmip);
-		else R_DrawSurfaceBlockRGB(r_drawsurf.surfmip);
+		if (!lit_loaded) R_DrawSurfaceBlock();
+		else if (!r_rgblighting.value) R_DrawSurfaceBlockRGBMono();
+		else R_DrawSurfaceBlockRGB();
 		soffset = soffset + blocksize;
 		if (soffset >= smax)
 			soffset = 0;
@@ -210,7 +218,7 @@ s32 R_DrawSurface()
 	return 0;
 }
 
-void R_DrawSurfaceBlock(s32 miplvl)
+void R_DrawSurfaceBlock()
 {
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
@@ -220,13 +228,13 @@ void R_DrawSurfaceBlock(s32 miplvl)
 		lightleft = r_lightptr[0];
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;
-		lightleftstep = (r_lightptr[0] - lightleft) >> (4-miplvl);
-		lightrightstep = (r_lightptr[1] - lightright) >> (4-miplvl);
-		for (s32 i = 0; i < 1 << (4-miplvl); i++) {
+		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
+		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
+		for (s32 i = 0; i < blocksize; i++) {
 			s32 lighttemp = lightleft - lightright;
-			s32 lightstep = lighttemp >> (4-miplvl);
+			s32 lightstep = lighttemp >> blockdivshift;
 			s32 light = lightright;
-			for (s32 b = (1 << (4-miplvl)) - 1; b >= 0; b--) {
+			for (s32 b = blocksize - 1; b >= 0; b--) {
 				u8 pix = psource[b];
 				prowdest[b] = CURWORLDCMAP[(light&0xFF00)+pix];
 				light += lightstep;
@@ -241,7 +249,7 @@ void R_DrawSurfaceBlock(s32 miplvl)
 	}
 }
 
-void R_DrawSurfaceBlockRGBMono(s32 miplvl)
+void R_DrawSurfaceBlockRGBMono()
 {
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
@@ -251,25 +259,25 @@ void R_DrawSurfaceBlockRGBMono(s32 miplvl)
 		lightleft = r_lightptr[0]; // Red
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;
-		lightleftstep = (r_lightptr[0] - lightleft) >> (4-miplvl);
-		lightrightstep = (r_lightptr[1] - lightright) >> (4-miplvl);
+		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
+		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
 		lightleft_g = r_lightptr_g[0]; // Green
 		lightright_g = r_lightptr_g[1];
 		r_lightptr_g += r_lightwidth;
-		lightleftstep_g = (r_lightptr_g[0] - lightleft_g) >> (4-miplvl);
-		lightrightstep_g = (r_lightptr_g[1] - lightright_g) >> (4-miplvl);
+		lightleftstep_g = (r_lightptr_g[0] - lightleft_g) >> blockdivshift;
+		lightrightstep_g = (r_lightptr_g[1] - lightright_g) >> blockdivshift;
 		lightleft_b = r_lightptr_b[0]; // Blue
 		lightright_b = r_lightptr_b[1];
 		r_lightptr_b += r_lightwidth;
-		lightleftstep_b = (r_lightptr_b[0] - lightleft_b) >> (4-miplvl);
-		lightrightstep_b = (r_lightptr_b[1] - lightright_b) >> (4-miplvl);
-		for (s32 i = 0; i < 1 << (4-miplvl); i++) {
+		lightleftstep_b = (r_lightptr_b[0] - lightleft_b) >> blockdivshift;
+		lightrightstep_b = (r_lightptr_b[1] - lightright_b) >> blockdivshift;
+		for (s32 i = 0; i < blocksize; i++) {
 			s32 lighttemp = lightleft - lightright; // Red
-			s32 lightstep = lighttemp >> (4-miplvl);
+			s32 lightstep = lighttemp >> blockdivshift;
 			s32 light = lightright;
 			s32 light_g = lightright_g;
 			s32 light_b = lightright_b;
-			for (s32 b = (1 << (4-miplvl)) - 1; b >= 0; b--) {
+			for (s32 b = blocksize - 1; b >= 0; b--) {
 				u8 pix = psource[b];
 				s32 lightavg = ((light&0xFF00) + (light_g&0xFF00) + (light_b&0xFF00))/3;
 				prowdest[b] = CURWORLDCMAP[(lightavg & 0xFF00) + pix];
@@ -289,7 +297,7 @@ void R_DrawSurfaceBlockRGBMono(s32 miplvl)
 	}
 }
 
-void R_DrawSurfaceBlockRGB(s32 miplvl)
+void R_DrawSurfaceBlockRGB()
 {
 	if (!lit_lut_initialized) R_BuildLitLUT();
 	u8 *psource = pbasesource;
@@ -300,29 +308,29 @@ void R_DrawSurfaceBlockRGB(s32 miplvl)
 		lightleft = r_lightptr[0]; // Red
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;
-		lightleftstep = (r_lightptr[0] - lightleft) >> (4-miplvl);
-		lightrightstep = (r_lightptr[1] - lightright) >> (4-miplvl);
+		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
+		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
 		lightleft_g = r_lightptr_g[0]; // Green
 		lightright_g = r_lightptr_g[1];
 		r_lightptr_g += r_lightwidth;
-		lightleftstep_g = (r_lightptr_g[0] - lightleft_g) >> (4-miplvl);
-		lightrightstep_g = (r_lightptr_g[1] - lightright_g) >> (4-miplvl);
+		lightleftstep_g = (r_lightptr_g[0] - lightleft_g) >> blockdivshift;
+		lightrightstep_g = (r_lightptr_g[1] - lightright_g) >> blockdivshift;
 		lightleft_b = r_lightptr_b[0]; // Blue
 		lightright_b = r_lightptr_b[1];
 		r_lightptr_b += r_lightwidth;
-		lightleftstep_b = (r_lightptr_b[0] - lightleft_b) >> (4-miplvl);
-		lightrightstep_b = (r_lightptr_b[1] - lightright_b) >> (4-miplvl);
-		for (s32 i = 0; i < 1 << (4-miplvl); i++) {
+		lightleftstep_b = (r_lightptr_b[0] - lightleft_b) >> blockdivshift;
+		lightrightstep_b = (r_lightptr_b[1] - lightright_b) >> blockdivshift;
+		for (s32 i = 0; i < blocksize; i++) {
 			s32 lighttemp = lightleft - lightright; // Red
-			s32 lightstep = lighttemp >> (4-miplvl);
+			s32 lightstep = lighttemp >> blockdivshift;
 			s32 light = lightright;
 			s32 lighttemp_g = lightleft_g - lightright_g; // Green
-			s32 lightstep_g = lighttemp_g >> (4-miplvl);
+			s32 lightstep_g = lighttemp_g >> blockdivshift;
 			s32 light_g = lightright_g;
 			s32 lighttemp_b = lightleft_b - lightright_b; // Blue
-			s32 lightstep_b = lighttemp_b >> (4-miplvl);
+			s32 lightstep_b = lighttemp_b >> blockdivshift;
 			s32 light_b = lightright_b;
-			for (s32 b = (1 << (4-miplvl)) - 1; !lmonly && b >= 0; b--) {
+			for (s32 b = blocksize - 1; !lmonly && b >= 0; b--) {
 				u8 tex = psource[b];
 				u8 ir = CURWORLDCMAP[(light   & 0xFF00) + tex];
 				u8 ig = CURWORLDCMAP[(light_g & 0xFF00) + tex];
@@ -335,7 +343,7 @@ void R_DrawSurfaceBlockRGB(s32 miplvl)
 				light_g += lightstep_g;
 				light_b += lightstep_b;
 			}
-			for (s32 b = (1 << (4-miplvl)) - 1; lmonly && b >= 0; b--) {
+			for (s32 b = blocksize - 1; lmonly && b >= 0; b--) {
 				u8 ir = CURWORLDCMAP[(light   & 0xFF00)+15];
 				u8 ig = CURWORLDCMAP[(light_g & 0xFF00)+15];
 				u8 ib = CURWORLDCMAP[(light_b & 0xFF00)+15];
