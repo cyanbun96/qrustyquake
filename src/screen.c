@@ -166,6 +166,7 @@ void SCR_Init()
 	Cvar_RegisterVariable(&scr_sbarscale); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_qchudscale); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_hudstyle);
+	Cvar_RegisterVariable(&scr_centermenus);
 	Cvar_SetCallback (&scr_hudstyle, SCR_HUDStyle_f);
 	Cmd_AddCommand("screenshot", SCR_ScreenShot_f);
 	Cmd_AddCommand("sizeup", SCR_SizeUp_f);

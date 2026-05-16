@@ -293,11 +293,12 @@ s32 m_return_state;
 bool m_return_onerror;
 s8 m_return_reason[32];
 
-void M_DrawCharacter(s32 cx, s32 line, s32 num)
+void M_DrawCharacter(s32 cx, s32 cy, s32 num)
 { // Draws one solid graphics character
+	if(scr_centermenus.value) cy+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_CharacterScaled(cx * uiscale + ((vid.width - 320 * uiscale) >> 1),
-			     line * uiscale, num, uiscale);
+			     cy * uiscale, num, uiscale);
 	drawlayer = lyr_main.value;
 }
 
@@ -331,6 +332,7 @@ void M_PrintWhite(s32 cx, s32 cy, s8 *str)
 
 void M_DrawTransPic(s32 x, s32 y, qpic_t *pic)
 {
+	if(scr_centermenus.value) y+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_TransPicScaled(x * uiscale + ((vid.width - 320 * uiscale) >> 1),
 			    y * uiscale, pic, uiscale);
@@ -358,6 +360,7 @@ void M_BuildTranslationTable(s32 top, s32 bottom)
 
 void M_DrawTransPicTranslate(s32 x, s32 y, qpic_t *pic)
 {
+	if(scr_centermenus.value) y+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_TransPicTranslateScaled(x * uiscale +
 		((vid.width - 320 * uiscale) >> 1),
