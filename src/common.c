@@ -604,7 +604,8 @@ s32 MSG_ReadChar()
 		msg_badread = 1;
 		return -1;
 	}
-	s32 c = (s8)net_message.data[msg_readcount];
+// (signed char) because char signedness is ambiguous and architecture-dependent
+	s32 c = (signed char)net_message.data[msg_readcount];
 	msg_readcount++;
 	return c;
 }
