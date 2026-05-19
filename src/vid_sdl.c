@@ -378,7 +378,7 @@ s8 *VID_GetModeDescription(s32 mode)
 
 void VID_AllocBuffers()
 {
-	s32 area = vid.width * vid.height;
+	s32 area = vid.width * (vid.height + 1); // +safety padding line
 	screenpixels = realloc(screenpixels, area);
 	toppixels = realloc(toppixels, area);
 	uipixels = realloc(uipixels, area);
