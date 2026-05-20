@@ -132,6 +132,8 @@ void NET_FreeQSocket(qsocket_t *);
 f64 SetNetTime();
 void SchedulePollProcedure(PollProcedure *pp, f64 timeOffset);
 void Con_CheckResize();                                             // console.h
+void Con_LogCenterPrint(const s8 *str);
+void Con_CenterPrintf(s32 linewidth, const s8 *fmt, ...);
 void Con_Init();
 void Con_DrawConsole(s32 lines, bool drawinput);
 void Con_Print(s8 *txt, s32 notify);
@@ -250,7 +252,9 @@ EX f32 skytime;
 EX s32 c_surf;
 EX vrect_t scr_vrect;
 EX u8 *r_warpbuffer;
-EX u8 *r_skysource;
+EX u8 r_skysource[MAXSKIES][128*256];
+EX s32 r_skymade[MAXSKIES];
+EX s8 r_skyname[MAXSKIES][16];
 void D_PolysetDraw();
 void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts);
 void D_DrawParticle(particle_t *pparticle);
@@ -280,10 +284,9 @@ EX f32 xscale, yscale;
 EX f32 xscaleinv, yscaleinv;
 EX f32 xscaleshrink, yscaleshrink;
 EX s32 d_lightstylevalue[256];
-EX s32 r_skymade;
 EX s8 skybox_name[1024];
 EX surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
-void R_MakeSky();
+void R_MakeSky(texture_t *mt);
 void Sky_LoadSkyBox(const s8 *name);
 void R_EmitSkyBox();
 void SV_ClearWorld();                                                 // world.h
@@ -306,8 +309,10 @@ void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
 void Turbulent(espan_t *pspan, f32 opacity);
-void D_DrawSkyScans(espan_t *pspan);
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface);
 void D_DrawSkyScansOnlyFog(espan_t *pspan);
+void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface);
+s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 s32 D_Dither(u8 *pos, f32 opacity);
 EX s32 DEFAULTnet_hostport;                                             // net.h
@@ -351,8 +356,6 @@ void ED_LoadFromFile(const s8 *data);
 edict_t *EDICT_NUM(s32);
 s32 NUM_FOR_EDICT(edict_t*);
 EX const s32 type_size[NUM_TYPE_SIZES];
-EX s32 pr_argc;
-EX bool pr_trace;
 void PR_RunError(const s8 *error, ...);
 void ED_PrintEdicts();
 void ED_PrintNum(s32 ent);
@@ -362,6 +365,7 @@ void Cvar_SetCallback(cvar_t *var, cvarcallback_t func);               // cvar.h
 void Cvar_Set(const s8 *var_name, const s8 *value);
 void Cvar_SetValue(const s8 *var_name, const f32 value);
 void Cvar_SetQuick(cvar_t *var, const s8 *value);
+void Cvar_SetROM(const s8 *var_name, const s8 *value);
 f32 Cvar_VariableValue(const s8 *var_name);
 const s8 *Cvar_VariableString(const s8 *var_name);
 bool Cvar_Command();
@@ -609,6 +613,7 @@ EX s32(*BigLong) (s32 l);
 EX s32(*LittleLong) (s32 l);
 EX f32(*BigFloat) (f32 l);
 EX f32(*LittleFloat) (f32 l);
+size_t UTF8_FromQuake(s8 *dst, size_t maxbytes, const s8 *src);
 const char *COM_SkipSpace (const char *str);
 void Host_WriteConfiguration();
 void Q_memset(void *dest, s32 fill, size_t count);
@@ -772,7 +777,7 @@ void R_ParseWorldspawn();
 void R_InitSkyBox();                                                  // r_sky.c
 void Sky_NewMap();
 void Sky_Init();
-EX s32 r_skyframe;
+EX s32 r_skyframe[MAXSKIES];
 EX u8 lit_loaded;                                                     //r_surf.c
 EX u8 worldpal[768];                                                 // common.c
 EX u8 worldcmap[64*256];

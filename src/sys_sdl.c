@@ -4,11 +4,13 @@ static FILE *sys_handles[MAX_HANDLES];
 void Sys_Printf(const s8 *fmt, ...)
 {
 	va_list argptr;
-	s8 text[MAXPRINTMSG];
+	s8 qtext[MAXPRINTMSG];
+	s8 u8text[MAXPRINTMSG*4];
 	va_start(argptr, fmt);
-	vsnprintf(text, sizeof(text), fmt, argptr);
+	q_vsnprintf(qtext, sizeof(qtext), fmt, argptr);
 	va_end(argptr);
-	fprintf(stderr, "%s", text);
+	UTF8_FromQuake(u8text, sizeof(u8text), qtext);
+	printf("%s", u8text);
 }
 
 void Sys_Quit()
@@ -195,6 +197,14 @@ int main(int c, char **v)
 		if(t < c) host_parms.memsize = Q_atoi(v[t]) * 1024;
 	}
 	host_parms.membase = malloc(host_parms.memsize);
+	if(host_parms.membase == NULL){
+		printf("WARNING: Allocation of requested %d bytes failed.\n",
+				host_parms.memsize);
+		host_parms.memsize = 16*1024*1024;
+		printf("WARNING: Using fallback %d byte heap size.\n",
+				host_parms.memsize);
+		host_parms.membase = malloc(host_parms.memsize);
+	}
 	host_parms.basedir = ".";
 	host_parms.userdir = ".";
 	Host_Init();

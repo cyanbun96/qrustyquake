@@ -1,7 +1,7 @@
 // CyanBun96: compile with -flto to force the compiler to optimize this
 // atsb: windows and linux compatible macro definitions
-#if defined(_WIN32)
-#define SIL static __forceinline // doesn't work with Makefile.w64? TODO add more ifdefs
+#if defined(_MSC_VER)
+#define SIL static __forceinline
 #define RESTRICT
 #define _USE_MATH_DEFINES
 #include <math.h>

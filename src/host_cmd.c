@@ -1298,6 +1298,14 @@ void Cmd_Resurrect_f()
 	cl.punchangle[0] = cl.punchangle[1] = cl.punchangle[2] = 0;
 	ent->v.view_ofs[0] = ent->v.view_ofs[1] = ent->v.angles[2] = cl.viewangles[2] = 0;
 	ent->v.view_ofs[2] = cl.viewheight = 22;
+	if(ent->v.mins[0] == 0){ // squished
+		ent->v.mins[0] = -16;
+		ent->v.maxs[0] = 16;
+		ent->v.mins[1] = -16;
+		ent->v.maxs[1] = 16;
+		ent->v.mins[2] = -24;
+		ent->v.maxs[2] = 32;
+	}
 	// 3. Reset powerups
 	ent->v.effects = 0;
 	ent->v.items = (u64)ent->v.items & ~IT_QUAD;
@@ -1305,12 +1313,8 @@ void Cmd_Resurrect_f()
 	ent->v.items = (u64)ent->v.items & ~IT_INVISIBILITY;
 	ent->v.items = (u64)ent->v.items & ~IT_INVULNERABILITY;
 	// 4. Compact Weapon Logic (Ternary Chain)
-	s32 w = ent->v.weapon;
 	ent->v.weapon = 0;
-	ent->v.impulse=(w==IT_AXE)?1:(w==IT_SHOTGUN)?2:(w==IT_SUPER_SHOTGUN)?3:
-		(w==IT_NAILGUN)?4:(w==IT_SUPER_NAILGUN)?5:
-		(w==IT_GRENADE_LAUNCHER)?6:(w==IT_ROCKET_LAUNCHER)?7:
-		(w==IT_LIGHTNING)?8:(w==IT_SUPER_LIGHTNING)?1:10;
+	ent->v.impulse = 1; // switch to axe (other weapons sometimes crash the game)
 	// 5. Synchronous VM Execution
 	s32 old_self = pr_global_struct->self;
 	pr_global_struct->self = EDICT_TO_PROG(ent);

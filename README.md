@@ -6,6 +6,8 @@ A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and
 
 Compatible with most modern mods, check [Compatibility List](https://github.com/cyanbun96/qrustyquake/wiki/Compatibility-List) for details.
 
+Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.com/cyanbun96/qrustyquake/wiki/Known-Issues) list first.
+
 # Features
 
 - A "New Options" menu, can be toggled with "newoptions 0/1"
@@ -15,8 +17,6 @@ Compatible with most modern mods, check [Compatibility List](https://github.com/
 - Borderless window with -borderless parameter
 
 - Auto-resolution fullscreen with -fullscreen_desktop
-
-- Hardware-accelerated frame > screen rendering
 
 - r_renderscale cvar that can be used to render at lower resolutions in exclusive fullscreen
   
@@ -242,7 +242,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.8.0
+- Arch Linux [HW] v0.8.1
   
   - The main platform that this port is developed on. The most likely one to work
   
@@ -260,9 +260,9 @@ VM is VirtualBox unless specified otherwise.
   
   - Seemingly perfect
 
-- Ubuntu [HW, MangoPi MQ Pro, RISC-V] v0.3
+- Ubuntu [HW, MangoPi MQ Pro, RISC-V] v0.8.1
   
-  - Works just fine at a playable framerate (20-30~ FPS)
+  - "timedemo demo1" at 320x200 with all graphics layers set to 0 gets 17 FPS
 
 - HaikuOS [HW] v0.6.1
   
@@ -270,9 +270,11 @@ VM is VirtualBox unless specified otherwise.
   
   - Default heapsize crashes on launch, works with "-heapsize 100000"
 
-- Android [HW, Termux, AARCH64, clang] v0.8.0
+- Android [HW, Termux, AARCH64, clang] v0.8.1
   
   - Ran through X11 with touch controls. *unpleasant*
+
+  - Windows build runs through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
 
 - macOS [HW] v0.6.2
   
@@ -286,7 +288,9 @@ VM is VirtualBox unless specified otherwise.
 
   - Updated CMakeLists by Pup Luka (since commit 5b68511)
 
-- Windows [VM, HW] v0.8.0
+- Windows [VM, HW] v0.8.1
+
+  - Runs on Android through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
 
 # Credits
 

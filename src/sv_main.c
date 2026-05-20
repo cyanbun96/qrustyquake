@@ -955,6 +955,8 @@ void SV_SpawnServer(const s8 *server)
 	qcvm->time = 1.0;
 	q_strlcpy(sv.name, server, sizeof(sv.name));
 	q_snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
+	for(s32 i = 0; i < MAXSKIES; ++i)
+		r_skyname[i][0] = 0;
 	sv.worldmodel = Mod_ForName(sv.modelname, false);
 	if(!sv.worldmodel){
 		Con_Printf("Couldn't spawn server %s\n", sv.modelname);

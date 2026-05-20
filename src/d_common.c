@@ -457,31 +457,15 @@ void Draw_ConsoleBackground(s32 lines)
 	}
 }
 
-void R_DrawRect(vrect_t *prect, s32 rowbytes, u8 *psrc, s32 transparent)
+void R_DrawRect(vrect_t *prect, s32 rowbytes, u8 *psrc)
 {
 	u8 *pdest = (u8*)scrbuffs[drawlayer]->pixels + (prect->y * vid.width) + prect->x;
-	u64 maxdest = (u64)(unsigned long long)scrbuffs[drawlayer]->pixels+vid.width*vid.height;
-	if(transparent){
-		s32 srcdelta = rowbytes - prect->width;
-		s32 destdelta = vid.width - prect->width;
-		for(s32 i = 0; i < prect->height; i++){
-			for(s32 j = 0; j < prect->width; j++){
-				u8 t = *psrc;
-				if(t != TRANSPARENT_COLOR)
-					*pdest = t;
-				psrc++;
-				pdest++;
-			}
-			psrc += srcdelta;
-			pdest += destdelta;
-		}
-	} else {
-		for(s32 i = 0; i < prect->height; i++){
-			if((u64)(unsigned long long)pdest+prect->width >= maxdest) break;
-			memcpy(pdest, psrc, prect->width);
-			psrc += rowbytes;
-			pdest += vid.width;
-		}
+	u64 maxdest = (u64)(ul64)scrbuffs[drawlayer]->pixels+vid.width*vid.height;
+	for(s32 i = 0; i < prect->height; i++){
+		if((u64)(ul64)pdest+prect->width > maxdest) break;
+		memcpy(pdest, psrc, prect->width);
+		psrc += rowbytes;
+		pdest += vid.width;
 	}
 }
 
@@ -508,7 +492,7 @@ void Draw_TileClear(s32 x, s32 y, s32 w, s32 h) // This repeats a 64*64
 				vr.width = width;
 			u8 *psrc = r_rectdesc.ptexbytes +
 			    (tileoffsety * r_rectdesc.rowbytes) + tileoffsetx;
-			R_DrawRect(&vr, r_rectdesc.rowbytes, psrc, 0);
+			R_DrawRect(&vr, r_rectdesc.rowbytes, psrc);
 			vr.x += vr.width;
 			width -= vr.width;
 			tileoffsetx = 0; // only left tile can be left-clipped

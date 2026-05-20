@@ -293,11 +293,12 @@ s32 m_return_state;
 bool m_return_onerror;
 s8 m_return_reason[32];
 
-void M_DrawCharacter(s32 cx, s32 line, s32 num)
+void M_DrawCharacter(s32 cx, s32 cy, s32 num)
 { // Draws one solid graphics character
+	if(scr_centermenus.value) cy+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_CharacterScaled(cx * uiscale + ((vid.width - 320 * uiscale) >> 1),
-			     line * uiscale, num, uiscale);
+			     cy * uiscale, num, uiscale);
 	drawlayer = lyr_main.value;
 }
 
@@ -331,6 +332,7 @@ void M_PrintWhite(s32 cx, s32 cy, s8 *str)
 
 void M_DrawTransPic(s32 x, s32 y, qpic_t *pic)
 {
+	if(scr_centermenus.value) y+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_TransPicScaled(x * uiscale + ((vid.width - 320 * uiscale) >> 1),
 			    y * uiscale, pic, uiscale);
@@ -358,6 +360,7 @@ void M_BuildTranslationTable(s32 top, s32 bottom)
 
 void M_DrawTransPicTranslate(s32 x, s32 y, qpic_t *pic)
 {
+	if(scr_centermenus.value) y+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_TransPicTranslateScaled(x * uiscale +
 		((vid.width - 320 * uiscale) >> 1),
@@ -2265,7 +2268,11 @@ void M_Graphics_Key(s32 k)
 {
 	switch (k) {
 	case K_ESCAPE:
-		if (graphics_cursor >= 100) { graphics_cursor /= 100; break; }
+		if (graphics_cursor >= 100) { 
+			S_LocalSound("misc/menu3.wav");
+			graphics_cursor /= 100;
+			break;
+		}
 		M_Menu_New_f();
 		break;
 	case K_LEFTARROW:
@@ -2791,23 +2798,25 @@ void M_New_Draw()
 		M_Print(64, 174, "with the              command");
 		M_PrintWhite(64, 174, "         newoptions 1");
 	}
-	M_Print(xoffset, 40, "         Y Mouse Speed");
+	M_Print(xoffset, 40, "          Center Menus");
+	M_DrawCheckbox(xoffset + 204, 40, scr_centermenus.value);
+	M_Print(xoffset, 48, "         Y Mouse Speed");
 	sprintf(temp, "x%0.1f\n", sensitivityyscale.value);
-	M_Print(xoffset + 204, 40, temp);
-	M_Print(xoffset, 48, "            Quick Exit");
-	M_DrawCheckbox(xoffset + 204, 48, quickexit.value);
-	M_Print(xoffset, 56, "         Autosave/Load");
-	M_DrawCheckbox(xoffset + 204, 56, sv_autosave.value);
-	M_Print(xoffset, 64, "         Save Interval");
+	M_Print(xoffset + 204, 48, temp);
+	M_Print(xoffset, 56, "            Quick Exit");
+	M_DrawCheckbox(xoffset + 204, 56, quickexit.value);
+	M_Print(xoffset, 64, "         Autosave/Load");
+	M_DrawCheckbox(xoffset + 204, 64, sv_autosave.value);
+	M_Print(xoffset, 72, "         Save Interval");
 	sprintf(temp, "%d\n", (s32)sv_autosave_interval.value);
-	M_Print(xoffset + 204, 64, temp);
-	M_Print(xoffset + 204, 72, "Display...");
-	M_Print(xoffset + 204, 80, "Graphics...");
-	M_Print(xoffset + 204, 88, "Gamepad...");
-	M_Print(xoffset + 204, 96, "Custom maps...");
-	M_Print(xoffset + 204, 104, "Mods...");
-	M_Print(xoffset + 204, 112, "Custom HUD...");
-	M_Print(xoffset + 204, 120, "Palette...");
+	M_Print(xoffset + 204, 72, temp);
+	M_Print(xoffset + 204, 80, "Display...");
+	M_Print(xoffset + 204, 88, "Graphics...");
+	M_Print(xoffset + 204, 96, "Gamepad...");
+	M_Print(xoffset + 204, 104, "Custom maps...");
+	M_Print(xoffset + 204, 112, "Mods...");
+	M_Print(xoffset + 204, 120, "Custom HUD...");
+	M_Print(xoffset + 204, 128, "Palette...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -2906,27 +2915,29 @@ void M_New_Key(s32 k)
 		S_LocalSound("misc/menu3.wav");
 		if (new_cursor == 0)
 			Cvar_SetValue("newoptions", !newoptions.value);
-		else if (new_cursor == 1 && sensitivityyscale.value >= 0.1)
+		if (new_cursor == 1)
+			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
+		else if (new_cursor == 2 && sensitivityyscale.value >= 0.1)
 			Cvar_SetValue("sensitivityyscale",
 				      sensitivityyscale.value - 0.1);
-		else if (new_cursor == 2)
+		else if (new_cursor == 3)
 			Cvar_SetValue("quickexit", !quickexit.value);
-		else if (new_cursor == 3){
+		else if (new_cursor == 4){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
 			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
-		else if (new_cursor == 4)
+		else if (new_cursor == 5)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value - 1,60));
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 11;
+		if (new_cursor == 0) new_cursor = 12;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 11) new_cursor = 0;
+		if (new_cursor == 12) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_RIGHTARROW:
@@ -2934,25 +2945,27 @@ void M_New_Key(s32 k)
 		S_LocalSound("misc/menu3.wav");
 		if (new_cursor == 0)
 			Cvar_SetValue("newoptions", !newoptions.value);
-		else if (new_cursor == 1 && sensitivityyscale.value >= 0.1)
+		if (new_cursor == 1)
+			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
+		else if (new_cursor == 2 && sensitivityyscale.value >= 0.1)
 			Cvar_SetValue("sensitivityyscale",
 				      sensitivityyscale.value + 0.1);
-		else if (new_cursor == 2)
+		else if (new_cursor == 3)
 			Cvar_SetValue("quickexit", !quickexit.value);
-		else if (new_cursor == 3){
+		else if (new_cursor == 4){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
 			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
-		else if (new_cursor == 4)
+		else if (new_cursor == 5)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value + 1,60));
-		else if (new_cursor == 5) M_Menu_Display_f();
-		else if (new_cursor == 6) M_Menu_Graphics_f();
-		else if (new_cursor == 7) M_Menu_Gamepad_f();
-		else if (new_cursor == 8) M_Menu_Maps_f();
-		else if (new_cursor == 9) M_Menu_Mods_f();
-		else if (new_cursor == 10) M_Menu_CSQC_f();
-		else if (new_cursor == 11) M_Menu_Palette_f();
+		else if (new_cursor == 6) M_Menu_Display_f();
+		else if (new_cursor == 7) M_Menu_Graphics_f();
+		else if (new_cursor == 8) M_Menu_Gamepad_f();
+		else if (new_cursor == 9) M_Menu_Maps_f();
+		else if (new_cursor == 10) M_Menu_Mods_f();
+		else if (new_cursor == 11) M_Menu_CSQC_f();
+		else if (new_cursor == 12) M_Menu_Palette_f();
 		break;
 	}
 }
@@ -3750,6 +3763,7 @@ void M_Init()
 
 	Cmd_AddCommand("togglemenu", M_ToggleMenu_f);
 	Cmd_AddCommand("menu_main", M_Menu_Main_f);
+	Cmd_AddCommand("menu_credits", M_Menu_Help_f); // for DOPA remaster
 	Cmd_AddCommand("menu_singleplayer", M_Menu_SinglePlayer_f);
 	Cmd_AddCommand("menu_load", M_Menu_Load_f);
 	Cmd_AddCommand("menu_save", M_Menu_Save_f);
@@ -3775,10 +3789,9 @@ void M_Draw()
 	if (m_state == m_none || key_dest != key_menu)
 		return;
 	if (!m_recursiveDraw) {
-		if (scr_con_current) {
-			Draw_ConsoleBackground(vid.height);
-		} else
-			fadescreen = 1;
+		if (scr_con_current) Draw_ConsoleBackground(vid.height);
+		else if (lyr_menu.value != 0) fadescreen = 1;
+		else Draw_FadeScreen();
 		scr_fullupdate = 0;
 	} else {
 		m_recursiveDraw = 0;

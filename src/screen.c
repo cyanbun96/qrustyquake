@@ -9,7 +9,7 @@ static qpic_t *scr_turtle;
 static u32 clearconsole;
 static bool scr_drawloading;
 static f32 scr_disabled_time;
-static s8 scr_centerstring[1024]; // center printing
+static s8 scr_centerstring[MAXPRINTMSG]; // center printing
 static f32 scr_centertime_start; // for slow victory printing
 static s32 scr_center_lines;
 static s32 scr_erase_lines;
@@ -24,10 +24,8 @@ void SCR_HUDStyle_f (cvar_t *cvar);
 
 void SCR_CenterPrint(const s8 *str) // Called for important messages
 { // that should stay in the center of the screen for a few moments
-	if (con_logcenterprint.value) {
-		Con_Print((s8*)str, 0);
-		Con_Print("\n", 0);
-	}
+	if(con_logcenterprint.value)
+		Con_LogCenterPrint(str);
 	strncpy(scr_centerstring, str, sizeof(scr_centerstring) - 1);
 	scr_centertime_off = scr_centertime.value;
 	scr_centertime_start = cl.time;
@@ -168,6 +166,7 @@ void SCR_Init()
 	Cvar_RegisterVariable(&scr_sbarscale); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_qchudscale); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_hudstyle);
+	Cvar_RegisterVariable(&scr_centermenus);
 	Cvar_SetCallback (&scr_hudstyle, SCR_HUDStyle_f);
 	Cmd_AddCommand("screenshot", SCR_ScreenShot_f);
 	Cmd_AddCommand("sizeup", SCR_SizeUp_f);
@@ -313,49 +312,6 @@ void SCR_DrawConsole()
 		if (key_dest == key_game || key_dest == key_message)
 			Con_DrawNotify(); // only draw notify in game
 }
-
-void WritePCXfile(s8 *filename, u8 *data, s32 width, s32 height,
-		  s32 rowbytes, u8 *palette)
-{
-	pcx_t *pcx = Hunk_TempAlloc(width * height * 2 + 1000);
-	if (pcx == NULL) {
-		Con_Printf("SCR_ScreenShot_f: not enough memory\n");
-		return;
-	}
-	pcx->manufacturer = 0x0a; // PCX id
-	pcx->version = 5; // 256 color
-	pcx->encoding = 1; // uncompressed
-	pcx->bits_per_pixel = 8; // 256 color
-	pcx->xmin = 0;
-	pcx->ymin = 0;
-	pcx->xmax = LittleShort((s16)(width - 1));
-	pcx->ymax = LittleShort((s16)(height - 1));
-	pcx->hres = LittleShort((s16)width);
-	pcx->vres = LittleShort((s16)height);
-	Q_memset(pcx->palette, 0, sizeof(pcx->palette));
-	pcx->color_planes = 1; // chunky image
-	pcx->bytes_per_line = LittleShort((s16)width);
-	pcx->palette_type = LittleShort(2); // not a grey scale
-	Q_memset(pcx->filler, 0, sizeof(pcx->filler));
-	u8 *pack = &pcx->data; // pack the image
-	for (s32 i = 0; i < height; i++) {
-		for (s32 j = 0; j < width; j++) {
-			if ((*data & 0xc0) != 0xc0)
-				*pack++ = *data++;
-			else {
-				*pack++ = 0xc1;
-				*pack++ = *data++;
-			}
-		}
-		data += rowbytes - width;
-	}
-	*pack++ = 0x0c; // palette ID u8
-	for (s32 i = 0; i < 768; i++) // write the palette
-		*pack++ = *palette++;
-	s32 length = pack - (u8 *) pcx; // write output file 
-	COM_WriteFile(filename, pcx, length);
-}
-
 
 void WriteBMPfile(s8 *filename, u8 *data, s32 width, s32 height,
 				  s32 rowbytes, u8 *palette)

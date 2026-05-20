@@ -6,6 +6,7 @@ static f32 con_cursorspeed = 4;
 static s32 con_vislines;
 static bool con_debuglog;
 static f32 con_times[NUM_CON_TIMES];
+static s8 con_lastcenterstring[MAXPRINTMSG];
 static s32 con_x; // offset in current line for next print
 
 void Con_ToggleConsole_f()
@@ -92,6 +93,71 @@ void Con_Init()
 	Cmd_AddCommand("messagemode2", Con_MessageMode2_f);
 	Cmd_AddCommand("clear", Con_Clear_f);
 	con_initialized = 1;
+}
+
+//johnfitz-returns a bar of the desired length, but never wider than the console
+//includes a newline, unless len >= con_linewidth.
+const char *Con_Quakebar(s32 len)
+{
+	static s8 bar[42];
+	len = q_min(len, (int)sizeof(bar) - 2);
+	len = q_min(len, con_linewidth);
+	bar[0] = '\35';
+	for(s32 i = 1; i < len - 1; i++)
+		bar[i] = '\36';
+	bar[len-1] = '\37';
+	if(len < con_linewidth){
+		bar[len] = '\n';
+		bar[len+1] = 0;
+	}
+	else
+		bar[len] = 0;
+	return bar;
+}
+
+void Con_LogCenterPrint(const s8 *str)
+{
+	if(!strcmp(str, con_lastcenterstring))
+		return; //ignore duplicates
+	if(cl.gametype == GAME_DEATHMATCH && con_logcenterprint.value != 2)
+		return; //don't log in deathmatch
+	strcpy(con_lastcenterstring, str);
+	if(con_logcenterprint.value){
+		bool trailing_newline = *str && str[strlen (str) - 1] == '\n';
+		Con_Printf("%s", Con_Quakebar(con_linewidth-1));
+		Con_CenterPrintf(40, trailing_newline ? "%s" : "%s\n", str);
+		Con_Printf("%s", Con_Quakebar(con_linewidth-1));
+		Con_ClearNotify();
+	}
+}
+
+void Con_CenterPrintf(s32 linewidth, const s8 *fmt, ...)
+{
+	va_list argptr;
+	s8 msg[MAXPRINTMSG]; //the original message
+	s8 line[MAXPRINTMSG]; //one line from the message
+	s8 spaces[21]; //buffer for spaces
+	va_start(argptr, fmt);
+	q_vsnprintf(msg, sizeof(msg), fmt, argptr);
+	va_end(argptr);
+	linewidth = q_min(linewidth, con_linewidth);
+	for(s8 *src = msg; *src;){
+		s8 *dst = line;
+		while(*src && *src != '\n')
+			*dst++ = *src++;
+		*dst = 0;
+		if(*src == '\n')
+			src++;
+		s32 len = strlen(line);
+		if(len < linewidth){
+			s32 s = (linewidth-len)/2;
+			memset(spaces, ' ', s);
+			spaces[s] = 0;
+			Con_Printf("%s%s\n", spaces, line);
+		}
+		else
+			Con_Printf("%s\n", line);
+	}
 }
 
 void Con_Linefeed()
