@@ -16,11 +16,13 @@ void Sys_Printf(const s8 *fmt, ...)
 void Sys_Quit()
 {
 	CDAudio_Stop();
-	Uint16 *screen; // erysdren (it/its)
-	if(registered.value) screen = (Uint16 *)COM_LoadHunkFile("end2.bin", 0);
-	else screen = (Uint16 *)COM_LoadHunkFile("end1.bin", 0);
-	SDL_SetWindowSize(window, 640, 400);
-	if(screen && !quickexit.value) vgatext_main(window, screen);
+	if(!exitstyle.value){
+		u16 *screen; // erysdren (it/its)
+		if(registered.value)screen=(u16*)COM_LoadHunkFile("end2.bin",0);
+		else screen = (u16*)COM_LoadHunkFile("end1.bin", 0);
+		SDL_SetWindowSize(window, 640, 400);
+		if(screen) vgatext_main(window, screen);
+	}
 	Host_Shutdown();
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();
