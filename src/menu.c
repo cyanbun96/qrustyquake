@@ -3188,22 +3188,22 @@ void M_Quit_Draw()
 	}
 
 	if (win_quit.value) {
-		M_DrawTextBox(0, 0, 38, 23);
+		M_DrawTextBox (0, 0, 38, 23);
 		M_PrintWhite (16, 12,  "  Quake version 1.09 by id Software\n\n");
 		M_PrintWhite (16, 28,  "Programming        Art \n");
-		M_Print      (16, 36,  " John Carmack       Adrian Carmack\n");
-		M_Print      (16, 44,  " Michael Abrash     Kevin Cloud\n");
-		M_Print      (16, 52,  " John Cash          Paul Steed\n");
-		M_Print      (16, 60,  " Dave 'Zoid' Kirsch\n");
-		M_PrintWhite (16, 68,  "Design             Biz\n");
-		M_Print      (16, 76,  " John Romero        Jay Wilbur\n");
-		M_Print      (16, 84,  " Sandy Petersen     Mike Wilson\n");
-		M_Print      (16, 92,  " American McGee     Donna Jackson\n");
-		M_Print      (16, 100, " Tim Willits        Todd Hollenshead\n");
-		M_PrintWhite (16, 108, "Support            Projects\n");
-		M_Print      (16, 116, " Barrett Alexander  Shawn Green\n");
-		M_PrintWhite (16, 124, "Sound Effects\n");
-		M_Print      (16, 132, " Trent Reznor and Nine Inch Nails\n\n");
+		M_Print (16, 36,  " John Carmack       Adrian Carmack\n");
+		M_Print (16, 44,  " Michael Abrash     Kevin Cloud\n");
+		M_Print (16, 52,  " John Cash          Paul Steed\n");
+		M_PrintWhite (16, 60,  "Design             Biz\n");
+		M_Print (16, 68,  " John Romero        Jay Wilbur\n");
+		M_Print (16, 76,  " Sandy Petersen     Mike Wilson\n");
+		M_Print (16, 84,  " American McGee     Donna Jackson\n");
+		M_Print (16, 92,  " Tim Willits        Todd Hollenshead\n");
+		M_PrintWhite (16, 100, "Support            Projects\n");
+		M_Print (16, 108, " Barrett Alexander  Shawn Green\n");
+		M_PrintWhite (16, 116, "Sound Effects\n");
+		M_Print (16, 124, " Trent Reznor and Nine Inch Nails\n\n");
+	
 		M_PrintWhite (16, 140, "Quake is a trademark of Id Software,\n");
 		M_PrintWhite (16, 148, "inc., (c)1996 Id Software, inc. All\n");
 		M_PrintWhite (16, 156, "rights reserved. NIN logo is a\n");
