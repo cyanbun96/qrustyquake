@@ -339,6 +339,8 @@ void R_GenerateSpans()
 				if (e2->surfs[0] == surfn && (e2->u>>20) < right)
 					right = (e2->u>>20);
 			}
+			if (right <= left)
+				continue;
 			surf_t *surf = &surfaces[surfn];
 			espan_t *span = span_p++;
 			span->u = left;
