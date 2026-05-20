@@ -3199,11 +3199,37 @@ void M_Quit_Draw()
 		M_Draw();
 		m_state = m_quit;
 	}
-	M_DrawTextBox(56, 76, 24, 4);
-	M_Print(64, 84, quitMessage[msgNumber * 4 + 0]);
-	M_Print(64, 92, quitMessage[msgNumber * 4 + 1]);
-	M_Print(64, 100, quitMessage[msgNumber * 4 + 2]);
-	M_Print(64, 108, quitMessage[msgNumber * 4 + 3]);
+
+	if (win_quit.value) {
+		M_DrawTextBox (0, 0, 38, 23);
+		M_PrintWhite (16, 12,  "  Quake version 1.09 by id Software\n\n");
+		M_PrintWhite (16, 28,  "Programming        Art \n");
+		M_Print (16, 36,  " John Carmack       Adrian Carmack\n");
+		M_Print (16, 44,  " Michael Abrash     Kevin Cloud\n");
+		M_Print (16, 52,  " John Cash          Paul Steed\n");
+		M_PrintWhite (16, 60,  "Design             Biz\n");
+		M_Print (16, 68,  " John Romero        Jay Wilbur\n");
+		M_Print (16, 76,  " Sandy Petersen     Mike Wilson\n");
+		M_Print (16, 84,  " American McGee     Donna Jackson\n");
+		M_Print (16, 92,  " Tim Willits        Todd Hollenshead\n");
+		M_PrintWhite (16, 100, "Support            Projects\n");
+		M_Print (16, 108, " Barrett Alexander  Shawn Green\n");
+		M_PrintWhite (16, 116, "Sound Effects\n");
+		M_Print (16, 124, " Trent Reznor and Nine Inch Nails\n\n");
+	
+		M_PrintWhite (16, 140, "Quake is a trademark of Id Software,\n");
+		M_PrintWhite (16, 148, "inc., (c)1996 Id Software, inc. All\n");
+		M_PrintWhite (16, 156, "rights reserved. NIN logo is a\n");
+		M_PrintWhite (16, 164, "registered trademark licensed to\n");
+		M_PrintWhite (16, 172, "Nothing Interactive, Inc. All rights\n");
+		M_PrintWhite (16, 180, "reserved. Press y to exit\n");
+	} else {
+		M_DrawTextBox(56, 76, 24, 4);
+		M_Print(64, 84,  quitMessage[msgNumber * 4 + 0]);
+		M_Print(64, 92,  quitMessage[msgNumber * 4 + 1]);
+		M_Print(64, 100, quitMessage[msgNumber * 4 + 2]);
+		M_Print(64, 108, quitMessage[msgNumber * 4 + 3]);
+	}
 }
 
 void M_Menu_LanConfig_f()
@@ -3733,6 +3759,8 @@ void M_ServerList_Key(s32 k)
 
 void M_Init()
 {
+	Cvar_RegisterVariable(&win_quit);
+
 	Cmd_AddCommand("togglemenu", M_ToggleMenu_f);
 	Cmd_AddCommand("menu_main", M_Menu_Main_f);
 	Cmd_AddCommand("menu_credits", M_Menu_Help_f); // for DOPA remaster

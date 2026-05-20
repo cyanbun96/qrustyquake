@@ -5,6 +5,7 @@ cvar_t scr_uiscale=                                  {"scr_uiscale", "1", 1,ZR};
 cvar_t scr_lockuiscale=                          {"scr_lockuiscale", "0", 1,ZR};
 cvar_t sensitivityyscale=                      {"sensitivityyscale", "1", 1,ZR};
 cvar_t _windowed_mouse=                          {"_windowed_mouse", "0", 1,ZR};
+cvar_t win_quit=									    {"win_quit", "0", 1,ZR};
 cvar_t newoptions=                                    {"newoptions", "1", 1,ZR};
 cvar_t aspectr=                                          {"aspectr", "0", 1,ZR};
 cvar_t realwidth=                                      {"realwidth", "0", 0,ZR};
