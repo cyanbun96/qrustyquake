@@ -113,7 +113,7 @@ void Host_InitLocal()
 	Cvar_RegisterVariable(&horde);
 	Cvar_RegisterVariable(&sv_cheats);
 	Cvar_RegisterVariable(&cl_nocsqc);
-	Cvar_RegisterVariable(&quickexit);
+	Cvar_RegisterVariable(&exitstyle);
 	Host_FindMaxClients();
 	host_time = 1.0; // so a think at time 0 won't get called
 }
