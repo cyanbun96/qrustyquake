@@ -5,6 +5,7 @@
 
 #include "quakedef.h"
 
+extern const char* __WSAE_StrError(int errcode);
 static sys_socket_t net_acceptsocket = INVALID_SOCKET;	// socket for fielding new connections
 static sys_socket_t net_controlsocket;
 static sys_socket_t net_broadcastsocket = 0;
@@ -29,13 +30,13 @@ sys_socket_t UDP_Init()
 		if (!(local = gethostbyname(buff))) {
 #ifdef _WIN32
 			const s8 herrmsg[1024];
-			FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-				FORMAT_MESSAGE_FROM_SYSTEM | 
-				FORMAT_MESSAGE_IGNORE_INSERTS, 
-				NULL, 
-				h_errno, 
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
-				(LPWSTR)&herrmsg, 0, NULL);
+			FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				h_errno,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPSTR)&herrmsg, 0, NULL);
 			Con_SafePrintf
 			("UDP_Init: WARNING: gethostbyname failed (%s)\n",
 				herrmsg);
@@ -118,7 +119,7 @@ sys_socket_t UDP_OpenSocket(s32 port)
 		Con_SafePrintf("UDP_OpenSocket: %s\n", socketerror(err));
 		return INVALID_SOCKET;
 	}
-	if (ioctlsocket(newsocket, FIONBIO, &_true) == SOCKET_ERROR)
+	if (ioctlsocket(newsocket, FIONBIO, (u_long *)&_true) == SOCKET_ERROR)
 		goto ErrorReturn;
 	memset(&address, 0, sizeof(struct sockaddr_in));
 	address.sin_family = AF_INET;
@@ -195,7 +196,7 @@ sys_socket_t UDP_CheckNewConnections()
 	s8 buff[1];
 	if (net_acceptsocket == INVALID_SOCKET)
 		return INVALID_SOCKET;
-	if (ioctlsocket(net_acceptsocket, FIONREAD, &available) == -1) {
+	if (ioctlsocket(net_acceptsocket, FIONREAD, (u_long *)&available) == -1) {
 		s32 err = SOCKETERRNO;
 		Sys_Error("UDP: ioctlsocket (FIONREAD) failed (%s)",
 			  socketerror(err));
