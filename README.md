@@ -230,11 +230,11 @@ Contributions of any kind are very welcome. If someone implements their favorite
 
 Linux: cd src && make
 
-Use CMakeLists.txt for building for Windows natively:
+Windows and BSDs: cmake -B build -DCMAKE_BUILD_TYPE=Release && cd build && cmake --build .
 
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR=C:/sdl3/cmake/ -DSDL3_mixer_DIR=C:/sdl3_mixer/cmake/
+Linux release AppImage is built with AppImage/build.sh
 
-cd build && cmake --build .
+Use Build_SteamOS.sh for Steam Deck
 
 # Successful builds
 
@@ -287,6 +287,10 @@ VM is VirtualBox unless specified otherwise.
   - Dark magic performed by Erysdren, please don't ask me about it
 
   - Updated CMakeLists by Pup Luka (since commit 5b68511)
+ 
+- SteamOS [Steam Deck] v0.8.1
+
+  - Build_SteamOS.sh script by Pup Luka
 
 - Windows [VM, HW] v0.8.1
 
@@ -313,5 +317,9 @@ The FitzQuake protocol implementation, both client and server, sound system, mod
 A lot of code is adapted from Ironwail. Most of the netcode is a direct copy, other chunks are adapted with minor changes. QCVM/CSQC code is mostly taken from IW too. Also the autosave system has been practically copy-pasted from Ironwail.
 
 TGA image loading code taken from MarkV, along with lots of other software rendering code. Most of it comes from ToChriS engine by Vic.
+
+Bubbleguuum's build system is used for release AppImages. Bubbleguuum has also contributed several miscellaneous fixes. 
+
+Pup Luka has contributed the "resurrect" command, WinQuake-style exit screen, Steam Deck build script, and a lot of miscellaneous fixes all over.
 
 --CyanBun96 <3
