@@ -468,7 +468,7 @@ void Sbar_CalcPos()
 		for (s32 i = 0; i < 9; i++) {
 			wpos[i][0] = WW / 2 - 160*SCL + i*24*SCL +arcade_offs_x;
 			wpos[i][1] = HH - 40*SCL + arcade_offs_y;
-			if (i == 9) {
+			if (i == 8) {
 				wpos[7][0] += 8*SCL + arcade_offs_x;
 				wpos[8][0] += 8*SCL + arcade_offs_y;
 			}
@@ -478,7 +478,7 @@ void Sbar_CalcPos()
 		for (s32 i = 0; i < 9; i++) {
 			wpos[i][0] = WW / 2 - 72*SCL + i*16*SCL;
 			wpos[i][1] = HH - 48*SCL;
-			if (i == 9) {
+			if (i == 8) {
 				wpos[7][0] += 8*SCL;
 				wpos[8][0] += 8*SCL;
 			}
@@ -515,6 +515,7 @@ void Sbar_CalcPos()
 		break;
 	case 0x10: // hipnotic
 	case 0x13:
+	case 0x18:
 		for (s32 i = 0; i < 2; i++) { // classic, qw
 			kpos[i][0] = WW / 2 + 48*SCL;
 			kpos[i][1] = HH - 21*SCL + i*8*SCL;
@@ -679,6 +680,15 @@ void Sbar_DrawWeapons()
 			Draw_TransPicScaled(x, y, pic, SCL);
 		if (flashon > 1)
 			sb_updates = 0;
+	}
+}
+
+void Sbar_DrawKeys()
+{ // hipnotic only
+	for (s32 i = 0; i < 2; i++) { // keys
+		if (!(cl.items & (1<<(17+i))))
+			continue;
+		Draw_TransPicScaled(kpos[i][0], kpos[i][1], sb_items[i], SCL);
 	}
 }
 
@@ -1134,6 +1144,8 @@ void Sbar_Draw()
 		Sbar_DeathmatchOverlay();
 	if ((sb_lines/SCL>24 || oldhudstyle) && !(oldhudstyle==4 && WW/SCL<640))
 		Sbar_DrawInventory();
+	else if (hipnotic && sb_lines/SCL==24)
+		Sbar_DrawKeys();
 	if (sb_lines/SCL > 24 && cl.maxclients != 1)
 		Sbar_DrawFrags();
 	if (sb_showscores || cl.stats[STAT_HEALTH] <= 0) {
