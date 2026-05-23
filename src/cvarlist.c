@@ -233,6 +233,7 @@ cvar_t sv_autosave=                                    {"sv_autosave","0",1,ZR};
 cvar_t sv_autosave_interval=                 {"sv_autosave_interval","30",1,ZR};
 cvar_t sv_autoload=                                    {"sv_autoload","0",1,ZR};
 cvar_t v_oldviewmodelpos=                        {"v_oldviewmodelpos","0",1,ZR};
+cvar_t v_gunkick=                                        {"v_gunkick","1",1,ZR};
 cvar_t exitstyle=                                        {"exitstyle","0",1,ZR};
 cvar_t scr_centermenus=                            {"scr_centermenus","0",1,ZR};
 cvar_t registered=                               {"registered","1",CVAR_ROM,ZR};

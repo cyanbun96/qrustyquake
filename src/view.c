@@ -503,7 +503,8 @@ void V_CalcRefdef()
 	view->frame = cl.stats[STAT_WEAPONFRAME];
 	view->colormap = CURWORLDCMAP;
 	// set up the refresh position
-	VectorAdd(r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
+	if(v_gunkick.value)
+	    VectorAdd(r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
 	// smooth out stair step ups
 	if(cl.onground && ent->origin[2] - oldz > 0){
 		f32 steptime;
@@ -610,6 +611,7 @@ void V_Init()
 	Cvar_RegisterVariable(&v_contrast);
 	Cvar_RegisterVariable(&v_hue);
 	Cvar_RegisterVariable(&v_brightness);
+	Cvar_RegisterVariable(&v_gunkick);
 	V_AllocLedges();
 	V_AllocLsurfs();
 }
