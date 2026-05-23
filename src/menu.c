@@ -2324,11 +2324,13 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_lavaalpha.value - 0.1, 1)); break;
 		case 504: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value - 0.1, 1)); break;
-		case 505: Cvar_SetValue("r_hlwaterquality",
+		case 505: Cvar_SetValue("r_novis",
+			!r_novis.value); break;
+		case 506: Cvar_SetValue("r_hlwaterquality",
 			!r_hlwaterquality.value); break;
-		case 506: Cvar_SetValue("r_hlripplescale",
+		case 507: Cvar_SetValue("r_hlripplescale",
 			CLAMP(0, r_hlripplescale.value - 0.1, 5)); break;
-		case 507: Cvar_SetValue("r_hlwavescale",
+		case 508: Cvar_SetValue("r_hlwavescale",
 			CLAMP(0, r_hlwavescale.value - 0.1, 5)); break;
 		case 600: Cvar_SetValue("r_particlescale",
 			CLAMP(0, r_particlescale.value - 0.1, 9)); break;
@@ -2440,11 +2442,13 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_lavaalpha.value + 0.1, 1)); break;
 		case 504: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value + 0.1, 1)); break;
-		case 505: Cvar_SetValue("r_hlwaterquality",
+		case 505: Cvar_SetValue("r_novis",
+			!r_novis.value); break;
+		case 506: Cvar_SetValue("r_hlwaterquality",
 			!r_hlwaterquality.value); break;
-		case 506: Cvar_SetValue("r_hlripplescale",
+		case 507: Cvar_SetValue("r_hlripplescale",
 			CLAMP(0, r_hlripplescale.value + 0.1, 5)); break;
-		case 507: Cvar_SetValue("r_hlwavescale",
+		case 508: Cvar_SetValue("r_hlwavescale",
 			CLAMP(0, r_hlwavescale.value + 0.1, 5)); break;
 		case 600: Cvar_SetValue("r_particlescale",
 			CLAMP(0, r_particlescale.value + 0.1, 9)); break;
@@ -2497,8 +2501,8 @@ void M_Graphics_Key(s32 k)
 		}else if(graphics_cursor == 300) graphics_cursor = 302;
 		else if (graphics_cursor == 400) graphics_cursor = 402;
 		else if (graphics_cursor == 500) {
-			if (r_hlwater.value) graphics_cursor = 507;
-			else graphics_cursor = 504;
+			if (r_hlwater.value) graphics_cursor = 508;
+			else graphics_cursor = 505;
 		}else if (graphics_cursor == 600) graphics_cursor = 603;
 		else if (graphics_cursor == 700) graphics_cursor = 707;
 		else if (graphics_cursor == 800) graphics_cursor = 804;
@@ -2525,10 +2529,10 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor++;
 		} else if (graphics_cursor < 600) {
 			if (r_hlwater.value) {
-				if (graphics_cursor==507) graphics_cursor = 500;
+				if (graphics_cursor==508) graphics_cursor = 500;
 				else graphics_cursor++;
 			} else {
-				if (graphics_cursor==504) graphics_cursor = 500;
+				if (graphics_cursor==505) graphics_cursor = 500;
 				else graphics_cursor++;
 			}
 		} else if (graphics_cursor < 700) {
@@ -2677,6 +2681,12 @@ void M_Graphics_Draw()
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
+		if(graphics_cursor==505) {
+			M_DrawTextBox(12, 150, 33, 3);
+			M_Print(28, 158, " Enables translucent liquids on");
+			M_Print(28, 166, "        unsupported maps");
+			M_PrintWhite(28, 174," WARNING: DECREASES PERFORMANCE");
+		}
 		M_Print(xoffset, 32, "Style:");
 		M_Print(xoffset+x2, 32, r_hlwater.value==0?"Classic":"HL");
 		M_Print(xoffset, 40, "Water Alpha:");
@@ -2691,15 +2701,17 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 64, "Tele Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_telealpha.value);
 		M_Print(xoffset + x2, 64, temp);
+		M_Print(xoffset, 72, "No VIS:");
+		M_DrawCheckbox(xoffset + x2, 72, r_novis.value);
 		if (!r_hlwater.value) return;
-		M_Print(xoffset, 72, "Quality:");
-		M_Print(xoffset+x2, 72, r_hlwaterquality.value==0?"Low":"High");
-		M_Print(xoffset, 80, "Ripple Scale:");
+		M_Print(xoffset, 80, "Quality:");
+		M_Print(xoffset+x2, 80, r_hlwaterquality.value==0?"Low":"High");
+		M_Print(xoffset, 88, "Ripple Scale:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlripplescale.value);
-		M_Print(xoffset + x2, 80, temp);
-		M_Print(xoffset, 88, "Wave Scale:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlwavescale.value);
 		M_Print(xoffset + x2, 88, temp);
+		M_Print(xoffset, 96, "Wave Scale:");
+		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlwavescale.value);
+		M_Print(xoffset + x2, 96, temp);
 	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
 		x2 -= 32;
 		M_Print(xoffset, 32, "Scale:");
