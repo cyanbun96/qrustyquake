@@ -300,10 +300,16 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 
 void R_MarkLeaves()
 {
+	u8 *vis;
+	u8 solid[16384];
 	if(r_oldviewleaf == r_viewleaf) return;
 	r_visframecount++;
 	r_oldviewleaf = r_viewleaf;
-	u8 *vis = Mod_LeafPVS(r_viewleaf, cl.worldmodel);
+	if(r_novis.value){
+		vis = solid;
+		memset(solid, 0xff, (cl.worldmodel->numleafs+7)>>3);
+	}
+	else vis = Mod_LeafPVS(r_viewleaf, cl.worldmodel);
 	for(s32 i = 0; i < cl.worldmodel->numleafs; i++){
 		if(vis[i >> 3] & (1 << (i & 7))){
 			mnode_t *nd = (mnode_t *) & cl.worldmodel->leafs[i + 1];
