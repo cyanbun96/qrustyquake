@@ -22,6 +22,7 @@ static s32 setup_bottom;
 static s32 m_net_cursor;
 static s32 m_net_items;
 static s32 options_cursor;
+static s32 options_cursor_max = 12;
 static s32 keys_cursor;
 static s32 bind_grab;
 static s32 new_cursor;
@@ -996,10 +997,6 @@ void M_Menu_Options_f()
 	m_state = m_options;
 	m_entersound = 1;
 	drawmousemenu = !(SDLWindowFlags & SDL_WINDOW_FULLSCREEN);
-	if (options_cursor == 13
-	    && drawmousemenu && !_windowed_mouse.value && !newoptions.value) {
-		options_cursor = 0;
-	}
 }
 
 void M_AdjustSliders(s32 dir)
@@ -1091,6 +1088,9 @@ void M_DrawCheckbox(s32 x, s32 y, s32 on)
 
 void M_Options_Draw()
 {
+	drawmousemenu = !(SDLWindowFlags & SDL_WINDOW_FULLSCREEN);
+	options_cursor_max = 12 + (drawmousemenu!=0) + (newoptions.value!=0);
+	if(options_cursor_max<options_cursor) options_cursor=options_cursor_max;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
