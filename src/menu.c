@@ -1934,12 +1934,12 @@ void M_Display_Key(s32 k)
 		break;
 	case 's':
 	case 'S':
-		if (display_cursor == 5)
+		if (display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 0.75);
 		break;
 	case 'd':
 	case 'D':
-		if (display_cursor == 5)
+		if (display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 1);
 		break;
 	case K_LEFTARROW:
@@ -1969,10 +1969,12 @@ void M_Display_Key(s32 k)
 				Cvar_SetValue("crosshair", 0);
 		} else if (display_cursor == 4)
 			Cvar_SetValue("aspectr", aspectr.value - 0.01);
-		else if (display_cursor == 5)
+		else if (display_cursor == 5) Cvar_SetValue("aspectr_lock",
+				!aspectr_lock.value);
+		else if (display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 
 					CLAMP(0, scr_uixscale.value-0.01, 1));
-		else if (display_cursor == 6) {
+		else if (display_cursor == 7) {
 			s32 i = 0;
 			for (; i < (s32)sizeof(fpslimits) / 4 - 1; ++i)
 				if (fpslimits[i] >= (s32)host_maxfps.value)
@@ -1981,16 +1983,16 @@ void M_Display_Key(s32 k)
 			if (i < 0 || i > (s32)sizeof(fpslimits) / 4 - 1)
 				i = sizeof(fpslimits) / 4 - 1;
 			Cvar_SetValue("host_maxfps", fpslimits[i]);
-		} else if (display_cursor == 7) Cvar_SetValue("scr_showfps",
+		} else if (display_cursor == 8) Cvar_SetValue("scr_showfps",
 				scr_showfps.value ? 0 : 1);
-		else if (display_cursor == 8)
-			Cvar_SetValue("fov", scr_fov.value - 1);
 		else if (display_cursor == 9)
+			Cvar_SetValue("fov", scr_fov.value - 1);
+		else if (display_cursor == 10)
 			Cvar_SetValue("r_fovmode",CLAMP(0,r_fovmode.value-1,2));
-		else if (display_cursor == 10) {
+		else if (display_cursor == 11) {
 			if (newwinmode == 0) newwinmode = 2;
 			else newwinmode--;
-		} else if (display_cursor == 11 && newwinmode == 1) {
+		} else if (display_cursor == 12 && newwinmode == 1) {
 			if (display_sel_moden == moden-1) display_sel_moden = 0;
 			else display_sel_moden++;
 		}
@@ -2023,10 +2025,12 @@ void M_Display_Key(s32 k)
 				Cvar_SetValue("crosshair", 0);
 		} else if (display_cursor == 4)
 			Cvar_SetValue("aspectr", aspectr.value + 0.01);
-		else if (display_cursor == 5)
+		else if (display_cursor == 5) Cvar_SetValue("aspectr_lock",
+				!aspectr_lock.value);
+		else if (display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 
 					CLAMP(0, scr_uixscale.value+0.01, 1));
-		else if (display_cursor == 6) {
+		else if (display_cursor == 7) {
 			s32 i = 0;
 			for (; i < (s32)sizeof(fpslimits) / 4 - 1; ++i)
 				if (fpslimits[i] >= (s32)host_maxfps.value)
@@ -2035,56 +2039,59 @@ void M_Display_Key(s32 k)
 			if (i < 0 || i > (s32)sizeof(fpslimits) / 4 - 1)
 				i = 0;
 			Cvar_SetValue("host_maxfps", fpslimits[i]);
-		} else if (display_cursor == 7) Cvar_SetValue("scr_showfps",
+		} else if (display_cursor == 8) Cvar_SetValue("scr_showfps",
 				scr_showfps.value ? 0 : 1);
-		else if (display_cursor == 8)
-			Cvar_SetValue("fov", scr_fov.value + 1);
 		else if (display_cursor == 9)
+			Cvar_SetValue("fov", scr_fov.value + 1);
+		else if (display_cursor == 10)
 			Cvar_SetValue("r_fovmode",CLAMP(0,r_fovmode.value+1,2));
-		else if (display_cursor == 10) {
+		else if (display_cursor == 11) {
 			if (newwinmode == 2) newwinmode = 0;
 			else newwinmode++;
-		} else if (display_cursor == 11 && newwinmode == 1 && moden) {
+		} else if (display_cursor == 12 && newwinmode == 1 && moden) {
 			if (display_sel_moden == 0) display_sel_moden = moden-1;
 			else display_sel_moden--;
-		} else if (display_cursor == 12 && newwinmode == 1 && moden) {
+		} else if (display_cursor == 13 && newwinmode == 1 && moden) {
 			VID_SetMode(0,mode->w, mode->h, newwinmode, vid_curpal);
-		} else if (display_cursor == 13
+			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
+		} else if (display_cursor == 14
 			   && Q_atoi(customwidthstr) >= 320
 			   && Q_atoi(customheightstr) >= 200
 			   && Q_atoi(customwidthstr) <= MAXWIDTH
-			   && Q_atoi(customheightstr) <= MAXHEIGHT)
+			   && Q_atoi(customheightstr) <= MAXHEIGHT) {
 			VID_SetMode(0, Q_atoi(customwidthstr),
 				    Q_atoi(customheightstr), newwinmode,
 				    vid_curpal);
+			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
+		}
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (display_cursor == 0 && newwinmode == 1) display_cursor = 12;
-		else if(display_cursor==0 && newwinmode!=1) display_cursor = 13;
+		if (display_cursor == 0 && newwinmode == 1) display_cursor = 13;
+		else if(display_cursor==0 && newwinmode!=1) display_cursor = 14;
 		else display_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (display_cursor == 12 && newwinmode == 1) display_cursor = 0;
-		else if(display_cursor==13 && newwinmode!=1) display_cursor = 0;
+		if (display_cursor == 13 && newwinmode == 1) display_cursor = 0;
+		else if(display_cursor==14 && newwinmode!=1) display_cursor = 0;
 		else display_cursor++;
 		break;
 	case K_BACKSPACE:
-		if (display_cursor == 11 && strlen(customwidthstr))
+		if (display_cursor == 12 && strlen(customwidthstr))
 			customwidthstr[strlen(customwidthstr) - 1] = 0;
-		else if (display_cursor == 12 && strlen(customheightstr))
+		else if (display_cursor == 13 && strlen(customheightstr))
 			customheightstr[strlen(customheightstr) - 1] = 0;
 		break;
 	default:
 		if (k < '0' || k > '9') break;
-		if (display_cursor == 11) {
+		if (display_cursor == 12) {
 			s32 l = strlen(customwidthstr);
 			if (l < 7) {
 				customwidthstr[l + 1] = 0;
 				customwidthstr[l] = k;
 			}
-		} else if (display_cursor == 12) {
+		} else if (display_cursor == 13) {
 			s32 l = strlen(customheightstr);
 			if (l < 7) {
 				customheightstr[l + 1] = 0;
@@ -2134,10 +2141,10 @@ void M_Display_Draw()
 	s8 temp[32];
 	s32 xoffset = 0;
 	if (newwinmode != 1) {
-		if (display_cursor < 11) M_DrawCursor(192, 32+display_cursor*8);
-		else if (display_cursor == 11) M_DrawCursor(192, 124);
-		else if (display_cursor == 12) M_DrawCursor(192, 140);
-		else if (display_cursor == 13) M_DrawCursor(192, 152);
+		if (display_cursor < 12) M_DrawCursor(192, 32+display_cursor*8);
+		else if (display_cursor == 12) M_DrawCursor(192, 132);
+		else if (display_cursor == 13) M_DrawCursor(192, 148);
+		else if (display_cursor == 14) M_DrawCursor(192, 160);
 	}
 	else M_DrawCursor(192, 32 + display_cursor*8);
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
@@ -2148,15 +2155,16 @@ void M_Display_Draw()
 	M_Print(xoffset, 48, "             HUD Style");
 	M_Print(xoffset, 56, "             Crosshair");
 	M_Print(xoffset, 64, "          Aspect Ratio");
-	M_Print(xoffset, 72, "        UI Width Ratio");
-	M_Print(xoffset, 80, "             FPS Limit");
-	M_Print(xoffset, 88, "           FPS Counter");
-	M_Print(xoffset, 96, "         Field Of View");
-	M_Print(xoffset, 104, "          Vertical FOV");
-	M_Print(xoffset, 112, "           Window Mode");
+	M_Print(xoffset, 72, "           Lock Aspect");
+	M_Print(xoffset, 80, "        UI Width Ratio");
+	M_Print(xoffset, 88, "             FPS Limit");
+	M_Print(xoffset, 96, "           FPS Counter");
+	M_Print(xoffset, 104, "         Field Of View");
+	M_Print(xoffset, 112, "          Vertical FOV");
+	M_Print(xoffset, 120, "           Window Mode");
 	sprintf(temp, "x%d\n", (s32)scr_uiscale.value);
 	M_Print(xoffset + 204, 32, temp);
-	M_Print(xoffset + 204, 40, (s32)scr_lockuiscale.value==0 ? "no":"yes");
+	M_DrawCheckbox(xoffset + 204, 40, scr_lockuiscale.value);
 	if     (scr_hudstyle.value==0)M_Print(xoffset+204,48,"Classic");
 	else if(scr_hudstyle.value==1)M_Print(xoffset+204,48,"Modern1");
 	else if(scr_hudstyle.value==2)M_Print(xoffset+204,48,"Modern2");
@@ -2172,15 +2180,16 @@ void M_Display_Draw()
 	M_Print(xoffset + 204, 56, temp);
 	sprintf(temp, "%0.2f\n", aspectr.value);
 	M_Print(xoffset + 204, 64, temp);
+	M_DrawCheckbox(xoffset + 204, 72, aspectr_lock.value);
 	sprintf(temp, "%0.2f\n", scr_uixscale.value);
-	M_Print(xoffset + 204, 72, temp);
-	sprintf(temp, "%d\n", (s32)host_maxfps.value);
 	M_Print(xoffset + 204, 80, temp);
-	M_Print(xoffset + 204, 88, (s32)scr_showfps.value==0 ? "off":"on");
+	sprintf(temp, "%d\n", (s32)host_maxfps.value);
+	M_Print(xoffset + 204, 88, temp);
+	M_DrawCheckbox(xoffset + 204, 96, scr_showfps.value);
 	sprintf(temp, "%0.2f\n", aspectr.value);
 	sprintf(temp, "%d\n", (s32)scr_fov.value);
-	M_Print(xoffset + 204, 96, temp);
-	if (r_fovmode.value && display_cursor == 8) {
+	M_Print(xoffset + 204, 104, temp);
+	if (r_fovmode.value && display_cursor == 9) {
 		float asp = r_fovmode.value==1 ?
 			((f32)vid.width / (f32)vid.height * 0.75) :
 			yaspectscale.value;
@@ -2191,18 +2200,18 @@ void M_Display_Draw()
 		sprintf(temp, "%0.2f\n", fov_modern);
 		M_PrintWhite(176, 174, temp);
 	}
-	if (r_fovmode.value == 0)      M_Print(xoffset + 204, 104, "Classic");
-	else if (r_fovmode.value == 1) M_Print(xoffset + 204, 104, "Modern");
-	else {                   M_Print(xoffset + 204, 104, "Manual");
-		if (display_cursor == 9) {
+	if (r_fovmode.value == 0)      M_Print(xoffset + 204, 112, "Classic");
+	else if (r_fovmode.value == 1) M_Print(xoffset + 204, 112, "Modern");
+	else {                   M_Print(xoffset + 204, 112, "Manual");
+		if (display_cursor == 10) {
 			M_DrawTextBox(52, 166, 25, 2);
 			M_Print(64, 174, "Set through console with");
 			M_PrintWhite(64, 182, "      yaspectscale");
 		}
 	}
-	if (newwinmode == 0)      M_Print(xoffset + 204, 112, "Windowed");
-	else if (newwinmode == 1) M_Print(xoffset + 204, 112, "Fullscreen");
-	else                      M_Print(xoffset + 204, 112, "Borderless");
+	if (newwinmode == 0)      M_Print(xoffset + 204, 120, "Windowed");
+	else if (newwinmode == 1) M_Print(xoffset + 204, 120, "Fullscreen");
+	else                      M_Print(xoffset + 204, 120, "Borderless");
 	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
 	if (csqc_active && display_cursor == 2) {
 		M_DrawTextBox(52, 166, 25, 2);
@@ -2213,13 +2222,13 @@ void M_Display_Draw()
 		M_DrawTextBox(84, 166, 17, 1);
 		M_Print(96, 174, "Press   for auto");
 		M_PrintWhite(96, 174, "      A");
-	} else if (display_cursor == 5) {
+	} else if (display_cursor == 6) {
 		M_DrawTextBox(52, 166, 25, 2);
 		M_Print(64, 174, "Press   for default (1:1)");
 		M_PrintWhite(112, 174, "D");
 		M_Print(72, 182, "Or   for squished (3:4)");
 		M_PrintWhite(96, 182, "S");
-	} else if (display_cursor == 6 && (s32)host_maxfps.value > 72) {
+	} else if (display_cursor == 7 && (s32)host_maxfps.value > 72) {
 		M_DrawTextBox(52, 166, 30, 1);
 		M_Print(64, 174, "Vanilla max is    expect bugs");
 		M_PrintWhite(64, 174, "               72");
@@ -2230,8 +2239,8 @@ void M_Display_Draw()
 			if (modes) mode = modes[0];
 		}
 		if (moden <= 0) {
-			M_Print(xoffset + 204, 120, "No Fullscreen");
-			M_Print(xoffset + 204, 128, "Modes Detected");
+			M_Print(xoffset + 204, 128, "No Fullscreen");
+			M_Print(xoffset + 204, 136, "Modes Detected");
 			return;
 		}
 		mode = modes[display_sel_moden];
@@ -2240,28 +2249,28 @@ void M_Display_Draw()
 				(s32)(mode->refresh_rate+0.5));
 		M_Print(xoffset + 204, 120, temp);
 	} else {
-		M_Print(xoffset, 124, "          Custom Width");
-		M_DrawTextBox(xoffset + 196, 116, 8, 1);
-		M_Print(xoffset + 204, 124, customwidthstr);
-		if (display_cursor == 11) {
-			M_DrawCursorLine(xoffset+204 + 8 * strlen(customwidthstr), 124);
+		M_Print(xoffset, 132, "          Custom Width");
+		M_DrawTextBox(xoffset + 196, 124, 8, 1);
+		M_Print(xoffset + 204, 132, customwidthstr);
+		if (display_cursor == 12) {
+			M_DrawCursorLine(xoffset+204 + 8 * strlen(customwidthstr), 132);
 			sprintf(temp, "%d", MAXWIDTH);
 			M_DrawTextBox(xoffset + 68, 166, 16 + strlen(temp), 1);
 			M_Print(xoffset + 80, 174, "320 <= Width <=");
 			M_Print(xoffset + 208, 174, temp);
 		}
-		M_Print(xoffset, 140, "         Custom Height");
-		M_DrawTextBox(xoffset + 196, 132, 8, 1);
-		M_Print(xoffset + 204, 140, customheightstr);
-		if (display_cursor == 12) {
-			M_DrawCursorLine(xoffset+204+8 * strlen(customheightstr), 140);
+		M_Print(xoffset, 148, "         Custom Height");
+		M_DrawTextBox(xoffset + 196, 140, 8, 1);
+		M_Print(xoffset + 204, 148, customheightstr);
+		if (display_cursor == 13) {
+			M_DrawCursorLine(xoffset+204+8 * strlen(customheightstr), 148);
 			sprintf(temp, "%d", MAXHEIGHT);
 			M_DrawTextBox(xoffset + 68, 166, 17 + strlen(temp), 1);
 			M_Print(xoffset + 80, 174, "200 <= Height <=");
 			M_Print(xoffset + 216, 174, temp);
 		}
 	}
-	M_Print(xoffset + 204, newwinmode==1?128:152, "Set Mode");
+	M_Print(xoffset + 204, newwinmode==1?136:160, "Set Mode");
 }
 
 void M_Graphics_Key(s32 k)
@@ -3105,7 +3114,7 @@ void M_Video_Key(s32 key)
 	case K_ENTER:
 		S_LocalSound("misc/menu1.wav");
 		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
-		Cvar_SetValue("aspectr", 0);
+		if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		break;
 	case 'T':
 	case 't':

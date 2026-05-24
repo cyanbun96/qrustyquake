@@ -141,6 +141,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	Cvar_RegisterVariable(&sensitivityyscale);
 	Cvar_RegisterVariable(&newoptions);
 	Cvar_RegisterVariable(&aspectr);
+	Cvar_RegisterVariable(&aspectr_lock);
 	Cvar_RegisterVariable(&realwidth);
 	Cvar_RegisterVariable(&realheight);
 	void (*vid_callback)(cvar_t *) =

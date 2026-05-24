@@ -7,6 +7,7 @@ cvar_t sensitivityyscale=                      {"sensitivityyscale", "1", 1,ZR};
 cvar_t _windowed_mouse=                          {"_windowed_mouse", "0", 1,ZR};
 cvar_t newoptions=                                    {"newoptions", "1", 1,ZR};
 cvar_t aspectr=                                          {"aspectr", "0", 1,ZR};
+cvar_t aspectr_lock=                                {"aspectr_lock", "0", 1,ZR};
 cvar_t realwidth=                                      {"realwidth", "0", 0,ZR};
 cvar_t realheight=                                    {"realheight", "0", 0,ZR};
 cvar_t r_draworder=                                  {"r_draworder", "0", 0,ZR};
