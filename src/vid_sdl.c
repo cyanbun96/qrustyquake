@@ -20,6 +20,7 @@ static s32 renderscale;
 
 void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_AllocBuffers();
+void VID_VidFullscreenCommand_f();
 
 s32 VID_GetConfigCvar(const s8 *cvname)
 {
@@ -148,6 +149,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	Cvar_SetCallback(&realwidth, vid_callback);
 	Cvar_SetCallback(&realheight, vid_callback);
 	Cvar_SetCallback(&scr_uiscale, VID_UpdateUIScale);
+	Cmd_AddCommand("vid_fullscreen", VID_VidFullscreenCommand_f);
 	// Set up display mode (width and height)
 	vid.width = 320;
 	vid.height = 240;
@@ -490,6 +492,30 @@ void VID_VidSetModeCommand_f()
 		}
 		vid_realmode = -1;
 		VID_SetMode(-1, custw, custh, atoi(Cmd_Argv(3)), vid_curpal);
+		break;
+	}
+}
+
+void VID_VidFullscreenCommand_f()
+{
+	s32 m = 0;
+	switch(Cmd_Argc()){
+	default:
+	case 1:
+		Con_Printf("usage:\n");
+		Con_Printf("   vid_fullscreen <mode>\n");
+		Con_Printf("   modes: 0 - windowed\n");
+		Con_Printf("          1 - fullscreen\n");
+		Con_Printf("          2 - borderless\n");
+		return;
+	case 2:
+		m = atoi(Cmd_Argv(1));
+		if(!m)
+			VID_SetWindowed();
+		else if(m == 1)
+			VID_SetFullscreen(vid.width, vid.height);
+		else
+			VID_SetBorderless();
 		break;
 	}
 }
