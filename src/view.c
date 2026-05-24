@@ -601,7 +601,6 @@ void V_Init()
 	Cvar_RegisterVariable(&cl_crossx);
 	Cvar_RegisterVariable(&cl_crossy);
 	Cvar_RegisterVariable(&cl_crosschar);
-	Cvar_RegisterVariable(&gl_cshiftpercent);
 	Cvar_RegisterVariable(&scr_ofsx);
 	Cvar_RegisterVariable(&scr_ofsy);
 	Cvar_RegisterVariable(&scr_ofsz);
