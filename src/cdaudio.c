@@ -64,12 +64,15 @@ void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
 		return;
 	}
 	CDAudio_Stop();
-	for(u32 i = 0; i < Q_COUNTOF(music_formats); i++) {
-		for(u32 j = 0; j < music_formats[i].num_extensions; j++) {
-			q_snprintf(filename, sizeof(filename), "music/%s%s",
-				musicname, music_formats[i].extensions[j]);
-			file = COM_LoadMallocFile(filename, NULL);
-			if(file) goto found;
+	for(s32 path_id = com_searchpaths->path_id; path_id >= 0; path_id--) { // look in mod folders first
+		for(u32 i = 0; i < Q_COUNTOF(music_formats); i++) {
+			for(u32 j = 0; j < music_formats[i].num_extensions; j++) {
+				q_snprintf(filename, sizeof(filename), "music/%s%s",
+						musicname, music_formats[i].extensions[j]);
+				u32 path_id2 = path_id;
+				file = COM_LoadMallocFile(filename, &path_id2);
+				if(file && path_id2 == (u32)path_id) goto found;
+			}
 		}
 	}
 	if(!file) {
