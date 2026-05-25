@@ -71,7 +71,11 @@ void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
 						musicname, music_formats[i].extensions[j]);
 				u32 path_id2 = path_id;
 				file = COM_LoadMallocFile(filename, &path_id2);
-				if(file && path_id2 == (u32)path_id) goto found;
+				if(file && path_id2 != (u32)path_id){
+					free(file);
+					file = NULL;
+				}
+				if(file) goto found;
 			}
 		}
 	}
