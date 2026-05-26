@@ -507,7 +507,7 @@ void R_RenderWorld();
 void R_StoreEfrags(efrag_t **ppefrag);
 void R_TimeRefresh_f();
 void R_AnimateLight();
-s32 R_LightPoint(vec3_t p);
+s32 R_LightPoint(vec3_t p, f32 ofs);
 void R_SetupFrame();
 void R_SplitEntityOnNode2(mnode_t *node);
 void R_MarkLights(dlight_t *light, s32 bit, mnode_t *node);

@@ -151,19 +151,22 @@ loc0:
 	}
 }
 
-s32 R_LightPoint(vec3_t p)
+s32 R_LightPoint(vec3_t p, f32 ofs)
 {
 	if (!cl.worldmodel->lightdata) {
 		lightcolor[0] = lightcolor[1] = lightcolor[2] = 255;
 		return 255;
 	}
 	f32 maxdist = 8192; //johnfitz -- was 2048
-	vec3_t end;
-	end[0] = p[0];
-	end[1] = p[1];
-	end[2] = p[2] - 8192;
+	vec3_t start, end;
+	start[0] = p[0];
+	start[1] = p[1];
+	start[2] = p[2] + ofs;
+	end[0] = start[0];
+	end[1] = start[1];
+	end[2] = start[2] - maxdist;
 	lightcolor[0] = lightcolor[1] = lightcolor[2] = 0;
-	RecursiveLightPoint(lightcolor,cl.worldmodel->nodes,p,p,end,&maxdist);
+	RecursiveLightPoint(lightcolor,cl.worldmodel->nodes,start,start,end,&maxdist);
 	if (r_rgblighting.value && !lit_lut_initialized &&
 		!(lightcolor[0]==lightcolor[1] && lightcolor[0]==lightcolor[2]))
 		R_BuildLitLUT();

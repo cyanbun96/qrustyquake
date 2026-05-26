@@ -345,7 +345,8 @@ void R_DrawEntitiesOnList()
 			// see if the bounding box lets us trivially reject, also sets
 			// trivial accept status
 			if(R_AliasCheckBBox()){
-				s32 j = R_LightPoint(currententity->origin);
+				s32 j = R_LightPoint(currententity->origin, 0.f);
+				if(!j) R_LightPoint(currententity->origin, currententity->model->maxs[2]*0.5f);
 				alight_t lighting;
 				lighting.ambientlight = j;
 				lighting.shadelight = j;
@@ -398,7 +399,7 @@ void R_DrawViewModel()
 	VectorSubtract(r_origin, r_entorigin, modelorg);
 	VectorCopy(vup, viewlightvec);
 	VectorInverse(viewlightvec);
-	s32 j = R_LightPoint(currententity->origin);
+	s32 j = R_LightPoint(currententity->origin, 0.f);
 	if(j < 24)
 		j = 24; // allways give some light on the gun
 	r_viewlighting.ambientlight = j;
