@@ -56,7 +56,7 @@ void D_PolysetScanLeftEdge(s32 height);
 
 static inline s32 D_GetRGBPix(s32 pix)
 {
-	if (pix == 0xFF) return pix;
+	if (pix >= 0xFF) return pix;
 	u8 tr = vid_curpal[pix * 3 + 0];
 	u8 tg = vid_curpal[pix * 3 + 1];
 	u8 tb = vid_curpal[pix * 3 + 2];
@@ -426,10 +426,8 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 			s32 lzi = pspanpackage->zi;
 			do {
 				if ((lzi >> 16) >= *lpz) {
-					s32 pix;
-					if (!r_rgblighting.value || !colored_aliaslight)
-						pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
-					else
+					s32 pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
+					if (r_rgblighting.value && colored_aliaslight && pix < 0xE0)
 						pix = D_GetRGBPix(((u8*)acolormap)[*lptex]);
 					if (pix!=0xFF) {
 						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
@@ -525,10 +523,8 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 				// bright blue texels, which should be unused as
 				// it's the "transparent" color for model skins
 					if (texel == 0xd0) texel = 0;
-					s32 pix;
-					if (!r_rgblighting.value || !colored_aliaslight)
-						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
-					else
+					s32 pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
+					if (r_rgblighting.value && colored_aliaslight && pix < 0xE0)
 						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
 					if (pix!=0xFF) {
 						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
