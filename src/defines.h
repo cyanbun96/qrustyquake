@@ -733,6 +733,7 @@
 #define EF_TRACER2 64 // orange split trail + rotate
 #define EF_TRACER3 128 // purple trail
 #define MF_HOLEY (1u<<14) // MarkV/QSS -- make index 255 transparent on mdl's
+#define MOD_NOLERP 256 //don't lerp when animating
 #define MOD_NOSHADOW 512 //don't cast a shadow
 #define MOD_FBRIGHTHACK 1024 //when fullbrights are disabled, use a hack to render this model brighter
 #define TEXPREF_NONE 0x0000
