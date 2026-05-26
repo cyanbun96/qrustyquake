@@ -764,10 +764,6 @@
 //#define PICFLAG_DOWNLOAD (1u<<8) //request to download it from the gameserver if its not stored locally.
 #define PICFLAG_BLOCK (1u<<9) //wait until the texture is fully loaded.
 #define PICFLAG_NOLOAD (1u<<31)
-//johnfitz -- extra flags for rendering
-#define MOD_NOLERP 256 // don't lerp when animating
-#define MOD_NOSHADOW 512 // don't cast a shadow
-#define MOD_FBRIGHTHACK 1024 // when fullbrights are disabled, use a hack to render this model brighter
 
 #define MAX_CACHED_PICS 1024 // was 128 // draw.c
 
