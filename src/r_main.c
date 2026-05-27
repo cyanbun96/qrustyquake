@@ -117,7 +117,6 @@ void R_Init()
 	Cvar_RegisterVariable(&lyr_notify);
 	Cvar_RegisterVariable(&lyr_crosshair);
 	Cvar_RegisterVariable(&r_renderscale);
-	Cvar_RegisterVariable(&r_rgblighting_fullbrights);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);

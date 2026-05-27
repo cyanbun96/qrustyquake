@@ -427,7 +427,7 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 			do {
 				if ((lzi >> 16) >= *lpz) {
 					s32 pix;
-					if (r_rgblighting.value && colored_aliaslight && (*lptex < 0xE0 || !r_rgblighting_fullbrights.value))
+					if (r_rgblighting.value && colored_aliaslight && *lptex < 0xE0)
 						pix = D_GetRGBPix(((u8*)acolormap)[*lptex]);
 					else
 						pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
@@ -526,7 +526,7 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 				// it's the "transparent" color for model skins
 					if (texel == 0xd0) texel = 0;
 					s32 pix;
-					if (r_rgblighting.value && colored_aliaslight && (texel < 0xE0 || !r_rgblighting_fullbrights.value))
+					if (r_rgblighting.value && colored_aliaslight && texel < 0xE0)
 						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
 					else
 						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
