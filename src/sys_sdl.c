@@ -148,29 +148,22 @@ f64 Sys_DoubleTime()
 	return ((double)(SDL_GetTicksNS() - starttime)) / 1000000000;
 }
 
-#ifndef _WIN32
-s32 Sys_FileType (const s8 *path)
+s32 Sys_FileType(const s8* path)
 {
-	struct stat st;
-	if(stat(path, &st) != 0) return FS_ENT_NONE;
-	if(S_ISDIR(st.st_mode)) return FS_ENT_DIRECTORY;
-	if(S_ISREG(st.st_mode)) return FS_ENT_FILE;
+	SDL_PathInfo info;
+	if (SDL_GetPathInfo(path, &info)) {
+		switch (info.type) {
+		case SDL_PATHTYPE_FILE: return FS_ENT_FILE;
+		case SDL_PATHTYPE_DIRECTORY: return FS_ENT_DIRECTORY;
+		default: break;
+		}
+	}
 	return FS_ENT_NONE;
 }
 
-void Sys_mkdir(const s8 *path) { mkdir(path, 0777); }
-#else
-
-s32 Sys_FileType (const s8 *path)
-{
-	s32 result = GetFileAttributes(path);
-	if(result == -1) return FS_ENT_NONE;
-	if(result & FILE_ATTRIBUTE_DIRECTORY) return FS_ENT_DIRECTORY;
-	return FS_ENT_FILE;
+void Sys_mkdir(const s8* path) {
+	SDL_CreateDirectory(path);
 }
-
-void Sys_mkdir(const s8 *path) { _mkdir(path); }
-#endif
 
 #ifdef __EMSCRIPTEN__
 static void main_loop(void)

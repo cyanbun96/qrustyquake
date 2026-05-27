@@ -6,7 +6,7 @@
 
 static s32 maxlevelnamelen = 0;
 static s32 maxmodnamelen = 0;
-static const char *const knownmods[][2] = {
+static const char* const knownmods[][2] = {
 	{"id1",         "Quake"},
 	{"hipnotic",    "Scourge of Armagon"},
 	{"rogue",       "Dissolution of Eternity"},
@@ -21,6 +21,8 @@ static const char *const knownmods[][2] = {
 	{"alk1.2",      "Alkaline 1.2"},
 	{"rubicon2",    "Rubicon 2"},
 	{"zer",         "Zerstorer - Testament of the Destroyer"},
+	{"copper",      "Copper"},
+	{"pun",         "The Punishment Due"},
 };
 
 
@@ -1015,40 +1017,31 @@ void ExtraMaps_Add(const s8 *name, const s8 *game)
 	FileList_AddMap(name, buf, list);
 }
 
-static void ExtraMaps_Init_SearchDir(searchpath_t *search)
+
+static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 {
-	s8 filestring[MAX_OSPATH];
+	s8 maps_dir[MAX_OSPATH];
 	s8 mapname[32];
-#ifdef _WIN32
-	WIN32_FIND_DATA fdat;
-	HANDLE fhnd;
-	q_snprintf(filestring, sizeof(filestring), "%s/maps/*.bsp",
-							search->filename);
-	fhnd = FindFirstFile(filestring, &fdat);
-	if(fhnd == INVALID_HANDLE_VALUE) return;
-	do {
-		COM_StripExtension(fdat.cFileName, mapname, sizeof(mapname));
-		if(maxlevelnamelen < Q_strlen(mapname))
-			maxlevelnamelen = Q_strlen(mapname);
-		ExtraMaps_Add(mapname, search->filename);
-	} while(FindNextFile(fhnd, &fdat));
-	FindClose(fhnd);
-#else
-	DIR *dir_p;
-	struct dirent *dir_t;
-	q_snprintf(filestring, sizeof(filestring), "%s/maps/",search->filename);
-	dir_p = opendir(filestring);
-	if(dir_p == NULL) return;;
-	while((dir_t = readdir(dir_p)) != NULL){
-		if(q_strcasecmp(COM_FileGetExtension(dir_t->d_name),"bsp") != 0)
-			continue;
-		COM_StripExtension(dir_t->d_name, mapname, sizeof(mapname));
-		if(maxlevelnamelen < Q_strlen(mapname))
-			maxlevelnamelen = Q_strlen(mapname);
-		ExtraMaps_Add(mapname, search->filename);
+
+	q_snprintf(maps_dir, sizeof(maps_dir), "%s/maps", search->filename);
+
+	SDL_Storage* storage = SDL_OpenFileStorage(maps_dir);
+	if (storage) {
+		int count = 0;
+		char** matches = SDL_GlobStorageDirectory(storage, NULL, "*.bsp", SDL_GLOB_CASEINSENSITIVE, &count);
+
+		if (matches) {
+			for (int i = 0; i < count; i++) {
+				COM_StripExtension(matches[i], mapname, sizeof(mapname));
+				if (maxlevelnamelen < Q_strlen(mapname))
+					maxlevelnamelen = Q_strlen(mapname);
+				ExtraMaps_Add(mapname, search->filename);
+			}
+			SDL_free(matches);
+		}
+
+		SDL_CloseStorage(storage);
 	}
-	closedir(dir_p);
-#endif
 }
 
 static void ExtraMaps_Init_SearchPak(searchpath_t *search)
@@ -1153,7 +1146,7 @@ void Modlist_Add(const char *name, const char *desc){
 
 static const char *Modlist_KnownDescription(const char *modname)
 {
-	for(u32 i = 0; i < sizeof(knownmods) / sizeof(knownmods[0]); i++){
+	for(u32 i = 0; i < SDL_arraysize(knownmods); i++){
 		if(!q_strcasecmp(modname, knownmods[i][0]))
 			return knownmods[i][1];
 	}
@@ -1182,69 +1175,31 @@ char *Modlist_ReadDescription(const char *mod_path)
 	return desc;
 }
 
-#ifdef _WIN32
-void Modlist_Init()
+static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const char* dirname, const char* fname) 
 {
-	WIN32_FIND_DATA fdat;
-	HANDLE fhnd;
-	DWORD attribs;
-	s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
-	q_snprintf(dir_string, sizeof(dir_string), "%s/*", com_basedir);
-	fhnd = FindFirstFile(dir_string, &fdat);
-	maxmodnamelen = 0;
-	if(fhnd == INVALID_HANDLE_VALUE) return;
-	do {
-		if(!strcmp(fdat.cFileName,".") || !strcmp(fdat.cFileName,".."))
-			continue;
-		q_snprintf(mod_string, sizeof(mod_string), "%s/%s",
-					com_basedir, fdat.cFileName);
-		attribs = GetFileAttributes(mod_string);
-		if(attribs != INVALID_FILE_ATTRIBUTES &&
-				(attribs & FILE_ATTRIBUTE_DIRECTORY)){
-			// don't bother testing for pak files / progs.dat
-			s8 *file_desc = Modlist_ReadDescription(mod_string);
-			s8 *desc = file_desc ? file_desc :
-				Modlist_KnownDescription(fdat.cFileName);
-			if(maxmodnamelen < Q_strlen(fdat.cFileName))
-				maxmodnamelen = Q_strlen(fdat.cFileName);
-			Modlist_Add(fdat.cFileName, desc);
+	SDL_PathInfo info;
+	s8 fullpath[MAX_OSPATH];
+	q_snprintf(fullpath, sizeof(fullpath), "%s%s", dirname, fname);
 
-		}
-	} while(FindNextFile(fhnd, &fdat));
-	FindClose(fhnd);
+	if (SDL_GetPathInfo(fullpath, &info) && info.type == SDL_PATHTYPE_DIRECTORY) {
+			// don't bother testing for pak files / progs.dat
+			s8* file_desc = Modlist_ReadDescription(fullpath);
+			const s8* desc = file_desc ? file_desc : Modlist_KnownDescription(fname);
+			if (maxmodnamelen < Q_strlen(fname))
+				maxmodnamelen = Q_strlen(fname);
+			Modlist_Add(fname, desc);
+	}
+	
+	return SDL_ENUM_CONTINUE;
 }
-#else
+
 void Modlist_Init()
 {
-	DIR *dir_p, *mod_dir_p;
-	struct dirent *dir_t;
-	s8 dir_string[MAX_OSPATH], mod_string[MAX_OSPATH];
-	q_snprintf(dir_string, sizeof(dir_string), "%s/", com_basedir);
-	dir_p = opendir(dir_string);
 	maxmodnamelen = 0;
-	if(dir_p == NULL) return;
-	while((dir_t = readdir(dir_p)) != NULL){
-		if(!strcmp(dir_t->d_name, ".") || !strcmp(dir_t->d_name, ".."))
-			continue;
-		if(!q_strcasecmp(COM_FileGetExtension(dir_t->d_name), "app"))
-			continue; // skip .app bundles on macOS
-		q_snprintf(mod_string, sizeof(mod_string), "%s%s/",
-				dir_string, dir_t->d_name);
-		mod_dir_p = opendir(mod_string);
-		if(mod_dir_p == NULL)
-			continue;
-		// don't bother testing for pak files / progs.dat
-		char *file_desc = Modlist_ReadDescription(mod_string);
-		const char *desc = file_desc ? file_desc
-				: Modlist_KnownDescription(dir_t->d_name);
-		if(maxmodnamelen < Q_strlen(dir_t->d_name))
-			maxmodnamelen = Q_strlen(dir_t->d_name);
-		Modlist_Add(dir_t->d_name, desc);
-		closedir(mod_dir_p);
+	if (!SDL_EnumerateDirectory(com_basedir, Modlist_Init_CB, NULL)) {
+		Con_Printf("Failed to list mods: %s\n", SDL_GetError());
 	}
-	closedir(dir_p);
 }
-#endif
 
 void Host_Mods_f()
 {//list all potential mod directories(contain either a pak file or a progs.dat)
