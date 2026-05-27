@@ -1481,6 +1481,29 @@ void M_Maps_List_Update()
 		maps_scroll = q_max(0, maps_total - 19);
 }
 
+static void Format_DateTime(s8 *buf, size_t size, const SDL_DateTime *date_time)
+{
+	static SDL_DateFormat *date_format = NULL;
+	if(!date_format) {
+		date_format = malloc(sizeof(SDL_DateFormat));
+		if(!SDL_GetDateTimeLocalePreferences(date_format, NULL)) {
+			*date_format = SDL_DATE_FORMAT_DDMMYYYY;
+		}
+	}
+
+	switch(*date_format) {
+	case SDL_DATE_FORMAT_YYYYMMDD:
+		q_snprintf(buf, size, "%d/%02d/%02d", date_time->year, date_time->month, date_time->day);
+		break;
+	case SDL_DATE_FORMAT_DDMMYYYY:
+		q_snprintf(buf, size, "%02d/%02d/%d", date_time->day, date_time->month, date_time->year);
+		break;
+	case SDL_DATE_FORMAT_MMDDYYYY:
+		q_snprintf(buf, size, "%02d/%02d/%d", date_time->month, date_time->day, date_time->year);
+		break;
+	}
+}
+
 void M_Maps_Draw()
 {
 	s8 temp[32];
@@ -1521,17 +1544,14 @@ void M_Maps_Draw()
 			M_Print(xoffset+14*8, 40+i*8, temp);
 		} else if (maps_sortby == 3) {
 			time_t seconds = level->date;
+			Q_strcpy(temp, "Unknown");
 			if(seconds){
-				struct tm tm_info;
-#ifdef _WIN32
-				gmtime_s(&tm_info, &seconds);
-#else
-				gmtime_r(&seconds, &tm_info);
-#endif
-				strftime(temp,sizeof(temp),"%d/%m/%Y",&tm_info);
-				M_Print(xoffset+10*8, 40+i*8, temp);
+				SDL_DateTime date_time;
+				if (SDL_TimeToDateTime(SDL_SECONDS_TO_NS(seconds), &date_time, false)) {
+					Format_DateTime(temp, sizeof(temp), &date_time);
+				}
 			}
-			else M_Print(xoffset+10*8, 40+i*8, "Unknown");
+			M_Print(xoffset+10*8, 40+i*8, temp);
 		}
 	}
 	M_DrawCursor(xoffset - 8, 40 + maps_cursor * 8);
