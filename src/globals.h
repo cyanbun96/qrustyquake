@@ -573,7 +573,7 @@ void SV_MoveToGoal();
 void SV_CheckForNewClients();
 void SV_RunClients();
 void SV_SaveSpawnparms();
-void SV_SpawnServer(const s8 *server);
+void SV_SpawnServer(s8 *server);
 void Cvar_RegisterVariable(cvar_t *variable);
 bool SV_RecursiveHullCheck(hull_t *hull, s32 num, f32 p1f, f32 p2f, vec3_t p1, vec3_t p2, trace_t *trace);
 void Chase_Init();

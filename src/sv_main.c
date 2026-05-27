@@ -894,7 +894,9 @@ void SV_SaveSpawnparms() // Grabs the current state of each client for saving
 	}
 }
 
-void SV_SpawnServer(const s8 *server)
+void str_tolower(s8 *s) { while(*s){ *s = tolower(*s); s++; } }
+
+void SV_SpawnServer(s8 *server)
 {
 	static s8 dummy[8] = { 0,0,0,0,0,0,0,0 };
 	s32 i, signonsize;
@@ -959,9 +961,14 @@ void SV_SpawnServer(const s8 *server)
 		r_skyname[i][0] = 0;
 	sv.worldmodel = Mod_ForName(sv.modelname, false);
 	if(!sv.worldmodel){
-		Con_Printf("Couldn't spawn server %s\n", sv.modelname);
-		sv.active = false;
-		return;
+		str_tolower(server);
+		q_snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
+		sv.worldmodel = Mod_ForName(sv.modelname, false);
+		if(!sv.worldmodel){
+			Con_Printf("Couldn't spawn server %s\n", sv.modelname);
+			sv.active = false;
+			return;
+		}
 	}
 	sv.models[1] = sv.worldmodel;
 	SV_ClearWorld(); // clear world interaction links
