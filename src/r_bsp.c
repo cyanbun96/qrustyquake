@@ -312,15 +312,15 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 			msurface_t *surf = cl.worldmodel->surfaces + node->firstsurface;
 			if (dot < -BACKFACE_EPSILON) {
 				do {
-					if ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)) {
+					if ((surf->flags & SURF_DRAWCUTOUT) || ((surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount))) {
 						R_RenderFace(surf, clipflags);
 					}
 					surf++;
 				} while (--c);
 			} else if (dot > BACKFACE_EPSILON) {
 				do {
-					if (!(surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
-						&& strncmp(surf->texinfo->texture->name, "bal_pureblack", 13)) {
+					if ((surf->flags & SURF_DRAWCUTOUT) || (!(surf->flags & SURF_PLANEBACK) && (surf->visframe == r_framecount)
+						&& strncmp(surf->texinfo->texture->name, "bal_pureblack", 13))) {
 						// hardcoded texture skip fixes the black sky bottom in ad_tears
 						R_RenderFace(surf, clipflags);
 					}
