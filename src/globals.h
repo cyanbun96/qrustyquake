@@ -628,6 +628,7 @@ s32 Q_strlen(const s8 *str);
 s8 *Q_strrchr(const s8 *s, s8 c);
 void Q_strcat(s8 *dest, const s8 *src);
 s32 Q_strcmp(const s8 *s1, const s8 *s2);
+s32 Q_strncmp_i(const s8 *s1, const s8 *s2, s32 count);
 s32 Q_strncmp(const s8 *s1, const s8 *s2, s32 count);
 s32 Q_atoi(const s8 *str);
 f32 Q_atof(const s8 *str);

@@ -355,7 +355,7 @@ void Mod_LoadTextures(lump_t *l)
 					}
 				}
 			}
-			if(!Q_strncmp(mt->name, "sky", 3))
+			if(!Q_strncmp_i(mt->name, "sky", 3))
 				R_InitSky(tx);
 			continue;
 		} else if((mt->width & 8) || (mt->height & 8))
@@ -398,7 +398,7 @@ void Mod_LoadTextures(lump_t *l)
 				sizeof(miptex_t);
 		// the pixels immediately follow the structures
 		memcpy(tx + 1, mt + 1, pixels);
-		if(!Q_strncmp(mt->name, "sky", 3))
+		if(!Q_strncmp_i(mt->name, "sky", 3))
 			R_InitSky(tx);
 		if (!r_rebuildmips.value) continue;
 		u8 *base = (u8 *)tx + LittleLong(tx->offsets[0]);

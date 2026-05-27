@@ -388,6 +388,18 @@ s32 Q_strcmp(const s8 *s1, const s8 *s2)
 	return -1;
 }
 
+s32 Q_strncmp_i(const s8 *s1, const s8 *s2, s32 count) // case-insensitive
+{
+	while(1){
+		if(!count--) return 0;
+		if(tolower(*s1) != tolower(*s2)) return -1; // strings not equal
+		if(!*s1) return 0; // strings are equal
+		s1++;
+		s2++;
+	}
+	return -1;
+}
+
 s32 Q_strncmp(const s8 *s1, const s8 *s2, s32 count)
 {
 	while(1){
