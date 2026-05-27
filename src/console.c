@@ -74,11 +74,7 @@ void Con_Init()
 	if(con_debuglog){
 		if(strlen(com_gamedir) < (MAXGAMEDIRLEN - strlen(t2))){
 			sprintf(temp, "%s%s", com_gamedir, t2);
-#ifdef _WIN32
-			_unlink(temp);
-#else
-			unlink(temp);
-#endif
+			SDL_RemovePath(temp);
 		}
 	}
 	con_text = Hunk_AllocName(CON_TEXTSIZE, "context");
