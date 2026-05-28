@@ -972,23 +972,24 @@ void Sbar_IntermissionOverlay()
 		drawlayer = lyr_main.value;
 		return;
 	}
+	s32 y = scr_centermenus.value ? (vid.height/SCL-200)/2 : 0;
 	qpic_t *pic = Draw_CachePic("gfx/complete.lmp"); // plaque is 192px wide
-	Draw_TransPicScaled(WW/2 - 96*SCL, 24*SCL,pic,SCL);
+	Draw_TransPicScaled(WW/2 - 96*SCL, 24*SCL+y,pic,SCL);
 	s32 p = WW/2 - 160*SCL; // padding for scaling
 	pic = Draw_CachePic("gfx/inter.lmp");
-	Draw_TransPicScaled(p, 56*SCL, pic, SCL);
+	Draw_TransPicScaled(p, 56*SCL+y, pic, SCL);
 	s32 dig = cl.completed_time / 60;
-	Sbar_DrawNum(WW / 2, 64*SCL, dig, 3, 0);
+	Sbar_DrawNum(WW / 2, 64*SCL+y, dig, 3, 0);
 	s32 num = cl.completed_time - dig * 60;
-	Draw_TransPicScaled(WW-p-86*SCL, 64*SCL, sb_colon, SCL);
-	Draw_TransPicScaled(WW-p-74*SCL, 64*SCL, sb_nums[0][num/10], SCL);
-	Draw_TransPicScaled(WW-p-54*SCL, 64*SCL, sb_nums[0][num%10], SCL);
-	Sbar_DrawNum(WW/2, 104*SCL, cl.stats[STAT_SECRETS], 3, 0);
-	Draw_TransPicScaled(WW-p-88*SCL, 104*SCL, sb_slash, SCL);
-	Sbar_DrawNum(WW-p-80*SCL, 104*SCL, cl.stats[STAT_TOTALSECRETS], 3, 0);
-	Sbar_DrawNum(WW/2, 144*SCL, cl.stats[STAT_MONSTERS], 3, 0);
-	Draw_TransPicScaled(WW-p-88*SCL, 144*SCL, sb_slash, SCL);
-	Sbar_DrawNum(WW-p-80*SCL, 144*SCL, cl.stats[STAT_TOTALMONSTERS], 3, 0);
+	Draw_TransPicScaled(WW-p-86*SCL, 64*SCL+y, sb_colon, SCL);
+	Draw_TransPicScaled(WW-p-74*SCL, 64*SCL+y, sb_nums[0][num/10], SCL);
+	Draw_TransPicScaled(WW-p-54*SCL, 64*SCL+y, sb_nums[0][num%10], SCL);
+	Sbar_DrawNum(WW/2, 104*SCL+y, cl.stats[STAT_SECRETS], 3, 0);
+	Draw_TransPicScaled(WW-p-88*SCL, 104*SCL+y, sb_slash, SCL);
+	Sbar_DrawNum(WW-p-80*SCL, 104*SCL+y, cl.stats[STAT_TOTALSECRETS], 3, 0);
+	Sbar_DrawNum(WW/2, 144*SCL+y, cl.stats[STAT_MONSTERS], 3, 0);
+	Draw_TransPicScaled(WW-p-88*SCL, 144*SCL+y, sb_slash, SCL);
+	Sbar_DrawNum(WW-p-80*SCL, 144*SCL+y, cl.stats[STAT_TOTALMONSTERS], 3,0);
 	drawlayer = lyr_main.value;
 }
 
