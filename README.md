@@ -60,8 +60,6 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - Transparent UI elements for modern mods
 
-- VGA text blurbs after shutdown (can be disabled with the "quickexit" cvar)
-
 - Custom menu BG fading options
   
   - DOSQuake for the DOS-styled brown fade
@@ -139,6 +137,8 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
     - Lit water is supported with r_litwater cvar
   
   - Translucent liquids on supported maps (r_{water,slime,lava,tele}alpha 0-1)
+
+    - "r_novis 1" enables translucent liquids on all maps at the cost of performance
   
   - Translucent entities with the "alpha" tag
   
@@ -196,6 +196,8 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - r_mipscale for LOD distance adjustment
 
+  - gl_cshiftpercent and (_contents, damage, bonus, powerup) variants for adjusting screen flashes/overlays
+
 - Palette customization menu
 
   - v_saturation, v_contrast, v_redlevel, v_greenlevel, v_bluelevel, v_vibrance, v_brightness, and v_hue cvars
@@ -208,9 +210,11 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - "Mods" menu
 
-- "quickexit" cvar for skipping exit messages
-
 - "resurrect" command
+
+- "Center Menus" option
+
+- "Exit Style" option: faithful DOS (with VGA blurbs) and WinQuake styles, with a new "quick" variant
 
 # Planned
 
@@ -242,7 +246,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.8.1
+- Arch Linux [HW] v0.8.2
   
   - The main platform that this port is developed on. The most likely one to work
   
@@ -292,7 +296,7 @@ VM is VirtualBox unless specified otherwise.
 
   - Build_SteamOS.sh script by Pup Luka
 
-- Windows [VM, HW] v0.8.1
+- Windows [VM, HW] v0.8.2
 
   - Runs on Android through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
 
