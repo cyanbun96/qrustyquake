@@ -11,7 +11,10 @@ if(QRUSTYQUAKE_VENDOR_SDL OR MSVC)
 	set(QRUSTYQUAKE_SDL3_MIXER_VERSION "3.2.2")
 endif()
 
-cmake_policy(SET CMP0135 NEW)
+#Patch for steam build to still run.
+if (POLICY CMP0135)
+	cmake_policy(SET CMP0135 NEW)
+endif()
 include(FetchContent)
 
 if(QRUSTYQUAKE_VENDOR_SDL)
