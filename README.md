@@ -286,13 +286,13 @@ VM is VirtualBox unless specified otherwise.
   
   - Compiles with Makefile and SDL3 from brew on MacOS 15.7.2 (mixer not tested)
 
-- Emscripten [Browsers with WebAssembly] v0.8.0
+- Emscripten [Browsers with WebAssembly] v0.8.2
   
   - Dark magic performed by Erysdren, please don't ask me about it
 
   - Updated CMakeLists by Pup Luka (since commit 5b68511)
  
-- SteamOS [Steam Deck] v0.8.1
+- SteamOS [Steam Deck] v0.8.2
 
   - Build_SteamOS.sh script by Pup Luka
 
