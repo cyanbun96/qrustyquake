@@ -192,12 +192,18 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 	angles[PITCH] = -currententity->angles[PITCH];
 	angles[YAW] = currententity->angles[YAW];
 	AngleVectors(angles, alias_forward, alias_right, alias_up);
+	f32 gunfovscale = 1.0;
+	if(currententity == &cl.viewent && 
+	    scr_fov.value > 90.0 && cl_gun_fovscale.value > 0.0){
+		gunfovscale = tanf(scr_fov.value * (0.5 * M_PI / 180.0));
+		gunfovscale = 1.0 + (gunfovscale - 1.0) * cl_gun_fovscale.value;
+	}
 	tmatrix[0][0] = pmdl->scale[0];
-	tmatrix[1][1] = pmdl->scale[1];
-	tmatrix[2][2] = pmdl->scale[2];
+	tmatrix[1][1] = pmdl->scale[1] * gunfovscale;
+	tmatrix[2][2] = pmdl->scale[2] * gunfovscale;
 	tmatrix[0][3] = pmdl->scale_origin[0];
-	tmatrix[1][3] = pmdl->scale_origin[1];
-	tmatrix[2][3] = pmdl->scale_origin[2];
+	tmatrix[1][3] = pmdl->scale_origin[1] * gunfovscale;
+	tmatrix[2][3] = pmdl->scale_origin[2] * gunfovscale;
 	// TODO: can do this with simple matrix rearrangement
 	for (s32 i = 0; i < 3; i++) {
 		t2matrix[i][0] = alias_forward[i];
