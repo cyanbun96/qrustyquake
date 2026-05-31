@@ -241,6 +241,7 @@ cvar_t gl_cshiftpercent_contents=     {"gl_cshiftpercent_contents", "100",1,ZR};
 cvar_t gl_cshiftpercent_damage=         {"gl_cshiftpercent_damage", "100",1,ZR};
 cvar_t gl_cshiftpercent_bonus=           {"gl_cshiftpercent_bonus", "100",1,ZR};
 cvar_t gl_cshiftpercent_powerup=       {"gl_cshiftpercent_powerup", "100",1,ZR};
+cvar_t cl_gun_fovscale=                 {"cl_gun_fovscale","1",CVAR_ARCHIVE,ZR};
 cvar_t registered=                               {"registered","1",CVAR_ROM,ZR};
 cvar_t cmdline=                                      {"cmdline","",CVAR_ROM,ZR};
 cvar_t vid_mode=                                 {"vid_mode", "0", CVAR_ROM,ZR};

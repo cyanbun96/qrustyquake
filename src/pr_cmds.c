@@ -86,33 +86,7 @@ static const s8* PF_GetStringArg(s32 idx, void* userdata)
 {
 	if(userdata) idx += *(s32*)userdata;
 	if(idx < 0 || idx >= qcvm->argc) return "";
-
-	// Grab the raw integer and float representations from the VM globals
-	s32 intval = G_INT(OFS_PARM0 + idx * 3);
-	f32 fval = G_FLOAT(OFS_PARM0 + idx * 3);
-
-	// Heuristic: Check if the 32-bit value is a valid string offset
-	bool is_string = false;
-	if (intval > 0 && intval < qcvm->stringssize)
-		is_string = true;
-	else if (intval < 0 && intval >= -qcvm->numknownstrings)
-		is_string = true;
-
-	if (is_string) {
-		// It falls within string boundaries, fetch and localize it
-		return LOC_GetString(PR_GetString(intval));
-	} else {
-		// It is out of bounds, so it must be a float (or 0)
-		static s8 numbuf[32];
-
-		// Format the float identically to PF_ftos
-		if (fval == (s32)fval)
-			q_snprintf(numbuf, sizeof(numbuf), "%d", (s32)fval);
-		else
-			q_snprintf(numbuf, sizeof(numbuf), "%5.1f", fval);
-
-		return numbuf;
-	}
+	return LOC_GetString(G_STRING(OFS_PARM0 + idx * 3));
 }
 
 static s8 *PF_VarString(s32 first)
