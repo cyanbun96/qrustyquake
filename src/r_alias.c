@@ -195,7 +195,15 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 	f32 gunfovscale = 1.0;
 	if(currententity == &cl.viewent && 
 	    scr_fov.value > 90.0 && cl_gun_fovscale.value > 0.0){
-		gunfovscale = tanf(scr_fov.value * (0.5 * M_PI / 180.0));
+		f32 fov = scr_fov.value;
+		if(r_fovmode.value){
+			f32 asp = r_fovmode.value==1 ?
+				((f32)vid.width / (f32)vid.height * 0.75) :
+				yaspectscale.value;
+			fov = 2.0f * atan(tanf(scr_fov.value *
+					(M_PI/360.0f)) / asp) * (180.0f/M_PI);
+		}
+		gunfovscale = tanf(fov * (0.5 * M_PI / 180.0));
 		gunfovscale = 1.0 + (gunfovscale - 1.0) * cl_gun_fovscale.value;
 	}
 	tmatrix[0][0] = pmdl->scale[0];
