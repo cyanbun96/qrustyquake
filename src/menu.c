@@ -2264,10 +2264,10 @@ void M_Display_Draw()
 			return;
 		}
 		mode = modes[display_sel_moden];
-		M_Print(xoffset, 120, "                  Mode");
+		M_Print(xoffset, 128, "                  Mode");
 		q_snprintf(temp, 16, "%dx%d@%d", mode->w, mode->h,
 				(s32)(mode->refresh_rate+0.5));
-		M_Print(xoffset + 204, 120, temp);
+		M_Print(xoffset + 204, 128, temp);
 	} else {
 		M_Print(xoffset, 132, "          Custom Width");
 		M_DrawTextBox(xoffset + 196, 124, 8, 1);
