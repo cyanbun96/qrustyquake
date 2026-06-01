@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 0.5.1)
+project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 0.8.2)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(Math)
@@ -11,7 +11,10 @@ if(QRUSTYQUAKE_VENDOR_SDL OR MSVC)
 	set(QRUSTYQUAKE_SDL3_MIXER_VERSION "3.2.2")
 endif()
 
-cmake_policy(SET CMP0135 NEW)
+#Patch for steam build to still run.
+if (POLICY CMP0135)
+	cmake_policy(SET CMP0135 NEW)
+endif()
 include(FetchContent)
 
 if(QRUSTYQUAKE_VENDOR_SDL)
