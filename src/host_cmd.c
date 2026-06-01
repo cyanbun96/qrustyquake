@@ -1232,7 +1232,7 @@ void Cmd_Resurrect_f()
 		Con_Printf("You are still alive!\n");
 		goto resurrect_ret;
 	}
-	if(ent->v.nextthink != -1){
+	if(ent->v.nextthink != -1 && ent->v.deadflag < DEAD_DEAD){
 		Con_Printf("Not fully dead yet.\n");
 		goto resurrect_ret;
 	}
