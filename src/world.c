@@ -213,7 +213,9 @@ void SV_FindTouchedLeafs(edict_t *ent, mnode_t *node)
 
 void SV_LinkEdict(edict_t *ent, bool touch_triggers)
 {
+#if defined(__x86_64__) || defined(_M_X64) // FIXME find whatever corrupts it in the first place
 	if(((u64)ent->area.prev) & 0xFF00000000000000) return; // corrupt entity
+#endif
 	if(ent->area.prev) SV_UnlinkEdict(ent); // unlink from old position
 	if(ent == qcvm->edicts) return; // don't add the world
 	if(ent->free) return;
