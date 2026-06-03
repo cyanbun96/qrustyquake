@@ -25,6 +25,7 @@ void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
 		joystick = SDL_OpenJoystick(joys[(s32)joysticknum.value]);
 		SDL_SetJoystickEventsEnabled(1);
 	} else Con_Printf("No joysticks found\n");
+	SDL_free(joys);
 }
 
 void IN_RemoveJoystick()
