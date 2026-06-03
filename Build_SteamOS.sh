@@ -12,7 +12,7 @@ printf "v$VERSION - Written by Pup Luka\n\n"
 
 if [[ "$1" == "-setup" ]]; then
 	# Podman Dependency verification.
-	DEPS=("podman binutils glibc")
+	DEPS=(podman binutils glibc)
 	INSTALL_QUEUE=()
 	echo "Setting up system dependencies..."
 	for dep in "${DEPS[@]}"; do
