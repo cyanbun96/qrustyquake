@@ -1,10 +1,9 @@
 #!/bin/bash
-# QrustyQuake - SteamOS Build Process
-# ARCH LINUX SYNTAX - PLEASE CHANGE AS NECESSARY!!!
-# Currently built to reside in main project directory!
-# Last Tested May 18th, 2026
+# QrustyQuake - SteamOS Build Process for Arch Linux systems
+# Do not MOVE script without changing variables as needed!
+# Last Tested June 3rd, 2026
 
-VERSION="0.6.4"
+VERSION="0.7.3"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ----------------------------------------------------------------
@@ -13,13 +12,13 @@ printf "v$VERSION - Written by Pup Luka\n\n"
 
 if [[ "$1" == "-setup" ]]; then
 	# Podman Dependency verification.
-	DEPS=("podman")
+	DEPS=(podman binutils glibc)
 	INSTALL_QUEUE=()
 	echo "Setting up system dependencies..."
 	for dep in "${DEPS[@]}"; do
 		if ! pacman -Qi "$dep" > /dev/null 2>&1; then
 			echo " - $dep is missing!"
-			TO_INSTALL+=("$dep")
+			INSTALL_QUEUE+=("$dep")
 		fi
 	done
 
@@ -45,7 +44,7 @@ podman run --rm -v "$PROJECT_DIR:/workspace" -w /workspace ubuntu:22.04 /bin/bas
 	apt-get install -y build-essential patchelf git zip cmake pkg-config libasound2-dev \
 	libpulse-dev libwayland-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
 	libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdecor-0-dev libdbus-1-dev \
-	libibus-1.0-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev -qq
+	libibus-1.0-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev wget -qq
 
 	echo '3. Cloning and building SDL3...'
 	cd /tmp
@@ -74,16 +73,20 @@ podman run --rm -v "$PROJECT_DIR:/workspace" -w /workspace ubuntu:22.04 /bin/bas
 
 	cd /workspace
 	echo '6. Staging release directory...'
-	mkdir -p dist dist/lib
-	cp /usr/local/lib/libSDL3.so.0* ./dist/lib || true
-	cp /usr/local/lib/libSDL3_mixer.so.0* ./dist/lib || true
-	cp /workspace/build/qrustyquake ./dist
+	mkdir -p dist dist/lib dist/id1
+	cp /usr/local/lib/libSDL3.so.0 ./dist || true
+	cp /usr/local/lib/libSDL3_mixer.so.0 ./dist || true
+	cp /workspace/build/qrustyquake ./dist || true
 
 	echo '7. Patching executable to find contained libraries...'
-	patchelf --set-rpath '\$ORIGIN/lib' ./dist/qrustyquake
+	patchelf --set-rpath '\$ORIGIN' ./dist/qrustyquake
 	readelf -d ./dist/qrustyquake | grep -E '(RUNPATH|RPATH)'
 
-	echo '8. Creating distribution ZIP...'
+	echo '8. Bundling Quake Shareware Data...'
+	wget -O ./dist/id1/pak0.pak https://github.com/puppluka/qrustyquake-puppy/raw/refs/heads/devkit-test/id1/pak0.pak
+	wget -O ./dist/id1/LICENSE  https://raw.githubusercontent.com/puppluka/qrustyquake-puppy/refs/heads/devkit-test/id1/LICENSE
+
+	echo '9. Creating distribution ZIP...'
 	zip -r -9 -q qrustyquake-steamos.zip dist/**
 
 	echo 'Build process complete! Exiting container...'
