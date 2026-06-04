@@ -40,9 +40,6 @@ void Sys_Error(const s8 *error, ...)
 	vsnprintf(str, sizeof(str), error, argptr);
 	va_end(argptr);
 	fprintf(stderr, "Error: %s\n", str);
-#ifdef DEBUG
-	__asm__("int3");
-#endif
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "QrustyQuake", str, 0);
 	Host_Shutdown();
 #ifdef __EMSCRIPTEN__

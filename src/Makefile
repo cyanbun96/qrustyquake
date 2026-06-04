@@ -73,6 +73,9 @@ debug:
 asan:
 	$(MAKE) BUILD_TYPE=debug ASAN=1
 
+asan-run:
+	$(MAKE) asan && ASAN_OPTIONS="allocator_may_return_null=1" ./$(TARGET) $(GAME_OPTS)
+
 release:
 	$(MAKE) BUILD_TYPE=release
 

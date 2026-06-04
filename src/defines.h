@@ -471,7 +471,7 @@
 #define FITZQUAKE_VERSION 0.85
 #define GAMENAME "id1"
 #define CMDLINE_LENGTH 256
-#define DEFAULT_MEMORY (2 * 1000 * 1000 * 1000)
+#define DEFAULT_MEMORY (384 * 1024 * 1024) // Same as Ironwail. "384MB ought to be enough for anybody."
 #define CACHE_SIZE 32 // used to align key data structures
 #define MAX_NUM_ARGVS 50
 #define PITCH 0 // up / down
