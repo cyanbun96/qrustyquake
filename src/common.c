@@ -1058,7 +1058,7 @@ s64 COM_filelength(FILE *f)
 //Finds the file in the search path. Sets com_filesize and one of handle or file
 //If neither of file or handle is set, this can be used for detecting a file's
 //presence.
-static s32 COM_FindFile(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
+static s32 COM_FindFileInternal(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
 {
 	s8 netpath[MAX_OSPATH];
 	s32 i;
@@ -1123,6 +1123,29 @@ static s32 COM_FindFile(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
 	if(file) *file = NULL;
 	com_filesize = -1;
 	return com_filesize;
+}
+
+// CyanBun96: a wrapper that tries lowercase and uppercase names for systems
+// with case-sensitive filesystems for mods designed in non-case-sensitive ones
+static s32 COM_FindFile(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
+{
+	s32 result = COM_FindFileInternal(name, handle, file, path_id);
+	if(result >= 0) return result;
+	s8 altname[MAX_OSPATH];
+	size_t i, len = strlen(name);
+	for(i = 0; i <= len; i++) // lowercase retry
+		altname[i] = (s8)tolower(name[i]);
+	if(strcmp(altname, name) != 0){
+		result = COM_FindFileInternal(altname, handle, file, path_id);
+		if(result >= 0) return result;
+	}
+	for(i = 0; i <= len; i++) // uppercase retry
+		altname[i] = (s8)toupper(name[i]);
+	if(strcmp(altname, name) != 0){
+		result = COM_FindFileInternal(altname, handle, file, path_id);
+		if(result >= 0) return result;
+	}
+	return result;
 }
 
 bool COM_FileExists(const s8 *filename, u32 *path_id)
