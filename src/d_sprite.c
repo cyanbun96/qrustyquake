@@ -125,7 +125,6 @@ NextSpan:
 	} while (pspan->count != DS_SPAN_LIST_END);
 }
 
-// CyanBun96: TODO these two look similar enough to combine, at least partially
 void D_SpriteScanLeftEdge()
 { 
 	sspan_t *pspan = sprite_spans;
@@ -164,7 +163,7 @@ void D_SpriteScanLeftEdge()
 	} while (i != lmaxindex);
 }
 
-void D_SpriteScanRightEdge(void)
+void D_SpriteScanRightEdge()
 {
 	sspan_t *pspan = sprite_spans;
 	s32 i = minindex;

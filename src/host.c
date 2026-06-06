@@ -286,7 +286,7 @@ f64 Host_GetFrameInterval()
 	if((host_maxfps.value || cls.state==ca_disconnected) && !cls.timedemo){
 		f32 maxfps;
 		if(cls.state == ca_disconnected){
-			maxfps = 60;//TODO vid.refreshrate?vid.refreshrate:60.f;
+			maxfps = 60;
 			if(host_maxfps.value)
 				maxfps = q_min(maxfps, host_maxfps.value);
 			maxfps = CLAMP(10.f, maxfps, 10000000.f);

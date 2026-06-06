@@ -182,8 +182,6 @@ s32 R_DrawSurface()
 		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
 		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
 	}
-	// TODO: only needs to be set when there is a display settings change
-	s32 horzblockstep = blocksize;
 	s32 smax = mt->width >> r_drawsurf.surfmip;
 	s32 twidth = texwidth;
 	s32 tmax = mt->height >> r_drawsurf.surfmip;
@@ -213,7 +211,7 @@ s32 R_DrawSurface()
 		soffset = soffset + blocksize;
 		if (soffset >= smax)
 			soffset = 0;
-		pcolumndest += horzblockstep;
+		pcolumndest += blocksize;
 	}
 	return 0;
 }

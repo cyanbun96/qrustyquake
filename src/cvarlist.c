@@ -254,6 +254,4 @@ cvar_t teamplay=                               {"teamplay", "0", 0, 1, 0, 0, 0};
 cvar_t noexit=                                   {"noexit", "0", 0, 1, 0, 0, 0};
 cvar_t r_fullbright_list={"r_fullbright_list", "progs/spike.mdl,progs/s_spike.mdl,progs/missile.mdl,progs/k_spike.mdl,progs/proj_balllava.mdl,progs/flame2.mdl,progs/flame.mdl,progs/bolt1.mdl,progs/bolt2.mdl,progs/bolt3.mdl,progs/laser.mdl", 0, 0, 0, 0, 0};
 // johnfitz -- new cvars TODO actually implement these, they're currently placeholders
-cvar_t  r_nolerp_list={"r_nolerp_list", "progs/flame.mdl,progs/flame2.mdl,progs/braztall.mdl,pro gs/brazshrt.mdl,progs/longtrch.mdl,progs/flame_pyre.mdl,progs/v_saw.mdl,progs/v_xfist.mdl,progs/h2 stuff/newfire.mdl", 0, 0, 0, 0, 0};
-cvar_t  r_noshadow_list={"r_noshadow_list", "progs/proj_balllava.mdl,progs/flame2.mdl,progs/flame.mdl,progs/bolt1.mdl,progs/bolt2.mdl,progs/bolt3.mdl,progs/laser.mdl", 0, 0, 0, 0, 0};
 #undef ZR

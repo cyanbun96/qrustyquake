@@ -165,7 +165,6 @@ void R_DrawSprite()
 	r_spritedesc.pspriteframe = R_GetSpriteframe(psprite);
 	sprite_width = r_spritedesc.pspriteframe->width;
 	sprite_height = r_spritedesc.pspriteframe->height;
-	// TODO: make this caller-selectable
 	if (psprite->type == SPR_FACING_UPRIGHT) {
 		// generate the sprite's axes, with vup straight up in worldspace, and
 		// r_spritedesc.vright perpendicular to modelorg.
