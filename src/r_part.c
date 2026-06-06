@@ -121,31 +121,38 @@ void R_ParseParticleEffect ()
 	R_RunParticleEffect (org, dir, color, count);
 }
 
-// CyanBun96: TODO a lot of shared code between these. consolidate?
+static particle_t *AllocParticle()
+{
+	if(!free_particles) return 0;
+	particle_t *p = free_particles;
+	free_particles = p->next;
+	p->next = active_particles;
+	active_particles = p;
+	return p;
+}
+
+static void RandomExplosionParticle(particle_t *p, vec3_t org)
+{
+	for(s32 j = 0; j < 3; j++) {
+		p->org[j] = org[j] + ((rand() % 32) - 16);
+		p->vel[j] = (rand() % 512) - 256;
+	}
+}
+
 void R_ParticleExplosion(vec3_t org)
 {
 	for (s32 i = 0; i < 1024; i++) {
-		if (!free_particles)
-			return;
-		particle_t *p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		particle_t *p = AllocParticle();
+		if(!p) return;
 		p->die = cl.time + 5;
 		p->color = ramp1[0];
 		p->ramp = rand() & 3;
 		if (i & 1) {
 			p->type = pt_explode;
-			for (s32 j = 0; j < 3; j++) {
-				p->org[j] = org[j] + ((rand() % 32) - 16);
-				p->vel[j] = (rand() % 512) - 256;
-			}
+			RandomExplosionParticle(p, org);
 		} else {
 			p->type = pt_explode2;
-			for (s32 j = 0; j < 3; j++) {
-				p->org[j] = org[j] + ((rand() % 32) - 16);
-				p->vel[j] = (rand() % 512) - 256;
-			}
+			RandomExplosionParticle(p, org);
 		}
 	}
 }
@@ -154,12 +161,8 @@ void R_ParticleExplosion2(vec3_t org, s32 colorStart, s32 colorLength)
 {
 	s32 colorMod = 0;
 	for (s32 i = 0; i < 512; i++) {
-		if (!free_particles)
-			return;
-		particle_t *p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		particle_t *p = AllocParticle();
+		if(!p) return;
 		p->die = cl.time + 0.3;
 		p->color = colorStart + (colorMod % colorLength);
 		colorMod++;
@@ -174,27 +177,17 @@ void R_ParticleExplosion2(vec3_t org, s32 colorStart, s32 colorLength)
 void R_BlobExplosion(vec3_t org)
 {
 	for (s32 i = 0; i < 1024; i++) {
-		if (!free_particles)
-			return;
-		particle_t *p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		particle_t *p = AllocParticle();
+		if(!p) return;
 		p->die = cl.time + 1 + (rand() & 8) * 0.05;
 		if (i & 1) {
 			p->type = pt_blob;
 			p->color = 66 + rand() % 6;
-			for (s32 j = 0; j < 3; j++) {
-				p->org[j] = org[j] + ((rand() % 32) - 16);
-				p->vel[j] = (rand() % 512) - 256;
-			}
+			RandomExplosionParticle(p, org);
 		} else {
 			p->type = pt_blob2;
 			p->color = 150 + rand() % 6;
-			for (s32 j = 0; j < 3; j++) {
-				p->org[j] = org[j] + ((rand() % 32) - 16);
-				p->vel[j] = (rand() % 512) - 256;
-			}
+			RandomExplosionParticle(p, org);
 		}
 	}
 }
@@ -202,30 +195,20 @@ void R_BlobExplosion(vec3_t org)
 void R_RunParticleEffect(vec3_t org, vec3_t dir, s32 color, s32 count)
 {
 	for (s32 i = 0; i < count; i++) {
-		if (!free_particles)
-			return;
-		particle_t *p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		particle_t *p = AllocParticle();
+		if(!p) return;
 		if (count == 1024) { // rocket explosion
 			p->die = cl.time + 5;
 			p->color = ramp1[0];
 			p->ramp = rand() & 3;
 			if (i & 1) {
 				p->type = pt_explode;
-				for (s32 j = 0; j < 3; j++) {
-					p->org[j] =
-					    org[j] + ((rand() % 32) - 16);
-					p->vel[j] = (rand() % 512) - 256;
-				}
+				for (s32 j = 0; j < 3; j++)
+					RandomExplosionParticle(p, org);
 			} else {
 				p->type = pt_explode2;
-				for (s32 j = 0; j < 3; j++) {
-					p->org[j] =
-					    org[j] + ((rand() % 32) - 16);
-					p->vel[j] = (rand() % 512) - 256;
-				}
+				for (s32 j = 0; j < 3; j++)
+					RandomExplosionParticle(p, org);
 			}
 		} else {
 			p->die = cl.time + 0.1 * (rand() % 5);
@@ -244,12 +227,8 @@ void R_LavaSplash(vec3_t org)
 	for (s32 i = -16; i < 16; i++)
 		for (s32 j = -16; j < 16; j++)
 			for (s32 k = 0; k < 1; k++) {
-				if (!free_particles)
-					return;
-				particle_t *p = free_particles;
-				free_particles = p->next;
-				p->next = active_particles;
-				active_particles = p;
+				particle_t *p = AllocParticle();
+				if(!p) return;
 				p->die = cl.time + 2 + (rand() & 31) * 0.02;
 				p->color = 224 + (rand() & 7);
 				p->type = pt_slowgrav;
@@ -271,12 +250,8 @@ void R_TeleportSplash(vec3_t org)
 	for (s32 i = -16; i < 16; i += 4)
 		for (s32 j = -16; j < 16; j += 4)
 			for (s32 k = -24; k < 32; k += 4) {
-				if (!free_particles)
-					return;
-				particle_t *p = free_particles;
-				free_particles = p->next;
-				p->next = active_particles;
-				active_particles = p;
+				particle_t *p = AllocParticle();
+				if(!p) return;
 				p->die = cl.time + 0.2 + (rand() & 7) * 0.02;
 				p->color = 7 + (rand() & 7);
 				p->type = pt_slowgrav;
@@ -308,12 +283,8 @@ void R_RocketTrail(vec3_t start, vec3_t end, s32 type)
 	}
 	while (len > 0) {
 		len -= dec;
-		if (!free_particles)
-			return;
-		particle_t *p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		particle_t *p = AllocParticle();
+		if(!p) return;
 		VectorCopy(vec3_origin, p->vel);
 		p->die = cl.time + 2;
 		switch (type) {
