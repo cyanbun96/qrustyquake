@@ -447,7 +447,7 @@
 #define DIST_NOT_SET 98765
 #define NEAR_CLIP 0.01
 #define ALIAS_Z_CLIP_PLANE 0.1 // CyanBun96: was 5, lowered for high FOV guns
-#define MAX_BTOFPOLYS 5000 // FIXME: tune this
+#define MAX_BTOFPOLYS 5000
 #define AMP 8*0x10000 // turbulence stuff
 #define AMP2 3
 #define SPEED 20

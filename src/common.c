@@ -25,14 +25,7 @@ they shouldn't.
 The "cache directory" is only used during development to save network bandwidth,
 especially over ISDN / T1 lines. If there is a cache directory specified, when
 a file is found by the normal search path, it will be mirrored into the cache
-directory, then opened there.
-
-FIXME:
-The file "parms.txt" will be read out of the game directory and appended to the
-current command line arguments to allow different games to initialize startup
-parms differently. This could be used to add a "-sspeed 22050" for the high
-quality sound edition. Because they are added at the end, they will not
-override an explicit setting on the original command line. */
+directory, then opened there. */
 
 static bool com_modified; // set 1 if using non-id files
 static s8 *largv[MAX_NUM_ARGVS + 1];
