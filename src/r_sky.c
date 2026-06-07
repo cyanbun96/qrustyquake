@@ -16,7 +16,6 @@ static mtexinfo_t r_skytexinfo[6];
 static mvertex_t *r_skyverts;
 static medge_t *r_skyedges;
 static s32 *r_skysurfedges;
-static u8 *skyunderlay, *skyoverlay; // Manoel Kasimier - smooth sky
 static texture_t r_skytextures[6];
 static s8 last_skybox_name[1024];
 static u8 rgb_lut[RGB_LUT_SIZE];
@@ -37,14 +36,6 @@ static vec3_t box_bigbigvecs[6][2] = {{{0,-4,0},{-4,0,0} },{{0,4,0}, {0,0,-4}},
 				     { {0,-4,0},{0,0,-4} },{{-4,0,0},{0,0,-4}}};
 static f32 box_verts[8][3] = { {-1,-1,-1}, {-1,1,-1}, {1,1,-1}, {1,-1,-1},
 				{-1,-1,1}, {-1,1,1}, {1,-1,1}, {1,1,1} };
-void Sky_LoadTexture (texture_t *mt)
-{
-	if (mt->width != 256 || mt->height != 128) // Leave this.
-		Con_Printf ("Standard sky texture %s expected to be 256 x 128 but is %d by %d ", mt->name, mt->width, mt->height);
-
-	skyoverlay = (u8 *)mt + mt->offsets[0]; // Manoel Kasimier - smooth sky
-	skyunderlay = skyoverlay+128; // Manoel Kasimier - smooth sky
-}
 
 s32 R_LoadSkybox (const s8 *name);
 

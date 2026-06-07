@@ -110,14 +110,6 @@ void InsertLinkBefore(link_t *l, link_t *before)
 	l->next->prev = l;
 }
 
-void InsertLinkAfter(link_t *l, link_t *after)
-{
-	l->next = after->next;
-	l->prev = after;
-	l->prev->next = l;
-	l->next->prev = l;
-}
-
 //Returns the number of bytes needed to encode the codepoint
 //using UTF-8 (max 4), or 0 for an invalid code point
 size_t UTF8_CodePointLength(u32 codepoint)
@@ -320,21 +312,8 @@ void Q_memset(void *dest, s32 fill, size_t count)
 		((u8 *)dest)[i] = fill;
 }
 
-void Q_memmove(void *dest, const void *src, size_t count)
-{ memmove(dest, src, count); }
-
 void Q_memcpy(void *dest, const void *src, size_t count)
 { memcpy(dest, src, count); }
-
-s32 Q_memcmp(const void *m1, const void *m2, size_t count)
-{
-	while(count){
-		count--;
-		if(((u8 *)m1)[count] != ((u8 *)m2)[count])
-			return -1;
-	}
-	return 0;
-}
 
 void Q_strcpy(s8 *dest, const s8 *src)
 {
@@ -573,11 +552,6 @@ void MSG_WriteCoord24(sizebuf_t *sb, f32 f)
 	MSG_WriteByte(sb, (s32)(f*255)%255);
 }
 
-void MSG_WriteCoord32f(sizebuf_t *sb, f32 f)
-{ //johnfitz -- 32-bit f32 coords
-	MSG_WriteFloat(sb, f);
-}
-
 void MSG_WriteCoord(sizebuf_t *sb, f32 f, u32 flags)
 {
 	if(flags & PRFL_FLOATCOORD)      MSG_WriteFloat(sb, f);
@@ -689,11 +663,6 @@ f32 MSG_ReadCoord24()
 }
 
 
-f32 MSG_ReadCoord32f()
-{ //johnfitz -- 32-bit f32 coords
-	return MSG_ReadFloat();
-}
-
 f32 MSG_ReadCoord(u32 flags)
 {
 	if(flags & PRFL_FLOATCOORD)      return MSG_ReadFloat();
@@ -725,7 +694,6 @@ void SZ_Alloc(sizebuf_t *buf, s32 startsize)
 	buf->cursize = 0;
 }
 
-void SZ_Free(sizebuf_t *buf){ buf->cursize = 0; }
 void SZ_Clear(sizebuf_t *buf){ buf->cursize = 0; }
 
 void *SZ_GetSpace(sizebuf_t *buf, s32 length)
@@ -796,13 +764,6 @@ const s8 *COM_FileGetExtension(const s8 *in)
 	if(src == in || strchr(src, '/') != NULL || strchr(src, '\\') != NULL)
 		return ""; // no extension, or parent directory has a dot 
 	return src;
-}
-
-void COM_ExtractExtension(const s8 *in, s8 *out, size_t outsize)
-{
-	const s8 *ext = COM_FileGetExtension(in);
-	if(! *ext) *out = '\0';
-	else q_strlcpy(out, ext, outsize);
 }
 
 void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
@@ -1028,17 +989,6 @@ void COM_WriteFile(const s8 *filename, const void *data, s32 len)
 	Sys_FileClose(handle);
 }
 
-void COM_CreatePath(s8 *path)
-{
-	for(s8 *ofs = path + 1; *ofs; ofs++){
-		if(*ofs == '/'){ // create the directory
-			*ofs = 0;
-			Sys_mkdir(path);
-			*ofs = '/';
-		}
-	}
-}
-
 s64 COM_filelength(FILE *f)
 {
 	s64 pos = ftell(f);
@@ -1139,12 +1089,6 @@ static s32 COM_FindFile(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
 		if(result >= 0) return result;
 	}
 	return result;
-}
-
-bool COM_FileExists(const s8 *filename, u32 *path_id)
-{ // Returns whether the file is found in the quake filesystem.
-	s32 ret = COM_FindFile(filename, NULL, NULL, path_id);
-	return(ret == -1) ? 0 : 1;
 }
 
 // filename never has a leading slash, but may contain directory walks.
@@ -1623,39 +1567,11 @@ s32 FS_fclose(fshandle_t *fh)
 	return fclose(fh->file);
 }
 
-s64 FS_ftell(fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return -1; }
-	return fh->pos;
-}
-
-void FS_rewind(fshandle_t *fh)
-{
-	if(!fh) return;
-	clearerr(fh->file);
-	fseek(fh->file, fh->start, SEEK_SET);
-	fh->pos = 0;
-}
-
 s32 FS_feof(fshandle_t *fh)
 {
 	if(!fh){ errno = EBADF; return -1; }
 	if(fh->pos >= fh->length) return -1;
 	return 0;
-}
-
-s32 FS_ferror(fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return -1; }
-	return ferror(fh->file);
-}
-
-s32 FS_fgetc(fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return EOF; }
-	if(fh->pos >= fh->length) return EOF;
-	fh->pos += 1;
-	return fgetc(fh->file);
 }
 
 s8 *FS_fgets(s8 *s, s32 size, fshandle_t *fh)
@@ -1668,26 +1584,10 @@ s8 *FS_fgets(s8 *s, s32 size, fshandle_t *fh)
 	return ret;
 }
 
-s64 FS_filelength(fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return -1; }
-	return fh->length;
-}
-
-
 u32 COM_HashString(const s8 *str)
 { // Computes the FNV-1a hash of string str
 	u32 hash = 0x811c9dc5u;
 	while(*str){ hash ^= *str++; hash *= 0x01000193u; }
-	return hash;
-}
-
-
-u32 COM_HashBlock(const void *data, size_t size)
-{ // Computes the FNV-1a hash of a memory block
-	const u8 *ptr = (const u8 *)data;
-	u32 hash = 0x811c9dc5u;
-	while(size--){ hash ^= *ptr++; hash *= 0x01000193u; }
 	return hash;
 }
 
@@ -1875,13 +1775,6 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 }
 
 void LOC_Init(){ LOC_LoadFile("localization/loc_english.txt"); }
-
-void LOC_Shutdown()
-{
-	free(localization.indices);
-	free(localization.entries);
-	free(localization.text);
-}
 
 const s8* LOC_GetRawString(const s8 *key)
 { // Returns localized string if available, or NULL otherwise

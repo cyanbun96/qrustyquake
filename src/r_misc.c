@@ -131,41 +131,6 @@ void R_LineGraph(s32 x, s32 y, s32 h)
 	}
 }
 
-void R_TimeGraph()
-{ // Performance monitoring tool
-	static s32 timex;
-	static u8 r_timings[MAX_TIMINGS];
-	f32 r_time2 = Sys_DoubleTime();
-	s32 a = (r_time2 - d_times[0]) / 0.01;
-	r_timings[timex] = a;
-	a = timex;
-	s32 x;
-	if (r_refdef.vrect.width <= MAX_TIMINGS)
-		x = r_refdef.vrect.width - 1;
-	else
-		x = r_refdef.vrect.width -
-		    (r_refdef.vrect.width - MAX_TIMINGS) / 2;
-	do {
-		R_LineGraph(x, r_refdef.vrect.height - 2, r_timings[a]);
-		if (x == 0)
-			break; // screen too small to hold entire thing
-		x--;
-		a--;
-		if (a == -1)
-			a = MAX_TIMINGS - 1;
-	} while (a != timex);
-	timex = (timex + 1) % MAX_TIMINGS;
-}
-
-void R_PrintTimes()
-{
-	f32 r_time2 = Sys_DoubleTime();
-	f32 ms = 1000 * (r_time2 - d_times[0]);
-	Con_Printf("%5.1f ms %3i/%3i/%3i poly %3i surf\n",
-		   ms, c_faceclip, r_polycount, r_drawnpolycount, c_surf);
-	c_surf = 0;
-}
-
 void R_PrintDSpeeds()
 {
 	f64 t[17] = {0};
@@ -177,11 +142,6 @@ void R_PrintDSpeeds()
 		,tot,t[0],t[1],t[2],t[3], t[4], t[5], t[6], t[7]);
 	Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f\n",
 		t[8], t[9], t[10], t[11], t[12], t[13], t[14]);
-}
-
-void R_PrintAliasStats()
-{
-	Con_Printf("%3i polygon model drawn\n", r_amodels_drawn);
 }
 
 void R_TransformFrustum()

@@ -366,16 +366,3 @@ void R_DrawSurfaceBlockRGB()
 			psource -= r_stepback;
 	}
 }
-
-void R_GenTurbTile(u8 *pbasetex, void *pdest)
-{
-	s32 *turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
-	u8 *pd = (u8 *) pdest;
-	for (s32 i = 0; i < TILE_SIZE; i++) {
-		for (s32 j = 0; j < TILE_SIZE; j++) {
-			s32 s = (((j << 16) + turb[i & (CYCLE-1)]) >> 16) & 63;
-			s32 t = (((i << 16) + turb[j & (CYCLE-1)]) >> 16) & 63;
-			*pd++ = *(pbasetex + (t << 6) + s);
-		}
-	}
-}

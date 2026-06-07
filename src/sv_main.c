@@ -367,17 +367,6 @@ u8 *SV_FatPVS(vec3_t org, model_t *worldmodel) // Calculates a PVS that is the
 	return fatpvs;
 }
 
-bool SV_VisibleToClient(edict_t *client, edict_t *test, model_t *worldmodel)
-{ // PVS test encapsulated in a nice function
-	vec3_t org;
-	VectorAdd(client->v.origin, client->v.view_ofs, org);
-	u8 *pvs = SV_FatPVS(org, worldmodel);
-	for(s32 i = 0; i < test->num_leafs; i++)
-		if(pvs[test->leafnums[i] >> 3] & (1 << (test->leafnums[i]&7)))
-			return 1;
-	return 0;
-}
-
 void SV_WriteEntitiesToClient(edict_t *clent, sizebuf_t *msg)
 {
 	vec3_t org; // find the client's PVS
