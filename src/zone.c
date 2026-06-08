@@ -436,12 +436,6 @@ void Cache_Flush()
 		Cache_Free( cache_head.next->user, 1); // reclaim the space
 }
 
-void Cache_Print()
-{
-	for(cache_system_t *cd=cache_head.next; cd!=&cache_head; cd=cd->next)
-		Con_Printf("%8i : %s\n", cd->size, cd->name);
-}
-
 void Cache_Report()
 {
 	Con_DPrintf("%4.1f megabyte data cache\n",

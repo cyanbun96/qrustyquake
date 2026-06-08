@@ -67,7 +67,7 @@ static void CL_ParseStuffText(const s8 *msg)
 			//proquake message, just strip this and try again
 			//(doesn't necessarily have a trailing \n straight away)
 			for(str=cl.stuffcmdbuf+1;*str>=0x01&&*str<=0x1f;str++);
-			continue; //FIXME: parse properly
+			continue;
 		}
 		//handle special commands
 		if(cl.stuffcmdbuf[0] == '/' && cl.stuffcmdbuf[1] == '/') {

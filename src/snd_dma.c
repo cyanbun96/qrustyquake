@@ -396,12 +396,6 @@ static void GetSoundtime()
 	soundtime = buffers*fullsamples + samplepos/shm->channels;
 }
 
-void S_ExtraUpdate()
-{
-	if(snd_noextraupdate.value) return; // don't pollute timings
-	S_Update_();
-}
-
 static void S_Update_()
 {
 	u32 endtime;
@@ -425,25 +419,6 @@ static void S_Update_()
 	endtime = q_min(endtime, (u32)(soundtime + samps));
 	S_PaintChannels(endtime);
 	SNDDMA_Submit();
-}
-
-void S_BlockSound()
-{
-	if(sound_started && snd_blocked == 0){
-		snd_blocked = 1;
-		S_ClearBuffer();
-		if(shm) SNDDMA_BlockSound();
-	}
-}
-
-void S_UnblockSound()
-{
-	if(!sound_started || !snd_blocked) return;
-	if(snd_blocked == 1){ // --snd_blocked == 0 
-		snd_blocked = 0;
-		SNDDMA_UnblockSound();
-		S_ClearBuffer();
-	}
 }
 
 static void S_Play()

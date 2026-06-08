@@ -193,17 +193,6 @@ wad_t *W_LoadWadList(const s8 *names)
 	return wads;
 }
 
-void W_FreeWadList(wad_t *wads)
-{
-	while(wads) {
-		FS_fclose(&wads->fh);
-		free(wads->lumps);
-		wad_t *next = wads->next;
-		free(wads);
-		wads = next;
-	}
-}
-
 lumpinfo_t *W_GetLumpinfoList(wad_t *wads, const s8 *name, wad_t **out_wad)
 {
 	while(wads) {

@@ -447,7 +447,7 @@
 #define DIST_NOT_SET 98765
 #define NEAR_CLIP 0.01
 #define ALIAS_Z_CLIP_PLANE 0.1 // CyanBun96: was 5, lowered for high FOV guns
-#define MAX_BTOFPOLYS 5000 // FIXME: tune this
+#define MAX_BTOFPOLYS 5000
 #define AMP 8*0x10000 // turbulence stuff
 #define AMP2 3
 #define SPEED 20
@@ -732,10 +732,6 @@
 #define EF_ZOMGIB 32 // small blood trail
 #define EF_TRACER2 64 // orange split trail + rotate
 #define EF_TRACER3 128 // purple trail
-#define MF_HOLEY (1u<<14) // MarkV/QSS -- make index 255 transparent on mdl's
-#define MOD_NOLERP 256 //don't lerp when animating
-#define MOD_NOSHADOW 512 //don't cast a shadow
-#define MOD_FBRIGHTHACK 1024 //when fullbrights are disabled, use a hack to render this model brighter
 #define TEXPREF_NONE 0x0000
 #define TEXPREF_MIPMAP 0x0001 // generate mipmaps
  // TEXPREF_NEAREST and TEXPREF_LINEAR aren't supposed to be ORed with TEX_MIPMAP

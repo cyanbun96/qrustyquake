@@ -278,9 +278,6 @@ s32 SV_PointContents(vec3_t p)
 	return cont;
 }
 
-s32 SV_TruePointContents(vec3_t p)
-{ return SV_HullPointContents(&sv.worldmodel->hulls[0], 0, p); }
-
 edict_t *SV_TestEntityPosition(edict_t *ent)
 {
 	trace_t trace = SV_Move(ent->v.origin, ent->v.mins, ent->v.maxs,

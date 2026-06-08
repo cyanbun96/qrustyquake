@@ -148,22 +148,10 @@ cvar_t *Cvar_FindVarAfter(const s8 *prev_name, u32 with_flags)
 	return var;
 }
 
-void Cvar_LockVar(const s8 *var_name)
-{
-	cvar_t *var = Cvar_FindVar(var_name);
-	if(var) var->flags |= CVAR_LOCKED;
-}
-
 void Cvar_UnlockVar(const s8 *var_name)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
 	if(var) var->flags &= ~CVAR_LOCKED;
-}
-
-void Cvar_UnlockAll()
-{
-	for(cvar_t *var = cvar_vars ; var ; var = var->next)
-		var->flags &= ~CVAR_LOCKED;
 }
 
 f32 Cvar_VariableValue(const s8 *var_name)
@@ -262,16 +250,6 @@ void Cvar_SetROM(const s8 *var_name, const s8 *value)
 	if(var){
 		var->flags &= ~CVAR_ROM;
 		Cvar_SetQuick(var, value);
-		var->flags |= CVAR_ROM;
-	}
-}
-
-void Cvar_SetValueROM(const s8 *var_name, const f32 value)
-{
-	cvar_t *var = Cvar_FindVar(var_name);
-	if(var){
-		var->flags &= ~CVAR_ROM;
-		Cvar_SetValueQuick(var, value);
 		var->flags |= CVAR_ROM;
 	}
 }

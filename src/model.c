@@ -1883,22 +1883,6 @@ bool nameInList(const s8 *list, const s8 *name)
 	return 0;
 }
 
-void Mod_SetExtraFlags(model_t *mod)
-{ // johnfitz -- set up extra flags that aren't in the mdl
-	if(!mod || mod->type != mod_alias)
-		return;
-	mod->flags &= (0xFF | MF_HOLEY); //only preserve first u8, plus MF_HOLEY
-	if(nameInList(r_nolerp_list.string, mod->name))
-		mod->flags |= MOD_NOLERP;
-	if(nameInList(r_noshadow_list.string, mod->name))
-		mod->flags |= MOD_NOSHADOW;
-	// fullbright hack(TODO: make this a cvar list)
-	if(!strcmp(mod->name, "progs/flame2.mdl") ||
-			!strcmp(mod->name, "progs/flame.mdl") ||
-			!strcmp(mod->name, "progs/boss.mdl"))
-		mod->flags |= MOD_FBRIGHTHACK;
-}
-
 void *Mod_LoadAliasSkin(void *pin, s32 *pskinindex, s32 skinsize,
 		aliashdr_t *pheader)
 {
@@ -2066,7 +2050,6 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	}
 	pheader->numposes = posenum; // Baker: Watch this and compare vs. Mark V
 	mod->type = mod_alias;
-	Mod_SetExtraFlags(mod); //johnfitz
 	Mod_CalcAliasBounds(pheader); //johnfitz
 	// move the complete, relocatable alias model to the cache
 	s32 end = Hunk_LowMark();

@@ -95,6 +95,8 @@ void R_BuildLightMap()
 	s32 smax = surf->extents[0] / 16 + 1;
 	s32 tmax = surf->extents[1] / 16 + 1;
 	s32 size = smax * tmax;
+	if(size > sizeof(blocklights)/sizeof(*blocklights))
+		size=sizeof(blocklights)/sizeof(*blocklights);
 	u8 *lightmap = surf->samples;
 	if (r_fullbright.value || !cl.worldmodel->lightdata) {
 		memset(blocklights,   0, size * sizeof(*blocklights));
@@ -182,8 +184,6 @@ s32 R_DrawSurface()
 		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
 		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
 	}
-	// TODO: only needs to be set when there is a display settings change
-	s32 horzblockstep = blocksize;
 	s32 smax = mt->width >> r_drawsurf.surfmip;
 	s32 twidth = texwidth;
 	s32 tmax = mt->height >> r_drawsurf.surfmip;
@@ -213,7 +213,7 @@ s32 R_DrawSurface()
 		soffset = soffset + blocksize;
 		if (soffset >= smax)
 			soffset = 0;
-		pcolumndest += horzblockstep;
+		pcolumndest += blocksize;
 	}
 	return 0;
 }
@@ -366,18 +366,5 @@ void R_DrawSurfaceBlockRGB()
 		}
 		if (psource >= r_sourcemax)
 			psource -= r_stepback;
-	}
-}
-
-void R_GenTurbTile(u8 *pbasetex, void *pdest)
-{
-	s32 *turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
-	u8 *pd = (u8 *) pdest;
-	for (s32 i = 0; i < TILE_SIZE; i++) {
-		for (s32 j = 0; j < TILE_SIZE; j++) {
-			s32 s = (((j << 16) + turb[i & (CYCLE-1)]) >> 16) & 63;
-			s32 t = (((i << 16) + turb[j & (CYCLE-1)]) >> 16) & 63;
-			*pd++ = *(pbasetex + (t << 6) + s);
-		}
 	}
 }

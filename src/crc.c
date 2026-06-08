@@ -44,8 +44,6 @@ void CRC_Init(u16 *crcvalue)
 { *crcvalue = CRC_INIT_VALUE; }
 void CRC_ProcessByte(u16 *crcvalue, u8 data)
 { *crcvalue = (*crcvalue << 8) ^ crctable[(*crcvalue >> 8) ^ data]; }
-u16 CRC_Value(u16 crcvalue)
-{ return crcvalue ^ CRC_XOR_VALUE; }
 u16 CRC_Block (const u8 *start, s32 count)
 { // johnfitz -- texture crc
 	u16 crc;
