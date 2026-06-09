@@ -207,7 +207,7 @@ s32 R_DrawSurface()
 		r_lightptr_b = blocklights_b + u;
 		prowdestbase = pcolumndest;
 		pbasesource = basetptr + soffset;
-		if (!lit_loaded) R_DrawSurfaceBlock();
+		if (!lit_loaded&&!lmonly) R_DrawSurfaceBlock();
 		else if (!r_rgblighting.value) R_DrawSurfaceBlockRGBMono();
 		else R_DrawSurfaceBlockRGB();
 		soffset = soffset + blocksize;
