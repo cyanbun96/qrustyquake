@@ -291,7 +291,8 @@ void D_DrawSurfaces()
 				r_foundtranswater = 1;
 				continue;
 			}
-			if (!s->entity->model->haslitwater || !r_litwater.value)
+			if (!s->entity->model->haslitwater || !r_litwater.value
+				|| !pface->samples) // lit water has samples
 				D_DrawUnlitWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
@@ -350,7 +351,8 @@ void D_DrawSurfacesAlpha()
 				opacity -= (f32)s->entity->alpha / 255;
 			else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
-			if (!s->entity->model->haslitwater || !r_litwater.value)
+			if (!s->entity->model->haslitwater || !r_litwater.value
+				|| !pface->samples) // lit water has samples
 				D_DrawUnlitWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
