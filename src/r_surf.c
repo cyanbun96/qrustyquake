@@ -95,7 +95,7 @@ void R_BuildLightMap()
 	s32 smax = surf->extents[0] / 16 + 1;
 	s32 tmax = surf->extents[1] / 16 + 1;
 	s32 size = smax * tmax;
-	if(size > sizeof(blocklights)/sizeof(*blocklights))
+	if((u64)size > sizeof(blocklights)/sizeof(*blocklights))
 		size=sizeof(blocklights)/sizeof(*blocklights);
 	u8 *lightmap = surf->samples;
 	if (r_fullbright.value || !cl.worldmodel->lightdata) {
