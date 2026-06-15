@@ -25,6 +25,7 @@ EX s32 jaxis_trig_2;
 EX SDL_Joystick *joystick;
 EX u32 oldmodes[NUM_OLDMODES*2];                                    // vid_sdl.c
 EX s8 modelist[NUM_OLDMODES][8];
+EX SDL_FRect destRect;
 EX SDL_Window *window;
 EX SDL_Surface *windowSurface;
 EX SDL_Surface *screen, *screentop, *screenui, *screensbar;
@@ -67,6 +68,7 @@ void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();
 void M_ToggleMenu_f();
+void M_MouseCursor(s32 x, s32 y);
 s32 vgatext_main(SDL_Window *window, Uint16 *screen);               // vgatext.h
 void V_Init();                                                         // view.h
 f32 V_CalcRoll(vec3_t angles, vec3_t velocity);

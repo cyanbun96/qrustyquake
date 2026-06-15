@@ -623,6 +623,8 @@ void V_Init()
 	Cvar_RegisterVariable(&v_hue);
 	Cvar_RegisterVariable(&v_brightness);
 	Cvar_RegisterVariable(&v_gunkick);
+	Cvar_RegisterVariable(&ui_mouse);
+	Cvar_RegisterVariable(&ui_mouse_sound);
 	Cvar_RegisterVariable(&gl_cshiftpercent);
 	Cvar_RegisterVariable(&gl_cshiftpercent_contents);
 	Cvar_RegisterVariable(&gl_cshiftpercent_damage);

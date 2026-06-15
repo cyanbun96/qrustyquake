@@ -116,6 +116,21 @@ void Sys_SendKeyEvents()
 		case SDL_EVENT_MOUSE_MOTION:
 			mouse_x += event.motion.xrel;
 			mouse_y += event.motion.yrel;
+			if(key_dest == key_menu && ui_mouse.value){
+				s32 mx = event.motion.x;
+				s32 my = event.motion.y;
+				s32 rx = mx - destRect.x;
+				s32 ry = my - destRect.y;
+				if(rx < 0) rx = 0;
+				if(ry < 0) ry = 0;
+				s32 qx = rx * vid.width / destRect.w;
+				s32 qy = ry * vid.height / destRect.h;
+				if(qx >= (s32)vid.width-1)
+					qx = vid.width-1;
+				if(qy >= (s32)vid.height-1)
+					qy = vid.height-1;
+				M_MouseCursor(qx, qy);
+			}
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 		case SDL_EVENT_MOUSE_BUTTON_UP:

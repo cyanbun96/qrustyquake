@@ -304,14 +304,10 @@ void M_DrawCharacter(s32 cx, s32 cy, s32 num)
 }
 
 void M_DrawCursor(s32 x, s32 y)
-{
-	M_DrawCharacter(x, y, 12 + ((s32)(realtime * 4) & 1));
-}
+{ M_DrawCharacter(x, y, 12 + ((s32)(realtime * 4) & 1)); }
 
 void M_DrawCursorLine(s32 x, s32 y)
-{
-	M_DrawCharacter(x, y, 10 + ((s32)(realtime * 4) & 1));
-}
+{ M_DrawCharacter(x, y, 10 + ((s32)(realtime * 4) & 1)); }
 
 void M_Print(s32 cx, s32 cy, s8 *str)
 {
@@ -454,6 +450,9 @@ void M_Main_Draw()
 void M_Main_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		key_dest = key_game;
 		m_state = m_none;
@@ -472,6 +471,9 @@ void M_Main_Key(s32 key)
 		if (--m_main_cursor < 0)
 			m_main_cursor = MAIN_ITEMS - 1;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
 		switch (m_main_cursor) {
@@ -3905,4 +3907,51 @@ void M_ConfigureNetSubsystem()
 {
 	Cbuf_AddText("stopdemo\n");
 	net_hostport = lanConfig_port;
+}
+
+void M_Main_Mouse(s32 x, s32 y)
+{
+	if(x < 72 || x >= 310 || y < 32 || y >= 132) return;
+	s32 m_main_cursor_new = (y - 32) / 20;
+	if(ui_mouse_sound.value && m_main_cursor_new != m_main_cursor)
+		S_LocalSound("misc/menu1.wav");
+	m_main_cursor = m_main_cursor_new;
+}
+
+void M_MouseCursor(s32 x, s32 y)
+{
+	s32 menu_origin_x = (vid.width - 320 * uiscale) >> 1;
+	s32 menu_origin_y = scr_centermenus.value ?
+		((vid.height / uiscale - 200) / 2) * uiscale : 0;
+	x -= menu_origin_x;
+	y -= menu_origin_y;
+	x /= uiscale;
+	y /= uiscale;
+	switch (m_state) {
+	case m_none: return;
+	case m_main: M_Main_Mouse(x, y); return;
+	case m_singleplayer: return;
+	case m_load: return;
+	case m_save: return;
+	case m_multiplayer: return;
+	case m_setup: return;
+	case m_net: return;
+	case m_options: return;
+	case m_keys: return;
+	case m_video: return;
+	case m_new: return;
+	case m_gamepad: return;
+	case m_display: return;
+	case m_maps: return;
+	case m_mods: return;
+	case m_csqc: return;
+	case m_palette: return;
+	case m_graphics: return;
+	case m_help: return;
+	case m_quit: return;
+	case m_lanconfig: return;
+	case m_gameoptions: return;
+	case m_search: break;
+	case m_slist: return;
+	}
 }

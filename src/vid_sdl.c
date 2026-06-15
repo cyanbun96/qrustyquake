@@ -4,7 +4,6 @@ static SDL_Renderer *renderer;
 static SDL_Surface *argbbuffer;
 static SDL_Texture *texture;
 static SDL_Rect blitRect;
-static SDL_FRect destRect;
 static SDL_Rect scRect;
 static SDL_Rect scRect2;
 static u8 *screenpixels;
