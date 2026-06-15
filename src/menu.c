@@ -3200,6 +3200,13 @@ void M_Help_Key(s32 key)
 
 void M_Menu_Quit_f()
 {
+	if (exitstyle.value == 2) { //F10 key quickexit fix
+		CL_Disconnect();
+		Host_ShutdownServer(0);
+		Sys_Quit();
+		return;
+	}
+
 	if (m_state == m_quit)
 		return;
 	wasInMenus = (key_dest == key_menu);
