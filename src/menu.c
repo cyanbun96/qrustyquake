@@ -521,6 +521,9 @@ void M_SinglePlayer_Draw()
 void M_SinglePlayer_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Main_f();
 		break;
@@ -534,6 +537,9 @@ void M_SinglePlayer_Key(s32 key)
 		if (--m_singleplayer_cursor < 0)
 			m_singleplayer_cursor = SINGLEPLAYER_ITEMS - 1;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
 		switch (m_singleplayer_cursor) {
@@ -703,6 +709,9 @@ void M_MultiPlayer_Draw()
 void M_MultiPlayer_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Main_f();
 		break;
@@ -716,6 +725,9 @@ void M_MultiPlayer_Key(s32 key)
 		if (--m_multiplayer_cursor < 0)
 			m_multiplayer_cursor = MULTIPLAYER_ITEMS - 1;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
 		switch (m_multiplayer_cursor) {
@@ -949,6 +961,9 @@ void M_Net_Key(s32 k)
 {
 again:
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_MultiPlayer_f();
 		break;
@@ -962,6 +977,9 @@ again:
 		if (--m_net_cursor < 0)
 			m_net_cursor = m_net_items - 1;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
 		switch (m_net_cursor) {
@@ -3177,17 +3195,21 @@ void M_Help_Draw()
 void M_Help_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Main_f();
 		break;
-
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_UPARROW:
 	case K_RIGHTARROW:
 		m_entersound = 1;
 		if (++help_page >= NUM_HELP_PAGES)
 			help_page = 0;
 		break;
-
 	case K_DOWNARROW:
 	case K_LEFTARROW:
 		m_entersound = 1;
@@ -3916,13 +3938,29 @@ void M_ConfigureNetSubsystem()
 	net_hostport = lanConfig_port;
 }
 
+void M_SetMouseCursor(s32 *var, s32 newval)
+{
+	if(*var == newval) return;
+	if(ui_mouse_sound.value) S_LocalSound("misc/menu1.wav");
+	*var = newval;
+}
+
 void M_Main_Mouse(s32 x, s32 y)
 {
 	if(x < 72 || x >= 310 || y < 32 || y >= 132) return;
-	s32 m_main_cursor_new = (y - 32) / 20;
-	if(ui_mouse_sound.value && m_main_cursor_new != m_main_cursor)
-		S_LocalSound("misc/menu1.wav");
-	m_main_cursor = m_main_cursor_new;
+	M_SetMouseCursor(&m_main_cursor, (y - 32) / 20);
+}
+
+void M_SinglePlayer_Mouse(s32 x, s32 y)
+{
+	if(x < 72 || x >= 310 || y < 32 || y >= 92) return;
+	M_SetMouseCursor(&m_singleplayer_cursor, (y - 32) / 20);
+}
+
+void M_MultiPlayer_Mouse(s32 x, s32 y)
+{
+	if(x < 72 || x >= 310 || y < 32 || y >= 92) return;
+	M_SetMouseCursor(&m_multiplayer_cursor, (y - 32) / 20);
 }
 
 void M_MouseCursor(s32 x, s32 y)
@@ -3937,12 +3975,12 @@ void M_MouseCursor(s32 x, s32 y)
 	switch (m_state) {
 	case m_none: return;
 	case m_main: M_Main_Mouse(x, y); return;
-	case m_singleplayer: return;
+	case m_singleplayer: M_SinglePlayer_Mouse(x, y); return;
 	case m_load: return;
 	case m_save: return;
-	case m_multiplayer: return;
+	case m_multiplayer: M_MultiPlayer_Mouse(x, y); return;
 	case m_setup: return;
-	case m_net: return;
+	case m_net: /* only one possible cursor position */ return;
 	case m_options: return;
 	case m_keys: return;
 	case m_video: return;
@@ -3954,11 +3992,11 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_csqc: return;
 	case m_palette: return;
 	case m_graphics: return;
-	case m_help: return;
+	case m_help: /* no cursor */ return;
 	case m_quit: return;
 	case m_lanconfig: return;
 	case m_gameoptions: return;
-	case m_search: break;
+	case m_search: return;
 	case m_slist: return;
 	}
 }
