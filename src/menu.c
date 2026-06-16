@@ -804,6 +804,9 @@ void M_Setup_Draw()
 void M_Setup_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_MultiPlayer_f();
 		break;
@@ -819,6 +822,9 @@ void M_Setup_Key(s32 k)
 		if (setup_cursor >= NUM_SETUP_CMDS)
 			setup_cursor = 0;
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		if (setup_cursor < 2)
 			return;
@@ -828,6 +834,9 @@ void M_Setup_Key(s32 k)
 		if (setup_cursor == 3)
 			setup_bottom = setup_bottom - 1;
 		break;
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 		if (setup_cursor < 2)
 			return;
@@ -838,6 +847,9 @@ forward:
 		if (setup_cursor == 3)
 			setup_bottom = setup_bottom + 1;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		if (setup_cursor == 0 || setup_cursor == 1)
 			return;
@@ -848,11 +860,8 @@ forward:
 			Cbuf_AddText(va("name \"%s\"\n", setup_myname));
 		if (Q_strcmp(hostname.string, setup_hostname) != 0)
 			Cvar_Set("hostname", setup_hostname);
-		if (setup_top != setup_oldtop
-		    || setup_bottom != setup_oldbottom)
-			Cbuf_AddText(va
-				     ("color %i %i\n", setup_top,
-				      setup_bottom));
+		if (setup_top!=setup_oldtop || setup_bottom!=setup_oldbottom)
+			Cbuf_AddText(va("color%i%i\n",setup_top,setup_bottom));
 		m_entersound = 1;
 		M_Menu_MultiPlayer_f();
 		break;
@@ -1166,9 +1175,15 @@ void M_Options_Key(s32 k)
 {
 	drawmousemenu = !(SDLWindowFlags & SDL_WINDOW_FULLSCREEN);
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Main_f();
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
 		if (options_cursor == 0) {
@@ -1206,9 +1221,15 @@ void M_Options_Key(s32 k)
 		    13 + (drawmousemenu & 1) + ((s32)newoptions.value & 1))
 			options_cursor = 0;
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		M_AdjustSliders(-1);
 		break;
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 		M_AdjustSliders(1);
 		break;
@@ -1324,6 +1345,9 @@ void M_Keys_Key(s32 k)
 	}
 	s32 keys[2]; // keep here for the OpenBSD compiler
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Options_f();
 		break;
@@ -1341,6 +1365,9 @@ void M_Keys_Key(s32 k)
 		if (keys_cursor >= NUMCOMMANDS)
 			keys_cursor = 0;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER: // go into bind mode
 		M_FindKeysForCommand(bindnames[keys_cursor][0], keys);
 		S_LocalSound("misc/menu2.wav");
@@ -3213,6 +3240,7 @@ void M_Help_Key(s32 key)
 	case K_ESCAPE:
 		M_Menu_Main_f();
 		break;
+	case K_MWHEELUP:
 	case K_MOUSE1:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -3222,6 +3250,9 @@ void M_Help_Key(s32 key)
 		if (++help_page >= NUM_HELP_PAGES)
 			help_page = 0;
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_DOWNARROW:
 	case K_LEFTARROW:
 		m_entersound = 1;
@@ -3992,6 +4023,33 @@ void M_MultiPlayer_Mouse(s32 x, s32 y)
 	M_SetMouseCursor(&m_multiplayer_cursor, (y - 32) / 20);
 }
 
+void M_Setup_Mouse(s32 x, s32 y)
+{
+	if(x > 48 && x <= 310 && y > 36 && y <= 52)
+		M_SetMouseCursor(&setup_cursor, 0);
+	else if(x > 48 && x <= 310 && y > 52 && y <= 68)
+		M_SetMouseCursor(&setup_cursor, 1);
+	else if(x > 48 && x <= 310 && y > 68 && y <= 92)
+		M_SetMouseCursor(&setup_cursor, 2);
+	else if(x > 48 && x <= 310 && y > 92 && y <= 116)
+		M_SetMouseCursor(&setup_cursor, 3);
+	else if(x > 48 && x <= 310 && y > 134 && y <= 152)
+		M_SetMouseCursor(&setup_cursor, 4);
+}
+
+void M_Options_Mouse(s32 x, s32 y)
+{
+	options_cursor_max = 12 + (drawmousemenu!=0) + (newoptions.value!=0);
+	if(x < 72 || x >= 310 || y < 32 ||y>=32+(1+options_cursor_max)*8)return;
+	M_SetMouseCursor(&options_cursor, (y - 32) / 8);
+}
+
+void M_Keys_Mouse(s32 x, s32 y)
+{
+	if(x < 16 || x >= 310 || y < 48 || y >= 48+NUMCOMMANDS*8) return;
+	M_SetMouseCursor(&keys_cursor, (y - 48) / 8);
+}
+
 void M_MouseCursor(s32 x, s32 y)
 {
 	s32 menu_origin_x = (vid.width - 320 * uiscale) >> 1;
@@ -4008,10 +4066,10 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_load: M_Load_Mouse(x, y); return;
 	case m_save: M_Save_Mouse(x, y);return;
 	case m_multiplayer: M_MultiPlayer_Mouse(x, y); return;
-	case m_setup: return;
+	case m_setup: M_Setup_Mouse(x, y); return;
 	case m_net: /* only one possible cursor position */ return;
-	case m_options: return;
-	case m_keys: return;
+	case m_options: M_Options_Mouse(x, y); return;
+	case m_keys: M_Keys_Mouse(x, y); return;
 	case m_video: return;
 	case m_new: return;
 	case m_gamepad: return;
