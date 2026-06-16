@@ -624,9 +624,15 @@ void M_Save_Draw()
 void M_Load_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_SinglePlayer_f();
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu2.wav");
 		if (!loadable[load_cursor])
@@ -659,9 +665,15 @@ void M_Load_Key(s32 k)
 void M_Save_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_SinglePlayer_f();
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		m_state = m_none;
 		key_dest = key_game;
@@ -3242,6 +3254,9 @@ void M_Menu_Quit_f()
 void M_Quit_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 	case 'n':
 	case 'N':
@@ -3253,7 +3268,9 @@ void M_Quit_Key(s32 key)
 			m_state = m_none;
 		}
 		break;
-
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case 'Y':
 	case 'y':
 	case K_ENTER:
@@ -3957,6 +3974,18 @@ void M_SinglePlayer_Mouse(s32 x, s32 y)
 	M_SetMouseCursor(&m_singleplayer_cursor, (y - 32) / 20);
 }
 
+void M_Load_Mouse(s32 x, s32 y)
+{
+	if(x < 16 || x >= 310 || y < 32 || y >= 32+MAX_SAVEGAMES*8) return;
+	M_SetMouseCursor(&load_cursor, (y - 32) / 8);
+}
+
+void M_Save_Mouse(s32 x, s32 y)
+{
+	if(x < 16 || x >= 310 || y < 32 || y >= 32+MAX_SAVEGAMES*8) return;
+	M_SetMouseCursor(&load_cursor, (y - 32) / 8);
+}
+
 void M_MultiPlayer_Mouse(s32 x, s32 y)
 {
 	if(x < 72 || x >= 310 || y < 32 || y >= 92) return;
@@ -3976,8 +4005,8 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_none: return;
 	case m_main: M_Main_Mouse(x, y); return;
 	case m_singleplayer: M_SinglePlayer_Mouse(x, y); return;
-	case m_load: return;
-	case m_save: return;
+	case m_load: M_Load_Mouse(x, y); return;
+	case m_save: M_Save_Mouse(x, y);return;
 	case m_multiplayer: M_MultiPlayer_Mouse(x, y); return;
 	case m_setup: return;
 	case m_net: /* only one possible cursor position */ return;

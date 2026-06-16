@@ -418,16 +418,20 @@ s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
 	// Enter press in this loop, that's why we have to check thrice for a
 	// single press
 	s32 pressedEnter = 0;
+	s32 pressedM1 = 0;
 	do {
 		key_lastpress = 0;
 		key_count = -1; // wait for a key down and up
 		Sys_SendKeyEvents();
 		pressedEnter += key_lastpress == K_ENTER;
+		pressedM1 += key_lastpress == K_MOUSE1;
 	} while (key_lastpress != 'y' && key_lastpress != 'n'
-		 && key_lastpress != K_ESCAPE && pressedEnter < 3);
+		&& key_lastpress != K_ESCAPE && pressedEnter < 3 && pressedM1<3
+		&& (key_lastpress != K_MOUSE2 && ui_mouse.value));
 	scr_fullupdate = 0;
 	SCR_UpdateScreen();
-	return key_lastpress == 'y' || key_lastpress == K_ENTER;
+	return key_lastpress == 'y' || key_lastpress == K_ENTER
+		|| (key_lastpress == K_MOUSE1 && ui_mouse.value);
 }
 
 void SCR_UpdateScreen() // This is called every frame,
