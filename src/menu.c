@@ -1146,7 +1146,7 @@ void M_Options_Draw()
 		M_DrawCheckbox(220, 136, _windowed_mouse.value);
 	}
 	if (newoptions.value)
-		M_Print(16, drawmousemenu ? 144:136, "           New Options");
+		M_Print(16, drawmousemenu ? 144:136, "        Modern Options");
 	M_DrawCursor(200, 32 + options_cursor * 8);
 }
 
