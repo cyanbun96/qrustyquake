@@ -160,13 +160,7 @@ void CL_PlayDemo_f()
 	}
 	cls.demoplayback = 1;
 	cls.state = ca_connected;
-	cls.forcetrack = 0;
-	s32 c;
-	bool neg = 0;
-	while((c = getc(cls.demofile)) != '\n')
-		if(c == '-') neg = 1;
-		else cls.forcetrack = cls.forcetrack * 10 + (c - '0');
-	if(neg) cls.forcetrack = -cls.forcetrack;
+	fscanf(cls.demofile, "%i\n", &cls.forcetrack);
 }
 
 void CL_TimeDemo_f()
