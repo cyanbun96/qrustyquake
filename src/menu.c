@@ -2900,25 +2900,31 @@ void M_New_Draw()
 	}
 	M_Print(xoffset, 40, "          Center Menus");
 	M_DrawCheckbox(xoffset + 204, 40, scr_centermenus.value);
-	M_Print(xoffset, 48, "         Y Mouse Speed");
+	M_Print(xoffset, 48, "              UI Mouse");
+	if(!ui_mouse.value)M_Print(xoffset + 204, 48, "Off");
+	else if(ui_mouse.value && !ui_mouse_sound.value)
+		M_Print(xoffset + 204, 48, "Quiet");
+	else if(ui_mouse.value && ui_mouse_sound.value)
+		M_Print(xoffset + 204, 48, "Loud");
+	M_Print(xoffset, 56, "         Y Mouse Speed");
 	sprintf(temp, "x%0.1f\n", sensitivityyscale.value);
-	M_Print(xoffset + 204, 48, temp);
-	M_Print(xoffset, 56, "            Exit Style");
-	if(!exitstyle.value)M_Print(xoffset + 204, 56, "DOS");
-	else if(exitstyle.value==1)M_Print(xoffset + 204, 56, "Win");
-	else if(exitstyle.value==2)M_Print(xoffset + 204, 56, "Quick");
-	M_Print(xoffset, 64, "         Autosave/Load");
-	M_DrawCheckbox(xoffset + 204, 64, sv_autosave.value);
-	M_Print(xoffset, 72, "         Save Interval");
+	M_Print(xoffset + 204, 56, temp);
+	M_Print(xoffset, 64, "            Exit Style");
+	if(!exitstyle.value)M_Print(xoffset + 204, 64, "DOS");
+	else if(exitstyle.value==1)M_Print(xoffset + 204, 64, "Win");
+	else if(exitstyle.value==2)M_Print(xoffset + 204, 64, "Quick");
+	M_Print(xoffset, 72, "         Autosave/Load");
+	M_DrawCheckbox(xoffset + 204, 72, sv_autosave.value);
+	M_Print(xoffset, 80, "         Save Interval");
 	sprintf(temp, "%d\n", (s32)sv_autosave_interval.value);
-	M_Print(xoffset + 204, 72, temp);
-	M_Print(xoffset + 204, 80, "Display...");
-	M_Print(xoffset + 204, 88, "Graphics...");
-	M_Print(xoffset + 204, 96, "Gamepad...");
-	M_Print(xoffset + 204, 104, "Custom maps...");
-	M_Print(xoffset + 204, 112, "Mods...");
-	M_Print(xoffset + 204, 120, "Custom HUD...");
-	M_Print(xoffset + 204, 128, "Palette...");
+	M_Print(xoffset + 204, 80, temp);
+	M_Print(xoffset + 204, 88, "Display...");
+	M_Print(xoffset + 204, 96, "Graphics...");
+	M_Print(xoffset + 204, 104, "Gamepad...");
+	M_Print(xoffset + 204, 112, "Custom maps...");
+	M_Print(xoffset + 204, 120, "Mods...");
+	M_Print(xoffset + 204, 128, "Custom HUD...");
+	M_Print(xoffset + 204, 136, "Palette...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -3017,30 +3023,41 @@ void M_New_Key(s32 k)
 		S_LocalSound("misc/menu3.wav");
 		if (new_cursor == 0)
 			Cvar_SetValue("newoptions", !newoptions.value);
-		if (new_cursor == 1)
+		else if (new_cursor == 1)
 			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
-		else if (new_cursor == 2 && sensitivityyscale.value >= 0.1)
+		else if (new_cursor == 2){
+			if(ui_mouse.value && ui_mouse_sound.value)
+				Cvar_SetValue("ui_mouse_sound", 0);
+			else if(ui_mouse.value && !ui_mouse_sound.value){
+				Cvar_SetValue("ui_mouse", 0);
+				Cvar_SetValue("ui_mouse_sound", 0);
+			} else {
+				Cvar_SetValue("ui_mouse", 1);
+				Cvar_SetValue("ui_mouse_sound", 1);
+			}
+		}
+		else if (new_cursor == 3 && sensitivityyscale.value >= 0.1)
 			Cvar_SetValue("sensitivityyscale",
 				      sensitivityyscale.value - 0.1);
-		else if (new_cursor == 3)
+		else if (new_cursor == 4)
 			Cvar_SetValue("exitstyle",
 				CLAMP(0,exitstyle.value - 1, 2));
-		else if (new_cursor == 4){
+		else if (new_cursor == 5){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
 			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
-		else if (new_cursor == 5)
+		else if (new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value - 1,60));
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 12;
+		if (new_cursor == 0) new_cursor = 13;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 12) new_cursor = 0;
+		if (new_cursor == 13) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_RIGHTARROW:
@@ -3050,26 +3067,37 @@ void M_New_Key(s32 k)
 			Cvar_SetValue("newoptions", !newoptions.value);
 		if (new_cursor == 1)
 			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
-		else if (new_cursor == 2 && sensitivityyscale.value >= 0.1)
+		else if (new_cursor == 2){
+			if(ui_mouse.value && ui_mouse_sound.value){
+				Cvar_SetValue("ui_mouse", 0);
+				Cvar_SetValue("ui_mouse_sound", 0);
+			} else if(ui_mouse.value && !ui_mouse_sound.value){
+				Cvar_SetValue("ui_mouse_sound", 1);
+			} else {
+				Cvar_SetValue("ui_mouse", 1);
+				Cvar_SetValue("ui_mouse_sound", 0);
+			}
+		}
+		else if (new_cursor == 3 && sensitivityyscale.value >= 0.1)
 			Cvar_SetValue("sensitivityyscale",
 				      sensitivityyscale.value + 0.1);
-		else if (new_cursor == 3)
+		else if (new_cursor == 4)
 			Cvar_SetValue("exitstyle",
 				CLAMP(0,exitstyle.value + 1, 2));
-		else if (new_cursor == 4){
+		else if (new_cursor == 5){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
 			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
-		else if (new_cursor == 5)
+		else if (new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value + 1,60));
-		else if (new_cursor == 6) M_Menu_Display_f();
-		else if (new_cursor == 7) M_Menu_Graphics_f();
-		else if (new_cursor == 8) M_Menu_Gamepad_f();
-		else if (new_cursor == 9) M_Menu_Maps_f();
-		else if (new_cursor == 10) M_Menu_Mods_f();
-		else if (new_cursor == 11) M_Menu_CSQC_f();
-		else if (new_cursor == 12) M_Menu_Palette_f();
+		else if (new_cursor == 7) M_Menu_Display_f();
+		else if (new_cursor == 8) M_Menu_Graphics_f();
+		else if (new_cursor == 9) M_Menu_Gamepad_f();
+		else if (new_cursor == 10) M_Menu_Maps_f();
+		else if (new_cursor == 11) M_Menu_Mods_f();
+		else if (new_cursor == 12) M_Menu_CSQC_f();
+		else if (new_cursor == 13) M_Menu_Palette_f();
 		break;
 	}
 }
