@@ -3446,6 +3446,9 @@ void M_LanConfig_Draw()
 void M_LanConfig_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Net_f();
 		break;
@@ -3461,6 +3464,9 @@ void M_LanConfig_Key(s32 key)
 		if (lanConfig_cursor >= NUM_LANCONFIG_CMDS)
 			lanConfig_cursor = 0;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		if (lanConfig_cursor == 0)
 			break;
@@ -3716,6 +3722,9 @@ void M_NetStart_Change(s32 dir)
 void M_GameOptions_Key(s32 key)
 {
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_Net_f();
 		break;
@@ -3731,18 +3740,27 @@ void M_GameOptions_Key(s32 key)
 		if (gameoptions_cursor >= NUM_GAMEOPTIONS)
 			gameoptions_cursor = 0;
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		if (gameoptions_cursor == 0)
 			break;
 		S_LocalSound("misc/menu3.wav");
 		M_NetStart_Change(-1);
 		break;
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 		if (gameoptions_cursor == 0)
 			break;
 		S_LocalSound("misc/menu3.wav");
 		M_NetStart_Change(1);
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu2.wav");
 		if (gameoptions_cursor == 0) {
@@ -3834,8 +3852,7 @@ void M_ServerList_Draw()
 			hostcache_t temp;
 			for (i = 0; i < hostCacheCount; i++)
 				for (j = i + 1; j < hostCacheCount; j++)
-					if (strcmp
-					    (hostcache[j].name,
+					if (strcmp (hostcache[j].name,
 					     hostcache[i].name) < 0) {
 						Q_memcpy(&temp, &hostcache[j],
 							 sizeof(hostcache_t));
@@ -3870,12 +3887,18 @@ void M_ServerList_Draw()
 void M_ServerList_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_LanConfig_f();
 		break;
 	case K_SPACE:
 		M_Menu_Search_f();
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_UPARROW:
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu1.wav");
@@ -3883,6 +3906,9 @@ void M_ServerList_Key(s32 k)
 		if (slist_cursor < 0)
 			slist_cursor = hostCacheCount - 1;
 		break;
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_DOWNARROW:
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu1.wav");
@@ -3890,6 +3916,9 @@ void M_ServerList_Key(s32 k)
 		if (slist_cursor >= hostCacheCount)
 			slist_cursor = 0;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu2.wav");
 		m_return_state = m_state;
@@ -3897,8 +3926,7 @@ void M_ServerList_Key(s32 k)
 		slist_sorted = 0;
 		key_dest = key_game;
 		m_state = m_none;
-		Cbuf_AddText(va
-			     ("connect \"%s\"\n",
+		Cbuf_AddText(va("connect \"%s\"\n",
 			      hostcache[slist_cursor].cname));
 		break;
 	default:
@@ -4078,6 +4106,50 @@ void M_Keys_Mouse(s32 x, s32 y)
 	M_SetMouseCursor(&keys_cursor, (y - 48) / 8);
 }
 
+void M_LanConfig_Mouse(s32 x, s32 y)
+{
+	if(x > 48 && x <= 310 && y > 68 && y <= 84)
+		M_SetMouseCursor(&lanConfig_cursor, 0);
+	else if(JoiningGame){
+		if(x > 48 && x <= 310 && y > 88 && y <= 104)
+			M_SetMouseCursor(&lanConfig_cursor, 1);
+		else if(x > 48 && x <= 310 && y > 120 && y <= 136)
+			M_SetMouseCursor(&lanConfig_cursor, 2);
+	}else if(x > 48 && x <= 310 && y > 88 && y <= 104)
+		M_SetMouseCursor(&lanConfig_cursor, 1);
+}
+
+void M_GameOptions_Mouse(s32 x, s32 y)
+{
+	if(x > 48 && x <= 310 && y > 32 && y <= 48)
+		M_SetMouseCursor(&gameoptions_cursor, 0);
+	else if(x > 48 && x <= 310 && y > 56 && y <= 64)
+		M_SetMouseCursor(&gameoptions_cursor, 1);
+	else if(x > 48 && x <= 310 && y > 64 && y <= 72)
+		M_SetMouseCursor(&gameoptions_cursor, 2);
+	else if(x > 48 && x <= 310 && y > 72 && y <= 80)
+		M_SetMouseCursor(&gameoptions_cursor, 3);
+	else if(x > 48 && x <= 310 && y > 80 && y <= 88)
+		M_SetMouseCursor(&gameoptions_cursor, 4);
+	else if(x > 48 && x <= 310 && y > 88 && y <= 96)
+		M_SetMouseCursor(&gameoptions_cursor, 5);
+	else if(x > 48 && x <= 310 && y > 96 && y <= 104)
+		M_SetMouseCursor(&gameoptions_cursor, 6);
+	else if(x > 48 && x <= 310 && y > 112 && y <= 120)
+		M_SetMouseCursor(&gameoptions_cursor, 7);
+	else if(x > 48 && x <= 310 && y > 120 && y <= 136)
+		M_SetMouseCursor(&gameoptions_cursor, 8);
+}
+
+void M_ServerList_Mouse(s32 x, s32 y){
+	if(x < 16 || x >= 310 || y < 32 || y >= 200) return;
+	M_SetMouseCursor(&slist_cursor, (y - 32) / 8);
+	if (slist_cursor < 0)
+		slist_cursor = hostCacheCount - 1;
+	if (slist_cursor >= hostCacheCount)
+		slist_cursor = 0;
+}
+
 void M_MouseCursor(s32 x, s32 y)
 {
 	s32 menu_origin_x = (vid.width - 320 * uiscale) >> 1;
@@ -4109,9 +4181,9 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_graphics: return;
 	case m_help: /* no cursor */ return;
 	case m_quit: return;
-	case m_lanconfig: return;
-	case m_gameoptions: return;
-	case m_search: return;
-	case m_slist: return;
+	case m_lanconfig: M_LanConfig_Mouse(x, y); return;
+	case m_gameoptions: M_GameOptions_Mouse(x, y); return;
+	case m_search: /* no cursor */ return;
+	case m_slist: M_ServerList_Mouse(x, y); return;
 	}
 }
