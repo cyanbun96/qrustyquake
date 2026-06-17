@@ -2906,6 +2906,13 @@ void M_New_Draw()
 		M_Print(xoffset + 204, 48, "Quiet");
 	else if(ui_mouse.value && ui_mouse_sound.value)
 		M_Print(xoffset + 204, 48, "Loud");
+	if (new_cursor == 2) {
+		M_DrawTextBox(52, 158, 30, 2);
+		M_Print(64, 166, "     - Enter        - Escape");
+		M_PrintWhite(64, 166, " LMB            RMB");
+		M_Print(64, 174, "          - Change Values");
+		M_PrintWhite(64, 174, "    Wheel");
+	}
 	M_Print(xoffset, 56, "         Y Mouse Speed");
 	sprintf(temp, "x%0.1f\n", sensitivityyscale.value);
 	M_Print(xoffset + 204, 56, temp);
@@ -3015,10 +3022,16 @@ void M_Gamepad_Key(s32 k)
 void M_New_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		if (!newoptions.value) options_cursor = 0;
 		M_Menu_Options_f();
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		if (new_cursor == 0)
@@ -3036,9 +3049,9 @@ void M_New_Key(s32 k)
 				Cvar_SetValue("ui_mouse_sound", 1);
 			}
 		}
-		else if (new_cursor == 3 && sensitivityyscale.value >= 0.1)
+		else if (new_cursor == 3)
 			Cvar_SetValue("sensitivityyscale",
-				      sensitivityyscale.value - 0.1);
+				      CLAMP(0, sensitivityyscale.value-0.1, 2));
 		else if (new_cursor == 4)
 			Cvar_SetValue("exitstyle",
 				CLAMP(0,exitstyle.value - 1, 2));
@@ -3060,6 +3073,10 @@ void M_New_Key(s32 k)
 		if (new_cursor == 13) new_cursor = 0;
 		else new_cursor++;
 		break;
+	case K_MWHEELUP:
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
@@ -3078,9 +3095,9 @@ void M_New_Key(s32 k)
 				Cvar_SetValue("ui_mouse_sound", 0);
 			}
 		}
-		else if (new_cursor == 3 && sensitivityyscale.value >= 0.1)
+		else if (new_cursor == 3)
 			Cvar_SetValue("sensitivityyscale",
-				      sensitivityyscale.value + 0.1);
+				      CLAMP(0, sensitivityyscale.value+0.1, 2));
 		else if (new_cursor == 4)
 			Cvar_SetValue("exitstyle",
 				CLAMP(0,exitstyle.value + 1, 2));
@@ -3180,6 +3197,9 @@ void M_Video_Key(s32 key)
 	if (vid_testingmode)
 		return;
 	switch (key) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		S_LocalSound("misc/menu1.wav");
 		M_Menu_Options_f();
@@ -3218,6 +3238,9 @@ void M_Video_Key(s32 key)
 				vid_line += VID_ROW_SIZE;
 		}
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu1.wav");
 		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
@@ -4141,13 +4164,42 @@ void M_GameOptions_Mouse(s32 x, s32 y)
 		M_SetMouseCursor(&gameoptions_cursor, 8);
 }
 
-void M_ServerList_Mouse(s32 x, s32 y){
+void M_ServerList_Mouse(s32 x, s32 y)
+{
 	if(x < 16 || x >= 310 || y < 32 || y >= 200) return;
 	M_SetMouseCursor(&slist_cursor, (y - 32) / 8);
 	if (slist_cursor < 0)
 		slist_cursor = hostCacheCount - 1;
 	if (slist_cursor >= hostCacheCount)
 		slist_cursor = 0;
+}
+
+void M_Video_Mouse(s32 x, s32 y)
+{
+	if(x >= 16 && x < 72 && y >= 52 && y < 60)
+		M_SetMouseCursor(&vid_line, 0);
+	if(x >= 120 && x < 176 && y >= 52 && y < 60)
+		M_SetMouseCursor(&vid_line, 1);
+	if(x >= 224 && x < 280 && y >= 52 && y < 60)
+		M_SetMouseCursor(&vid_line, 2);
+	if(x >= 16 && x < 72 && y >= 88 && y < 94)
+		M_SetMouseCursor(&vid_line, 3);
+	if(x >= 120 && x < 176 && y >= 88 && y < 94)
+		M_SetMouseCursor(&vid_line, 4);
+	if(x >= 224 && x < 280 && y >= 88 && y < 94)
+		M_SetMouseCursor(&vid_line, 5);
+	if(x >= 16 && x < 72 && y >= 94 && y < 102)
+		M_SetMouseCursor(&vid_line, 6);
+	if(x >= 120 && x < 176 && y >= 94 && y < 102)
+		M_SetMouseCursor(&vid_line, 7);
+	if(x >= 224 && x < 280 && y >= 94 && y < 102)
+		M_SetMouseCursor(&vid_line, 8);
+}
+
+void M_New_Mouse(s32 x, s32 y)
+{
+	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 14*8)return;
+	M_SetMouseCursor(&new_cursor, (y - 32) / 8);
 }
 
 void M_MouseCursor(s32 x, s32 y)
@@ -4170,8 +4222,8 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_net: /* only one possible cursor position */ return;
 	case m_options: M_Options_Mouse(x, y); return;
 	case m_keys: M_Keys_Mouse(x, y); return;
-	case m_video: return;
-	case m_new: return;
+	case m_video: M_Video_Mouse(x, y); return;
+	case m_new: M_New_Mouse(x, y); return;
 	case m_gamepad: return;
 	case m_display: return;
 	case m_maps: return;
