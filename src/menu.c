@@ -2003,6 +2003,9 @@ void M_Mods_Key(s32 k)
 void M_Display_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
@@ -2021,6 +2024,9 @@ void M_Display_Key(s32 k)
 		if (display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 1);
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		if (display_cursor == 0 && scr_uiscale.value > 1)
@@ -2076,6 +2082,10 @@ void M_Display_Key(s32 k)
 			else display_sel_moden++;
 		}
 		break;
+	case K_MOUSE1:
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
@@ -2355,6 +2365,9 @@ void M_Display_Draw()
 void M_Graphics_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		if (graphics_cursor >= 100) { 
 			S_LocalSound("misc/menu3.wav");
@@ -2363,6 +2376,9 @@ void M_Graphics_Key(s32 k)
 		}
 		M_Menu_New_f();
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		switch (graphics_cursor) {
@@ -2452,6 +2468,10 @@ void M_Graphics_Key(s32 k)
 			!r_alphastyle.value); break;
 		}
 		break;
+	case K_MOUSE1:
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
 		if (graphics_cursor == 0) {
@@ -4202,6 +4222,53 @@ void M_New_Mouse(s32 x, s32 y)
 	M_SetMouseCursor(&new_cursor, (y - 32) / 8);
 }
 
+void M_Display_Mouse(s32 x, s32 y)
+{
+	if(x >= 48 && x < 310 && y >= 32 && y < 32 + 12*8)
+		M_SetMouseCursor(&display_cursor, (y - 32) / 8);
+	else if(x >= 48 && x < 310 && y >= 128 && y < 128 + 3*16)
+		M_SetMouseCursor(&display_cursor, 12 + (y - 128) / 16);
+}
+
+void M_Graphics_Mouse(s32 x, s32 y)
+{
+	if(graphics_cursor < 100){
+		if(x >= 24 && x < 136 && y >= 32 && y < 32 + 9*8)
+			M_SetMouseCursor(&graphics_cursor, (y - 32) / 8);
+	}else if(graphics_cursor < 300){
+		if(!r_lockfog.value){
+			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
+				M_SetMouseCursor(&graphics_cursor,200+(y-32)/8);
+		}else{
+			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 12*8)
+				M_SetMouseCursor(&graphics_cursor,200+(y-32)/8);
+		}
+	}else if(graphics_cursor < 400){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+			M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
+	}else if(graphics_cursor < 500){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+			M_SetMouseCursor(&graphics_cursor,400+(y-32)/8);
+	}else if(graphics_cursor < 600){
+		if(!r_hlwater.value){
+			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 6*8)
+				M_SetMouseCursor(&graphics_cursor,500+(y-32)/8);
+		}else{
+			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 9*8)
+				M_SetMouseCursor(&graphics_cursor,500+(y-32)/8);
+		}
+	}else if(graphics_cursor < 700){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
+			M_SetMouseCursor(&graphics_cursor,600+(y-32)/8);
+	}else if(graphics_cursor < 800){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
+			M_SetMouseCursor(&graphics_cursor,700+(y-32)/8);
+	}else if(graphics_cursor < 900){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 5*8)
+			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
+	}
+}
+
 void M_MouseCursor(s32 x, s32 y)
 {
 	s32 menu_origin_x = (vid.width - 320 * uiscale) >> 1;
@@ -4225,12 +4292,12 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_video: M_Video_Mouse(x, y); return;
 	case m_new: M_New_Mouse(x, y); return;
 	case m_gamepad: return;
-	case m_display: return;
+	case m_display: M_Display_Mouse(x, y); return;
 	case m_maps: return;
 	case m_mods: return;
 	case m_csqc: return;
 	case m_palette: return;
-	case m_graphics: return;
+	case m_graphics: M_Graphics_Mouse(x, y); return;
 	case m_help: /* no cursor */ return;
 	case m_quit: return;
 	case m_lanconfig: M_LanConfig_Mouse(x, y); return;
