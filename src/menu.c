@@ -1752,9 +1752,15 @@ void M_Palette_Draw()
 void M_Palette_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		switch(palette_cursor) {
@@ -1779,6 +1785,10 @@ void M_Palette_Key(s32 k)
 		}
 		refresh_palette++;
 		break;
+	case K_MWHEELUP:
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
@@ -1828,6 +1838,7 @@ void M_Palette_Key(s32 k)
 		break;
 	}
 }
+
 void M_CSQC_Draw()
 {
 	s8 temp[32];
@@ -1869,9 +1880,15 @@ void M_CSQC_Draw()
 void M_CSQC_Key(s32 k)
 {
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		switch(csqc_cursor) {
@@ -1884,6 +1901,10 @@ void M_CSQC_Key(s32 k)
 			CLAMP(0, scr_qchudscale.value - 0.1, 4)); break;
 		}
 		break;
+	case K_MWHEELUP:
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
@@ -2960,9 +2981,15 @@ void M_Gamepad_Key(s32 k)
 	s32 axis = SDL_GetNumJoystickAxes(joystick) - 1;
 	s32 buts = SDL_GetNumJoystickButtons(joystick) - 1;
 	switch (k) {
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		if (gamepad_cursor == 0)
@@ -2992,6 +3019,10 @@ void M_Gamepad_Key(s32 k)
 		else if (gamepad_cursor == 12 && jescapebutton.value >= 0)
 			Cvar_SetValue("jescapebutton", jescapebutton.value - 1);
 		break;
+	case K_MWHEELUP:
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
@@ -4222,12 +4253,32 @@ void M_New_Mouse(s32 x, s32 y)
 	M_SetMouseCursor(&new_cursor, (y - 32) / 8);
 }
 
+void M_CSQC_Mouse(s32 x, s32 y)
+{
+	if(x < 48 || x >= 310 || y < 48 || y >= 48 + 4*8)return;
+	M_SetMouseCursor(&csqc_cursor, (y - 48) / 8);
+}
+
+void M_Palette_Mouse(s32 x, s32 y)
+{
+	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 10*8)return;
+	M_SetMouseCursor(&palette_cursor, (y - 32) / 8);
+}
+
 void M_Display_Mouse(s32 x, s32 y)
 {
 	if(x >= 48 && x < 310 && y >= 32 && y < 32 + 12*8)
 		M_SetMouseCursor(&display_cursor, (y - 32) / 8);
 	else if(x >= 48 && x < 310 && y >= 128 && y < 128 + 3*16)
 		M_SetMouseCursor(&display_cursor, 12 + (y - 128) / 16);
+}
+
+void M_Gamepad_Mouse(s32 x, s32 y)
+{
+	if(x >= 16 && x < 310 && y >= 32 && y < 40)
+		M_SetMouseCursor(&gamepad_cursor, 0);
+	else if(x >= 16 && x < 310 && y >= 48 && y < 48 + 12*8)
+		M_SetMouseCursor(&gamepad_cursor, 1 + (y - 48) / 8);
 }
 
 void M_Graphics_Mouse(s32 x, s32 y)
@@ -4291,15 +4342,15 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_keys: M_Keys_Mouse(x, y); return;
 	case m_video: M_Video_Mouse(x, y); return;
 	case m_new: M_New_Mouse(x, y); return;
-	case m_gamepad: return;
+	case m_gamepad: M_Gamepad_Mouse(x, y); return;
 	case m_display: M_Display_Mouse(x, y); return;
 	case m_maps: return;
 	case m_mods: return;
-	case m_csqc: return;
-	case m_palette: return;
+	case m_csqc: M_CSQC_Mouse(x, y); return;
+	case m_palette: M_Palette_Mouse(x, y); return;
 	case m_graphics: M_Graphics_Mouse(x, y); return;
 	case m_help: /* no cursor */ return;
-	case m_quit: return;
+	case m_quit: /* no cursor */ return;
 	case m_lanconfig: M_LanConfig_Mouse(x, y); return;
 	case m_gameoptions: M_GameOptions_Mouse(x, y); return;
 	case m_search: /* no cursor */ return;
