@@ -1623,6 +1623,19 @@ void M_Maps_Key(s32 k)
 	s32 max_i = maps_total - 1;
 	s32 idx;
 	switch (k) {
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		if(maps_scroll > 0)
+			maps_scroll--;
+		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		if(maps_scroll < maps_total - 19)
+			maps_scroll++;
+		break;
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
@@ -1638,6 +1651,9 @@ void M_Maps_Key(s32 k)
 		if (maps_sortby > 3)
 			maps_sortby = 0;
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		idx = maps_scroll + maps_cursor;
 		if (idx >= 0 && idx < maps_total) {
@@ -1963,9 +1979,25 @@ void M_Mods_Key(s32 k)
 	s32 max_i = mods_total - 1;
 	s32 idx;
 	switch (k) {
+	case K_MWHEELUP:
+		if(!ui_mouse.value)break;
+		if(mods_scroll > 0)
+			mods_scroll--;
+		break;
+	case K_MWHEELDOWN:
+		if(!ui_mouse.value)break;
+		if(mods_scroll < mods_total - 20)
+			mods_scroll++;
+		break;
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ESCAPE:
 		M_Menu_New_f();
 		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
 	case K_ENTER:
 		idx = mods_scroll + mods_cursor;
 		if (idx >= 0 && idx < mods_total) {
@@ -4320,6 +4352,18 @@ void M_Graphics_Mouse(s32 x, s32 y)
 	}
 }
 
+void M_Mods_Mouse(s32 x, s32 y)
+{
+	if(x < 48 || x >= 310 || y < 32 || y >= 32 + 20*8)return;
+	M_SetMouseCursor(&mods_cursor, (y - 32) / 8);
+}
+
+void M_Maps_Mouse(s32 x, s32 y)
+{
+	if(x < 48 || x >= 310 || y < 40 || y >= 40 + 19*8)return;
+	M_SetMouseCursor(&maps_cursor, (y - 40) / 8);
+}
+
 void M_MouseCursor(s32 x, s32 y)
 {
 	s32 menu_origin_x = (vid.width - 320 * uiscale) >> 1;
@@ -4344,8 +4388,8 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_new: M_New_Mouse(x, y); return;
 	case m_gamepad: M_Gamepad_Mouse(x, y); return;
 	case m_display: M_Display_Mouse(x, y); return;
-	case m_maps: return;
-	case m_mods: return;
+	case m_maps: M_Maps_Mouse(x, y); return;
+	case m_mods: M_Mods_Mouse(x, y); return;
 	case m_csqc: M_CSQC_Mouse(x, y); return;
 	case m_palette: M_Palette_Mouse(x, y); return;
 	case m_graphics: M_Graphics_Mouse(x, y); return;
