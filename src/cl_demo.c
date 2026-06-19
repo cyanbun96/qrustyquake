@@ -160,6 +160,8 @@ void CL_PlayDemo_f()
 	}
 	cls.demoplayback = 1;
 	cls.state = ca_connected;
+	for(s32 i = 0; i < MAXSKIES; ++i)
+		r_skyname[i][0] = 0;
 	fscanf(cls.demofile, "%i\n", &cls.forcetrack);
 }
 

@@ -372,13 +372,13 @@ void R_InitSky(texture_t *mt)
 { // A sky texture is 256*128, with the right side being a masked overlay
 	s32 newi = 0;
 	for(; newi < MAXSKIES + 1; ++newi) {
-		if(r_skyname[newi][0] == 0){
-			strncpy(r_skyname[newi], mt->name, 16);
-			break;
-		}
 		if(newi == MAXSKIES){
 			Host_Error("No space for sky: %s\n", mt->name);
 			return;
+		}
+		if(r_skyname[newi][0] == 0){
+			strncpy(r_skyname[newi], mt->name, 16);
+			break;
 		}
 	}
 	u8 *src = (u8 *) mt + mt->offsets[0];
