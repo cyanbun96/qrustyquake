@@ -114,9 +114,10 @@ void Sys_SendKeyEvents()
 		// ON grabs the mouse, kinda like SetRelativeMouseMode(SDL_TRUE)
 		// Fullscreen grabs the mouse unconditionally
 		case SDL_EVENT_MOUSE_MOTION:
-			mouse_x += event.motion.xrel;
-			mouse_y += event.motion.yrel;
-			if(key_dest == key_menu && ui_mouse.value){
+			if(key_dest == key_game){
+				mouse_x += event.motion.xrel;
+				mouse_y += event.motion.yrel;
+			}else if(key_dest == key_menu && ui_mouse.value){
 				s32 mx = event.motion.x;
 				s32 my = event.motion.y;
 				s32 rx = mx - destRect.x;
