@@ -64,7 +64,7 @@ file(GLOB QRUSTYQUAKE_SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.c")
 add_executable(qrustyquake)
 
 if(EMSCRIPTEN)
-	target_link_options(qrustyquake PRIVATE -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=1gb -sSTACK_SIZE=10mb)
+	target_link_options(qrustyquake PRIVATE -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=1gb -sSTACK_SIZE=10mb -sASYNCIFY)
 	target_link_options(qrustyquake PRIVATE --preload-file id1)
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		target_compile_options(qrustyquake PRIVATE -gsource-map)

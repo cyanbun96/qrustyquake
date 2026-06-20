@@ -423,6 +423,9 @@ s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
 		key_lastpress = 0;
 		key_count = -1; // wait for a key down and up
 		Sys_SendKeyEvents();
+#ifdef __EMSCRIPTEN__
+		emscripten_sleep(0);
+#endif
 		pressedEnter += key_lastpress == K_ENTER;
 		pressedM1 += key_lastpress == K_MOUSE1;
 	} while (key_lastpress != 'y' && key_lastpress != 'n'
