@@ -10,7 +10,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 # Features
 
-- A "New Options" menu, can be toggled with "newoptions 0/1"
+- A "Modern Options" menu, can be toggled with "newoptions 0/1"
 
 - Integer/nearest neighbor scaling
 
@@ -53,6 +53,10 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 - Proper UI scaling
   
   - scr_uiscale 1 for no scaling, scr_uiscale 2 for 200% size etc.
+
+- Mouse controls in menus
+
+  - Off by default, enamble in the "Modern Options" menu
 
 - 10 HUD styles (hudstyle 0-9)
   
@@ -246,7 +250,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.8.2
+- Arch Linux [HW] v0.8.3
   
   - The main platform that this port is developed on. The most likely one to work
   
@@ -274,7 +278,7 @@ VM is VirtualBox unless specified otherwise.
   
   - Default heapsize crashes on launch, works with "-heapsize 100000"
 
-- Android [HW, Termux, AARCH64, clang] v0.8.1
+- Android [HW, Termux, AARCH64, clang] v0.8.3
   
   - Ran through X11 with touch controls. *unpleasant*
 
@@ -296,7 +300,7 @@ VM is VirtualBox unless specified otherwise.
 
   - Build_SteamOS.sh script by Pup Luka
 
-- Windows [VM, HW] v0.8.2
+- Windows [VM, HW] v0.8.3
 
   - Runs on Android through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
 
