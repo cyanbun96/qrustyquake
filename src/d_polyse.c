@@ -103,9 +103,15 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 			s32 z = fv->v[5] >> 16;
 			if (!(z >= *zbuf))
 				continue;
-			s32 pix;
+			s32 s = fv->v[2] >> 16;
+			s32 t = fv->v[3] >> 16;
+			if (t >= MAX_LBM_HEIGHT)
+				continue;
+			u8 *row = skintable[t];
+			if (!row)
+				continue;
+			s32 pix = row[s];
 			*zbuf = z;
-			pix = skintable[fv->v[3] >> 16][fv->v[2] >> 16];
 			if (!r_rgblighting.value || !colored_aliaslight)
 				pix = ((u8 *) acolormap)[pix + (fv->v[4] & 0xFF00)];
 			else
@@ -266,11 +272,18 @@ split: // split this edge
 	s32 z = new[5] >> 16;
 	if (z >= *zbuf) {
 		*zbuf = z;
-		s32 pix;
+		s32 s = new[2] >> 16;
+		s32 t = new[3] >> 16;
+		if (t >= MAX_LBM_HEIGHT)
+			goto nodraw;
+		u8 *row = skintable[t];
+		if (!row)
+			goto nodraw;
+		s32 pix = row[s];
 		if (!r_rgblighting.value || !colored_aliaslight)
-			pix = d_pcolormap[skintable[new[3] >> 16][new[2] >> 16]];
+			pix = d_pcolormap[skintable[t][s]];
 		else
-			pix = D_GetRGBPix(((u8*)acolormap)[skintable[new[3] >> 16][new[2] >> 16]]);
+			pix = D_GetRGBPix(((u8*)acolormap)[skintable[t][s]]);
 		if (pix == 0xFF) goto nodraw;
 		if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
