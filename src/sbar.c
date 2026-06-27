@@ -908,7 +908,7 @@ void Sbar_DeathmatchOverlay()
 	Sbar_SortFrags();
 	s32 x = !scr_hudstyle.value ? WW/2 + 168*SCL : 4*SCL;
 	s32 y = !scr_hudstyle.value ? HH - 48*SCL : 40*SCL;
-	if (sb_showscores) {
+	if (sb_showscores || cl.intermission) {
 		qpic_t *pic = Draw_CachePic("gfx/ranking.lmp");
 		Draw_TransPicScaled((WW-pic->width*SCL)/2, 8*SCL, pic, SCL);
 		x = WW/2 - 80*SCL;
