@@ -482,7 +482,6 @@ rebuild:
 
 static void Mod_LoadLighting(lump_t *l)
 { // johnfitz -- replaced with lit support code via lordhavoc
-	lit_loaded = 0;
 	s8 litfilename[MAX_OSPATH];
 	loadmodel->lightdata = NULL;
 	// LordHavoc: check for a .lit file

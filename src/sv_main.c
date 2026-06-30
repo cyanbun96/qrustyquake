@@ -948,6 +948,7 @@ void SV_SpawnServer(s8 *server)
 	q_snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
 	for(s32 i = 0; i < MAXSKIES; ++i)
 		r_skyname[i][0] = 0;
+	lit_loaded = 0;
 	sv.worldmodel = Mod_ForName(sv.modelname, false);
 	if(!sv.worldmodel){
 		str_tolower(server);
