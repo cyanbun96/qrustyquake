@@ -7,6 +7,11 @@ static s32 buttonremap[] = { K_MOUSE1, K_MOUSE3, K_MOUSE2, K_MOUSE4, K_MOUSE5 };
 
 void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
 {
+	if (joysticknum.value <= -1) {
+		Con_Printf("Joystick disabled\n");
+		SDL_SetJoystickEventsEnabled(0);
+		return;
+	}
 	s32 count = -1;
 	SDL_JoystickID *joys = SDL_GetJoysticks(&count);
 	if (joysticknum.value > count - 1 || joysticknum.value < 0) {

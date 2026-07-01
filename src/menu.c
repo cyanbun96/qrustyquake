@@ -1399,9 +1399,18 @@ void M_Gamepad_Draw()
 	M_Print(xoffs, 32, "Device");
 	s32 count = -1;
 	SDL_JoystickID *joys = SDL_GetJoysticks(&count);
-	if (count <= 0) { M_Print(xoffs + 72, 32, "None"); return; }
-	else {
-		if (joysticknum.value > count - 1 || joysticknum.value < 0)
+	if (count <= 0) {
+		gamepad_cursor = 0;
+		M_DrawCursor(80, 32);
+		M_Print(xoffs + 72, 32, "None");
+		return;
+	} else if(joysticknum.value <= -1) {
+		gamepad_cursor = 0;
+		M_DrawCursor(80, 32);
+		M_Print(xoffs + 72, 32, "Disabled");
+		return;
+	} else {
+		if (joysticknum.value > count - 1 || joysticknum.value < -1)
 			joysticknum.value = 0;
 		q_strlcpy(temp, SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]), 28);
 		M_Print(xoffs + 72, 32, temp);
@@ -1451,11 +1460,13 @@ void M_Gamepad_Draw()
 	movey = (movey / (1<<16)) * 24;
 	lookx = (lookx / (1<<16)) * 24;
 	looky = (looky / (1<<16)) * 24;
-	if ((!movex && !movey) || movex >= 11.9 || movex <= -11.9 || 
+	if ((movex < 0.01 && movex > -0.01 && movey < 0.01 && movey > -0.01) ||
+			movex >= 11.9 || movex <= -11.9 || 
 				movey >= 11.9 || movey <= -11.9)
 		M_PrintWhite(36+movex, 176+movey, "+");
 	else M_Print(36+movex, 176+movey, "+");
-	if ((!lookx && !looky) || lookx >= 11.9 || lookx <= -11.9 || 
+	if ((lookx < 0.01 && lookx > -0.01 && looky < 0.01 && looky > -0.01) ||
+			lookx >= 11.9 || lookx <= -11.9 || 
 				looky >= 11.9 || looky <= -11.9)
 		M_PrintWhite(84+lookx, 176+looky, "+");
 	else M_Print(84+lookx, 176+looky, "+");
@@ -3025,7 +3036,8 @@ void M_Gamepad_Key(s32 k)
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		if (gamepad_cursor == 0)
-			Cvar_SetValue("joysticknum", joysticknum.value - 1);
+			Cvar_SetValue("joysticknum",
+					q_max(-1, joysticknum.value-1));
 		else if (gamepad_cursor == 1) Cvar_SetValue("jdeadzone",
 			CLAMP(8, jdeadzone.value-(1<<14)/10, (1<<14)));
 		else if (gamepad_cursor == 2) Cvar_SetValue("jmovesens",
