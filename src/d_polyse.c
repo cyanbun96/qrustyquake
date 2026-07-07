@@ -5,6 +5,12 @@
 
 #include "quakedef.h"
 
+extern cvar_t r_showtris;
+typedef struct { int x0, y0, x1, y1; } debugline_t;
+extern debugline_t r_debuglines[];
+extern int r_numdebuglines;
+#define MAX_DEBUG_LINES 16384
+
 static s32 r_p0[6], r_p1[6], r_p2[6];
 static u8 *d_pcolormap;
 static s32 d_xdenom;
@@ -142,6 +148,28 @@ void D_DrawSubdiv()
 		finalvert_t *i0 = pfv + ptri[i].vertindex[0];
 		finalvert_t *i1 = pfv + ptri[i].vertindex[1];
 		finalvert_t *i2 = pfv + ptri[i].vertindex[2];
+
+		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3) {
+			// edge 0-1
+			r_debuglines[r_numdebuglines].x0 = i0->v[0];
+			r_debuglines[r_numdebuglines].y0 = i0->v[1];
+			r_debuglines[r_numdebuglines].x1 = i1->v[0];
+			r_debuglines[r_numdebuglines].y1 = i1->v[1];
+			r_numdebuglines++;
+			// edge 1-2
+			r_debuglines[r_numdebuglines].x0 = i1->v[0];
+			r_debuglines[r_numdebuglines].y0 = i1->v[1];
+			r_debuglines[r_numdebuglines].x1 = i2->v[0];
+			r_debuglines[r_numdebuglines].y1 = i2->v[1];
+			r_numdebuglines++;
+			// edge 2-0
+			r_debuglines[r_numdebuglines].x0 = i2->v[0];
+			r_debuglines[r_numdebuglines].y0 = i2->v[1];
+			r_debuglines[r_numdebuglines].x1 = i0->v[0];
+			r_debuglines[r_numdebuglines].y1 = i0->v[1];
+			r_numdebuglines++;
+		}
+
 		if(((i0->v[1]-i1->v[1])*(i0->v[0]-i2->v[0])-(i0->v[0]-i1->v[0])
 					*(i0->v[1]-i2->v[1]))>=0)
 			continue;
@@ -176,6 +204,29 @@ void D_DrawNonSubdiv()
 		finalvert_t *i0 = pfv + ptri->vertindex[0];
 		finalvert_t *i1 = pfv + ptri->vertindex[1];
 		finalvert_t *i2 = pfv + ptri->vertindex[2];
+
+		// wireframe hook
+		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3) {
+			// edge 0-1
+			r_debuglines[r_numdebuglines].x0 = i0->v[0];
+			r_debuglines[r_numdebuglines].y0 = i0->v[1];
+			r_debuglines[r_numdebuglines].x1 = i1->v[0];
+			r_debuglines[r_numdebuglines].y1 = i1->v[1];
+			r_numdebuglines++;
+			// edge 1-2
+			r_debuglines[r_numdebuglines].x0 = i1->v[0];
+			r_debuglines[r_numdebuglines].y0 = i1->v[1];
+			r_debuglines[r_numdebuglines].x1 = i2->v[0];
+			r_debuglines[r_numdebuglines].y1 = i2->v[1];
+			r_numdebuglines++;
+			// edge 2-0
+			r_debuglines[r_numdebuglines].x0 = i2->v[0];
+			r_debuglines[r_numdebuglines].y0 = i2->v[1];
+			r_debuglines[r_numdebuglines].x1 = i0->v[0];
+			r_debuglines[r_numdebuglines].y1 = i0->v[1];
+			r_numdebuglines++;
+		}
+
 		d_xdenom=(i0->v[1]-i1->v[1])*(i0->v[0]-i2->v[0])-
 			(i0->v[0]-i1->v[0])*(i0->v[1]-i2->v[1]);
 		if (d_xdenom >= 0)

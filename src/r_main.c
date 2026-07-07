@@ -1,6 +1,88 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+cvar_t r_showtris = {"r_showtris", "0"};
+// Deferred line buffer for wireframe overlay
+#define MAX_DEBUG_LINES 16384
+typedef struct { int x0, y0, x1, y1; } debugline_t;
+debugline_t r_debuglines[MAX_DEBUG_LINES];
+int r_numdebuglines = 0;
+
+// Helper to project a 3D world coordinate into a 2D screen coordinate
+static bool R_ProjectPointToScreen(vec3_t world, int *screenX, int *screenY) {
+    vec3_t local, transformed;
+
+    // Transform against the view
+    VectorSubtract(world, modelorg, local);
+    TransformVector(local, transformed);
+
+    // Don't draw points behind the camera
+    if (transformed[2] < NEAR_CLIP) return false;
+
+    float lzi = 1.0 / transformed[2];
+
+    // Apply field of view scaling
+    float u = xcenter + (xscale * lzi) * transformed[0];
+    float v = ycenter - (yscale * lzi) * transformed[1];
+
+    *screenX = (int)u;
+    *screenY = (int)v;
+    return true;
+}
+
+// Function to calculate all 8 corners and push the 12 edges to our buffer
+void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs) {
+    vec3_t corners[8];
+    int pt[8][2];
+    bool valid[8];
+
+    // Generate the 8 corners of the AABB
+    for (int i = 0; i < 8; i++) {
+        corners[i][0] = origin[0] + ((i & 1) ? maxs[0] : mins[0]);
+        corners[i][1] = origin[1] + ((i & 2) ? maxs[1] : mins[1]);
+        corners[i][2] = origin[2] + ((i & 4) ? maxs[2] : mins[2]);
+        valid[i] = R_ProjectPointToScreen(corners[i], &pt[i][0], &pt[i][1]);
+    }
+
+    // Helper macro to push a line to the buffer if both points are valid
+    #define PUSH_BBOX_LINE(a, b) \
+        if (valid[a] && valid[b] && r_numdebuglines < MAX_DEBUG_LINES) { \
+            r_debuglines[r_numdebuglines].x0 = pt[a][0]; \
+            r_debuglines[r_numdebuglines].y0 = pt[a][1]; \
+            r_debuglines[r_numdebuglines].x1 = pt[b][0]; \
+            r_debuglines[r_numdebuglines].y1 = pt[b][1]; \
+            r_numdebuglines++; \
+        }
+
+    // Bottom face
+    PUSH_BBOX_LINE(0, 1); PUSH_BBOX_LINE(1, 3);
+    PUSH_BBOX_LINE(3, 2); PUSH_BBOX_LINE(2, 0);
+    // Top face
+    PUSH_BBOX_LINE(4, 5); PUSH_BBOX_LINE(5, 7);
+    PUSH_BBOX_LINE(7, 6); PUSH_BBOX_LINE(6, 4);
+    // Vertical edges connecting top and bottom
+    PUSH_BBOX_LINE(0, 4); PUSH_BBOX_LINE(1, 5);
+    PUSH_BBOX_LINE(2, 6); PUSH_BBOX_LINE(3, 7);
+}
+
+// Basic Bresenham algorithm directly writing to 8-bit frame buffer
+void R_DrawDebugLine(int x0, int y0, int x1, int y1, u8 color) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+
+    for (;;) {
+        // Bounds checking against the screen frame
+        if (x0 >= 0 && x0 < vid.width && y0 >= 0 && y0 < vid.height) {
+            vid.buffer[y0 * vid.width + x0] = color;
+        }
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+
 static vec3_t viewlightvec;
 static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 verticalFieldOfView;
@@ -118,6 +200,7 @@ void R_Init()
 	Cvar_RegisterVariable(&lyr_crosshair);
 	Cvar_RegisterVariable(&r_renderscale);
 	Cvar_RegisterVariable(&cl_gun_fovscale);
+	Cvar_RegisterVariable(&r_showtris);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
@@ -174,7 +257,7 @@ void Pal_ParseWorldspawn ()
 void R_NewMap()
 {
 	Pal_ParseWorldspawn();
-	R_InitSkyBox(); // Manoel Kasimier - skyboxes 
+	R_InitSkyBox(); // Manoel Kasimier - skyboxes
 	// clear out efrags in case the level hasn't been reloaded
 	for(s32 i = 0; i < cl.worldmodel->numleafs; i++)
 		cl.worldmodel->leafs[i].efrags = NULL;
@@ -257,7 +340,7 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	// values for perspective projection
 	// if math were exact, the values would range from 0.5 to to range+0.5
 	// hopefully they wll be in the 0.000001 to range+.999999 and truncate
-	// the polygon rasterization will never render in the first row or 
+	// the polygon rasterization will never render in the first row or
 	// column but will definately render in the [range] row and column, so
 	// adjust the buffer origin to get an exact edge to edge fill
 	xcenter = ((f32)r_refdef.vrect.width*0.5)+r_refdef.vrect.x-0.5;
@@ -343,6 +426,11 @@ void R_DrawEntitiesOnList()
 		case mod_alias:
 			VectorCopy(currententity->origin, r_entorigin);
 			VectorSubtract(r_origin, r_entorigin, modelorg);
+			if (r_showtris.value) {
+				R_DebugDrawBBox(currententity->origin,
+								currententity->model->mins,
+								currententity->model->maxs);
+			}
 			// see if the bounding box lets us trivially reject, also sets
 			// trivial accept status
 			if(R_AliasCheckBBox()){
@@ -553,7 +641,7 @@ void R_DrawBEntitiesOnList()
 					}
 					currententity->topnode = NULL;
 				}
-				// put back world rotation and frustum clipping         
+				// put back world rotation and frustum clipping
 				// FIXME: R_RotateBmodel should just work off base_vxx
 				VectorCopy(base_vpn, vpn);
 				VectorCopy(base_vup, vup);
@@ -623,4 +711,12 @@ void R_RenderView()
 	if(fog_density < 1) R_DrawFog();
 	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
+	// process and flush buffer
+	if (r_showtris.value) {
+		for (int i = 0; i < r_numdebuglines; i++) {
+			R_DrawDebugLine(r_debuglines[i].x0, r_debuglines[i].y0,
+							r_debuglines[i].x1, r_debuglines[i].y1, 15);
+		}
+	}
+	r_numdebuglines = 0; // reset for next frame
 }

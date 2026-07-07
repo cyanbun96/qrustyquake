@@ -1,6 +1,12 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+extern cvar_t r_showtris;
+typedef struct { int x0, y0, x1, y1; } debugline_t;
+extern debugline_t r_debuglines[];
+extern int r_numdebuglines;
+#define MAX_DEBUG_LINES 16384
+
 static u32 cacheoffset;
 static medge_t tedge;
 static medge_t *r_pedge;
@@ -71,6 +77,15 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 		lzi0 = r_lzi1;
 	if (lzi0 > r_nearzi) // for mipmap finding
 		r_nearzi = lzi0;
+
+		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES) {
+			r_debuglines[r_numdebuglines].x0 = (int)u0;
+			r_debuglines[r_numdebuglines].y0 = (int)v0;
+			r_debuglines[r_numdebuglines].x1 = (int)r_u1;
+			r_debuglines[r_numdebuglines].y1 = (int)r_v1;
+			r_numdebuglines++;
+		}
+
 	// for right edges, all we want is the effect on 1/z
 	if (r_nearzionly)
 		return;
