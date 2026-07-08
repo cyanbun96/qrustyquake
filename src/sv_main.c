@@ -6,7 +6,7 @@
 #include "quakedef.h"
 
 static s8 localmodels[MAX_MODELS][8]; // inline model names for precache
-static s32 sv_protocol = PROTOCOL_FITZQUAKE; //johnfitz
+static s32 sv_protocol = PROTOCOL_RMQ;
 static s32 fatbytes;
 static u8 *fatpvs;
 static s32 fatpvs_capacity;
