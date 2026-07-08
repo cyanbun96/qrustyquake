@@ -9,6 +9,7 @@ extern cvar_t r_showtris;
 typedef struct { int x0, y0, x1, y1; } debugline_t;
 extern debugline_t r_debuglines[];
 extern int r_numdebuglines;
+extern void R_DrawDebugLine(int x0, int y0, int x1, int y1, u8 color);
 #define MAX_DEBUG_LINES 16384
 
 static s32 r_p0[6], r_p1[6], r_p2[6];
@@ -150,24 +151,9 @@ void D_DrawSubdiv()
 		finalvert_t *i2 = pfv + ptri[i].vertindex[2];
 
 		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3) {
-			// edge 0-1
-			r_debuglines[r_numdebuglines].x0 = i0->v[0];
-			r_debuglines[r_numdebuglines].y0 = i0->v[1];
-			r_debuglines[r_numdebuglines].x1 = i1->v[0];
-			r_debuglines[r_numdebuglines].y1 = i1->v[1];
-			r_numdebuglines++;
-			// edge 1-2
-			r_debuglines[r_numdebuglines].x0 = i1->v[0];
-			r_debuglines[r_numdebuglines].y0 = i1->v[1];
-			r_debuglines[r_numdebuglines].x1 = i2->v[0];
-			r_debuglines[r_numdebuglines].y1 = i2->v[1];
-			r_numdebuglines++;
-			// edge 2-0
-			r_debuglines[r_numdebuglines].x0 = i2->v[0];
-			r_debuglines[r_numdebuglines].y0 = i2->v[1];
-			r_debuglines[r_numdebuglines].x1 = i0->v[0];
-			r_debuglines[r_numdebuglines].y1 = i0->v[1];
-			r_numdebuglines++;
+            R_DrawDebugLine(i0->v[0], i0->v[1], i1->v[0], i1->v[1], 15);
+            R_DrawDebugLine(i1->v[0], i1->v[1], i2->v[0], i2->v[1], 15);
+            R_DrawDebugLine(i2->v[0], i2->v[1], i0->v[0], i0->v[1], 15);
 		}
 
 		if(((i0->v[1]-i1->v[1])*(i0->v[0]-i2->v[0])-(i0->v[0]-i1->v[0])
@@ -207,24 +193,9 @@ void D_DrawNonSubdiv()
 
 		// wireframe hook
 		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3) {
-			// edge 0-1
-			r_debuglines[r_numdebuglines].x0 = i0->v[0];
-			r_debuglines[r_numdebuglines].y0 = i0->v[1];
-			r_debuglines[r_numdebuglines].x1 = i1->v[0];
-			r_debuglines[r_numdebuglines].y1 = i1->v[1];
-			r_numdebuglines++;
-			// edge 1-2
-			r_debuglines[r_numdebuglines].x0 = i1->v[0];
-			r_debuglines[r_numdebuglines].y0 = i1->v[1];
-			r_debuglines[r_numdebuglines].x1 = i2->v[0];
-			r_debuglines[r_numdebuglines].y1 = i2->v[1];
-			r_numdebuglines++;
-			// edge 2-0
-			r_debuglines[r_numdebuglines].x0 = i2->v[0];
-			r_debuglines[r_numdebuglines].y0 = i2->v[1];
-			r_debuglines[r_numdebuglines].x1 = i0->v[0];
-			r_debuglines[r_numdebuglines].y1 = i0->v[1];
-			r_numdebuglines++;
+			R_DrawDebugLine(i0->v[0], i0->v[1], i1->v[0], i1->v[1], 15);
+			R_DrawDebugLine(i1->v[0], i1->v[1], i2->v[0], i2->v[1], 15);
+			R_DrawDebugLine(i2->v[0], i2->v[1], i0->v[0], i0->v[1], 15);
 		}
 
 		d_xdenom=(i0->v[1]-i1->v[1])*(i0->v[0]-i2->v[0])-
