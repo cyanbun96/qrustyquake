@@ -1,6 +1,230 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+cvar_t r_showtris = {"r_showtris", "0"};
+// Deferred line buffer for wireframe overlay
+#define MAX_DEBUG_LINES 16384
+typedef struct { int x0, y0, x1, y1; } debugline_t;
+debugline_t r_debuglines[MAX_DEBUG_LINES];
+int r_numdebuglines = 0;
+// point ent storage
+typedef struct {vec3_t origin;} debugpoint_t;
+#define MAX_DEBUG_POINTS 2048
+debugpoint_t r_debugpoints[MAX_DEBUG_POINTS];
+int r_numdebugpoints = 0;
+
+// Helper to project a 3D point (Used by point entities)
+bool R_ProjectPointToScreen(vec3_t world, int *screenX, int *screenY) {
+    vec3_t local, transformed;
+    VectorSubtract(world, r_origin, local);
+    TransformVector(local, transformed);
+
+    // Revert the hack: strictly cull points behind the camera
+    if (transformed[2] < NEAR_CLIP) return false;
+
+    float lzi = 1.0 / transformed[2];
+    *screenX = (int)(xcenter + (xscale * lzi) * transformed[0]);
+    *screenY = (int)(ycenter - (yscale * lzi) * transformed[1]);
+    return true;
+}
+
+// NEW: True 3D Line Clipping and Projection
+void R_DrawDebugLine3D(vec3_t p1, vec3_t p2) {
+    vec3_t t1, t2, local1, local2;
+
+    // Transform both points to view space
+    VectorSubtract(p1, r_origin, local1);
+    TransformVector(local1, t1);
+    VectorSubtract(p2, r_origin, local2);
+    TransformVector(local2, t2);
+
+    // If both points are entirely behind the camera, discard the line
+    if (t1[2] < NEAR_CLIP && t2[2] < NEAR_CLIP) return;
+
+    // If the line crosses the near plane, interpolate the X/Y coordinates
+    // to exactly where it intersects the near plane to prevent warping.
+    if (t1[2] < NEAR_CLIP) {
+        float frac = (NEAR_CLIP - t1[2]) / (t2[2] - t1[2]);
+        t1[0] += frac * (t2[0] - t1[0]);
+        t1[1] += frac * (t2[1] - t1[1]);
+        t1[2] = NEAR_CLIP;
+    } else if (t2[2] < NEAR_CLIP) {
+        float frac = (NEAR_CLIP - t2[2]) / (t1[2] - t2[2]);
+        t2[0] += frac * (t1[0] - t2[0]);
+        t2[1] += frac * (t1[1] - t2[1]);
+        t2[2] = NEAR_CLIP;
+    }
+
+    // Project the safely clipped 3D segment to 2D
+    float lzi1 = 1.0 / t1[2];
+    float lzi2 = 1.0 / t2[2];
+
+    if (r_numdebuglines < MAX_DEBUG_LINES) {
+        r_debuglines[r_numdebuglines].x0 = (int)(xcenter + (xscale * lzi1) * t1[0]);
+        r_debuglines[r_numdebuglines].y0 = (int)(ycenter - (yscale * lzi1) * t1[1]);
+        r_debuglines[r_numdebuglines].x1 = (int)(xcenter + (xscale * lzi2) * t2[0]);
+        r_debuglines[r_numdebuglines].y1 = (int)(ycenter - (yscale * lzi2) * t2[1]);
+        r_numdebuglines++;
+    }
+}
+
+// Bounding box generation is now incredibly simple and immune to camera glitches
+void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs) {
+    vec3_t corners[8];
+    for (int i = 0; i < 8; i++) {
+        corners[i][0] = origin[0] + ((i & 1) ? maxs[0] : mins[0]);
+        corners[i][1] = origin[1] + ((i & 2) ? maxs[1] : mins[1]);
+        corners[i][2] = origin[2] + ((i & 4) ? maxs[2] : mins[2]);
+    }
+
+    // Bottom face
+    R_DrawDebugLine3D(corners[0], corners[1]); R_DrawDebugLine3D(corners[1], corners[3]);
+    R_DrawDebugLine3D(corners[3], corners[2]); R_DrawDebugLine3D(corners[2], corners[0]);
+    // Top face
+    R_DrawDebugLine3D(corners[4], corners[5]); R_DrawDebugLine3D(corners[5], corners[7]);
+    R_DrawDebugLine3D(corners[7], corners[6]); R_DrawDebugLine3D(corners[6], corners[4]);
+    // Vertical edges connecting top and bottom
+    R_DrawDebugLine3D(corners[0], corners[4]); R_DrawDebugLine3D(corners[1], corners[5]);
+    R_DrawDebugLine3D(corners[2], corners[6]); R_DrawDebugLine3D(corners[3], corners[7]);
+}
+
+// --- 2D Screen Clipping Definitions ---
+#define CLIP_LEFT   1
+#define CLIP_RIGHT  2
+#define CLIP_BOTTOM 4
+#define CLIP_TOP    8
+
+static int ComputeOutCode(int x, int y, int w, int h) {
+    int code = 0;
+    if (x < 0) code |= CLIP_LEFT;
+    else if (x >= w) code |= CLIP_RIGHT;
+    if (y < 0) code |= CLIP_TOP;
+    else if (y >= h) code |= CLIP_BOTTOM;
+    return code;
+}
+
+// Highly optimized Bresenham algorithm with Cohen-Sutherland pre-clipping
+void R_DrawDebugLine(int x0, int y0, int x1, int y1, u8 color) {
+    int w = vid.width;
+    int h = vid.height;
+
+    // 1. Cohen-Sutherland 2D Clipping
+    int outcode0 = ComputeOutCode(x0, y0, w, h);
+    int outcode1 = ComputeOutCode(x1, y1, w, h);
+    bool accept = false;
+
+    while (1) {
+        if (!(outcode0 | outcode1)) { // Bitwise OR is 0: Line is completely inside bounds
+            accept = true;
+            break;
+        } else if (outcode0 & outcode1) { // Bitwise AND is not 0: Line is completely outside bounds
+            break;
+        } else {
+            // Line is partially inside. Calculate the intersection point.
+            int x, y;
+            int outcodeOut = outcode0 ? outcode0 : outcode1;
+
+            if (outcodeOut & CLIP_BOTTOM) {
+                x = x0 + (x1 - x0) * (h - 1 - y0) / (y1 - y0);
+                y = h - 1;
+            } else if (outcodeOut & CLIP_TOP) {
+                x = x0 + (x1 - x0) * (0 - y0) / (y1 - y0);
+                y = 0;
+            } else if (outcodeOut & CLIP_RIGHT) {
+                y = y0 + (y1 - y0) * (w - 1 - x0) / (x1 - x0);
+                x = w - 1;
+            } else if (outcodeOut & CLIP_LEFT) {
+                y = y0 + (y1 - y0) * (0 - x0) / (x1 - x0);
+                x = 0;
+            }
+
+            // Move the outside point to the intersection point
+            if (outcodeOut == outcode0) {
+                x0 = x; y0 = y;
+                outcode0 = ComputeOutCode(x0, y0, w, h);
+            } else {
+                x1 = x; y1 = y;
+                outcode1 = ComputeOutCode(x1, y1, w, h);
+            }
+        }
+    }
+
+    // If the line was completely off-screen, abort drawing
+    if (!accept) return;
+
+    // 2. Fast Bresenham Rasterization
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+
+    for (;;) {
+        // We keep a minor bounds check here strictly as a failsafe against
+        // integer division rounding errors from the clipping math above.
+        if (x0 >= 0 && x0 < w && y0 >= 0 && y0 < h) {
+            vid.buffer[y0 * w + x0] = color;
+        }
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+
+void R_ParseDebugEntities() {
+    r_numdebugpoints = 0;
+    if (!cl.worldmodel || !cl.worldmodel->entities) return;
+
+    const char *data = cl.worldmodel->entities;
+    char key[128], value[4096];
+
+    while (1) {
+        data = COM_Parse(data);
+        if (!data) break;
+        if (com_token[0] != '{') continue;
+
+        bool is_point = true;
+        vec3_t parsed_origin = {0, 0, 0};
+
+        while (1) {
+            data = COM_Parse(data);
+            if (!data || com_token[0] == '}') break;
+
+            strcpy(key, com_token);
+            data = COM_ParseEx(data, CPE_ALLOWTRUNC);
+            if (!data) break;
+            strcpy(value, com_token);
+
+            if (!strcmp(key, "origin")) {
+                sscanf(value, "%f %f %f", &parsed_origin[0], &parsed_origin[1], &parsed_origin[2]);
+            } else if (!strcmp(key, "model")) {
+                is_point = false; // Has a brush model, not a point entity
+            }
+        }
+
+        if (is_point && (parsed_origin[0] != 0 || parsed_origin[1] != 0 || parsed_origin[2] != 0)) {
+            if (r_numdebugpoints < MAX_DEBUG_POINTS) {
+                VectorCopy(parsed_origin, r_debugpoints[r_numdebugpoints].origin);
+                r_numdebugpoints++;
+            }
+        }
+    }
+}
+
+void R_DebugDrawPoint(vec3_t origin) {
+    int sx, sy;
+    if (R_ProjectPointToScreen(origin, &sx, &sy)) {
+        if (r_numdebuglines < MAX_DEBUG_LINES - 2) {
+            int size = 4;
+            r_debuglines[r_numdebuglines].x0 = sx - size; r_debuglines[r_numdebuglines].y0 = sy;
+            r_debuglines[r_numdebuglines].x1 = sx + size; r_debuglines[r_numdebuglines].y1 = sy;
+            r_numdebuglines++;
+            r_debuglines[r_numdebuglines].x0 = sx; r_debuglines[r_numdebuglines].y0 = sy - size;
+            r_debuglines[r_numdebuglines].x1 = sx; r_debuglines[r_numdebuglines].y1 = sy + size;
+            r_numdebuglines++;
+        }
+    }
+}
+
 static vec3_t viewlightvec;
 static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 verticalFieldOfView;
@@ -118,6 +342,7 @@ void R_Init()
 	Cvar_RegisterVariable(&lyr_crosshair);
 	Cvar_RegisterVariable(&r_renderscale);
 	Cvar_RegisterVariable(&cl_gun_fovscale);
+	Cvar_RegisterVariable(&r_showtris);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
@@ -174,7 +399,7 @@ void Pal_ParseWorldspawn ()
 void R_NewMap()
 {
 	Pal_ParseWorldspawn();
-	R_InitSkyBox(); // Manoel Kasimier - skyboxes 
+	R_InitSkyBox(); // Manoel Kasimier - skyboxes
 	// clear out efrags in case the level hasn't been reloaded
 	for(s32 i = 0; i < cl.worldmodel->numleafs; i++)
 		cl.worldmodel->leafs[i].efrags = NULL;
@@ -190,6 +415,7 @@ void R_NewMap()
 	Sky_NewMap();
 	Fog_ParseWorldspawn();
 	R_ParseWorldspawn();
+	R_ParseDebugEntities(); //init point-ent wireframe
 }
 
 void R_SetVrect(vrect_t *pvrectin, vrect_t *pvrect, s32 lineadj)
@@ -257,7 +483,7 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	// values for perspective projection
 	// if math were exact, the values would range from 0.5 to to range+0.5
 	// hopefully they wll be in the 0.000001 to range+.999999 and truncate
-	// the polygon rasterization will never render in the first row or 
+	// the polygon rasterization will never render in the first row or
 	// column but will definately render in the [range] row and column, so
 	// adjust the buffer origin to get an exact edge to edge fill
 	xcenter = ((f32)r_refdef.vrect.width*0.5)+r_refdef.vrect.x-0.5;
@@ -334,6 +560,10 @@ void R_DrawEntitiesOnList()
 		if(currententity == &cl_entities[cl.viewentity]
 			&& !chase_active.value)
 			continue; // don't draw the player
+
+        if (r_showtris.value && currententity->model)
+                R_DebugDrawBBox(currententity->origin, currententity->model->mins, currententity->model->maxs);
+
 		switch(currententity->model->type){
 		case mod_sprite:
 			VectorCopy(currententity->origin, r_entorigin);
@@ -553,7 +783,7 @@ void R_DrawBEntitiesOnList()
 					}
 					currententity->topnode = NULL;
 				}
-				// put back world rotation and frustum clipping         
+				// put back world rotation and frustum clipping
 				// FIXME: R_RotateBmodel should just work off base_vxx
 				VectorCopy(base_vpn, vpn);
 				VectorCopy(base_vup, vup);
@@ -623,4 +853,14 @@ void R_RenderView()
 	if(fog_density < 1) R_DrawFog();
 	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
+	// process and flush buffer
+	if (r_showtris.value) {
+        for (int i = 0; i < r_numdebugpoints; i++)
+            R_DebugDrawPoint(r_debugpoints[i].origin);
+		for (int i = 0; i < r_numdebuglines; i++) {
+			R_DrawDebugLine(r_debuglines[i].x0, r_debuglines[i].y0,
+							r_debuglines[i].x1, r_debuglines[i].y1, 15);
+		}
+        r_numdebuglines = 0; // reset for next frame
+	}
 }

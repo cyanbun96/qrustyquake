@@ -1,6 +1,14 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+extern cvar_t r_showtris;
+typedef struct { int x0, y0, x1, y1; } debugline_t;
+extern debugline_t r_debuglines[];
+extern int r_numdebuglines;
+extern void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
+extern bool R_ProjectPointToScreen(vec3_t world, int *screenX, int *screenY);
+#define MAX_DEBUG_LINES 16384
+
 static u32 cacheoffset;
 static medge_t tedge;
 static medge_t *r_pedge;
@@ -71,6 +79,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 		lzi0 = r_lzi1;
 	if (lzi0 > r_nearzi) // for mipmap finding
 		r_nearzi = lzi0;
+
 	// for right edges, all we want is the effect on 1/z
 	if (r_nearzionly)
 		return;
@@ -268,6 +277,39 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	medge_t *pedges, tedge;
 	pedges = currententity->model->edges;
 	r_lastvertvalid = 0;
+
+    // --- UNIFIED BSP GEOMETRY HOOK ---
+	if (r_showtris.value) {
+		mvertex_t *first_vert = NULL;
+		mvertex_t *prev_vert = NULL;
+
+		for (i = 0; i < fa->numedges; i++) {
+			s32 lindex = currententity->model->surfedges[fa->firstedge + i];
+			mvertex_t *vert;
+
+			if (lindex > 0) vert = &r_pcurrentvertbase[pedges[lindex].v[0]];
+			else vert = &r_pcurrentvertbase[pedges[-lindex].v[1]];
+
+			if (i == 0) {
+				first_vert = vert;
+			} else {
+				// 1. Draw perimeter edge
+				R_DrawDebugLine3D(prev_vert->position, vert->position);
+
+				// 2. Draw inner triangle diagonal if in mode 1
+				if (r_showtris.value == 1 && i > 1 && i < fa->numedges - 1) {
+					R_DrawDebugLine3D(first_vert->position, vert->position);
+				}
+			}
+			prev_vert = vert;
+		}
+		// 3. Close the perimeter loop
+		if (fa->numedges >= 3) {
+			R_DrawDebugLine3D(prev_vert->position, first_vert->position);
+		}
+	}
+	// ---------------------------------
+
 	for (i = 0; i < fa->numedges; i++) {
 		s32 lindex = currententity->model->surfedges[fa->firstedge + i];
 		if (lindex > 0) {
@@ -404,7 +446,7 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 	// this is a dummy to give the caching mechanism someplace to write to
 	r_pedge = &tedge;
 	clipplane_t *pclip = NULL; // set up clip planes
-	s32 i = 3; 
+	s32 i = 3;
 	u32 mask = 0x08;
 	for (; i >= 0; i--, mask >>= 1) {
 		if (r_clipflags & mask) {
