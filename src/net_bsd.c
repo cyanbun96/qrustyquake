@@ -13,9 +13,6 @@ net_driver_t net_drivers[] = {
 	 Datagram_Close, Datagram_Shutdown }
 };
 const s32 net_numdrivers = Q_COUNTOF(net_drivers);
-#ifdef _WIN32
-#include "net_wins.h"
-#endif
 net_landriver_t net_landrivers[] = {
 	{ "UDP", 0, 0, UDP_Init, UDP_Shutdown, UDP_Listen, UDP_OpenSocket,
 	 UDP_CloseSocket, UDP_Connect, UDP_CheckNewConnections, UDP_Read,
