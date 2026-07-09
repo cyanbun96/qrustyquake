@@ -5,6 +5,25 @@
 
 #include "quakedef.h"
 
+#ifdef _WIN32
+const char *__WSAE_StrError(int errcode)
+{
+	static char buffer[256];
+	DWORD len = FormatMessageA(
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			errcode,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			buffer,
+			sizeof(buffer),
+			NULL);
+	if (!len)
+		snprintf(buffer, sizeof(buffer), "WinSock error %d", errcode);
+	return buffer;
+}
+#endif
+
 extern const char* __WSAE_StrError(int errcode);
 static sys_socket_t net_acceptsocket = INVALID_SOCKET;	// socket for fielding new connections
 static sys_socket_t net_controlsocket;
@@ -14,6 +33,14 @@ static in_addr_t myAddr;
 
 sys_socket_t UDP_Init()
 {
+#ifdef _WIN32
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		Con_SafePrintf("UDP_Init: WSAStartup failed\n");
+		return INVALID_SOCKET;
+	}
+#endif
 	s8 buff[MAXHOSTNAMELEN];
 	struct hostent *local;
 	struct qsockaddr addr;

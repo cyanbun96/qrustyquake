@@ -13,21 +13,13 @@ net_driver_t net_drivers[] = {
 	 Datagram_Close, Datagram_Shutdown }
 };
 const s32 net_numdrivers = Q_COUNTOF(net_drivers);
-#ifndef _WIN32
+#ifdef _WIN32
+#include "net_wins.h"
+#endif
 net_landriver_t net_landrivers[] = {
 	{ "UDP", 0, 0, UDP_Init, UDP_Shutdown, UDP_Listen, UDP_OpenSocket,
 	 UDP_CloseSocket, UDP_Connect, UDP_CheckNewConnections, UDP_Read,
 	 UDP_Write, UDP_Broadcast, UDP_AddrToString, UDP_StringToAddr,
 	 UDP_GetSocketAddr, UDP_GetNameFromAddr, UDP_GetAddrFromName,
 	 UDP_AddrCompare, UDP_GetSocketPort, UDP_SetSocketPort } };
-#else
-#include "net_wins.h"
-net_landriver_t net_landrivers[] = {
-	{ "Winsock TCPIP", 0, 0, WINS_Init, WINS_Shutdown, WINS_Listen,
-	 WINS_OpenSocket, WINS_CloseSocket, WINS_Connect,
-	 WINS_CheckNewConnections, WINS_Read, WINS_Write, WINS_Broadcast,
-	 WINS_AddrToString, WINS_StringToAddr, WINS_GetSocketAddr,
-	 WINS_GetNameFromAddr, WINS_GetAddrFromName, WINS_AddrCompare,
-	 WINS_GetSocketPort, WINS_SetSocketPort }, };
-#endif
 const s32 net_numlandrivers = Q_COUNTOF(net_landrivers);

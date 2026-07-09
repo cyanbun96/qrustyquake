@@ -72,10 +72,7 @@ if(EMSCRIPTEN)
 endif()
 
 if(WIN32 OR MSVC OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	list(FILTER QRUSTYQUAKE_SOURCES EXCLUDE REGEX "net_udp.c")
 	target_link_libraries(qrustyquake PRIVATE ws2_32)
-else()
-	list(FILTER QRUSTYQUAKE_SOURCES EXCLUDE REGEX "net_wins.c")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Haiku")
