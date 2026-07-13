@@ -730,6 +730,8 @@ typedef struct edge_s {
 	f32 nearzi;
 	medge_t *owner;
 } edge_t;
+typedef struct { s32 x0, y0, x1, y1; } debugline_t;
+typedef struct { vec3_t origin; } debugpoint_t;
 
 typedef struct {                                                    // d_iface.h
 	f32 u, v;

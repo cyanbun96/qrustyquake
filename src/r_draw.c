@@ -1,14 +1,6 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-extern cvar_t r_showtris;
-typedef struct { int x0, y0, x1, y1; } debugline_t;
-extern debugline_t r_debuglines[];
-extern int r_numdebuglines;
-extern void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
-extern bool R_ProjectPointToScreen(vec3_t world, int *screenX, int *screenY);
-#define MAX_DEBUG_LINES 16384
-
 static u32 cacheoffset;
 static medge_t tedge;
 static medge_t *r_pedge;
@@ -277,25 +269,19 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	medge_t *pedges, tedge;
 	pedges = currententity->model->edges;
 	r_lastvertvalid = 0;
-
-    // --- UNIFIED BSP GEOMETRY HOOK ---
-	if (r_showtris.value) {
+	if (r_showtris.value) { // UNIFIED BSP GEOMETRY HOOK
 		mvertex_t *first_vert = NULL;
 		mvertex_t *prev_vert = NULL;
-
 		for (i = 0; i < fa->numedges; i++) {
 			s32 lindex = currententity->model->surfedges[fa->firstedge + i];
 			mvertex_t *vert;
-
 			if (lindex > 0) vert = &r_pcurrentvertbase[pedges[lindex].v[0]];
 			else vert = &r_pcurrentvertbase[pedges[-lindex].v[1]];
-
 			if (i == 0) {
 				first_vert = vert;
 			} else {
 				// 1. Draw perimeter edge
 				R_DrawDebugLine3D(prev_vert->position, vert->position);
-
 				// 2. Draw inner triangle diagonal if in mode 1
 				if (r_showtris.value == 1 && i > 1 && i < fa->numedges - 1) {
 					R_DrawDebugLine3D(first_vert->position, vert->position);
@@ -303,13 +289,10 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 			}
 			prev_vert = vert;
 		}
-		// 3. Close the perimeter loop
-		if (fa->numedges >= 3) {
+		if (fa->numedges >= 3) { // 3. Close the perimeter loop
 			R_DrawDebugLine3D(prev_vert->position, first_vert->position);
 		}
 	}
-	// ---------------------------------
-
 	for (i = 0; i < fa->numedges; i++) {
 		s32 lindex = currententity->model->surfedges[fa->firstedge + i];
 		if (lindex > 0) {

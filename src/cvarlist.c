@@ -244,6 +244,7 @@ cvar_t gl_cshiftpercent_powerup=       {"gl_cshiftpercent_powerup", "100",1,ZR};
 cvar_t cl_gun_fovscale=                            {"cl_gun_fovscale","1",1,ZR};
 cvar_t ui_mouse=                                          {"ui_mouse","0",1,ZR};
 cvar_t ui_mouse_sound=                              {"ui_mouse_sound","0",1,ZR};
+cvar_t r_showtris=                                     {"r_showtris", "0",0,ZR};
 cvar_t registered=                               {"registered","1",CVAR_ROM,ZR};
 cvar_t cmdline=                                      {"cmdline","",CVAR_ROM,ZR};
 cvar_t vid_mode=                                 {"vid_mode", "0", CVAR_ROM,ZR};

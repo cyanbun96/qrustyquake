@@ -65,6 +65,10 @@ f32 r_aliastransition, r_resfudge;
 s32 d_lightstylevalue[256]; // 8.8 fraction of base light value
 f64 d_times[15];
 s32 colored_aliaslight;
+debugline_t *r_debuglines = 0; // r_showtris
+debugpoint_t *r_debugpoints = 0;
+s32 r_numdebuglines = 0;
+s32 r_numdebugpoints = 0;
 f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
 f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
 f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;

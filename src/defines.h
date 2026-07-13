@@ -583,6 +583,12 @@
 #define CYCLE 128 // turbulent cycle size
 #define MAXVERTS 16 // max points in a surface polygon // r_shared.h
 #define MAXWORKINGVERTS (MAXVERTS+4) // max points in an intermediate polygon (while processing)
+#define MAX_DEBUG_LINES 131072 // r_showtris
+#define MAX_DEBUG_POINTS 8192
+#define CLIP_LEFT 1
+#define CLIP_RIGHT 2
+#define CLIP_BOTTOM 4
+#define CLIP_TOP 8 // r_showtris 
 #ifdef __EMSCRIPTEN__
 #define MAXHEIGHT 600 // erysdren
 #define MAXWIDTH 800
