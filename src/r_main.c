@@ -21,15 +21,16 @@ bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 }
 
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
-{ // 3D Line Clipping and Projection
+{
 	vec3_t t1, t2, local1, local2;
-	VectorSubtract(p1, r_origin, local1); // Transform both points to view space
+	
+	VectorSubtract(p1, modelorg, local1);
 	TransformVector(local1, t1);
-	VectorSubtract(p2, r_origin, local2);
+	VectorSubtract(p2, modelorg, local2);
 	TransformVector(local2, t2);
+
+	// 1. Near Plane Clipping
 	if (t1[2] < NEAR_CLIP && t2[2] < NEAR_CLIP) return;
-	// If the line crosses the near plane, interpolate the X/Y coordinates
-	// to exactly where it intersects the near plane to prevent warping.
 	if (t1[2] < NEAR_CLIP) {
 		float frac = (NEAR_CLIP - t1[2]) / (t2[2] - t1[2]);
 		t1[0] += frac * (t2[0] - t1[0]);
@@ -41,8 +42,47 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 		t2[1] += frac * (t1[1] - t2[1]);
 		t2[2] = NEAR_CLIP;
 	}
-	f32 lzi1 = 1.0 / t1[2]; // Project the safely clipped 3D segment to 2D
+
+	// 2. 3D Frustum Boundary Clipping Math
+	// We dynamically derive the 4 frustum planes from the projection matrix.
+	// A point is inside the screen if its calculated distance is >= 0.
+	float w = vid.width;
+	float h = vid.height;
+	
+	#define DIST_LEFT(t)   ( xscale * t[0] + xcenter * t[2])
+	#define DIST_RIGHT(t)  (-xscale * t[0] + (w - xcenter) * t[2])
+	#define DIST_TOP(t)    (-yscale * t[1] + ycenter * t[2])
+	#define DIST_BOTTOM(t) ( yscale * t[1] + (h - ycenter) * t[2])
+
+	float d1[4] = { DIST_LEFT(t1), DIST_RIGHT(t1), DIST_TOP(t1), DIST_BOTTOM(t1) };
+	float d2[4] = { DIST_LEFT(t2), DIST_RIGHT(t2), DIST_TOP(t2), DIST_BOTTOM(t2) };
+
+	for (int i = 0; i < 4; i++) {
+		if (d1[i] < 0 && d2[i] < 0) return; // Completely outside this frustum plane
+		
+		if (d1[i] < 0) {
+			float frac = d1[i] / (d1[i] - d2[i]);
+			t1[0] += frac * (t2[0] - t1[0]);
+			t1[1] += frac * (t2[1] - t1[1]);
+			t1[2] += frac * (t2[2] - t1[2]);
+			
+			d1[0] = DIST_LEFT(t1); d1[1] = DIST_RIGHT(t1);
+			d1[2] = DIST_TOP(t1);  d1[3] = DIST_BOTTOM(t1);
+		} else if (d2[i] < 0) {
+			float frac = d2[i] / (d2[i] - d1[i]);
+			t2[0] += frac * (t1[0] - t2[0]);
+			t2[1] += frac * (t1[1] - t2[1]);
+			t2[2] += frac * (t1[2] - t2[2]);
+			
+			d2[0] = DIST_LEFT(t2); d2[1] = DIST_RIGHT(t2);
+			d2[2] = DIST_TOP(t2);  d2[3] = DIST_BOTTOM(t2);
+		}
+	}
+
+	// 3. 2D Projection
+	f32 lzi1 = 1.0 / t1[2];
 	f32 lzi2 = 1.0 / t2[2];
+	
 	if (r_numdebuglines < MAX_DEBUG_LINES) {
 		r_debuglines[r_numdebuglines].x0 = (s32)(xcenter + (xscale * lzi1) * t1[0]);
 		r_debuglines[r_numdebuglines].y0 = (s32)(ycenter - (yscale * lzi1) * t1[1]);
@@ -54,21 +94,31 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 
 void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
+	vec3_t old_modelorg;
+
+	// save current state, force modelorg to global spaces
+	VectorCopy(modelorg, old_modelorg);
+	VectorCopy(r_origin, modelorg);
+
 	vec3_t corners[8];
 	for (s32 i = 0; i < 8; i++) {
 		corners[i][0] = origin[0] + ((i & 1) ? maxs[0] : mins[0]);
 		corners[i][1] = origin[1] + ((i & 2) ? maxs[1] : mins[1]);
 		corners[i][2] = origin[2] + ((i & 4) ? maxs[2] : mins[2]);
 	}
-	// Bottom face
+
+	// bottom face
 	R_DrawDebugLine3D(corners[0], corners[1]); R_DrawDebugLine3D(corners[1], corners[3]);
 	R_DrawDebugLine3D(corners[3], corners[2]); R_DrawDebugLine3D(corners[2], corners[0]);
-	// Top face
+	// top face
 	R_DrawDebugLine3D(corners[4], corners[5]); R_DrawDebugLine3D(corners[5], corners[7]);
 	R_DrawDebugLine3D(corners[7], corners[6]); R_DrawDebugLine3D(corners[6], corners[4]);
-	// Vertical edges connecting top and bottom
+	// vertical edges connecting top & bottom
 	R_DrawDebugLine3D(corners[0], corners[4]); R_DrawDebugLine3D(corners[1], corners[5]);
 	R_DrawDebugLine3D(corners[2], corners[6]); R_DrawDebugLine3D(corners[3], corners[7]);
+
+	// restore prev modelorg state
+	VectorCopy(old_modelorg, modelorg);
 }
 
 static s32 ComputeOutCode(s32 x, s32 y, s32 w, s32 h) {
@@ -95,19 +145,20 @@ void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 			break;
 		} else {
 			// partially inside, calculate the intersection point
-			s32 x, y;
+			s32 x = 0, y = 0;
 			s32 outcodeOut = outcode0 ? outcode0 : outcode1;
+
 			if (outcodeOut & CLIP_BOTTOM) {
-				x = x0 + (x1 - x0) * (h - 1 - y0) / (y1 - y0);
+				x = x0 + (s32)((((s64)x1 - x0) * (h - 1 - y0)) / ((s64)y1 - y0));
 				y = h - 1;
 			} else if (outcodeOut & CLIP_TOP) {
-				x = x0 + (x1 - x0) * (0 - y0) / (y1 - y0);
+				x = x0 + (s32)((((s64)x1 - x0) * (0 - y0)) / ((s64)y1 - y0));
 				y = 0;
 			} else if (outcodeOut & CLIP_RIGHT) {
-				y = y0 + (y1 - y0) * (w - 1 - x0) / (x1 - x0);
+				y = y0 + (s32)((((s64)y1 - y0) * (w - 1 - x0)) / ((s64)x1 - x0));
 				x = w - 1;
 			} else if (outcodeOut & CLIP_LEFT) {
-				y = y0 + (y1 - y0) * (0 - x0) / (x1 - x0);
+				y = y0 + (s32)((((s64)y1 - y0) * (0 - x0)) / ((s64)x1 - x0));
 				x = 0;
 			}
 			// move the outside point to the intersection point
