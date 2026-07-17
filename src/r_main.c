@@ -23,26 +23,20 @@ bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 { // 3D Line Clipping and Projection
 	vec3_t t1, t2, local1, local2;
-	VectorSubtract(p1, r_origin, local1); // Transform both points to view space
+	
+	// FIX 1: Use modelorg (local camera origin) instead of r_origin
+	VectorSubtract(p1, modelorg, local1); 
 	TransformVector(local1, t1);
-	VectorSubtract(p2, r_origin, local2);
+	VectorSubtract(p2, modelorg, local2);
 	TransformVector(local2, t2);
-	if (t1[2] < NEAR_CLIP && t2[2] < NEAR_CLIP) return;
-	// If the line crosses the near plane, interpolate the X/Y coordinates
-	// to exactly where it intersects the near plane to prevent warping.
-	if (t1[2] < NEAR_CLIP) {
-		float frac = (NEAR_CLIP - t1[2]) / (t2[2] - t1[2]);
-		t1[0] += frac * (t2[0] - t1[0]);
-		t1[1] += frac * (t2[1] - t1[1]);
-		t1[2] = NEAR_CLIP;
-	} else if (t2[2] < NEAR_CLIP) {
-		float frac = (NEAR_CLIP - t2[2]) / (t1[2] - t2[2]);
-		t2[0] += frac * (t1[0] - t2[0]);
-		t2[1] += frac * (t1[1] - t2[1]);
-		t2[2] = NEAR_CLIP;
-	}
+	
+	// FIX 2: Drop line segments entirely if they cross the near clip plane.
+	// Interpolating individual lines creates "screen-edge shooting" artifacts.
+	if (t1[2] < NEAR_CLIP || t2[2] < NEAR_CLIP) return;
+
 	f32 lzi1 = 1.0 / t1[2]; // Project the safely clipped 3D segment to 2D
 	f32 lzi2 = 1.0 / t2[2];
+	
 	if (r_numdebuglines < MAX_DEBUG_LINES) {
 		r_debuglines[r_numdebuglines].x0 = (s32)(xcenter + (xscale * lzi1) * t1[0]);
 		r_debuglines[r_numdebuglines].y0 = (s32)(ycenter - (yscale * lzi1) * t1[1]);
@@ -99,16 +93,16 @@ void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 			s32 outcodeOut = outcode0 ? outcode0 : outcode1;
 
 			if (outcodeOut & CLIP_BOTTOM) {
-				x = x0 + (s32)(((s64)(x1 - x0) * (h - 1 - y0)) / (y1 - y0));
+				x = x0 + (s32)((((s64)x1 - x0) * (h - 1 - y0)) / ((s64)y1 - y0));
 				y = h - 1;
 			} else if (outcodeOut & CLIP_TOP) {
-				x = x0 + (s32)(((s64)(x1 - x0) * (0 - y0)) / (y1 - y0));
+				x = x0 + (s32)((((s64)x1 - x0) * (0 - y0)) / ((s64)y1 - y0));
 				y = 0;
 			} else if (outcodeOut & CLIP_RIGHT) {
-				y = y0 + (s32)(((s64)(y1 - y0) * (w - 1 - x0)) / (x1 - x0));
+				y = y0 + (s32)((((s64)y1 - y0) * (w - 1 - x0)) / ((s64)x1 - x0));
 				x = w - 1;
 			} else if (outcodeOut & CLIP_LEFT) {
-				y = y0 + (s32)(((s64)(y1 - y0) * (0 - x0)) / (x1 - x0));
+				y = y0 + (s32)((((s64)y1 - y0) * (0 - x0)) / ((s64)x1 - x0));
 				x = 0;
 			}
 			// move the outside point to the intersection point
