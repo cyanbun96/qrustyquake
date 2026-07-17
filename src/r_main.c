@@ -21,20 +21,66 @@ bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 }
 
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
-{ // 3D Line Clipping and Projection
+{
 	vec3_t t1, t2, local1, local2;
 	
-	// FIX 1: Use modelorg (local camera origin) instead of r_origin
-	VectorSubtract(p1, modelorg, local1); 
+	VectorSubtract(p1, modelorg, local1);
 	TransformVector(local1, t1);
 	VectorSubtract(p2, modelorg, local2);
 	TransformVector(local2, t2);
-	
-	// FIX 2: Drop line segments entirely if they cross the near clip plane.
-	// Interpolating individual lines creates "screen-edge shooting" artifacts.
-	if (t1[2] < NEAR_CLIP || t2[2] < NEAR_CLIP) return;
 
-	f32 lzi1 = 1.0 / t1[2]; // Project the safely clipped 3D segment to 2D
+	// 1. Near Plane Clipping
+	if (t1[2] < NEAR_CLIP && t2[2] < NEAR_CLIP) return;
+	if (t1[2] < NEAR_CLIP) {
+		float frac = (NEAR_CLIP - t1[2]) / (t2[2] - t1[2]);
+		t1[0] += frac * (t2[0] - t1[0]);
+		t1[1] += frac * (t2[1] - t1[1]);
+		t1[2] = NEAR_CLIP;
+	} else if (t2[2] < NEAR_CLIP) {
+		float frac = (NEAR_CLIP - t2[2]) / (t1[2] - t2[2]);
+		t2[0] += frac * (t1[0] - t2[0]);
+		t2[1] += frac * (t1[1] - t2[1]);
+		t2[2] = NEAR_CLIP;
+	}
+
+	// 2. 3D Frustum Boundary Clipping Math
+	// We dynamically derive the 4 frustum planes from the projection matrix.
+	// A point is inside the screen if its calculated distance is >= 0.
+	float w = vid.width;
+	float h = vid.height;
+	
+	#define DIST_LEFT(t)   ( xscale * t[0] + xcenter * t[2])
+	#define DIST_RIGHT(t)  (-xscale * t[0] + (w - xcenter) * t[2])
+	#define DIST_TOP(t)    (-yscale * t[1] + ycenter * t[2])
+	#define DIST_BOTTOM(t) ( yscale * t[1] + (h - ycenter) * t[2])
+
+	float d1[4] = { DIST_LEFT(t1), DIST_RIGHT(t1), DIST_TOP(t1), DIST_BOTTOM(t1) };
+	float d2[4] = { DIST_LEFT(t2), DIST_RIGHT(t2), DIST_TOP(t2), DIST_BOTTOM(t2) };
+
+	for (int i = 0; i < 4; i++) {
+		if (d1[i] < 0 && d2[i] < 0) return; // Completely outside this frustum plane
+		
+		if (d1[i] < 0) {
+			float frac = d1[i] / (d1[i] - d2[i]);
+			t1[0] += frac * (t2[0] - t1[0]);
+			t1[1] += frac * (t2[1] - t1[1]);
+			t1[2] += frac * (t2[2] - t1[2]);
+			
+			d1[0] = DIST_LEFT(t1); d1[1] = DIST_RIGHT(t1);
+			d1[2] = DIST_TOP(t1);  d1[3] = DIST_BOTTOM(t1);
+		} else if (d2[i] < 0) {
+			float frac = d2[i] / (d2[i] - d1[i]);
+			t2[0] += frac * (t1[0] - t2[0]);
+			t2[1] += frac * (t1[1] - t2[1]);
+			t2[2] += frac * (t1[2] - t2[2]);
+			
+			d2[0] = DIST_LEFT(t2); d2[1] = DIST_RIGHT(t2);
+			d2[2] = DIST_TOP(t2);  d2[3] = DIST_BOTTOM(t2);
+		}
+	}
+
+	// 3. 2D Projection
+	f32 lzi1 = 1.0 / t1[2];
 	f32 lzi2 = 1.0 / t2[2];
 	
 	if (r_numdebuglines < MAX_DEBUG_LINES) {
