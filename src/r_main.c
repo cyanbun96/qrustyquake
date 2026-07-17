@@ -95,19 +95,20 @@ void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 			break;
 		} else {
 			// partially inside, calculate the intersection point
-			s32 x, y;
+			s32 x = 0, y = 0;
 			s32 outcodeOut = outcode0 ? outcode0 : outcode1;
+
 			if (outcodeOut & CLIP_BOTTOM) {
-				x = x0 + (x1 - x0) * (h - 1 - y0) / (y1 - y0);
+				x = x0 + (s32)(((s64)(x1 - x0) * (h - 1 - y0)) / (y1 - y0));
 				y = h - 1;
 			} else if (outcodeOut & CLIP_TOP) {
-				x = x0 + (x1 - x0) * (0 - y0) / (y1 - y0);
+				x = x0 + (s32)(((s64)(x1 - x0) * (0 - y0)) / (y1 - y0));
 				y = 0;
 			} else if (outcodeOut & CLIP_RIGHT) {
-				y = y0 + (y1 - y0) * (w - 1 - x0) / (x1 - x0);
+				y = y0 + (s32)(((s64)(y1 - y0) * (w - 1 - x0)) / (x1 - x0));
 				x = w - 1;
 			} else if (outcodeOut & CLIP_LEFT) {
-				y = y0 + (y1 - y0) * (0 - x0) / (x1 - x0);
+				y = y0 + (s32)(((s64)(y1 - y0) * (0 - x0)) / (x1 - x0));
 				x = 0;
 			}
 			// move the outside point to the intersection point
