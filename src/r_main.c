@@ -94,21 +94,31 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 
 void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
+	vec3_t old_modelorg;
+
+	// save current state, force modelorg to global spaces
+	VectorCopy(modelorg, old_modelorg);
+	VectorCopy(r_origin, modelorg);
+
 	vec3_t corners[8];
 	for (s32 i = 0; i < 8; i++) {
 		corners[i][0] = origin[0] + ((i & 1) ? maxs[0] : mins[0]);
 		corners[i][1] = origin[1] + ((i & 2) ? maxs[1] : mins[1]);
 		corners[i][2] = origin[2] + ((i & 4) ? maxs[2] : mins[2]);
 	}
-	// Bottom face
+
+	// bottom face
 	R_DrawDebugLine3D(corners[0], corners[1]); R_DrawDebugLine3D(corners[1], corners[3]);
 	R_DrawDebugLine3D(corners[3], corners[2]); R_DrawDebugLine3D(corners[2], corners[0]);
-	// Top face
+	// top face
 	R_DrawDebugLine3D(corners[4], corners[5]); R_DrawDebugLine3D(corners[5], corners[7]);
 	R_DrawDebugLine3D(corners[7], corners[6]); R_DrawDebugLine3D(corners[6], corners[4]);
-	// Vertical edges connecting top and bottom
+	// vertical edges connecting top & bottom
 	R_DrawDebugLine3D(corners[0], corners[4]); R_DrawDebugLine3D(corners[1], corners[5]);
 	R_DrawDebugLine3D(corners[2], corners[6]); R_DrawDebugLine3D(corners[3], corners[7]);
+
+	// restore prev modelorg state
+	VectorCopy(old_modelorg, modelorg);
 }
 
 static s32 ComputeOutCode(s32 x, s32 y, s32 w, s32 h) {
