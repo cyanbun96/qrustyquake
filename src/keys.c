@@ -394,10 +394,21 @@ void Key_Bind_f()
 
 void Key_WriteBindings(FILE *f) // Writes lines containing "bind key value"
 {
+	//DM23 hipnotic support for mjolnir hammer impulse on 0 key
 	for(s32 i = 0; i < 256; i++)
-		if(keybindings[i] && *keybindings[i])
-			fprintf(f, "bind \"%s\" \"%s\"\n",
-				Key_KeynumToString(i), keybindings[i]);
+		if(i == 48)
+		{
+			if(hipnotic)
+				fprintf(f, "bind \"0\" \"impulse 226\"\n");
+			else
+				fprintf(f, "bind \"%s\" \"%s\"\n",
+						Key_KeynumToString(i), keybindings[i]);
+		}
+		else
+			if(keybindings[i] && *keybindings[i])
+				fprintf(f, "bind \"%s\" \"%s\"\n",
+					Key_KeynumToString(i), keybindings[i]);
+
 }
 
 void Key_SetDefaults() // CyanBun96: some paks don't include a default.cfg,
@@ -429,7 +440,10 @@ void Key_SetDefaults() // CyanBun96: some paks don't include a default.cfg,
 	Key_SetBinding('6', "impulse 6");
 	Key_SetBinding('7', "impulse 7");
 	Key_SetBinding('8', "impulse 8");
-	Key_SetBinding('0', "impulse 0");
+	if(hipnotic)//DM23 hipnotic support for mjolnir hammer impulse on 0 key
+		Key_SetBinding('0', "impulse 226");
+	else
+		Key_SetBinding('0', "impulse 0");
 	Key_SetBinding('/', "impulse 10");
 	Key_SetBinding(K_F1, "help");
 	Key_SetBinding(K_F2, "menu_save");
