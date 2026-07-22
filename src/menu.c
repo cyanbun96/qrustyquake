@@ -1238,7 +1238,8 @@ void M_Options_Key(s32 k)
 
 s8 *bindnames[][2] = {
 	{ "+attack", "attack" },
-	{ "impulse 10", "change weapon" },
+	{ "impulse 10", "next weapon" },
+	{ "impulse 12", "previous weapon" },
 	{ "+jump", "jump / swim up" },
 	{ "+forward", "walk forward" },
 	{ "+back", "backpedal" },
