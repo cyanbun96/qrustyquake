@@ -394,7 +394,7 @@ void Key_Bind_f()
 
 void Key_WriteBindings(FILE *f) // Writes lines containing "bind key value"
 {
-	//DM23 hipnotic support for mjolnir hammer impulse on 0 key
+	//DM23: hipnotic support for mjolnir hammer impulse on 0 key
 	for(s32 i = 0; i < 256; i++)
 		if(i == 48)
 		{
@@ -440,7 +440,7 @@ void Key_SetDefaults() // CyanBun96: some paks don't include a default.cfg,
 	Key_SetBinding('6', "impulse 6");
 	Key_SetBinding('7', "impulse 7");
 	Key_SetBinding('8', "impulse 8");
-	if(hipnotic)//DM23 hipnotic support for mjolnir hammer impulse on 0 key
+	if(hipnotic) //DM23: hipnotic support for mjolnir hammer impulse on 0 key
 		Key_SetBinding('0', "impulse 226");
 	else
 		Key_SetBinding('0', "impulse 0");
