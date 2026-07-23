@@ -335,6 +335,8 @@ s8 *Key_KeynumToString(s32 keynum) // Returns a string (either a single ascii
 
 void Key_SetBinding(s32 keynum, s8 *binding)
 {
+	if(keynum == 48 && !strncmp(binding, "impulse 0", 10))
+		return; // useless and breaks hipnotic's mjolnir bind
 	if(keynum == -1) return;
 	if(keybindings[keynum]){ // free old bindings
 		Z_Free(keybindings[keynum]);
@@ -429,7 +431,6 @@ void Key_SetDefaults() // CyanBun96: some paks don't include a default.cfg,
 	Key_SetBinding('6', "impulse 6");
 	Key_SetBinding('7', "impulse 7");
 	Key_SetBinding('8', "impulse 8");
-	Key_SetBinding('0', "impulse 0");
 	Key_SetBinding('/', "impulse 10");
 	Key_SetBinding(K_F1, "help");
 	Key_SetBinding(K_F2, "menu_save");
