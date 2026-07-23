@@ -365,6 +365,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_renderscale);
 	Cvar_RegisterVariable(&cl_gun_fovscale);
 	Cvar_RegisterVariable(&r_showtris);
+	Cvar_RegisterVariable(&r_showtris_color);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
@@ -873,7 +874,8 @@ void R_RenderView()
 			R_DebugDrawPoint(r_debugpoints[i].origin);
 		for (s32 i = 0; i < r_numdebuglines; i++) {
 			R_DrawDebugLine(r_debuglines[i].x0, r_debuglines[i].y0,
-					r_debuglines[i].x1, r_debuglines[i].y1, 15);
+					r_debuglines[i].x1, r_debuglines[i].y1,
+					r_showtris_color.value);
 		}
 		r_numdebuglines = 0;
 	}

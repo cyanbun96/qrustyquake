@@ -143,9 +143,12 @@ void D_DrawSubdiv()
 		finalvert_t *i1 = pfv + ptri[i].vertindex[1];
 		finalvert_t *i2 = pfv + ptri[i].vertindex[2];
 		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3) {
-			R_DrawDebugLine(i0->v[0],i0->v[1],i1->v[0],i1->v[1],15);
-			R_DrawDebugLine(i1->v[0],i1->v[1],i2->v[0],i2->v[1],15);
-			R_DrawDebugLine(i2->v[0],i2->v[1],i0->v[0],i0->v[1],15);
+			R_DrawDebugLine(i0->v[0],i0->v[1],i1->v[0],i1->v[1],
+					r_showtris_color.value);
+			R_DrawDebugLine(i1->v[0],i1->v[1],i2->v[0],i2->v[1],
+					r_showtris_color.value);
+			R_DrawDebugLine(i2->v[0],i2->v[1],i0->v[0],i0->v[1],
+					r_showtris_color.value);
 		}
 		if(((i0->v[1]-i1->v[1])*(i0->v[0]-i2->v[0])-(i0->v[0]-i1->v[0])
 					*(i0->v[1]-i2->v[1]))>=0)
@@ -182,9 +185,12 @@ void D_DrawNonSubdiv()
 		finalvert_t *i1 = pfv + ptri->vertindex[1];
 		finalvert_t *i2 = pfv + ptri->vertindex[2];
 		if (r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3) {
-			R_DrawDebugLine(i0->v[0],i0->v[1],i1->v[0],i1->v[1],15);
-			R_DrawDebugLine(i1->v[0],i1->v[1],i2->v[0],i2->v[1],15);
-			R_DrawDebugLine(i2->v[0],i2->v[1],i0->v[0],i0->v[1],15);
+			R_DrawDebugLine(i0->v[0],i0->v[1],i1->v[0],i1->v[1],
+					r_showtris_color.value);
+			R_DrawDebugLine(i1->v[0],i1->v[1],i2->v[0],i2->v[1],
+					r_showtris_color.value);
+			R_DrawDebugLine(i2->v[0],i2->v[1],i0->v[0],i0->v[1],
+					r_showtris_color.value);
 		}
 		d_xdenom=(i0->v[1]-i1->v[1])*(i0->v[0]-i2->v[0])-
 			(i0->v[0]-i1->v[0])*(i0->v[1]-i2->v[1]);

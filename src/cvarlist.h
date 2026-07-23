@@ -42,4 +42,5 @@ scr_sbaralpha, scr_sbarscale, scr_qchudscale, v_saturation, v_contrast,
 v_redlevel, v_greenlevel, v_bluelevel, v_hue, v_vibrance, v_brightness,
 sv_autosave, sv_autosave_interval, sv_autoload, exitstyle, v_oldviewmodelpos,
 scr_centermenus, v_gunkick, gl_cshiftpercent_contents, gl_cshiftpercent_damage,
-gl_cshiftpercent_bonus, gl_cshiftpercent_powerup, aspectr_lock, cl_gun_fovscale;
+gl_cshiftpercent_bonus, gl_cshiftpercent_powerup, aspectr_lock, cl_gun_fovscale,
+r_showtris_color;
