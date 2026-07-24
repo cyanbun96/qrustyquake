@@ -500,7 +500,16 @@ void Key_Init()
 }
 
 void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
-{ // Called by the system between frames for both key up and key down events
+{
+	if (cls.sellscreen) {
+		if (key == K_BACKSPACE) {
+            cls.sellscreen = 0;
+            Cbuf_AddText("disconnect\n");
+            return;
+		}
+		else if (down) { }
+	}
+	// Called by the system between frames for both key up and key down events
 	keydown[key] = down;
 	if(!down) key_repeats[key] = 0;
 	key_lastpress = key;

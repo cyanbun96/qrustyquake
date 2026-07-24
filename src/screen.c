@@ -22,6 +22,28 @@ static bool scr_drawdialog;
 void SCR_ScreenShot_f();
 void SCR_HUDStyle_f (cvar_t *cvar);
 
+void SCR_DrawSellScreen(void)
+{
+	qpic_t *pic;
+
+	if (!cls.sellscreen) return;
+
+	// Clear the background to black
+	Draw_Fill(0, 0, vid.width, vid.height, 0);
+
+	// Load and draw the sell screen lump centered on the screen
+	pic = Draw_CachePic("gfx/sell.lmp");
+
+	if (!pic) {
+            Cbuf_AddText("help\n");
+            return;
+	}
+
+	Draw_PicScaled((vid.width - pic->width * uiscale) / 2,
+	               (vid.height - pic->height * uiscale) / 2,
+	               pic, uiscale);
+}
+
 void SCR_CenterPrint(const s8 *str) // Called for important messages
 { // that should stay in the center of the screen for a few moments
 	if(con_logcenterprint.value)
@@ -114,7 +136,7 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	r_refdef.fov_y = CalcFov(r_refdef.fov_x,
 		r_refdef.vrect.width, r_refdef.vrect.height);
 	f32 size = cl.intermission ? 120 : scr_viewsize.value;
-	if (size >= 120 || hudstyle != HUD_CLASSIC || 
+	if (size >= 120 || hudstyle != HUD_CLASSIC ||
 			(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))
 		sb_lines = 0; // no status bar at all
 	else if (size >= 110)
@@ -405,7 +427,7 @@ void SCR_DrawNotifyString()
 }
 
 s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
-{ // of the screen and waits for a Y or N keypress.  
+{ // of the screen and waits for a Y or N keypress.
 	if (cls.state == ca_dedicated)
 		return 1;
 	scr_notifystring = text;
@@ -487,12 +509,16 @@ void SCR_UpdateScreen() // This is called every frame,
 	} else if (cl.intermission == 3 && key_dest == key_game) {
 		SCR_CheckDrawCenterString();
 	} else {
-		SCR_DrawRam();
-		SCR_DrawNet();
-		SCR_DrawTurtle();
-		SCR_DrawPause();
-		SCR_CheckDrawCenterString();
-		Sbar_Draw();
+	    if (cls.sellscreen) {
+            SCR_DrawSellScreen();
+	    } else {
+            SCR_DrawRam();
+            SCR_DrawNet();
+            SCR_DrawTurtle();
+            SCR_DrawPause();
+            SCR_CheckDrawCenterString();
+            Sbar_Draw();
+	    }
 		SCR_DrawConsole();
 		M_Draw();
 		SCR_DrawFPS();

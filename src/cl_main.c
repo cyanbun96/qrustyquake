@@ -87,6 +87,7 @@ void CL_Disconnect() // Sends a disconnect message to the server
 	cls.demoplayback = cls.timedemo = 0;
 	cls.signon = 0;
 	cl.sendprespawn = 0;
+	cls.sellscreen = 0;
 }
 
 void CL_Disconnect_f()
@@ -263,7 +264,7 @@ void CL_RelinkEntities()
 		}
 		vec3_t oldorg;
 		VectorCopy(ent->origin, oldorg);
-		if(ent->forcelink){ // the entity was not updated in the last 
+		if(ent->forcelink){ // the entity was not updated in the last
 					// message so move to the final spot
 			VectorCopy(ent->msg_origins[0], ent->origin);
 			VectorCopy(ent->msg_angles[0], ent->angles);
