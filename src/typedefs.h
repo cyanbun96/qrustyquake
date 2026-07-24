@@ -480,7 +480,7 @@ typedef struct {
 					       // for clamping
 	f32 fvrectright; // rightmost edge, for Alias clamping
 	f32 fvrectbottom; // bottommost edge, for Alias clamping
-	f32 horizontalFieldOfView; // at Z = 1.0, this many X is visible 
+	f32 horizontalFieldOfView; // at Z = 1.0, this many X is visible
 				   // 2.0 = 90 degrees
 	f32 xOrigin; // should probably allways be 0.5
 	f32 yOrigin; // between be around 0.3 to 0.5
@@ -1530,6 +1530,7 @@ typedef struct {
 	s32 signon; // 0 to SIGNONS
 	struct qsocket_s *netcon;
 	sizebuf_t message; // writing buffer to send to server
+	s32 sellscreen;
 } client_static_t;
 extern client_static_t cls;
 typedef struct {

@@ -743,7 +743,7 @@ void CL_ParseServerMessage()
 		V_RestoreAngles();
 		break;
 	case svc_sellscreen:
-		Cmd_ExecuteString("help", src_command);
+		cls.sellscreen = 1;
 		break;
 	case svc_skybox: //johnfitz -- new svc types
 		Sky_LoadSkyBox(MSG_ReadString());
