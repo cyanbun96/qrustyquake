@@ -20,25 +20,20 @@ static s8 *scr_notifystring;
 static bool scr_drawdialog;
 
 void SCR_ScreenShot_f();
-void SCR_HUDStyle_f (cvar_t *cvar);
+void SCR_HUDStyle_f(cvar_t *cvar);
 
-void SCR_DrawSellScreen(void)
+void SCR_DrawSellScreen()
 {
 	qpic_t *pic;
-
 	if (!cls.sellscreen) return;
-
 	// Clear the background to black
 	Draw_Fill(0, 0, vid.width, vid.height, 0);
-
 	// Load and draw the sell screen lump centered on the screen
 	pic = Draw_CachePic("gfx/sell.lmp");
-
 	if (!pic) {
-            Cbuf_AddText("help\n");
-            return;
+		Cbuf_AddText("help\n");
+		return;
 	}
-
 	Draw_PicScaled((vid.width - pic->width * uiscale) / 2,
 	               (vid.height - pic->height * uiscale) / 2,
 	               pic, uiscale);
@@ -509,16 +504,13 @@ void SCR_UpdateScreen() // This is called every frame,
 	} else if (cl.intermission == 3 && key_dest == key_game) {
 		SCR_CheckDrawCenterString();
 	} else {
-	    if (cls.sellscreen) {
-            SCR_DrawSellScreen();
-	    } else {
-            SCR_DrawRam();
-            SCR_DrawNet();
-            SCR_DrawTurtle();
-            SCR_DrawPause();
-            SCR_CheckDrawCenterString();
-            Sbar_Draw();
-	    }
+		SCR_DrawRam();
+		SCR_DrawNet();
+		SCR_DrawTurtle();
+		SCR_DrawPause();
+		SCR_CheckDrawCenterString();
+		if (cls.sellscreen) SCR_DrawSellScreen();
+		else Sbar_Draw();
 		SCR_DrawConsole();
 		M_Draw();
 		SCR_DrawFPS();
