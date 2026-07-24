@@ -215,6 +215,27 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
 		drawline = 8;
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
+	s32 effect = 0; // TODO only for centerprints
+	if(effect){
+		s32 litline = (s32)(realtime * 40) % 16;
+		if(litline > 7) litline = 15-litline;
+		while(drawline--){
+			s32 add = q_min(drawline-litline, litline-drawline)+3;
+			for(s32 k = 0; k < scale; ++k){
+				if(dest >= (u8*)scrbuffs[drawlayer]->pixels)
+					for(s32 j = 0; j < scale; ++j)
+					for(s32 i = 0; i < 8; ++i)
+						if(source[i])
+							dest[i * scale + j] = 
+							CLAMP((0xf0&source[i]),
+							add + source[i],
+							(0xf0&source[i])+0x10);
+				dest += vid.width;
+			}
+			source += 128;
+		}
+		return;
+	}
 	while(drawline--){
 		for(s32 k = 0; k < scale; ++k){
 			if(dest >= (u8*)scrbuffs[drawlayer]->pixels)
