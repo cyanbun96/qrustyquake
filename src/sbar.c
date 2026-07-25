@@ -340,11 +340,11 @@ void Sbar_DrawNumSmall(s32 x, s32 y, s32 num, s32 color)
 	else if (color == 1) color = 18;
 	else                 color = 176;
 	if (buf[0] != ' ')
-		Draw_CharacterScaled(x       , y, color+buf[0]-'0', SCL);
+		Draw_CharacterScaled(x       , y, color+buf[0]-'0', SCL, 0);
 	if (buf[1] != ' ')
-		Draw_CharacterScaled(x+8*SCL , y, color+buf[1]-'0', SCL);
+		Draw_CharacterScaled(x+8*SCL , y, color+buf[1]-'0', SCL, 0);
 	if (buf[2] != ' ')
-		Draw_CharacterScaled(x+16*SCL, y, color+buf[2]-'0', SCL);
+		Draw_CharacterScaled(x+16*SCL, y, color+buf[2]-'0', SCL, 0);
 }
 
 void Sbar_SortFrags()
@@ -898,8 +898,8 @@ static inline void Sbar_PlayerScoreBox(s32 x, s32 y, scoreboard_t *s, s32 k)
 	Draw_Fill(x, y+4*SCL, 30*SCL, 3*SCL, bottom);
 	Sbar_DrawNumSmall(x+3*SCL, y-1*SCL, s->frags, 0);
 	if (k == cl.viewentity - 1) {
-		Draw_CharacterScaled(x-2*SCL,y-1*SCL,16,SCL);
-		Draw_CharacterScaled(x+23*SCL,y-1*SCL,17,SCL);
+		Draw_CharacterScaled(x-2*SCL,y-1*SCL,16,SCL, 0);
+		Draw_CharacterScaled(x+23*SCL,y-1*SCL,17,SCL, 0);
 	}
 }
 

@@ -299,7 +299,7 @@ void M_DrawCharacter(s32 cx, s32 cy, s32 num)
 	if(scr_centermenus.value) cy+=(vid.height/uiscale-200)/2;
 	drawlayer = lyr_menu.value;
 	Draw_CharacterScaled(cx * uiscale + ((vid.width - 320 * uiscale) >> 1),
-			     cy * uiscale, num, uiscale);
+			     cy * uiscale, num, uiscale, 0);
 	drawlayer = lyr_main.value;
 }
 

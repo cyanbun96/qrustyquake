@@ -81,7 +81,8 @@ void SCR_DrawCenterString()
 				break;
 		s32 x = (vid.width - l * 8 * uiscale) / 2;
 		for (s32 j = 0; j < l; j++, x += 8 * uiscale) {
-			Draw_CharacterScaled(x, y, start[j], uiscale);
+			Draw_CharacterScaled(x, y, start[j], uiscale,
+					scr_saturntext.value);
 			if (!remaining--) { drawlayer = lyr_main.value; return; }
 		}
 		y += 8 * uiscale;
@@ -411,7 +412,7 @@ void SCR_DrawNotifyString()
 				break;
 		s32 x = (vid.width - l * 8 * uiscale) / 2;
 		for (s32 j = 0; j < l; j++, x += 8 * uiscale)
-			Draw_CharacterScaled(x, y, start[j], uiscale);
+			Draw_CharacterScaled(x, y, start[j], uiscale, 0);
 		y += 8 * uiscale;
 		while (*start && *start != '\n')
 			start++;

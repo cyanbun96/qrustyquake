@@ -278,7 +278,7 @@ void Con_DrawInput()
 			ch = 11;
 		Draw_CharacterScaled(((i + 1) << 3) * uiscale,
 				con_vislines - 16 * uiscale,
-				ch, uiscale);
+				ch, uiscale, 0);
 	}
 }
 
@@ -297,7 +297,7 @@ void Con_DrawNotify()
 		clearnotify = 0;
 		for(x = 0; x < con_linewidth; x++)
 			Draw_CharacterScaled(((x + 1) << 3) * uiscale,
-					     v * uiscale, text[x], uiscale);
+					     v * uiscale, text[x], uiscale, 0);
 		v += 8;
 	}
 	if(key_dest == key_message){
@@ -306,11 +306,11 @@ void Con_DrawNotify()
 		Draw_StringScaled(8 * uiscale, v * uiscale, "say: ", uiscale);
 		while(chat_buffer[x]){
 			Draw_CharacterScaled(((x + 5) << 3) * uiscale,
-					v * uiscale, chat_buffer[x], uiscale);
+					v * uiscale, chat_buffer[x], uiscale, 0);
 			x++;
 		}
 		Draw_CharacterScaled(((x + 5) << 3) * uiscale, v * uiscale,
-			10 + ((s32)(realtime * con_cursorspeed) & 1), uiscale);
+			10 + ((s32)(realtime*con_cursorspeed) & 1), uiscale, 0);
 		v += 8 * uiscale;
 	}
 	if(v > con_notifylines) con_notifylines = v;
@@ -332,7 +332,7 @@ void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 		text = con_text + (j % con_totallines) * con_linewidth;
 		for(s32 x = 0; x < con_linewidth; x++)
 			Draw_CharacterScaled(((x + 1) << 3) * uiscale, y,
-					     text[x], uiscale);
+					     text[x], uiscale, 0);
 	} // draw the input prompt, user text and cursor if desired
 	if(drawinput) Con_DrawInput();
 	drawlayer = lyr_main.value;

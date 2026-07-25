@@ -578,7 +578,7 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
 			+ cl_crossx.value, scr_vrect.y + scr_vrect.height / 2
-			+ cl_crossy.value, cl_crosschar.value, uiscale);
+			+ cl_crossy.value, cl_crosschar.value, uiscale, 0);
 	drawlayer = lyr_main.value;
 }
 
@@ -604,6 +604,7 @@ void V_Init()
 	Cvar_RegisterVariable(&scr_ofsx);
 	Cvar_RegisterVariable(&scr_ofsy);
 	Cvar_RegisterVariable(&scr_ofsz);
+	Cvar_RegisterVariable(&scr_saturntext);
 	Cvar_RegisterVariable(&cl_rollspeed);
 	Cvar_RegisterVariable(&cl_rollangle);
 	Cvar_RegisterVariable(&cl_bob);

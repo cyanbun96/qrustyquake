@@ -188,7 +188,7 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 	}
 }
 
-void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
+void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 { // Draws one 8*8 graphics character with 0 being transparent.
   // It can be clipped to the top of the screen to allow the console
   // to be smoothly scrolled off.
@@ -215,7 +215,6 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
 		drawline = 8;
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
-	s32 effect = 0; // TODO only for centerprints
 	if(effect){
 		s32 litline = (s32)(realtime * 40) % 16;
 		if(litline > 7) litline = 15-litline;
@@ -252,7 +251,7 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale)
 void Draw_StringScaled(s32 x, s32 y, s8 *str, s32 scale)
 {
 	while(*str){
-		Draw_CharacterScaled(x, y, *str, scale);
+		Draw_CharacterScaled(x, y, *str, scale, 0);
 		str++;
 		x += 8 * scale;
 	}
