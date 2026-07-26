@@ -216,19 +216,30 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
 	if(effect){
-		s32 litline = (s32)(realtime * 40) % 16;
-		if(litline > 7) litline = 15-litline;
+		s32 wave = (s32)(sin(realtime * 16.0) * 5.0);
+		s32 top_val = wave;
+		s32 bot_val = -wave;
+		s32 start_row = 8 - drawline;
 		while(drawline--){
-			s32 add = q_min(drawline-litline, litline-drawline)+3;
-			for(s32 k = 0; k < scale; ++k){
-				if(dest >= (u8*)scrbuffs[drawlayer]->pixels)
-					for(s32 j = 0; j < scale; ++j)
-					for(s32 i = 0; i < 8; ++i)
-						if(source[i])
-							dest[i * scale + j] = 
-							CLAMP((0xf0&source[i]),
-							add + source[i],
-							(0xf0&source[i])+0x10);
+			s32 r = start_row++;
+			s32 add = top_val + ((bot_val - top_val) * r) / 7;
+
+			for (s32 k = 0; k < scale; ++k) {
+				if (dest >= (u8*)scrbuffs[drawlayer]->pixels) {
+					for (s32 j = 0; j < scale; ++j) {
+						for (s32 i = 0; i < 8; ++i) {
+							if (source[i]) {
+								s32 base = source[i] & 0xf0;
+								s32 idx = (source[i] & 0x0f) + add;
+
+								if (idx < 0) idx = 0;
+								else if (idx > 15) idx = 15;
+
+								dest[i * scale + j] = base | idx;
+							}
+						}
+					}
+				}
 				dest += vid.width;
 			}
 			source += 128;
@@ -304,7 +315,7 @@ void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
 			dest += vid.width;
 		}
 		source += p->width;
-	}	
+	}
 }
 
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
@@ -577,7 +588,7 @@ void Draw_InitBrightnessDOSLUT()
 { // Used only for the DOS screen fade effect, thus the range [0x10-0x1F]
 	dos_brightness_lut_init++;
 	for(s32 i = 0; i < 256; ++i){
-		dos_brightness_lut[i] = ((host_basepal[i*3] + host_basepal[i*3+1] + 
+		dos_brightness_lut[i] = ((host_basepal[i*3] + host_basepal[i*3+1] +
 			host_basepal[i*3+2]) / 3) / 16 + 0x10;
 	}
 }
@@ -586,7 +597,7 @@ void Draw_InitBrightnessLUT()
 { // Mix 50-50 with black
 	brightness_lut_init++;
 	for(s32 i = 0; i < 256; ++i){
-		brightness_lut[i] = rgbtoi(host_basepal[i*3] / 2, 
+		brightness_lut[i] = rgbtoi(host_basepal[i*3] / 2,
 					host_basepal[i*3+1] / 2,
 					host_basepal[i*3+2] / 2);
 	}
