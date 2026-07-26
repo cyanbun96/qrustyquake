@@ -216,7 +216,9 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
 	if(effect){
-		s32 wave = (s32)(sin(realtime * 16.0) * 5.0);
+        // speed val matches SegaSaturn waveCycle increment
+        // amplitude val exactly matches SGL fixed-point bitshift.
+		s32 wave = (s32)(sin(realtime * 16.0) * 8.0);
 		s32 top_val = wave;
 		s32 bot_val = -wave;
 		s32 start_row = 8 - drawline;
