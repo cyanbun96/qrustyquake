@@ -215,31 +215,24 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 		drawline = 8;
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
-	if(effect){
-        // speed val matches SegaSaturn waveCycle increment
-        // amplitude val exactly matches SGL fixed-point bitshift.
-		s32 wave = (s32)(sin(realtime * 16.0) * 8.0);
+	if(effect){ // 16 - speed, 5 - amplitude
+		s32 wave = (s32)(sin(realtime * 16.0) * 5.0);
 		s32 top_val = wave;
 		s32 bot_val = -wave;
 		s32 start_row = 8 - drawline;
 		while(drawline--){
 			s32 r = start_row++;
 			s32 add = top_val + ((bot_val - top_val) * r) / 7;
-
-			for (s32 k = 0; k < scale; ++k) {
-				if (dest >= (u8*)scrbuffs[drawlayer]->pixels) {
-					for (s32 j = 0; j < scale; ++j) {
-						for (s32 i = 0; i < 8; ++i) {
-							if (source[i]) {
-								s32 base = source[i] & 0xf0;
-								s32 idx = (source[i] & 0x0f) + add;
-
-								if (idx < 0) idx = 0;
-								else if (idx > 15) idx = 15;
-
-								dest[i * scale + j] = base | idx;
-							}
-						}
+			for(s32 k = 0; k < scale; ++k){
+				if(dest >= (u8*)scrbuffs[drawlayer]->pixels){
+					for(s32 j = 0; j < scale; ++j)
+					for(s32 i = 0; i < 8; ++i)
+					if(source[i]){
+						s32 base = source[i]&0xf0;
+						s32 idx = (source[i]&0x0f)+add;
+						if (idx < 0) idx = 0;
+						else if (idx > 15) idx = 15;
+						dest[i*scale+j] = base | idx;
 					}
 				}
 				dest += vid.width;
