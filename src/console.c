@@ -83,6 +83,7 @@ void Con_Init()
 	Con_CheckResize();
 	Con_Printf("Console initialized.\n");
 	Cvar_RegisterVariable(&con_notifytime);
+	Cvar_RegisterVariable(&con_notifycenter);
 	Cvar_RegisterVariable(&con_logcenterprint);
 	Cmd_AddCommand("toggleconsole", Con_ToggleConsole_f);
 	Cmd_AddCommand("messagemode", Con_MessageMode_f);
@@ -282,6 +283,17 @@ void Con_DrawInput()
 	}
 }
 
+s32 spstrlen(s8 *s) // two spaces terminate the string
+{ // that's necessary here since the console is full of spaces
+	s32 i = 0;
+	while (i < con_linewidth) {
+		if (s[i] == ' ' && (i + 1 == con_linewidth || s[i + 1] == ' '))
+			break;
+		++i;
+	}
+	return i;
+}
+
 void Con_DrawNotify()
 { // Draws the last few lines of output transparently over the game top
 	extern s8 chat_buffer[];
@@ -295,9 +307,18 @@ void Con_DrawNotify()
 		if(time > con_notifytime.value) continue;
 		s8 *text = con_text + (i % con_totallines) * con_linewidth;
 		clearnotify = 0;
-		for(x = 0; x < con_linewidth; x++)
-			Draw_CharacterScaled(((x + 1) << 3) * uiscale,
-					     v * uiscale, text[x], uiscale, 0);
+		if(!con_notifycenter.value){
+			for(x = 0; x < con_linewidth; x++)
+				Draw_CharacterScaled(((x + 1) * 8) * uiscale,
+						v*uiscale, text[x], uiscale,
+						scr_saturntext.value);
+		}else{
+			x = (vid.width/(8*uiscale))/2 - spstrlen(text)/2 - 1;
+			for(s32 j = 0; x < con_linewidth; x++, j++)
+				Draw_CharacterScaled(((x + 1) * 8) * uiscale,
+						(v+8)*uiscale, text[j], uiscale,
+						scr_saturntext.value);
+		}
 		v += 8;
 	}
 	if(key_dest == key_message){
