@@ -76,14 +76,14 @@ void SCR_DrawCenterString()
 	drawlayer = lyr_centerprint.value;
 	do {
 		s32 l = 0;
-		for (; l < 40; l++) // scan the width of the line
+		for (; l<(s32)(vid.width/(8*uiscale)); l++) // scan width
 			if (start[l] == '\n' || !start[l])
 				break;
 		s32 x = (vid.width - l * 8 * uiscale) / 2;
 		for (s32 j = 0; j < l; j++, x += 8 * uiscale) {
 			Draw_CharacterScaled(x, y, start[j], uiscale,
 					scr_saturntext.value);
-			if (!remaining--) { drawlayer = lyr_main.value; return; }
+			if (!remaining--) {drawlayer = lyr_main.value; return;}
 		}
 		y += 8 * uiscale;
 		while (*start && *start != '\n')
