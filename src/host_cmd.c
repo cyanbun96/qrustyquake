@@ -4,6 +4,17 @@
 // Copyright(C) 2010-2014 QuakeSpasm developers
 #include "quakedef.h"
 
+#ifdef _WIN32
+    #ifndef S_ISREG
+        // MinGW usually uses standard names, while MSVC uses underscored names
+        #if defined(S_IFMT) && defined(S_IFREG)
+            #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+        #elif defined(_S_IFMT) && defined(_S_IFREG)
+            #define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
+        #endif
+    #endif
+#endif
+
 static s32 maxlevelnamelen = 0;
 static s32 maxmodnamelen = 0;
 static const char* const knownmods[][2] = {
@@ -320,7 +331,7 @@ if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
 		if(svs.clients[i].active&&(svs.clients[i].edict->v.health<=0)){
 			Con_Printf("Can't savegame with a dead player\n");
 			return;
-		} 
+		}
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_AddExtension(name, ".sav", sizeof(name));
 	if(Cmd_Argc()!=3)Con_Printf("Saving game to %s...\n", name);
@@ -408,7 +419,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		Con_Printf("%s looks like a valid save file\n", name);
 	FILE *f = fopen(name, "r");
 	if(!f){
-		Con_Printf("ERROR: couldn't open.\n"); 
+		Con_Printf("ERROR: couldn't open.\n");
 		Host_InvalidateSave(name);
 		return;
 	}
@@ -437,7 +448,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	if(!sv.active){
 		PR_SwitchQCVM(NULL);
 		Con_Printf("Couldn't load map\n");
-		return; 
+		return;
 	}
 	sv.paused = 1; // pause until all clients connect
 	sv.loadgame = 1;
@@ -515,12 +526,12 @@ void Host_DeleteSave_f()
 	}
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, arg);
 	COM_AddExtension(name, ".sav", sizeof(name));
-	struct stat st;
-	if(stat(name, &st) != 0){
+	SDL_PathInfo info;;
+	if(!SDL_GetPathInfo(name, &info)){
 		Con_Printf("ERROR: couldn't find %s\n", name);
 		return;
 	}
-	if(!S_ISREG(st.st_mode)){
+	if(info.type != SDL_PATHTYPE_FILE){
 		Con_Printf("ERROR: not a regular file\n");
 		return;
 	}
@@ -1147,7 +1158,7 @@ static void ExtraMaps_Init_SearchPak(searchpath_t *search)
 			COM_StripExtension(pak->files[i].name + 5, mapname,
 							sizeof(mapname));
 			ExtraMaps_Add(mapname, com_gamedir);
-		} 
+		}
 	}
 }
 
@@ -1261,7 +1272,7 @@ char *Modlist_ReadDescription(const char *mod_path)
 	return desc;
 }
 
-static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const char* dirname, const char* fname) 
+static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const char* dirname, const char* fname)
 {
 	SDL_PathInfo info;
 	s8 fullpath[MAX_OSPATH];
@@ -1275,7 +1286,7 @@ static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const ch
 				maxmodnamelen = Q_strlen(fname);
 			Modlist_Add(fname, desc);
 	}
-	
+
 	return SDL_ENUM_CONTINUE;
 }
 
