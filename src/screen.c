@@ -422,7 +422,7 @@ void SCR_DrawNotifyString()
 	} while (1);
 }
 
-s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
+s32 SCR_ModalMessage(s8 *text, s32 adj) // Displays a text string in the center
 { // of the screen and waits for a Y or N keypress.
 	if (cls.state == ca_dedicated)
 		return 1;
@@ -435,8 +435,8 @@ s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
 	// CyanBun96: pressing Enter in the main single player menu triggers an
 	// Enter press in this loop, that's why we have to check thrice for a
 	// single press
-	s32 pressedEnter = 0;
-	s32 pressedM1 = 0;
+	s32 pressedEnter = adj;
+	s32 pressedM1 = adj;
 	do {
 		key_lastpress = 0;
 		key_count = -1; // wait for a key down and up
@@ -445,10 +445,10 @@ s32 SCR_ModalMessage(s8 *text) // Displays a text string in the center
 		emscripten_sleep(0);
 #endif
 		pressedEnter += key_lastpress == K_ENTER;
-		pressedM1 += key_lastpress == K_MOUSE1;
+		pressedM1 += (key_lastpress == K_MOUSE1 && ui_mouse.value);
 	} while (key_lastpress != 'y' && key_lastpress != 'n'
 		&& key_lastpress != K_ESCAPE && pressedEnter < 3 && pressedM1<3
-		&& (key_lastpress != K_MOUSE2 && ui_mouse.value));
+		&& !(key_lastpress == K_MOUSE2 && ui_mouse.value));
 	scr_fullupdate = 0;
 	SCR_UpdateScreen();
 	return key_lastpress == 'y' || key_lastpress == K_ENTER

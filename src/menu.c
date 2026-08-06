@@ -8,6 +8,8 @@ static s32 m_save_demonum;
 static s32 m_main_cursor;
 static s32 m_singleplayer_cursor;
 static s32 load_cursor; // 0 < load_cursor < MAX_SAVEGAMES
+static s32 delete_save = 0;
+static bool rescan_saves = 0;
 static s8 m_filenames[MAX_SAVEGAMES][MAX_OSPATH*2 + 1];
 static s32 loadable[MAX_SAVEGAMES];
 static s32 m_multiplayer_cursor;
@@ -546,7 +548,7 @@ void M_SinglePlayer_Key(s32 key)
 		case 0:
 			if (sv.active)
 				if (!SCR_ModalMessage
-				    ("Are you sure you want to\nstart a new game?\n"))
+			    ("Are you sure you want to\nstart a new game?\n",0))
 					break;
 			key_dest = key_game;
 			if (sv.active)
@@ -590,7 +592,7 @@ void M_Menu_Load_f()
 	m_entersound = 1;
 	m_state = m_load;
 	key_dest = key_menu;
-	M_ScanSaves();
+	rescan_saves = 1;
 }
 
 void M_Menu_Save_f()
@@ -600,11 +602,12 @@ void M_Menu_Save_f()
 	m_entersound = 1;
 	m_state = m_save;
 	key_dest = key_menu;
-	M_ScanSaves();
+	rescan_saves = 1;
 }
 
 void M_Load_Draw()
 {
+	if(rescan_saves)M_ScanSaves();
 	qpic_t *p = Draw_CachePic("gfx/p_load.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	for (s32 i = 0; i < MAX_SAVEGAMES; i++)
@@ -614,6 +617,7 @@ void M_Load_Draw()
 
 void M_Save_Draw()
 {
+	if(rescan_saves)M_ScanSaves();
 	qpic_t *p = Draw_CachePic("gfx/p_save.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	for (s32 i = 0; i < MAX_SAVEGAMES; i++)
@@ -635,7 +639,7 @@ void M_Load_Key(s32 k)
 		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu2.wav");
-		if (!loadable[load_cursor])
+		if(!loadable[load_cursor])
 			return;
 		m_state = m_none;
 		key_dest = key_game;
@@ -644,6 +648,16 @@ void M_Load_Key(s32 k)
 		SCR_BeginLoadingPlaque();
 		// issue the load command
 		Cbuf_AddText(va("load s%i\n", load_cursor));
+		return;
+	case K_DEL:
+		if(!loadable[load_cursor])
+			return;
+		delete_save = load_cursor;
+		if(SCR_ModalMessage(
+		    "Are you sure you want to\ndelete this save? (y/n)\n", 2)){
+			Cbuf_AddText(va("deletesave s%i\n", delete_save));
+			rescan_saves = 1;
+		}
 		return;
 	case K_UPARROW:
 	case K_LEFTARROW:
@@ -678,6 +692,16 @@ void M_Save_Key(s32 k)
 		m_state = m_none;
 		key_dest = key_game;
 		Cbuf_AddText(va("save s%i\n", load_cursor));
+		return;
+	case K_DEL:
+		if(!loadable[load_cursor])
+			return;
+		delete_save = load_cursor;
+		if(SCR_ModalMessage(
+		    "Are you sure you want to\ndelete this save? (y/n)\n", 2)){
+			Cbuf_AddText(va("deletesave s%i\n", delete_save));
+			rescan_saves = 1;
+		}
 		return;
 	case K_UPARROW:
 	case K_LEFTARROW:

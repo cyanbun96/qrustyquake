@@ -196,7 +196,7 @@ static bool Host_AutoLoad ()
 			svs.maxclients != 1 || cl.intermission)
 		return false;
 	if(sv_autoload.value < 2.f){
-		if(!SCR_ModalMessage ("Load last save? (y/n)")){
+		if(!SCR_ModalMessage("Load last save? (y/n)", 0)){
 			sv.lastsave[0] = '\0';
 			return false;
 		}

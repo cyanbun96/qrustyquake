@@ -198,7 +198,7 @@ void SCR_UpdateScreen();
 void SCR_CenterPrint(const s8 *str);
 void SCR_BeginLoadingPlaque();
 void SCR_EndLoadingPlaque();
-s32 SCR_ModalMessage(s8 *text);
+s32 SCR_ModalMessage(s8 *text, s32 adj);
 EX f32 scr_con_current;
 EX u32 scr_fullupdate;
 EX u32 clearnotify;
