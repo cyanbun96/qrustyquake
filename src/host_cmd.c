@@ -350,6 +350,41 @@ if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
 	q_strlcpy(sv.lastsave, orgname, sizeof(orgname));
 }
 
+bool Host_ValidateSave(const s8 *name)
+{
+	FILE *f = fopen(name, "r");
+	if(!f) return false;
+	s32 version;
+	if(fscanf(f, "%i", &version) != 1) goto invalid;
+	if(version != SAVEGAME_VERSION) goto invalid;
+	s8 description[256];
+	if(fscanf(f, "%255s", description) != 1) goto invalid;
+	f32 parm;
+	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++){
+		if(fscanf(f, "%f", &parm) != 1) goto invalid;
+		if(!isfinite(parm)) goto invalid;
+	}
+	f32 skill;
+	if(fscanf(f, "%f", &skill) != 1) goto invalid;
+	if(!isfinite(skill)) goto invalid;
+	s32 iskill = (s32)(skill + 0.1f);
+	if(iskill < 0 || iskill > 3)
+		goto invalid;
+	s8 mapname[MAX_QPATH];
+	if(fscanf(f, "%63s", mapname) != 1)
+		goto invalid;
+	if(mapname[0] == '\0')
+		goto invalid;
+	f32 time;
+	if(fscanf(f, "%f", &time) != 1) goto invalid;
+	if(!isfinite(time) || time < 0.0f) goto invalid;
+	fclose(f);
+	return true;
+invalid:
+	fclose(f);
+	return false;
+}
+
 void Host_Loadgame_f()
 {
 	s8 name[MAX_OSPATH+2];
@@ -367,6 +402,10 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	// been used. The menu calls it before stuffing loadgame command
 	// SCR_BeginLoadingPlaque();
 	Con_Printf("Loading game from %s...\n", name);
+	if(developer.value && !Host_ValidateSave(name))
+		Con_Printf("WARNING: %s isn't a valid save file\n", name);
+	else if(developer.value)
+		Con_Printf("%s looks like a valid save file\n", name);
 	FILE *f = fopen(name, "r");
 	if(!f){
 		Con_Printf("ERROR: couldn't open.\n"); 
@@ -455,6 +494,45 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		CL_EstablishConnection("local");
 		Host_Reconnect_f();
 	}
+}
+
+void Host_DeleteSave_f()
+{
+	s8 name[MAX_OSPATH + 2];
+	if(cmd_source != src_command) return;
+	if(Cmd_Argc() != 2){
+		Con_Printf("deletesave <savename> : delete a save game\n");
+		return;
+	}
+	const s8 *arg = Cmd_Argv(1);
+	if(strchr(arg, '/') || strchr(arg, '\\')){
+		Con_Printf("ERROR: save name contains slashes\n");
+		return;
+	}
+	if(!strcmp(arg, ".") || !strcmp(arg, "..")){
+		Con_Printf("ERROR: save name starts with dots\n");
+		return;
+	}
+	snprintf(name, sizeof(name), "%s/%s", com_gamedir, arg);
+	COM_AddExtension(name, ".sav", sizeof(name));
+	struct stat st;
+	if(stat(name, &st) != 0){
+		Con_Printf("ERROR: couldn't find %s\n", name);
+		return;
+	}
+	if(!S_ISREG(st.st_mode)){
+		Con_Printf("ERROR: not a regular file\n");
+		return;
+	}
+	if(!Host_ValidateSave(name)){
+		Con_Printf("ERROR: refusing to delete an invalid save file\n");
+		return;
+	}
+	if(remove(name) != 0){
+		Con_Printf("ERROR: couldn't delete %s\n", name);
+		return;
+	}
+	Con_Printf("Deleted save %s\n", arg);
 }
 
 static void Host_Name_f()
@@ -1320,6 +1398,7 @@ void Host_InitCommands()
 	Cmd_AddCommand("ping", Host_Ping_f);
 	Cmd_AddCommand("load", Host_Loadgame_f);
 	Cmd_AddCommand("save", Host_Savegame_f);
+	Cmd_AddCommand("deletesave", Host_DeleteSave_f);
 	Cmd_AddCommand("give", Host_Give_f);
 	Cmd_AddCommand("startdemos", Host_Startdemos_f);
 	Cmd_AddCommand("demos", Host_Demos_f);
