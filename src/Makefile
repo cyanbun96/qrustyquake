@@ -19,7 +19,7 @@ SRCS = cdaudio.c chase.c cl_demo.c cl_input.c cl_main.c cl_parse.c \
 	sbar.c screen.c snd_dma.c snd_mem.c snd_mix.c \
 	snd_sdl.c sv_main.c sv_move.c sv_phys.c sv_user.c \
 	sys_sdl.c vid_sdl.c view.c wad.c world.c \
-	zone.c rgbtoi.c miniz.c vgatext.c image.c
+	zone.c rgbtoi.c vgatext.c image.c
 
 OBJS = $(SRCS:.c=.o)
 

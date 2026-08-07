@@ -4,7 +4,6 @@
 // GPLv3 See LICENSE for details.
 // common.c -- misc functions used in client and server
 #include "quakedef.h"
-#include "miniz.h"
 
 /* All of Quake's data access is through a hierchal file system, but the
 contents of the file system can be transparently merged from several sources.
@@ -1589,12 +1588,6 @@ u32 COM_HashString(const s8 *str)
 	u32 hash = 0x811c9dc5u;
 	while(*str){ hash ^= *str++; hash *= 0x01000193u; }
 	return hash;
-}
-
-size_t mz_zip_file_read_func(void *opaque, mz_uint64 ofs, void *buf, size_t n)
-{
-	if(SDL_SeekIO((SDL_IOStream*)opaque, (Sint64)ofs, SDL_IO_SEEK_SET)<0) return 0;
-	return SDL_ReadIO((SDL_IOStream*)opaque, buf, n);
 }
 
 bool LOC_Init()
