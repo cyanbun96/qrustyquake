@@ -696,7 +696,7 @@ s8 *q_strdup(const s8 *str);
 s32 q_snprintf(s8 *str, size_t size, const s8 *format, ...);
 s32 q_vsnprintf(s8 *str, size_t size, const s8 *format, va_list args);
 s8 *va(const s8 *format, ...);
-void LOC_Init();
+bool LOC_Init();
 const s8* LOC_GetString(const s8 *key);
 bool LOC_HasPlaceholders(const s8 *str);
 size_t LOC_Format(const s8*format,const s8*(*getarg_fn)(s32 idx,void*userdata),void*userdata,s8*out,size_t len);

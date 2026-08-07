@@ -1597,54 +1597,20 @@ size_t mz_zip_file_read_func(void *opaque, mz_uint64 ofs, void *buf, size_t n)
 	return SDL_ReadIO((SDL_IOStream*)opaque, buf, n);
 }
 
-bool LOC_LoadFile(const s8 *file)
+bool LOC_Init()
 {
-	s8 path[1024];
 	s32 i,lineno,warnings;
 	s8 *cursor;
-	SDL_IOStream *rw = NULL;
-	s64 sz;
-	mz_zip_archive archive;
-	size_t size = 0;
 	if(localization.text){ // clear existing data
 		free(localization.text);
 		localization.text = NULL;
 	}
 	localization.numentries = 0;
 	localization.numindices = 0;
-	if(!file || !*file) return 0;
-	memset(&archive, 0, sizeof(archive));
-	q_snprintf(path, sizeof(path), "%s", file);
-	rw = SDL_IOFromFile(path, "rb");
-	if(!rw){
-		q_snprintf(path, sizeof(path), "%s/QuakeEX.kpf", com_basedir);
-		rw = SDL_IOFromFile(path, "rb");
-		if(!rw) goto fail;
-		sz = SDL_GetIOSize(rw);
-		if(sz <= 0) goto fail;
-		archive.m_pRead = mz_zip_file_read_func;
-		archive.m_pIO_opaque = rw;
-		if(!mz_zip_reader_init(&archive, sz, 0)) goto fail;
-		localization.text = (s8 *)
-		   mz_zip_reader_extract_file_to_heap(&archive, file, &size, 0);
-		if(!localization.text) goto fail;
-		mz_zip_reader_end(&archive);
-		SDL_CloseIO(rw);
-		localization.text = (s8 *) realloc(localization.text, size+1);
-		localization.text[size] = 0;
-	}
-	else {
-		sz = SDL_GetIOSize(rw);
-		if(sz <= 0) goto fail;
-		localization.text = (s8 *) calloc(1, sz+1);
-		if(!localization.text){
-fail:			mz_zip_reader_end(&archive);
-			if(rw) SDL_CloseIO(rw);
-			Con_Printf("Couldn't load '%s'\n", file);
-			return 0;
-		}
-		SDL_ReadIO(rw, localization.text, sz);
-		SDL_CloseIO(rw);
+	localization.text = (s8*)COM_LoadMallocFile("fgd/messages.fgd", 0);
+	if(!localization.text){
+		Con_DPrintf("Couldn't load fgd/messages.fgd\n");
+		return 0;
 	}
 	cursor = localization.text;
 	if((u8)(cursor[0])==0xEF&&(u8)(cursor[1])==0xBB&&(u8)(cursor[2])==0xBF)
@@ -1659,11 +1625,13 @@ fail:			mz_zip_reader_end(&archive);
 		equals = NULL;
 		// find line end and first equals sign, if any
 		while(*cursor && *cursor != '\n'){
-			if(*cursor == '=' && !equals)
+			if(*cursor == ':' && !equals)
 				equals = cursor;
 			cursor++;
 		}
-		if(line[0] == '/'){
+		if(line[0] != '\"' || line[1] != '$')
+			Con_DPrintf("Skipped a line in localization file\n");
+		else if(line[0] == '/'){
 			if(line[1] != '/')
 	Con_DPrintf("LOC_LoadFile: malformed comment on line %d\n", lineno);
 		}
@@ -1699,6 +1667,8 @@ fail:			mz_zip_reader_end(&archive);
 					case 'v': *value_dst++ = '\v'; break;
 					case 'b': *value_dst++ = '\b'; break;
 					case 'f': *value_dst++ = '\f'; break;
+					case 'r': *value_dst++ = '\r'; break;
+					case '\\': *value_dst++ = '\\'; break;
 					case '"':
 					case '\'':
 						*value_dst++ = c;
@@ -1738,7 +1708,12 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 					* localization.maxnumentries);
 			}
 			entry=&localization.entries[localization.numentries++];
-			entry->key = line;
+			entry->key = &line[2]; // skip quote and dollar sign
+			for(s32 i = 0; entry->key[i]; i++)
+				if(entry->key[i] == '\"'){
+					entry->key[i] = 0;
+					break;
+				}
 			entry->value = value;
 		}
 		if(*cursor) *cursor++ = 0; //terminate line and advance to next
@@ -1748,7 +1723,7 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 	// hash all entries
 	localization.numindices = localization.numentries * 2; //50% load factor
 	if(localization.numindices == 0){
-		Con_Printf("No localized strings in file '%s'\n", file);
+		Con_Printf("No localized strings in file 'fgd/messages.fgd'\n");
 		return 0;
 	}
 	localization.indices = (u32*) realloc(localization.indices,
@@ -1769,12 +1744,10 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 			if(pos == end) Sys_Error("LOC_LoadFile failed");
 		}
 	}
-	Con_SafePrintf("Loaded %d strings from '%s'\n",
-			localization.numentries, path);
+	Con_SafePrintf("Loaded %d strings from 'fgd/messages.fgd'\n",
+			localization.numentries);
 	return 1;
 }
-
-void LOC_Init(){ LOC_LoadFile("localization/loc_english.txt"); }
 
 const s8* LOC_GetRawString(const s8 *key)
 { // Returns localized string if available, or NULL otherwise
