@@ -1766,8 +1766,7 @@ typedef struct {
 	s32 numindices;
 	u32 *indices;
 	locentry_t *entries;
-	s8 *text; // messages.fgd
-	s8 *text2; // loc_english.txt
+	s8 *text;
 } localization_t;
 
 typedef struct stdio_buffer_s {                                       // image.c

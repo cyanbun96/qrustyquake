@@ -1599,140 +1599,22 @@ size_t mz_zip_file_read_func(void *opaque, mz_uint64 ofs, void *buf, size_t n)
 
 bool LOC_Init()
 {
-	s32 i,lineno,warnings;
-	s8 *cursor;
 	if(localization.text){ // clear existing data
 		free(localization.text);
 		localization.text = NULL;
 	}
 	localization.numentries = 0;
 	localization.numindices = 0;
-	localization.text = (s8*)COM_LoadMallocFile("fgd/messages.fgd", 0);
+	localization.text = (s8*)COM_LoadMallocFile("localization/loc_english.txt", 0);
 	if(!localization.text){
-		Con_DPrintf("Couldn't load fgd/messages.fgd\n");
-		goto loc_2;
-	}
-	cursor = localization.text;
-	if((u8)(cursor[0])==0xEF&&(u8)(cursor[1])==0xBB&&(u8)(cursor[2])==0xBF)
-		cursor += 3; // skip BOM
-	warnings = 0;
-	lineno = 0;
-	while(*cursor){
-		s8 *line, *equals;
-		lineno++;
-		while(q_isblank(*cursor)) ++cursor; // skip leading whitespace
-		line = cursor;
-		equals = NULL;
-		// find line end and first equals sign, if any
-		while(*cursor && *cursor != '\n'){
-			if(*cursor == ':' && !equals)
-				equals = cursor;
-			cursor++;
-		}
-		if(line[0] != '\"' || line[1] != '$')
-			Con_DPrintf("Skipped a line in localization file\n");
-		else if(line[0] == '/'){
-			if(line[1] != '/')
-	Con_DPrintf("LOC_LoadFile: malformed comment on line %d\n", lineno);
-		}
-		else if(equals){
-			s8 *key_end = equals;
-			bool leading_quote;
-			bool trailing_quote;
-			locentry_t *entry;
-			s8 *value_src;
-			s8 *value_dst;
-			s8 *value;
-			// trim whitespace before equals sign
-			while(key_end != line && q_isspace(key_end[-1]))
-				key_end--;
-			*key_end = 0;
-			value = equals + 1;
-			// skip whitespace after equals sign
-			while(value != cursor && q_isspace(*value))
-				value++;
-			leading_quote = (*value == '\"');
-			trailing_quote = 0;
-			value += leading_quote;
-			// transform escape sequences in-place
-			value_src = value;
-			value_dst = value;
-			while(value_src != cursor){
-				if(*value_src=='\\' && value_src+1!=cursor){
-					s8 c = value_src[1];
-					value_src += 2;
-					switch(c){
-					case 'n': *value_dst++ = '\n'; break;
-					case 't': *value_dst++ = '\t'; break;
-					case 'v': *value_dst++ = '\v'; break;
-					case 'b': *value_dst++ = '\b'; break;
-					case 'f': *value_dst++ = '\f'; break;
-					case 'r': *value_dst++ = '\r'; break;
-					case '\\': *value_dst++ = '\\'; break;
-					case '"':
-					case '\'':
-						*value_dst++ = c;
-						break;
-					default:
-Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
-		c, lineno);
-						*value_dst++ = c;
-						break;
-					}
-					continue;
-				}
-				if(*value_src == '\"'){
-					trailing_quote = 1;
-					*value_dst = 0;
-					break;
-				}
-				*value_dst++ = *value_src++;
-			}
-			// if not a quoted string, trim trailing whitespace
-			if(!trailing_quote){
-				while(value_dst != value
-					&& q_isblank(value_dst[-1])){
-					*value_dst = 0;
-					value_dst--;
-				}
-			}
-			if(localization.numentries==localization.maxnumentries){
-				// grow by 50%
-				localization.maxnumentries +=
-					localization.maxnumentries >> 1;
-				localization.maxnumentries =
-					q_max(localization.maxnumentries, 32);
-				localization.entries = (locentry_t*)
-					realloc(localization.entries,
-					sizeof(*localization.entries)
-					* localization.maxnumentries);
-			}
-			entry=&localization.entries[localization.numentries++];
-			entry->key = &line[2]; // skip quote and dollar sign
-			for(s32 i = 0; entry->key[i]; i++)
-				if(entry->key[i] == '\"'){
-					entry->key[i] = 0;
-					break;
-				}
-			entry->value = value;
-		}
-		if(*cursor) *cursor++ = 0; //terminate line and advance to next
-	}
-loc_2:
-	if(localization.text2){ // clear existing data
-		free(localization.text2);
-		localization.text2 = NULL;
-	}
-	localization.text2 = (s8*)COM_LoadMallocFile("localization/loc_english.txt", 0);
-	if(!localization.text2){
 		Con_DPrintf("Couldn't load localization/loc_english.txt\n");
-		goto loc_end;
+		return 0;
 	}
-	cursor = localization.text2;
+	s8 *cursor = localization.text;
 	if((u8)(cursor[0])==0xEF&&(u8)(cursor[1])==0xBB&&(u8)(cursor[2])==0xBF)
 		cursor += 3; // skip BOM
-	warnings = 0;
-	lineno = 0;
+	s32 warnings = 0;
+	s32 lineno = 0;
 	while(*cursor){
 		s8 *line, *equals;
 		lineno++;
@@ -1825,16 +1707,10 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 			}
 			entry=&localization.entries[localization.numentries++];
 			entry->key = line;
-			for(s32 i = 0; line[i]; ++i)
-				if(line[i] == ' '){
-					line[i] = 0;
-					break;
-				}
 			entry->value = value;
 		}
 		if(*cursor) *cursor++ = 0; //terminate line and advance to next
 	}
-loc_end:
 	if(developer.value >= 2.f && warnings > 0)
 		Sys_Printf("%d strings with unprintable characters\n",warnings);
 	// hash all entries
@@ -1847,7 +1723,7 @@ loc_end:
 		localization.numindices * sizeof(*localization.indices));
 	memset(localization.indices, 0, localization.numindices
 			* sizeof(*localization.indices));
-	for(i = 0; i < localization.numentries; i++){
+	for(s32 i = 0; i < localization.numentries; i++){
 		locentry_t *entry = &localization.entries[i];
 		u32 pos = COM_HashString(entry->key)
 			% localization.numindices, end = pos;
