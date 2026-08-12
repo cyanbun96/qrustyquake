@@ -105,6 +105,7 @@ int vgatext_main(SDL_Window *window, Uint16 *screen)
 				windowsurface = &windowsurface0;
 			next += BLINK_HZ;
 		}
+		SDL_Delay(1000/30); // CyanBun96: FPS limit
 		SDL_UpdateTexture(texture, NULL, (*windowsurface)->pixels, (*windowsurface)->pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderTexture(renderer, texture, NULL, NULL);
