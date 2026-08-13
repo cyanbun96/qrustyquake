@@ -142,6 +142,9 @@ void R_PrintDSpeeds()
 		,tot,t[0],t[1],t[2],t[3], t[4], t[5], t[6], t[7]);
 	Con_Printf("%.0f %.0f %.0f %.0f %.0f %.0f %.0f %.0f\n",
 		t[8], t[9], t[10], t[11], t[12], t[13], t[14]);
+	Con_Printf("%3i/%3i/%3i poly %3i surf\n",
+			c_faceclip, r_polycount, r_drawnpolycount, c_surf);
+	c_surf = 0;
 }
 
 void R_TransformFrustum()

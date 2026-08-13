@@ -567,7 +567,7 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 		Sys_Error("R_RenderView: NULL worldmodel");
 	R_PushDlights();
 	R_RenderView();
-	if(r_dspeeds.value) R_PrintDSpeeds();
+	if(r_dspeeds.value || r_speeds.value) R_PrintDSpeeds();
 	if(r_reportsurfout.value && r_outofsurfaces)
 		Con_Printf("short %d surfaces\n", r_outofsurfaces);
 	if(r_reportedgeout.value && r_outofedges)

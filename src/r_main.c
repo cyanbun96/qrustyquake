@@ -821,29 +821,29 @@ void R_EdgeDrawing()
 {
 	r_foundtranswater =  r_alphapass = 0;
 	R_BeginEdgeFrame();
-	if(r_dspeeds.value) d_times[1] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[1] = Sys_DoubleTime();
 	R_RenderWorld();
-	if(r_dspeeds.value) d_times[2] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[2] = Sys_DoubleTime();
 	R_DrawBEntitiesOnList();
-	if(r_dspeeds.value) d_times[3] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[3] = Sys_DoubleTime();
 	R_ScanEdges();
-	if(r_dspeeds.value) d_times[4] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[4] = Sys_DoubleTime();
 }
 
 void R_EdgeDrawingAlpha()
 {
 	if(!r_foundtranswater){
-		if(r_dspeeds.value)
+		if(r_dspeeds.value || r_speeds.value)
 			d_times[7]=d_times[8]=d_times[9]=Sys_DoubleTime();
 		return;
 	}
 	r_alphapass = 1;
 	R_BeginEdgeFrame();
-	if(r_dspeeds.value) d_times[7] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[7] = Sys_DoubleTime();
 	R_RenderWorld();
-	if(r_dspeeds.value) d_times[8] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[8] = Sys_DoubleTime();
 	R_DrawBEntitiesOnList();
-	if(r_dspeeds.value) d_times[9] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[9] = Sys_DoubleTime();
 	R_ScanEdges();
 }
 
@@ -855,19 +855,19 @@ void R_RenderView()
 	R_SetupFrame();
 	R_MarkLeaves(); // done here so we know if we're in water
 	R_EdgeDrawing();
-	if(r_dspeeds.value) d_times[5] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[5] = Sys_DoubleTime();
 	R_DrawEntitiesOnList();
-	if(r_dspeeds.value) d_times[6] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[6] = Sys_DoubleTime();
 	R_EdgeDrawingAlpha();
-	if(r_dspeeds.value) d_times[10] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[10] = Sys_DoubleTime();
 	R_DrawViewModel();
-	if(r_dspeeds.value) d_times[11] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[11] = Sys_DoubleTime();
 	R_DrawParticles();
-	if(r_dspeeds.value) d_times[12] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[12] = Sys_DoubleTime();
 	if(r_dowarp) D_WarpScreen();
-	if(r_dspeeds.value) d_times[13] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[13] = Sys_DoubleTime();
 	if(fog_density < 1) R_DrawFog();
-	if(r_dspeeds.value) d_times[14] = Sys_DoubleTime();
+	if(r_dspeeds.value || r_speeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
 	if (r_showtris.value) {
 		for (s32 i = 0; i < r_numdebugpoints; i++)

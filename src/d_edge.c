@@ -18,6 +18,7 @@ s32 D_MipLevelForScale(f32 scale)
 
 void D_DrawSolidSurface(surf_t *surf, s32 color)
 { // FIXME: clean this up
+	r_drawnpolycount++;
 	s32 pix = (color << 24) | (color << 16) | (color << 8) | color;
 	for (espan_t *span = surf->spans; span; span = span->pnext) {
 		u8 *pdest = (u8 *) d_viewbuffer + screenwidth * span->v;
@@ -82,6 +83,7 @@ void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 
 void D_DrawSurfacesFlat()
 {
+	r_drawnpolycount++;
 	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
 		if (!s->spans) continue;
 		d_zistepu = s->d_zistepu;
@@ -94,6 +96,7 @@ void D_DrawSurfacesFlat()
 
 static void D_DrawSky(surf_t *s, msurface_t *pface)
 {
+	r_drawnpolycount++;
 	s32 skyi = R_SkyIndexForTexture(pface->texinfo->texture);
 	if (!r_skymade[skyi]) R_MakeSky(pface->texinfo->texture);
 	if (fog_density>0){
@@ -106,6 +109,7 @@ static void D_DrawSky(surf_t *s, msurface_t *pface)
 
 static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 { // Manoel Kasimier
+	r_drawnpolycount++;
 	extern u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];
 	cacheblock = (u8 *)(r_skypixels[pface->texinfo->texture->offsets[0]]);
 	cachewidth = pface->texinfo->texture->width;
@@ -138,6 +142,7 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	r_drawnpolycount++;
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -151,6 +156,7 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 
 static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
 { // Manoel Kasimier
+	r_drawnpolycount++;
 	cacheblock = (u8 *) ((u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0]);
 	cachewidth = 64;
 	cacheheight = 64;
@@ -166,6 +172,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	lmonly = 1; // this is how we know it's lit water that we're drawing
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	r_drawnpolycount++;
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -185,6 +192,7 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	r_drawnpolycount++;
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
@@ -200,6 +208,7 @@ static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	r_drawnpolycount++;
 	cacheblock = (u8 *) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
