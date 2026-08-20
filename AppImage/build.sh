@@ -24,7 +24,7 @@ PLATFORM=${1:-linux/amd64}
 
 docker run \
        --platform=$PLATFORM \
-       --rm -it \
+       --rm \
        -v ..:/build \
        -e HOST_UID=$(id -u) \
        -e HOST_GID=$(id -g) \
