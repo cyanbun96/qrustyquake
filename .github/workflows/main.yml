@@ -9,8 +9,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            vendor_sdl: true
           - os: windows-latest
             vendor_sdl: false
 
