@@ -40,5 +40,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: qrustyquake-linux
-          path: AppImage/*.AppImage
+          path: AppImage/qrustyquake*.AppImage
           if-no-files-found: error
