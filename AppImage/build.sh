@@ -23,9 +23,9 @@ set -xe
 PLATFORM=${1:-linux/amd64}
 
 docker run \
-       --platform=$PLATFORM \
-       --rm \
-       -v ..:/build \
-       -e HOST_UID=$(id -u) \
-       -e HOST_GID=$(id -g) \
-       $IMAGE_NAME
+	--platform="$PLATFORM" \
+	--rm \
+	-v "$(cd .. && pwd):/build" \
+	-e HOST_UID="$(id -u)" \
+	-e HOST_GID="$(id -g)" \
+	"$IMAGE_NAME"
