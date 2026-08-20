@@ -11,6 +11,8 @@ jobs:
         include:
           - os: windows-latest
             vendor_sdl: false
+            artifact_path: build/Release/qrustyquake.exe
+            artifact_name: qrustyquake-windows
 
     runs-on: ${{ matrix.os }}
 
@@ -23,3 +25,10 @@ jobs:
 
       - name: Build
         run: cmake --build build --config Release
+        
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
