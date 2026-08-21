@@ -1,6 +1,24 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+static u8 *r_coarse_occlusion_bits;
+static s32 r_coarse_occlusion_width;
+static s32 r_coarse_occlusion_height;
+static s32 r_coarse_occlusion_stride;
+static u32 cacheoffset;
+static medge_t tedge;
+static medge_t *r_pedge;
+static bool r_leftclipped, r_rightclipped;
+static bool r_nearzionly;
+static mvertex_t r_leftenter, r_leftexit;
+static mvertex_t r_rightenter, r_rightexit;
+static s32 r_emitted;
+static f32 r_nearzi;
+static f32 r_u1, r_v1, r_lzi1;
+static s32 r_ceilv1;
+static bool r_lastvertvalid;
+static bool makeleftedge, makerightedge;
+
 // r_coarseocclusion enables conservative coarse screen-space occlusion:
 // - Static tile coverage bitmap.
 // - Only FULL tiles are recorded.
@@ -11,11 +29,6 @@
 // - Faces with any vertex behind NEAR_CLIP are not considered for
 //   coarse occlusion at all. This is conservative around the near plane.
 // - Screen-space clipping is performed against r_refdef.vrect.
-
-static u8 *r_coarse_occlusion_bits;
-static s32 r_coarse_occlusion_width;
-static s32 r_coarse_occlusion_height;
-static s32 r_coarse_occlusion_stride;
 
 void R_CoarseOcclusionBeginFrame()
 { // Call once per rendered frame after r_refdef.vrect is valid.
@@ -31,7 +44,7 @@ void R_CoarseOcclusionBeginFrame()
 			!r_coarse_occlusion_bits) {
 		free(r_coarse_occlusion_bits);
 		r_coarse_occlusion_bits = (u8 *)malloc(bytes);
-		r_coarse_occlusion_width  = width;
+		r_coarse_occlusion_width = width;
 		r_coarse_occlusion_height = height;
 		r_coarse_occlusion_stride = width;
 	}
@@ -69,25 +82,15 @@ static inline void R_CoarseOcclusionSetTile(s32 tx, s32 ty)
 static inline f32 R_CoarseOccCross(const coarse_occ_vertex_t *a,
                  const coarse_occ_vertex_t *b, f32 x, f32 y)
 { // 2D cross product: AB x AC
-	return (b->x - a->x) * (y - a->y) -
-		(b->y - a->y) * (x - a->x);
+	return (b->x - a->x) * (y - a->y) - (b->y - a->y) * (x - a->x);
 }
 
-
-/*
-====================
-R_CoarseOccPointInPolygon
-
-
-====================
-*/
 static bool R_CoarseOccPointInPolygon(const coarse_occ_vertex_t *poly,
                           s32 count, f32 x, f32 y)
 { // Convex polygon, arbitrary winding.
 	s32 i;
 	f32 sign = 0.0f;
-	if (count < 3)
-		return false;
+	if (count < 3) return false;
 	for (i = 0; i < count; i++) {
 		s32 next = (i + 1 == count) ? 0 : i + 1;
 		f32 cross = R_CoarseOccCross(&poly[i], &poly[next], x, y);
@@ -96,9 +99,8 @@ static bool R_CoarseOccPointInPolygon(const coarse_occ_vertex_t *poly,
 		if (sign == 0.0f)
 			sign = cross;
 		else if ((sign > 0.0f && cross < 0.0f) ||
-				(sign < 0.0f && cross > 0.0f)) {
+				(sign < 0.0f && cross > 0.0f))
 			return false;
-		}
 	}
 	return true;
 }
@@ -111,7 +113,6 @@ static bool R_CoarseOccOnSegment(f32 ax, f32 ay, f32 bx, f32 by, f32 px, f32 py)
 		py > fmaxf(ay, by) + COARSE_OCCLUSION_EPSILON) return false;
 	return true;
 }
-
 
 static bool R_CoarseOccSegmentsIntersect(const coarse_occ_vertex_t *a,
                              const coarse_occ_vertex_t *b,
@@ -405,6 +406,7 @@ static bool R_CoarseOccluderEligible(msurface_t *fa)
     if (currententity != &cl_entities[0]) return 0;
     if (fa->flags & SURF_DRAWSKY) return 0;
     if (fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return 0;
+    if (fa->flags & SURF_DRAWCUTOUT) return 0;
     if (winquake_surface_liquid_alpha < 1.0f) return 0;
     return 1;
 }
@@ -467,21 +469,6 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa)
 		}
 	}
 }
-
-static u32 cacheoffset;
-static medge_t tedge;
-static medge_t *r_pedge;
-static bool r_leftclipped, r_rightclipped;
-static bool r_nearzionly;
-static mvertex_t r_leftenter, r_leftexit;
-static mvertex_t r_rightenter, r_rightexit;
-static s32 r_emitted;
-static f32 r_nearzi;
-static f32 r_u1, r_v1, r_lzi1;
-static s32 r_ceilv1;
-static bool r_lastvertvalid;
-static bool makeleftedge, makerightedge;
-extern f32 cur_ent_alpha;
 
 void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 {
