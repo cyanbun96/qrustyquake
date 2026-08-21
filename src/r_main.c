@@ -366,6 +366,7 @@ void R_Init()
 	Cvar_RegisterVariable(&cl_gun_fovscale);
 	Cvar_RegisterVariable(&r_showtris);
 	Cvar_RegisterVariable(&r_showtris_color);
+	Cvar_RegisterVariable(&r_coarseocclusion);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
@@ -819,6 +820,7 @@ void R_DrawBEntitiesOnList()
 
 void R_EdgeDrawing()
 {
+	R_CoarseOcclusionBeginFrame();
 	r_foundtranswater =  r_alphapass = 0;
 	R_BeginEdgeFrame();
 	if(r_dspeeds.value || r_speeds.value) d_times[1] = Sys_DoubleTime();
@@ -879,4 +881,6 @@ void R_RenderView()
 		}
 		r_numdebuglines = 0;
 	}
+	if(r_coarseocclusion.value && (r_speeds.value || r_dspeeds.value))
+		Con_Printf("Coarse rejected: %d\n", r_coarse_rejected);
 }

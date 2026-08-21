@@ -35,6 +35,7 @@ u8 r_foundtranswater, r_alphapass;                                   // r_main.c
 void *colormap;
 s32 r_outofsurfaces;
 s32 r_outofedges;
+s32 r_coarse_rejected;
 bool r_dowarp, r_dowarpold, r_viewchanged;
 mvertex_t *r_pcurrentvertbase;
 s32 c_surf;

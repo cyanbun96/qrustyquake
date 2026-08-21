@@ -58,6 +58,7 @@ void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar);
 EX u8 r_foundtranswater, r_alphapass;                                // r_main.c
 EX void *colormap;
 EX bool r_dowarp;
+EX s32 r_coarse_rejected;
 EX refdef_t r_refdef;
 EX s64 r_framecount;
 EX s32 r_wholepolycount;
@@ -71,6 +72,7 @@ EX s32 r_numdebugpoints;
 EX void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
 EX bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY);
 EX void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color);
+EX void R_CoarseOcclusionBeginFrame();
 void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();

@@ -1275,6 +1275,7 @@ typedef struct {                                                     // r_draw.c
 	f32 u, v;
 	s32 ceilv;
 } evert_t;
+typedef struct { f32 x; f32 y; } coarse_occ_vertex_t;
 
 typedef enum { touchessolid, drawnode, nodrawnode } solidstate_t;     // r_bsp.c
 
