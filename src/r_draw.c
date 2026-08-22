@@ -22,12 +22,12 @@ static bool makeleftedge, makerightedge;
 // r_coarseocclusion enables conservative coarse screen-space occlusion:
 // - Static tile coverage bitmap.
 // - Only FULL tiles are recorded.
-// - A tile becomes FULL only if all four of its corners are inside
-//   the projected convex surface polygon.
-// - A surface is rejected only if every tile intersected by its
-//   projected polygon is already FULL.
-// - Faces with any vertex behind NEAR_CLIP are not considered for
-//   coarse occlusion at all. This is conservative around the near plane.
+// - A tile becomes FULL only if all four of its corners are inside the
+//   projected convex surface polygon.
+// - A surface is rejected only if every tile intersected by its projected
+//   polygon is already FULL.
+// - Faces with any vertex behind NEAR_CLIP are not considered for coarse
+//   occlusion at all. This is conservative around the near plane.
 // - Screen-space clipping is performed against r_refdef.vrect.
 
 void R_CoarseOcclusionBeginFrame()
@@ -80,10 +80,8 @@ static inline void R_CoarseOcclusionSetTile(s32 tx, s32 ty)
 }
 
 static inline f32 R_CoarseOccCross(const coarse_occ_vertex_t *a,
-                 const coarse_occ_vertex_t *b, f32 x, f32 y)
-{ // 2D cross product: AB x AC
-	return (b->x - a->x) * (y - a->y) - (b->y - a->y) * (x - a->x);
-}
+	const coarse_occ_vertex_t *b, f32 x, f32 y) // 2D cross product: AB x AC
+{ return (b->x - a->x) * (y - a->y) - (b->y - a->y) * (x - a->x); }
 
 static bool R_CoarseOccPointInPolygon(const coarse_occ_vertex_t *poly,
                           s32 count, f32 x, f32 y)
@@ -187,8 +185,6 @@ static bool R_CoarseOccTileInsidePolygon(const coarse_occ_vertex_t *poly,
 	if (!R_CoarseOccPointInPolygon(poly, count, x0, y1)) return false;
 	return true;
 }
-
-
 
 static s32 R_CoarseOccClipVertical(const coarse_occ_vertex_t *in,
                         s32 count, coarse_occ_vertex_t *out, f32 clipx,
@@ -336,11 +332,12 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 	// Coarse occlusion is initially restricted to the world.
 	// This also avoids entity ordering complications.
 	if (currententity != &cl_entities[0]) return false;
-	// Never use translucent/sky geometry as an occluder. The surface test
-	// itself could still safely reject against previous opaque coverage,
-	// but keeping this restricted makes the initial implementation easier 
-	// to reason about.
+	// Never use translucent/sky/cutout geometry as an occluder. The surface
+	// test itself could still safely reject against previous opaque
+	// coverage, but keeping this restricted makes the initial
+	// implementation easier to reason about.
 	if (fa->flags & SURF_DRAWSKY) return false;
+	if (fa->flags & SURF_DRAWCUTOUT) return false;
 	if (fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return false;
 	if (!R_CoarseOcclusionBuildPolygon(fa, poly, &count)) return false;
 	// Integer pixel-space bounds.
@@ -374,15 +371,12 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 		for (s32 tx = tx0; tx <= tx1; tx++) {
 			f32 x0 = (f32)(r_refdef.vrect.x +
 					tx * COARSE_OCCLUSION_TILE_SIZE);
-
 			f32 y0 = (f32)(r_refdef.vrect.y +
 					ty * COARSE_OCCLUSION_TILE_SIZE);
-
 			f32 x1 = x0 + COARSE_OCCLUSION_TILE_SIZE;
 			f32 y1 = y0 + COARSE_OCCLUSION_TILE_SIZE;
 			// Trim edge tiles to the viewport.
 			f32 right=(f32)(r_refdef.vrect.x+r_refdef.vrect.width);
-
 			f32 bott =(f32)(r_refdef.vrect.y+r_refdef.vrect.height);
 			if (x1 > right)  x1 = right;
 			if (y1 > bott) y1 = bott;
@@ -402,13 +396,13 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 
 static bool R_CoarseOccluderEligible(msurface_t *fa)
 { // Initial version: only opaque world BSP geometry.
-    if (!fa) return 0;
-    if (currententity != &cl_entities[0]) return 0;
-    if (fa->flags & SURF_DRAWSKY) return 0;
-    if (fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return 0;
-    if (fa->flags & SURF_DRAWCUTOUT) return 0;
-    if (winquake_surface_liquid_alpha < 1.0f) return 0;
-    return 1;
+	if (!fa) return 0;
+	if (currententity != &cl_entities[0]) return 0;
+	if (fa->flags & SURF_DRAWSKY) return 0;
+	if (fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return 0;
+	if (fa->flags & SURF_DRAWCUTOUT) return 0;
+	if (winquake_surface_liquid_alpha < 1.0f) return 0;
+	return 1;
 }
 
 void R_CoarseOcclusionAddSurface(msurface_t *fa)
@@ -562,9 +556,9 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	edge->u_step = u_step * 0x100000;
 	edge->u = u * 0x100000 + 0xFFFFF;
 	// we need to do this to avoid stepping off the edges if a very nearly
-	// horizontal edge is less than epsilon above a scan, and numeric error causes
-	// it to incorrectly extend to the scan, and the extension of the line goes off
-	// the edge of the screen
+	// horizontal edge is less than epsilon above a scan, and numeric error
+	// causes it to incorrectly extend to the scan, and the extension of the
+	// line goes off the edge of the screen
 	// FIXME: is this actually needed?
 	if (edge->u < r_refdef.vrect_x_adj_shift20)
 		edge->u = r_refdef.vrect_x_adj_shift20;
