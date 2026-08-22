@@ -464,6 +464,7 @@ void CL_Init()
 	Cvar_RegisterVariable(&m_side);
 	Cvar_RegisterVariable(&cl_maxpitch); //johnfitz -- variable pitch clamp
 	Cvar_RegisterVariable(&cl_minpitch); //johnfitz -- variable pitch clamp
+	Cvar_RegisterVariable(&cl_startdemos);
 	Cmd_AddCommand("entities", CL_PrintEntities_f);
 	Cmd_AddCommand("disconnect", CL_Disconnect_f);
 	Cmd_AddCommand("record", CL_Record_f);
