@@ -64,7 +64,7 @@ static s32 startlevel;
 static s32 maxplayers;
 static bool m_serverInfoMessage = 0;
 static f64 m_serverInfoMessageTime;
-static s32 gameoptions_cursor_table[] = { 40, 56, 64, 72, 80, 88, 96, 112, 120, 128 };
+static s32 gameoptions_cursor_table[] = { 40, 56, 64, 72, 80, 88, 96, 112, 120, 128, 136 };
 static s32 gameoptions_cursor;
 static u8 identityTable[256];
 static u8 translationTable[256];
@@ -3036,13 +3036,16 @@ void M_New_Draw()
 	M_Print(xoffset + 204, 80, temp);
         M_Print(xoffset, 88, "         Startup demos");
         M_DrawCheckbox(xoffset + 204, 88, cl_startdemos.value);
-	M_Print(xoffset + 204, 96, "Display...");
-	M_Print(xoffset + 204, 104, "Graphics...");
-	M_Print(xoffset + 204, 112, "Gamepad...");
-	M_Print(xoffset + 204, 120, "Custom maps...");
-	M_Print(xoffset + 204, 128, "Mods...");
-	M_Print(xoffset + 204, 136, "Custom HUD...");
-	M_Print(xoffset + 204, 144, "Palette...");
+	M_Print(xoffset, 96, "         Notifications");
+	if(!con_notifycenter.value) M_Print(xoffset + 204, 96, "Default");
+	else M_Print(xoffset + 204, 96, "Center");
+	M_Print(xoffset + 204, 104, "Display...");
+	M_Print(xoffset + 204, 112, "Graphics...");
+	M_Print(xoffset + 204, 120, "Gamepad...");
+	M_Print(xoffset + 204, 128, "Custom maps...");
+	M_Print(xoffset + 204, 136, "Mods...");
+	M_Print(xoffset + 204, 144, "Custom HUD...");
+	M_Print(xoffset + 204, 152, "Palette...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -3184,15 +3187,19 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value - 1,60));
+		else if (new_cursor == 7)
+			Cvar_SetValue("cl_startdemos",!cl_startdemos.value);
+		else if (new_cursor == 8)
+			Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 13;
+		if (new_cursor == 0) new_cursor = 15;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 14) new_cursor = 0;
+		if (new_cursor == 15) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_MWHEELUP:
@@ -3230,15 +3237,17 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value + 1,60));
-                else if (new_cursor == 7)
-                    Cvar_SetValue("cl_startdemos",!cl_startdemos.value);
-		else if (new_cursor == 8) M_Menu_Display_f();
-		else if (new_cursor == 9) M_Menu_Graphics_f();
-		else if (new_cursor == 10) M_Menu_Gamepad_f();
-		else if (new_cursor == 11) M_Menu_Maps_f();
-		else if (new_cursor == 12) M_Menu_Mods_f();
-		else if (new_cursor == 13) M_Menu_CSQC_f();
-		else if (new_cursor == 14) M_Menu_Palette_f();
+		else if (new_cursor == 7)
+			Cvar_SetValue("cl_startdemos",!cl_startdemos.value);
+		else if (new_cursor == 8)
+			Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
+		else if (new_cursor == 9) M_Menu_Display_f();
+		else if (new_cursor == 10) M_Menu_Graphics_f();
+		else if (new_cursor == 11) M_Menu_Gamepad_f();
+		else if (new_cursor == 12) M_Menu_Maps_f();
+		else if (new_cursor == 13) M_Menu_Mods_f();
+		else if (new_cursor == 14) M_Menu_CSQC_f();
+		else if (new_cursor == 15) M_Menu_Palette_f();
 		break;
 	}
 }
@@ -4288,6 +4297,8 @@ void M_GameOptions_Mouse(s32 x, s32 y)
 		M_SetMouseCursor(&gameoptions_cursor, 8);
         else if(x > 48 && x <= 310 && y > 128 && y <= 136)
                 M_SetMouseCursor(&gameoptions_cursor, 9);
+        else if(x > 48 && x <= 310 && y > 136 && y <= 144)
+                M_SetMouseCursor(&gameoptions_cursor, 10);
 }
 
 void M_ServerList_Mouse(s32 x, s32 y)
@@ -4324,7 +4335,7 @@ void M_Video_Mouse(s32 x, s32 y)
 
 void M_New_Mouse(s32 x, s32 y)
 {
-	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 15*8)return;
+	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 16*8)return;
 	M_SetMouseCursor(&new_cursor, (y - 32) / 8);
 }
 
