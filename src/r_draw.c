@@ -710,9 +710,10 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 			pclip = &view_clipplanes[i];
 		}
 	}
-	if (!r_showtris.value &&
-			r_coarseocclusion.value &&
-			R_CoarseOcclusionTestSurface(fa)) {
+	coccl_enable = (r_coarseocclusion.value == 1)
+		|| (r_coarseocclusion.value && 
+		cl_entities[0].model->bspversion != BSPVERSION);
+	if (!r_showtris.value&&coccl_enable&&R_CoarseOcclusionTestSurface(fa)) {
 		r_coarse_rejected++;
 		return;
 	}

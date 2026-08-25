@@ -2555,6 +2555,10 @@ void M_Graphics_Key(s32 k)
 			!r_dithertex.value); break;
 		case 804: Cvar_SetValue("r_alphastyle",
 			!r_alphastyle.value); break;
+		case 805: Cvar_SetValue("scr_saturntext",
+			!scr_saturntext.value); break;
+		case 806: Cvar_SetValue("r_coarseocclusion",
+			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
 		}
 		break;
 	case K_MOUSE1:
@@ -2686,6 +2690,10 @@ void M_Graphics_Key(s32 k)
 			!r_dithertex.value); break;
 		case 804: Cvar_SetValue("r_alphastyle",
 			!r_alphastyle.value); break;
+		case 805: Cvar_SetValue("scr_saturntext",
+			!scr_saturntext.value); break;
+		case 806: Cvar_SetValue("r_coarseocclusion",
+			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
@@ -2702,7 +2710,7 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor = 505;
 		}else if (graphics_cursor == 600) graphics_cursor = 603;
 		else if (graphics_cursor == 700) graphics_cursor = 707;
-		else if (graphics_cursor == 800) graphics_cursor = 804;
+		else if (graphics_cursor == 800) graphics_cursor = 806;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
@@ -2739,7 +2747,7 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 707) graphics_cursor = 700;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 900) {
-			if (graphics_cursor == 804) graphics_cursor = 800;
+			if (graphics_cursor == 806) graphics_cursor = 800;
 			else graphics_cursor++;
 		}
 		break;
@@ -2961,11 +2969,11 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Rebuild Mipmaps:");
 		switch ((s32)r_rebuildmips.value) {
 		default: case 0: M_Print(xoffset + x2, 48, " Off"); break;
-		case 1: M_Print(xoffset + x2, 48, " On"); break;
+		case 1: M_Print(xoffset + x2, 48, "  On"); break;
 		case 2: M_Print(xoffset + x2, 48, "Auto"); break;
 		}
 		M_Print(xoffset, 56, "Textures:");
-		M_Print(xoffset+80, 56, r_dithertex.value?"Dithered":"Default");
+		M_Print(xoffset+96,56,r_dithertex.value?"Dithered":" Default");
 		if (graphics_cursor == 802) {
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "  Enable if you see pink around");
@@ -2973,13 +2981,27 @@ void M_Graphics_Draw()
 			M_Print(16, 174, " shouldn't be there at a distance");
 		}
 		switch ((s32)scr_menubgstyle.value) {
-		default: case 0: M_Print(xoffset + x2, 40, "Win"); break;
-		case 1: M_Print(xoffset + x2, 40, "DOS"); break;
+		default: case 0: M_Print(xoffset + x2, 40, " Win"); break;
+		case 1: M_Print(xoffset + x2, 40, " DOS"); break;
 		case 2: M_Print(xoffset + x2, 40, "Dark"); break;
 		case 3: M_Print(xoffset + x2, 40, "None"); break;
 		}
 		M_Print(xoffset, 64, "Alpha Style:");
-		M_Print(xoffset+104, 64, !r_alphastyle.value?"Mix":"Dither");
+		M_Print(xoffset+112, 64, !r_alphastyle.value?"   Mix":"Dither");
+		M_Print(xoffset, 72, "Popup Style:");
+		M_Print(xoffset+104,72,scr_saturntext.value?" Saturn":"Default");
+		M_Print(xoffset, 80, "Coarse Culling:");
+		switch ((s32)r_coarseocclusion.value) {
+		default: case 0: M_Print(xoffset + x2, 80, " Off"); break;
+		case 1: M_Print(xoffset + x2, 80, "  On"); break;
+		case 2: M_Print(xoffset + x2, 80, "Auto"); break;
+		}
+		if (graphics_cursor == 806) {
+			M_DrawTextBox(12, 150, 33, 3);
+			M_Print(16, 158, "   An extra step that boosts FPS");
+			M_Print(16, 166, " on some modern maps with poor VIS");
+			M_Print(16, 174, "  Auto = enable only on BSP2 maps");
+		}
 	}
 }
 
@@ -4401,7 +4423,7 @@ void M_Graphics_Mouse(s32 x, s32 y)
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
 			M_SetMouseCursor(&graphics_cursor,700+(y-32)/8);
 	}else if(graphics_cursor < 900){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 5*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 7*8)
 			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
 	}
 }

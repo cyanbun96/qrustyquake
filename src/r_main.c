@@ -881,6 +881,6 @@ void R_RenderView()
 		}
 		r_numdebuglines = 0;
 	}
-	if(r_coarseocclusion.value && (r_speeds.value || r_dspeeds.value))
+	if(coccl_enable && (r_speeds.value || r_dspeeds.value))
 		Con_Printf("Coarse rejected: %d\n", r_coarse_rejected);
 }

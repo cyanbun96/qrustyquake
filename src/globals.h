@@ -69,6 +69,7 @@ EX debugline_t *r_debuglines;
 EX debugpoint_t *r_debugpoints;
 EX s32 r_numdebuglines;
 EX s32 r_numdebugpoints;
+EX bool coccl_enable;
 EX void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
 EX bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY);
 EX void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color);
