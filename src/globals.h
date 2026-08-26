@@ -644,6 +644,7 @@ s32 Q_strncmp_i(const s8 *s1, const s8 *s2, s32 count);
 s32 Q_strncmp(const s8 *s1, const s8 *s2, s32 count);
 s32 Q_atoi(const s8 *str);
 f32 Q_atof(const s8 *str);
+void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols);
 s32 COM_CheckParm(const s8 *parm);
 void COM_Init();
 void COM_InitArgv(s32 argc, s8 **argv);

@@ -723,6 +723,74 @@ void SZ_Print(sizebuf_t *buf, const s8 *data)
 		Q_memcpy((u8 *)SZ_GetSpace(buf, len-1)-1, data, len);
 }
 
+s32 COM_WordLength(const s8 *text)
+{
+	const s8 *start = text;
+	while (*text && !q_isspace (*text))
+		text++;
+	return text - start;
+}
+
+// Advances text by as much as possible until the maxchars limit is hit,
+// avoiding splitting words if possible. Returns the length of the consumed
+// text, excluding a potential trailing space or newline.
+s32 COM_AdvanceLineWrapped(const s8 **text, s32 maxchars)
+{
+	const s8 *str = *text;
+	s32 i = 0;
+	for(; i < maxchars && str[i];) {
+		if (str[i] == '\n') {
+			*text += i + 1;
+			return i;
+		}
+		// new word
+		if(!q_isspace(str[i]) && (i == 0 || q_isspace(str[i - 1]))) {
+			s32 len = COM_WordLength(str + i);
+			// split word if longer than given limit
+			if (len > maxchars) {
+				*text += maxchars;
+				return maxchars;
+			}
+			// not enough space left? push word to next line
+			if (i + len > maxchars) {
+				*text += i;
+				return i;
+			}
+			i += len; // word fits, continue
+		}
+		else i++;
+	}
+	// avoid starting next line with a space
+	*text += i + (q_isspace (str[i]) ? 1 : 0);
+	return i;
+}
+
+// Copies src to dst by word-wrapping lines longer than maxcols, preserving
+// existing linefeeds. If maxcols <= 0 no wrapping is performed (plain string
+// copy). dst is always NUL terminated if dstsize > 0.
+void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols)
+{
+	s32 ofs;
+	if(maxcols <= 0) {
+		q_strlcpy(dst, src, dstsize);
+		return;
+	}
+	if(!dstsize) return;
+	--dstsize; // reserve space for terminating NUL
+	ofs = 0;
+	while(*src) {
+		const s8 *start = src;
+		s32 len = (s32)COM_AdvanceLineWrapped(&src, maxcols);
+		s32 remaining = dstsize - ofs;
+		len = q_min(len, remaining);
+		memcpy(dst + ofs, start, len);
+		ofs += len;
+		if(ofs + 1 < dstsize && *src)
+			dst[ofs++] = '\n';
+	}
+	dst[ofs++] = '\0';
+}
+
 const s8 *COM_SkipPath(const s8 *pathname)
 {
 	const s8 *last = pathname;

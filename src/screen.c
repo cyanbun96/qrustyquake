@@ -43,7 +43,8 @@ void SCR_CenterPrint(const s8 *str) // Called for important messages
 { // that should stay in the center of the screen for a few moments
 	if(con_logcenterprint.value)
 		Con_LogCenterPrint(str);
-	strncpy(scr_centerstring, str, sizeof(scr_centerstring) - 1);
+	s32 cols = vid.width / (8*uiscale);
+	COM_WordWrap(scr_centerstring, str, sizeof(scr_centerstring), cols);
 	scr_centertime_off = scr_centertime.value;
 	scr_centertime_start = cl.time;
 	scr_center_lines = 1; // count the number of lines for centering
