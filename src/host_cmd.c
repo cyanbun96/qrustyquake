@@ -1020,7 +1020,8 @@ void Host_Startdemos_f()
 		strncpy(cls.demos[i - 1], Cmd_Argv(i), sizeof(cls.demos[0])-1);
 	if(!sv.active && cls.demonum != -1 && !cls.demoplayback){
 		cls.demonum = 0;
-		Cbuf_InsertText ("menu_main\n");
+		if(cl_automenu.value)
+			Cbuf_InsertText("menu_main\n");
 		if (!cl_startdemos.value) {
 			cls.demonum = -1;
 			return;
