@@ -3056,8 +3056,13 @@ void M_New_Draw()
 	M_Print(xoffset, 80, "         Save Interval");
 	sprintf(temp, "%d\n", (s32)sv_autosave_interval.value);
 	M_Print(xoffset + 204, 80, temp);
-        M_Print(xoffset, 88, "         Startup demos");
-        M_DrawCheckbox(xoffset + 204, 88, cl_startdemos.value);
+        M_Print(xoffset, 88, "      Startup Behavior");
+	if(cl_startdemos.value)
+		M_Print(xoffset + 204, 88, "Demos");
+	else if(cl_automenu.value)
+		M_Print(xoffset + 204, 88, "Menu");
+	else
+		M_Print(xoffset + 204, 88, "Console");
 	M_Print(xoffset, 96, "         Notifications");
 	if(!con_notifycenter.value) M_Print(xoffset + 204, 96, "Default");
 	else M_Print(xoffset + 204, 96, "Center");
@@ -3209,9 +3214,18 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value - 1,60));
-		else if (new_cursor == 7)
-			Cvar_SetValue("cl_startdemos",!cl_startdemos.value);
-		else if (new_cursor == 8)
+		else if (new_cursor == 7){
+			if(cl_startdemos.value){
+				Cvar_SetValue("cl_startdemos",0);
+				Cvar_SetValue("cl_automenu",0);
+			}else if(cl_automenu.value){
+				Cvar_SetValue("cl_startdemos",1);
+				Cvar_SetValue("cl_automenu",0);
+			}else{
+				Cvar_SetValue("cl_startdemos",0);
+				Cvar_SetValue("cl_automenu",1);
+			}
+		} else if (new_cursor == 8)
 			Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
 		break;
 	case K_UPARROW:
@@ -3259,9 +3273,18 @@ void M_New_Key(s32 k)
 		else if (new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value + 1,60));
-		else if (new_cursor == 7)
-			Cvar_SetValue("cl_startdemos",!cl_startdemos.value);
-		else if (new_cursor == 8)
+		else if (new_cursor == 7){
+			if(cl_startdemos.value){
+				Cvar_SetValue("cl_startdemos",0);
+				Cvar_SetValue("cl_automenu",1);
+			}else if(cl_automenu.value){
+				Cvar_SetValue("cl_startdemos",0);
+				Cvar_SetValue("cl_automenu",0);
+			}else{
+				Cvar_SetValue("cl_startdemos",1);
+				Cvar_SetValue("cl_automenu",0);
+			}
+		}else if (new_cursor == 8)
 			Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
 		else if (new_cursor == 9) M_Menu_Display_f();
 		else if (new_cursor == 10) M_Menu_Graphics_f();
