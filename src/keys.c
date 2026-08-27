@@ -550,7 +550,8 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 		return;
 	}
 	// during demo playback, most keys bring up the main menu
-	if(cls.demoplayback && down && consolekeys[key] && key_dest==key_game){
+	if(cls.demoplayback && down && (consolekeys[key] || key == K_MOUSE1)
+			&& key_dest==key_game){
 		M_ToggleMenu_f();
 		return;
 	}
