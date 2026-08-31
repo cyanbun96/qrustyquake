@@ -430,7 +430,10 @@ s32 SCR_ModalMessage(s8 *text, s32 adj) // Displays a text string in the center
 	scr_notifystring = text;
 	scr_fullupdate = 0; // draw a fresh screen
 	scr_drawdialog = 1;
+	f32 oldcvar = lyr_centerprint.value; // so that the message gets drawn
+	Cvar_SetValue("lyr_centerprint", 2); // over the menu backgroung
 	SCR_UpdateScreen();
+	Cvar_SetValue("lyr_centerprint", oldcvar);
 	scr_drawdialog = 0;
 	S_ClearBuffer(); // so dma doesn't loop current sound
 	// CyanBun96: pressing Enter in the main single player menu triggers an
