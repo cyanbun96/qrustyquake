@@ -9,6 +9,7 @@ typedef int                s32;
 typedef unsigned long      u64;
 typedef unsigned long long ul64;
 typedef long               s64;
+typedef long long          sl64;
 typedef float              f32;
 typedef double             f64;
 
@@ -468,14 +469,14 @@ typedef struct {
 	vrect_t vrect; // subwindow in video for refresh
 		       // FIXME: not need vrect next field here?
 	vrect_t aliasvrect; // scaled Alias version
-	s64 vrectright, vrectbottom; // right & bottom screen coords
-	s64 aliasvrectright, aliasvrectbottom; // scaled Alias versions
+	sl64 vrectright, vrectbottom; // right & bottom screen coords
+	sl64 aliasvrectright, aliasvrectbottom; // scaled Alias versions
 	f32 vrectrightedge; // rightmost right edge we care about,
 			    // for use in edge list
 	f32 fvrectx, fvrecty; // for floating-point compares
 	f32 fvrectx_adj, fvrecty_adj; // left and top edges, for clamping
-	s64 vrect_x_adj_shift20; //(vrect.x + 0.5 - epsilon) << 20
-	s64 vrectright_adj_shift20; //(vrectright + 0.5 - epsilon) << 20
+	sl64 vrect_x_adj_shift20; //(vrect.x + 0.5 - epsilon) << 20
+	sl64 vrectright_adj_shift20; //(vrectright + 0.5 - epsilon) << 20
 	f32 fvrectright_adj, fvrectbottom_adj; // right and bottom edges,
 					       // for clamping
 	f32 fvrectright; // rightmost edge, for Alias clamping
@@ -701,7 +702,8 @@ typedef struct model_s {
 } model_t;
 
 typedef struct espan_s {                                           // r_shared.h
-	s64 u, v, count;
+	sl64 u;
+	s64 v, count;
 	struct espan_s *pnext;
 } espan_t;
 typedef struct surf_s {
@@ -709,7 +711,7 @@ typedef struct surf_s {
 	struct surf_s *prev; // used in r_edge.c for active surf stack
 	struct espan_s *spans; // pointer to linked list of spans to draw
 	s32 key; // sorting key (BSP order)
-	s64 last_u; // set during tracing
+	sl64 last_u; // set during tracing
 	s32 spanstate; // 0 = not in span
 		       // 1 = in span
 		       // -1 = in inverted span (end before start)
@@ -722,8 +724,8 @@ typedef struct surf_s {
 	s32 pad[2]; // to 64 bytes
 } surf_t;
 typedef struct edge_s {
-	s64 u;
-	s64 u_step;
+	sl64 u;
+	sl64 u_step;
 	struct edge_s *prev, *next;
 	u16 surfs[2];
 	struct edge_s *nextremove;

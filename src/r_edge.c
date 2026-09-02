@@ -15,7 +15,7 @@
 static espan_t *span_p, *max_span_p;
 static edge_t edge_sentinel;
 static s32 current_iv;
-static s64 edge_head_u_shift20, edge_tail_u_shift20;
+static sl64 edge_head_u_shift20, edge_tail_u_shift20;
 static edge_t edge_head, edge_tail;
 static edge_t edge_aftertail;
 static f32 fv;
@@ -146,7 +146,7 @@ void R_CleanupSpan()
 	// now that we've reached the right edge of the screen, we're done with
 	// any unfinished surfaces, so emit a span for whatever's on top
 	surf_t *surf = surfaces[1].next;
-	s64 iu = edge_tail_u_shift20;
+	sl64 iu = edge_tail_u_shift20;
 	if (iu > surf->last_u) {
 		espan_t *span = span_p++;
 		span->u = surf->last_u;
@@ -218,7 +218,7 @@ void R_TrailingEdge(surf_t *surf, edge_t *edge)
 	// preceding the start edge(that is, we haven't seen the start edge yet)
 	if (--surf->spanstate == 0) {
 		if (surf == surfaces[1].next) {
-			s64 iu = edge->u >> 20; // emit a span
+			sl64 iu = edge->u >> 20; // emit a span
 			if (iu > surf->last_u) { // (current top going away)
 				espan_t *span = span_p++;
 				span->u = surf->last_u;
@@ -331,8 +331,8 @@ void R_GenerateSpans()
 		// Generates spans for whole cutout surfaces, from the leftmost
 		// point of each surface to the rightmost, intentional overdraw
 			s32 surfn = edge->surfs[1];
-			s64 left = 0;
-			s64 right = r_refdef.vrectright;
+			sl64 left = 0;
+			sl64 right = r_refdef.vrectright;
 			for (edge_t *e2=edge_head.next; e2!=&edge_tail; e2=e2->next) {
 				if (e2->surfs[1] == surfn && (e2->u>>20) > left)
 					left = (e2->u>>20);
@@ -391,14 +391,14 @@ void R_ScanEdges()
 	span_p = basespan_p;
 	// clear active edges to just background edges around the whole screen
 	// FIXME: most of this only needs to be set up once
-	edge_head.u = (s64)r_refdef.vrect.x << 20;
+	edge_head.u = (sl64)r_refdef.vrect.x << 20;
 	edge_head_u_shift20 = edge_head.u >> 20;
 	edge_head.u_step = 0;
 	edge_head.prev = NULL;
 	edge_head.next = &edge_tail;
 	edge_head.surfs[0] = 0;
 	edge_head.surfs[1] = 1;
-	edge_tail.u = ((s64)r_refdef.vrectright << 20) + 0xFFFFF;
+	edge_tail.u = ((sl64)r_refdef.vrectright << 20) + 0xFFFFF;
 	edge_tail_u_shift20 = edge_tail.u >> 20;
 	edge_tail.u_step = 0;
 	edge_tail.prev = &edge_head;
@@ -410,10 +410,10 @@ void R_ScanEdges()
 	edge_aftertail.next = &edge_sentinel;
 	edge_aftertail.prev = &edge_tail;
 	// FIXME: do we need this now that we clamp x in r_draw.c?
-	edge_sentinel.u = ((u64)2000) << 24; // make sure nothing sorts past this
+	edge_sentinel.u = ((ul64)2000) << 24; // make sure nothing sorts past this
 	edge_sentinel.prev = &edge_aftertail;
-	s64 bottom = r_refdef.vrectbottom - 1; // process all scan lines
-	s64 iv = r_refdef.vrect.y;
+	sl64 bottom = r_refdef.vrectbottom - 1; // process all scan lines
+	sl64 iv = r_refdef.vrect.y;
 	for (; iv < bottom; iv++) {
 		current_iv = iv;
 		fv = (f32)iv;
