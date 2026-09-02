@@ -468,7 +468,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 {
 	vec3_t local, transformed;
 	f32 *world;
-	s64 v, v2, ceilv0;
+	sl64 v, v2, ceilv0;
 	f32 scale, lzi0, u0, v0;
 	if (r_lastvertvalid) {
 		u0 = r_u1;
@@ -533,7 +533,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 		}
 		return; // horizontal edge
 	}
-	s64 side = ceilv0 > r_ceilv1;
+	sl64 side = ceilv0 > r_ceilv1;
 	edge_t *edge = edge_p++;
 	edge->owner = r_pedge;
 	edge->nearzi = lzi0;
@@ -564,7 +564,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 		edge->u = r_refdef.vrect_x_adj_shift20;
 	if (edge->u > r_refdef.vrectright_adj_shift20)
 		edge->u = r_refdef.vrectright_adj_shift20;
-	s64 u_check = edge->u; // sort the edge in normally
+	sl64 u_check = edge->u; // sort the edge in normally
 	if (edge->surfs[0])
 		u_check++; // sort trailers after leaders
 	// CyanBun96: denser maps like mg1 start begin to chug on the linear
