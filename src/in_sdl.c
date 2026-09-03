@@ -49,6 +49,16 @@ void Sys_SendKeyEvents()
 	SDL_Event event;
 	s32 button, winW, winH;
 	s32 sym, state, mod; // keep here for OpenBSD compiler
+	if ((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
+			|| SDL_GetWindowFullscreenMode(window))
+			&& !_windowed_mouse.value)
+				|| key_dest != key_game) {
+		SDL_SetWindowRelativeMouseMode(window, 0);
+		SDL_ShowCursor();
+	} else {
+		SDL_HideCursor();
+		SDL_SetWindowRelativeMouseMode(window, 1);
+	}
 	while (SDL_PollEvent(&event)) {
 		switch (event.type) {
 		case SDL_EVENT_KEY_DOWN:
@@ -254,12 +264,8 @@ void IN_Move(usercmd_t *cmd)
 			|| SDL_GetWindowFullscreenMode(window))
 			&& !_windowed_mouse.value)
 				|| key_dest != key_game) {
-		SDL_SetWindowRelativeMouseMode(window, 0);
-		SDL_ShowCursor();
 		return;
 	}
-	SDL_HideCursor();
-	SDL_SetWindowRelativeMouseMode(window, 1);
 	mouse_x *= sensitivity.value;
 	mouse_y *= sensitivity.value * sensitivityyscale.value;
 	if ((in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1)))

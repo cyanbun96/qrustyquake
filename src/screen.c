@@ -31,6 +31,7 @@ void SCR_DrawSellScreen()
 	// Load and draw the sell screen lump centered on the screen
 	pic = Draw_CachePic("gfx/sell.lmp");
 	if (!pic) {
+		Cbuf_AddText("disconnect\n");
 		Cbuf_AddText("help\n");
 		return;
 	}
