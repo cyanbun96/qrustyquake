@@ -56,13 +56,13 @@ void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
 	u8 *file = NULL;
 	SDL_IOStream *io = NULL;
 	MIX_Audio *music = NULL;
-
 	if (!mixer) return;
-
 	if(!musicname || !*musicname) {
 		Con_DPrintf("null music file name\n");
 		return;
 	}
+	if(keepmusic.value && current_music && !strcmp(current_name, musicname))
+		return;
 	CDAudio_Stop();
 	for(s32 path_id = com_searchpaths->path_id; path_id >= 0; path_id--) { // look in mod folders first
 		for(u32 i = 0; i < Q_COUNTOF(music_formats); i++) {

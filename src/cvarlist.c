@@ -68,6 +68,7 @@ cvar_t loadas8bit=                                    {"loadas8bit", "0", 0,ZR};
 cvar_t sndspeed=                                    {"sndspeed", "11025", 0,ZR};
 cvar_t snd_mixspeed=                            {"snd_mixspeed", "44100", 0,ZR};
 cvar_t nosound=                                          {"nosound", "0", 0,ZR};
+cvar_t keepmusic=                                      {"keepmusic", "0", 1,ZR};
 cvar_t ambient_level=                            {"ambient_level", "0.3", 0,ZR};
 cvar_t ambient_fade=                              {"ambient_fade", "100", 0,ZR};
 cvar_t snd_noextraupdate=                      {"snd_noextraupdate", "0", 0,ZR};

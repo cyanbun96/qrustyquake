@@ -72,6 +72,7 @@ void S_Init()
 	Cvar_RegisterVariable(&precache);
 	Cvar_RegisterVariable(&loadas8bit);
 	Cvar_RegisterVariable(&bgmvolume);
+	Cvar_RegisterVariable(&keepmusic);
 	Cvar_RegisterVariable(&ambient_level);
 	Cvar_RegisterVariable(&ambient_fade);
 	Cvar_RegisterVariable(&snd_noextraupdate);
