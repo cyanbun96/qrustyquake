@@ -16,6 +16,7 @@ static SDL_Palette *sdlworldpal;
 static SDL_Palette *sdltoppal;
 static SDL_Palette *sdluipal;
 static s32 renderscale;
+static s32 scalemode;
 
 void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_AllocBuffers();
@@ -244,7 +245,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	argbbuffer->pitch = vid.width * renderscale * bpp;
 	texture = SDL_CreateTexture(renderer, window_format, SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale, vid.height*renderscale);
 	if(!texture){printf("%s\n", SDL_GetError());}
-	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+	SDL_SetTextureScaleMode(texture, scalemode);
 	windowSurface = SDL_GetWindowSurface(window);
 	sprintf(caption, "QrustyQuake - Version %4.2f", VERSION);
 	SDL_SetWindowTitle(window, (const s8 *)&caption);
@@ -339,13 +340,13 @@ void VID_Update()
 	scRect2.y = (vid.height*renderscale - scRect2.h) / 2;
 	if (SDL_LockTexture(texture, 0, &argbbuffer->pixels, &argbbuffer->pitch)){
 		if(blitscreensbar)
-			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen, &scRect, SDL_SCALEMODE_NEAREST);
+			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen, &scRect, scalemode);
 		if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
-		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst, SDL_SCALEMODE_NEAREST);
+		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst, scalemode);
 		if(blitscreenui)
-			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer, &scRect2, SDL_SCALEMODE_NEAREST);
+			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer, &scRect2, scalemode);
 		if(blitscreentop)
-			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer, &dst, SDL_SCALEMODE_NEAREST);
+			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer, &dst, scalemode);
 		SDL_UnlockTexture(texture);
 	} else { printf("Couldn't lock texture %s\n", SDL_GetError()); }
 	SDL_RenderClear(renderer);
@@ -434,7 +435,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 
 	argbbuffer->pitch = vid.width * renderscale * bpp;
 	SDL_DestroyTexture(texture);
 	texture = SDL_CreateTexture(renderer, window_format, SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale, vid.height*renderscale);
-	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+	SDL_SetTextureScaleMode(texture, scalemode);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	screen->pixels = screenpixels;
 	screenui->pixels = uipixels;
@@ -526,4 +527,35 @@ void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar)
 		r_renderscale.value = 1;
 	renderscale = r_renderscale.value;
 	VID_SetMode(-1, vid.width, vid.height, vid_cwmode.value, vid_curpal);
+}
+
+void VID_SetScaleModeCommand_f()
+{
+	s32 i;
+	switch(Cmd_Argc()){
+	default:
+	case 1:
+		Con_Printf("valid values:\n");
+		Con_Printf("   0 - nearest (default, pixelated)\n");
+		Con_Printf("   1 - linear (smooth)\n");
+		Con_Printf("   2 - pixelart (pixelated, smoother)\n");
+		Con_Printf("   current: %d\n", scalemode);
+		return;
+	case 2:
+		i = Q_atof(Cmd_Argv(1));
+		if(i < 0 || i > 2){
+			Con_Printf("valid values:\n");
+			Con_Printf("   0 - nearest (default, pixelated)\n");
+			Con_Printf("   1 - linear (smooth)\n");
+			Con_Printf("   2 - pixelart (pixelated, smoother)\n");
+			Con_Printf("   current: %d\n", scalemode);
+			return;
+		}
+		else{
+			scalemode = i;
+			VID_SetMode(-1, vid.width, vid.height, vid_cwmode.value,
+					vid_curpal);
+		}
+		break;
+	}
 }

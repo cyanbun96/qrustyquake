@@ -292,6 +292,7 @@ void R_Init()
 	Cmd_AddCommand("timerefresh", R_TimeRefresh_f);
 	Cmd_AddCommand("pointfile", R_ReadPointFile_f);
 	Cmd_AddCommand("fog", Fog_FogCommand_f);
+	Cmd_AddCommand("vid_scalemode", VID_SetScaleModeCommand_f);
 	Cmd_AddCommand("vid_setmode", VID_VidSetModeCommand_f);
 	Cvar_RegisterVariable(&r_draworder);
 	Cvar_RegisterVariable(&r_speeds);
