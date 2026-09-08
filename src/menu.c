@@ -1608,6 +1608,10 @@ void M_Maps_Draw()
 		maps_cursor = maps_total > 0 ? maps_total - 1 : 0;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
+	if(maps_total == 0){
+		M_Print(xoffset + 32, 32, "No custom maps found");
+		return;
+	}
 	if (maps_sortby == 0)
 		M_Print(xoffset + 32, 32, "Sort by <- Name ->");
 	else if (maps_sortby == 1)
@@ -1656,7 +1660,6 @@ void M_Maps_Key(s32 k)
 {
 	s8 temp[40];
 	s32 curr_i = maps_scroll + maps_cursor;
-	s32 max_i = maps_total - 1;
 	s32 idx;
 	switch (k) {
 	case K_MWHEELUP:
@@ -1691,6 +1694,7 @@ void M_Maps_Key(s32 k)
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ENTER:
+		if(!maps_total)break;
 		idx = maps_scroll + maps_cursor;
 		if (idx >= 0 && idx < maps_total) {
 			filelist_item_t *level = maps_items[idx];
@@ -1699,45 +1703,47 @@ void M_Maps_Key(s32 k)
 		}
 		break;
 	case K_UPARROW:
+		if(maps_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
-		if (curr_i > 0) {
-			if (maps_cursor > 0)
-				maps_cursor--;
-			else if (maps_scroll > 0)
-				maps_scroll--;
-		}
+		if(curr_i > 0) curr_i--;
+		else curr_i = maps_total - 1;
+		if(curr_i < maps_scroll)
+			maps_scroll = curr_i;
+		else if(curr_i >= maps_scroll + 19)
+			maps_scroll = curr_i - 18;
+		maps_cursor = curr_i - maps_scroll;
 		break;
 	case K_DOWNARROW:
+		if(maps_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
-		if (curr_i < max_i) {
-			if (maps_cursor < 18)
-				maps_cursor++;
-			else if (maps_scroll < maps_total - 19)
-				maps_scroll++;
-		}
+		if(curr_i < maps_total - 1) curr_i++;
+		else curr_i = 0;
+		if(curr_i < maps_scroll)
+			maps_scroll = curr_i;
+		else if(curr_i >= maps_scroll + 19)
+			maps_scroll = curr_i - 18;
+		maps_cursor = curr_i - maps_scroll;
 		break;
 	case K_PGUP:
 	case 'u':
 	case 'U':
+		if(maps_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
 		curr_i -= 19;
-		if (curr_i < 0)
-			curr_i = 0;
-		maps_scroll = curr_i;
-		if (maps_scroll > maps_total - 19)
-			maps_scroll = q_max(0, maps_total - 19);
+		if(curr_i < 0)
+			curr_i = maps_total - 1;
+		maps_scroll = q_max(0, curr_i - 18);
 		maps_cursor = curr_i - maps_scroll;
 		break;
 	case K_PGDN:
 	case 'd':
 	case 'D':
+		if(maps_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
 		curr_i += 19;
-		if (curr_i > max_i)
-			curr_i = max_i;
-		maps_scroll = curr_i;
-		if (maps_scroll > maps_total - 19)
-			maps_scroll = q_max(0, maps_total - 19);
+		if(curr_i >= maps_total)
+			curr_i = 0;
+		maps_scroll = q_min(curr_i, q_max(0, maps_total - 19));
 		maps_cursor = curr_i - maps_scroll;
 		break;
 	default:
@@ -2012,7 +2018,6 @@ void M_Mods_Key(s32 k)
 {
 	s8 temp[40];
 	s32 curr_i = mods_scroll + mods_cursor;
-	s32 max_i = mods_total - 1;
 	s32 idx;
 	switch (k) {
 	case K_MWHEELUP:
@@ -2035,6 +2040,7 @@ void M_Mods_Key(s32 k)
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ENTER:
+		if(!mods_total)break;
 		idx = mods_scroll + mods_cursor;
 		if (idx >= 0 && idx < mods_total) {
 			filelist_item_t *mod = mods_items[idx];
@@ -2043,45 +2049,47 @@ void M_Mods_Key(s32 k)
 		}
 		break;
 	case K_UPARROW:
+		if(mods_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
-		if (curr_i > 0) {
-			if (mods_cursor > 0)
-				mods_cursor--;
-			else if (mods_scroll > 0)
-				mods_scroll--;
-		}
+		if(curr_i > 0) curr_i--;
+		else curr_i = mods_total - 1;
+		if(curr_i < mods_scroll)
+			mods_scroll = curr_i;
+		else if(curr_i >= mods_scroll + 19)
+			mods_scroll = curr_i - 18;
+		mods_cursor = curr_i - mods_scroll;
 		break;
 	case K_DOWNARROW:
+		if(mods_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
-		if (curr_i < max_i) {
-			if (mods_cursor < 19)
-				mods_cursor++;
-			else if (mods_scroll < mods_total - 20)
-				mods_scroll++;
-		}
+		if(curr_i < mods_total - 1) curr_i++;
+		else curr_i = 0;
+		if(curr_i < mods_scroll)
+			mods_scroll = curr_i;
+		else if(curr_i >= mods_scroll + 19)
+			mods_scroll = curr_i - 18;
+		mods_cursor = curr_i - mods_scroll;
 		break;
 	case K_PGUP:
 	case 'u':
 	case 'U':
+		if(mods_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
-		curr_i -= 20;
-		if (curr_i < 0)
-			curr_i = 0;
-		mods_scroll = curr_i;
-		if (mods_scroll > mods_total - 20)
-			mods_scroll = q_max(0, mods_total - 20);
+		curr_i -= 19;
+		if(curr_i < 0)
+			curr_i = mods_total - 1;
+		mods_scroll = q_max(0, curr_i - 18);
 		mods_cursor = curr_i - mods_scroll;
 		break;
 	case K_PGDN:
 	case 'd':
 	case 'D':
+		if(mods_total <= 0)break;
 		S_LocalSound("misc/menu1.wav");
-		curr_i += 20;
-		if (curr_i > max_i)
-			curr_i = max_i;
-		mods_scroll = curr_i;
-		if (mods_scroll > mods_total - 20)
-			mods_scroll = q_max(0, mods_total - 20);
+		curr_i += 19;
+		if(curr_i >= mods_total)
+			curr_i = 0;
+		mods_scroll = q_min(curr_i, q_max(0, mods_total - 19));
 		mods_cursor = curr_i - mods_scroll;
 		break;
 	default:
