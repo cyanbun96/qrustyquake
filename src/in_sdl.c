@@ -4,6 +4,7 @@ static bool mouse_avail;
 static f32 mouse_x;
 static f32 mouse_y;
 static s32 buttonremap[] = { K_MOUSE1, K_MOUSE3, K_MOUSE2, K_MOUSE4, K_MOUSE5 };
+static f64 jhatup=0, jhatright=0, jhatleft=0, jhatdown=0; // last pressed time
 
 void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
 {
@@ -44,8 +45,37 @@ void IN_RemoveJoystick()
 	IN_InitJoystick(0);
 }
 
+void IN_HatRepeat()
+{
+	if(key_dest == key_game) return;
+	f64 delay = 0.5;
+	f64 repeat = 0.05;
+	f64 t = Sys_DoubleTime();
+	if(jhatup && jhatup + delay < t){
+		Key_Event(K_UPARROW, 1);
+		Key_Event(K_UPARROW, 0);
+		jhatup += repeat;
+	}
+	if(jhatright && jhatright + delay < t){
+		Key_Event(K_RIGHTARROW, 1);
+		Key_Event(K_RIGHTARROW, 0);
+		jhatright += repeat;
+	}
+	if(jhatleft && jhatleft + delay < t){
+		Key_Event(K_LEFTARROW, 1);
+		Key_Event(K_LEFTARROW, 0);
+		jhatleft += repeat;
+	}
+	if(jhatdown && jhatdown + delay < t){
+		Key_Event(K_DOWNARROW, 1);
+		Key_Event(K_DOWNARROW, 0);
+		jhatdown += repeat;
+	}
+}
+
 void Sys_SendKeyEvents()
 {
+	IN_HatRepeat();
 	SDL_Event event;
 	s32 button, winW, winH;
 	s32 sym, state, mod; // keep here for OpenBSD compiler
@@ -123,7 +153,11 @@ void Sys_SendKeyEvents()
 			// If we're not directly handled and still above 255
 			// just force it to 0
 			if (sym > 255) sym = 0;
-			Key_Event(sym, state);
+			if(event.key.repeat){
+				Key_Event(sym, !state);
+				Key_Event(sym, state);
+			}
+			else Key_Event(sym, state);
 			break;
 		// Vanilla behavior: Use Mouse OFF disables mouse input entirely
 		// ON grabs the mouse, kinda like SetRelativeMouseMode(SDL_TRUE)
@@ -191,10 +225,26 @@ void Sys_SendKeyEvents()
 					event.jbutton.down);
 			break;
 		case SDL_EVENT_JOYSTICK_HAT_MOTION:
-			Key_Event(K_UPARROW, event.jhat.value & 1);
-			Key_Event(K_RIGHTARROW, event.jhat.value & 2);
-			Key_Event(K_DOWNARROW, event.jhat.value & 4);
-			Key_Event(K_LEFTARROW, event.jhat.value & 8);
+			if(event.jhat.value & 1){
+				Key_Event(K_UPARROW, 1);
+				Key_Event(K_UPARROW, 0);
+				jhatup = Sys_DoubleTime();
+			} else { jhatup = 0; }
+			if(event.jhat.value & 2){
+				Key_Event(K_RIGHTARROW, 1);
+				Key_Event(K_RIGHTARROW, 0);
+				jhatright = Sys_DoubleTime();
+			} else { jhatright = 0; }
+			if(event.jhat.value & 4){
+				Key_Event(K_DOWNARROW, 1);
+				Key_Event(K_DOWNARROW, 0);
+				jhatdown = Sys_DoubleTime();
+			} else { jhatdown = 0; }
+			if(event.jhat.value & 8){
+				Key_Event(K_LEFTARROW, 1);
+				Key_Event(K_LEFTARROW, 0);
+				jhatleft = Sys_DoubleTime();
+			} else { jhatleft = 0; }
 			break;
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
 			if      (event.jaxis.axis == jmoveaxisx.value)
