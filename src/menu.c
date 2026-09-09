@@ -1725,6 +1725,7 @@ void M_Maps_Key(s32 k)
 		maps_cursor = curr_i - maps_scroll;
 		break;
 	case K_PGUP:
+	case K_AUX1:
 	case 'u':
 	case 'U':
 		if(maps_total <= 0)break;
@@ -1736,6 +1737,7 @@ void M_Maps_Key(s32 k)
 		maps_cursor = curr_i - maps_scroll;
 		break;
 	case K_PGDN:
+	case K_AUX2:
 	case 'd':
 	case 'D':
 		if(maps_total <= 0)break;
@@ -2071,6 +2073,7 @@ void M_Mods_Key(s32 k)
 		mods_cursor = curr_i - mods_scroll;
 		break;
 	case K_PGUP:
+	case K_AUX1:
 	case 'u':
 	case 'U':
 		if(mods_total <= 0)break;
@@ -2082,6 +2085,7 @@ void M_Mods_Key(s32 k)
 		mods_cursor = curr_i - mods_scroll;
 		break;
 	case K_PGDN:
+	case K_AUX2:
 	case 'd':
 	case 'D':
 		if(mods_total <= 0)break;
