@@ -171,6 +171,65 @@ size_t UTF8_FromQuake(s8 *dst, size_t maxbytes, const s8 *src)
 	return j;
 }
 
+s32 q_strlcpy(s8 *dst, const s8 *src, size_t siz) // $OpenBSD: q_strlcpy.c,v1.11
+{ // Copyright(c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+	s8 *d = dst; // older systems don't have this in stdlib
+	const s8 *s = src;
+	size_t n = siz;
+	if(n != 0){ // Copy as many bytes as will fit
+		while(--n != 0){ if((*d++ = *s++) == '\0') break; }
+	}
+	if(n == 0){// Not enough room in dst, add NUL and traverse rest of src
+		if(siz != 0) *d = '\0'; // NUL-terminate dst
+		while(*s++);
+	}
+	return(s - src - 1); // count does not include NUL
+}
+
+size_t q_strlcat(s8 *dst, const s8 *src, size_t siz)//$OpenBSD:q_strlcat.c,v1.13
+{ // older systems don't have this in stdlib
+	s8 *d = dst;
+	const s8 *s = src;
+	size_t n = siz;
+	// Find the end of dst and adjust bytes left but don't go past end
+	while(n-- != 0 && *d != '\0') d++;
+	size_t dlen = d - dst;
+	n = siz - dlen;
+	if(n == 0) return(dlen + strlen(s));
+	while(*s != '\0'){ if(n != 1){ *d++ = *s; n--; } s++; }
+	*d = '\0';
+	return(dlen + (s - src)); // count does not include NUL
+}
+
+s32 q_strcasecmp(const s8 * s1, const s8 * s2)
+{ // older systems don't have this in stdlib
+	const s8 * p1 = s1;
+	const s8 * p2 = s2;
+	s8 c1, c2;
+	if(p1 == p2) return 0;
+	do {
+		c1 = tolower(*p1++);
+		c2 = tolower(*p2++);
+		if(c1 == '\0') break;
+	} while(c1 == c2);
+	return(s32)(c1 - c2);
+}
+
+s32 q_strncasecmp(const s8 *s1, const s8 *s2, size_t n)
+{ // older systems don't have this in stdlib
+	const s8 * p1 = s1;
+	const s8 * p2 = s2;
+	s8 c1, c2;
+	if(p1 == p2 || n == 0) return 0;
+	do {
+		c1 = tolower(*p1++);
+		c2 = tolower(*p2++);
+		if(c1 == '\0' || c1 != c2)
+			break;
+	} while(--n > 0);
+	return(s32)(c1 - c2);
+}
+
 s16 ShortSwap(s16 l)
 {
 	u8 b1 = l&255;
