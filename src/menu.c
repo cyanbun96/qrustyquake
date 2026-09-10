@@ -4410,10 +4410,14 @@ void M_Palette_Mouse(s32 x, s32 y)
 
 void M_Display_Mouse(s32 x, s32 y)
 {
-	if(x >= 48 && x < 310 && y >= 32 && y < 32 + 12*8)
-		M_SetMouseCursor(&display_cursor, (y - 32) / 8);
-	else if(x >= 48 && x < 310 && y >= 128 && y < 128 + 3*16)
-		M_SetMouseCursor(&display_cursor, 12 + (y - 128) / 16);
+	if(newwinmode != 1){
+		if(x >= 48 && x < 310 && y >= 32 && y < 32 + 12*8)
+			M_SetMouseCursor(&display_cursor, (y - 32) / 8);
+		else if(x >= 48 && x < 310 && y >= 128 && y < 128 + 3*16)
+			M_SetMouseCursor(&display_cursor, 12 + (y - 128) / 16);
+	}
+	else if(x >= 48 && x < 310 && y >= 32 && y < 32 + 14*8)
+			M_SetMouseCursor(&display_cursor, (y - 32) / 8);
 }
 
 void M_Gamepad_Mouse(s32 x, s32 y)
