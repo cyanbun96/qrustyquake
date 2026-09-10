@@ -14,7 +14,9 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - Integer/nearest neighbor scaling
 
-- Borderless window with -borderless parameter
+   - "vid_scalemode" cvar can be set to 0 (true nearest, default), 1 (linear scaling), or 2 (nearest but smoother)
+
+- Borderless window with -borderless parameter or through the "Display menu"
 
 - Auto-resolution fullscreen with -fullscreen_desktop
 
@@ -74,15 +76,13 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - None at all (useful for graphics settings adjustment)
 
-- Modern console features
-  
-  - Centerprint logging with con_logcenterprint 1
-
 - BGM support
   
   - All the formats you can think of (i.e. whatever sdl3_mixer supports)
   
   - Optional, requires sdl3_mixer
+ 
+  - "keepmusic 1" in console to keep the music from restarting on death/load
 
 - The default audio rate is 11025 for more muffled WinQuake sound
 
@@ -102,7 +102,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - Expanded limits, Fitzquake protocol allowing for moden mod support
   
-  - 2021 rerelease support, place QuakeEX.kpf in the base folder for working localization
+  - 2026 rerelease/DotM support, requires the "id1" folder from the KEX version to support mg3 properly
 
 - Custom palette support (put the files at gfx/custompalette.lmp and gfx/palette.lmp)
   
@@ -117,6 +117,8 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   - scr_qchudscale to adjust the CSQC HUD size independently of mod logic
 
 - Modern console features
+
+  - Centerprint logging with con_logcenterprint 1
 
   - Movable cursor (vanilla just erased characters when you pressed "left")
 
@@ -210,7 +212,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
   - Sorting by name, monsters, secrets, and date
 
-  - Quick scroll with D/U or PgDn/PgUp keys
+  - Quick scroll with D/U or PgDn/PgUp keys, AUX1 and AUX2 on controllers
 
 - "Mods" menu
 
@@ -218,13 +220,21 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - "Center Menus" option
 
+- "Saturn" animated text notification style, with a separate notification centering option for full "Saturn" look 
+
 - "Exit Style" option: faithful DOS (with VGA blurbs) and WinQuake styles, with a new "quick" variant
+
+- "Startup Behavior" option: Demos (default), Console, Menu
+
+- Delete saves in menus with Delete key, or from console with "deletesave" command
+
+- "r_showtris (1/2)" cvar for wireframe drawing
 
 # Planned
 
 - An actual design document. Lots of documentation, really.
 
-- Modernization of the rendering engine to support more demanding custom maps
+- Big cleanup of the code aimed at eliminating platform-specific bugs
 
 - Probably not
   
@@ -250,7 +260,7 @@ x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.8.3
+- Arch Linux [HW] v0.9.0
   
   - The main platform that this port is developed on. The most likely one to work
   
@@ -300,7 +310,7 @@ VM is VirtualBox unless specified otherwise.
 
   - Build_SteamOS.sh script by Pup Luka
 
-- Windows [VM, HW] v0.8.3
+- Windows [VM, HW] v0.9.0
 
   - Runs on Android through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
 
@@ -328,6 +338,6 @@ TGA image loading code taken from MarkV, along with lots of other software rende
 
 Bubbleguuum's build system is used for release AppImages. Bubbleguuum has also contributed several miscellaneous fixes. 
 
-Pup Luka has contributed the "resurrect" command, WinQuake-style exit screen, Steam Deck build script, and a lot of miscellaneous fixes all over.
+Pup Luka has contributed the "resurrect" command, r_showtris, faithful Saturn text, svc_sellscreen, WinQuake-style exit screen, Steam Deck build script, and a lot of miscellaneous fixes all over.
 
 --CyanBun96 <3
