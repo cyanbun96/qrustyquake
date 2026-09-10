@@ -102,7 +102,7 @@ static s8 *PF_VarString(s32 first)
 		s32 offset = first + 1;
 		s = LOC_Format(format, PF_GetStringArg, &offset, out, sizeof(out));
 	} else for(s32 i = first; i < qcvm->argc; i++){
-		s = strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)), sizeof(out));
+		s = q_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)), sizeof(out));
 		if(s >= sizeof(out)) {
 			Con_DPrintf("PF_VarString: overflow(string truncated)\n");
 			return out;
@@ -257,7 +257,7 @@ static void PF_ArgV()
 		G_INT(OFS_RETURN) = 0;
 	else {
 		s8 *ret = PR_GetTempString();
-		strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
+		q_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(ret);
 	}
 }
@@ -1454,7 +1454,7 @@ static void PF_strcat()
 	out[0] = 0;
 	size_t s = 0;
 	for(s32 i = 0; i < qcvm->argc; i++) {
-		s = strlcat(out, G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
+		s = q_strlcat(out, G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
 		if(s >= STRINGTEMP_LENGTH) {
 			Con_DPrintf("PF_strcat: overflow(string truncated)\n");
 			break;
@@ -1782,7 +1782,7 @@ static void PF_cl_getstat_string()
 		G_INT(OFS_RETURN) = 0;
 	else {
 		s8 *result = PR_GetTempString();
-		strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
+		q_strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(result);
 	}
 }
@@ -1790,7 +1790,7 @@ static void PF_cl_getstat_string()
 s32 PR_MakeTempString(const s8 *val)
 {
 	s8 *tmp = PR_GetTempString();
-	strlcpy(tmp, val, STRINGTEMP_LENGTH);
+	q_strlcpy(tmp, val, STRINGTEMP_LENGTH);
 	return PR_SetEngineString(tmp);
 }
 

@@ -225,7 +225,7 @@ void Cmd_Unalias_f() // -- johnfitz
 bool Cmd_AliasExists(const char *aliasname)
 {
 	for(cmdalias_t *a = cmd_alias; a; a = a->next){
-		if(!strcasecmp(aliasname, a->name))
+		if(!q_strcasecmp(aliasname, a->name))
 			return true;
 	}
 	return false;
@@ -391,14 +391,14 @@ bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
 	Cmd_TokenizeString(text);
 	if(!Cmd_Argc()) return 1; // no tokens
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!strcasecmp(cmd_argv[0], cmd->name)){ // check functions
+		if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
 			if(src == src_server && cmd->srctype != src_server)
 				continue;//src_server may only execute server commands (such commands must be safe to parse within the context of a network message, so no disconnect/connect/playdemo/etc)
 			cmd->function();
 			return 1;
 		}
 	for(cmdalias_t *a = cmd_alias; a; a = a->next) // check alias
-		if(!strcasecmp(cmd_argv[0], a->name)){
+		if(!q_strcasecmp(cmd_argv[0], a->name)){
 			Cbuf_InsertText(a->value);
 			return 1;
 		}
@@ -417,7 +417,7 @@ void Cmd_ForwardToServer()
 	}
 	if(cls.demoplayback) return; // not really connected
 	MSG_WriteByte(&cls.message, clc_stringcmd);
-	if(strcasecmp(Cmd_Argv(0), "cmd") != 0){
+	if(q_strcasecmp(Cmd_Argv(0), "cmd") != 0){
 		SZ_Print(&cls.message, Cmd_Argv(0));
 		SZ_Print(&cls.message, " ");
 	}

@@ -409,8 +409,8 @@ void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
 	for(i = 0; i < count; i++){
 		s8 entry[256];
 		snprintf(entry,sizeof(entry),"%5.2f %s",t[i]*1000.0,names[i]);
-		if(i != 0) strlcat(line, " | ", sizeof(line));
-		strlcat(line, entry, sizeof(line));
+		if(i != 0) q_strlcat(line, " | ", sizeof(line));
+		q_strlcat(line, entry, sizeof(line));
 	}
 	Con_Printf("%s\n", line);
 }

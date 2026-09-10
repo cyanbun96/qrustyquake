@@ -24,13 +24,13 @@ void R_ParseWorldspawn()
 		data = COM_Parse(data);
 		if(!data)return; // error
 		if(com_token[0]=='}')break; // end of worldspawn
-		if(com_token[0]=='_')strlcpy(key, com_token + 1, sizeof(key));
-		else strlcpy(key, com_token, sizeof(key));
+		if(com_token[0]=='_')q_strlcpy(key, com_token + 1, sizeof(key));
+		else q_strlcpy(key, com_token, sizeof(key));
 		while(key[0]&&key[strlen(key)-1]==' ') // remove trailing spaces
 			key[strlen(key)-1] = 0;
 		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 		if(!data)return; // error
-		strlcpy(value, com_token, sizeof(value));
+		q_strlcpy(value, com_token, sizeof(value));
 		if(!strcmp("wateralpha", key))map_wateralpha = atof(value);
 		if(!strcmp("lavaalpha", key)) map_lavaalpha  = atof(value);
 		if(!strcmp("telealpha", key)) map_telealpha  = atof(value);

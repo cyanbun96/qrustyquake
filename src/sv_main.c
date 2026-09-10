@@ -908,7 +908,7 @@ void SV_SpawnServer(s8 *server)
 		current_skill = 3;
 	Cvar_SetValue("skill", (float)current_skill);
 	Host_ClearMemory(); // set up the new server
-	strlcpy(sv.name, server, sizeof(sv.name));
+	q_strlcpy(sv.name, server, sizeof(sv.name));
 	sv.protocol = sv_protocol; // johnfitz
 	if(sv.protocol == PROTOCOL_RMQ){
 		// set up the protocol flags used by this server
@@ -944,7 +944,7 @@ void SV_SpawnServer(s8 *server)
 	sv.paused = false;
 	sv.nomonsters = (nomonsters.value != 0.f);
 	qcvm->time = 1.0;
-	strlcpy(sv.name, server, sizeof(sv.name));
+	q_strlcpy(sv.name, server, sizeof(sv.name));
 	snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
 	for(s32 i = 0; i < MAXSKIES; ++i)
 		r_skyname[i][0] = 0;

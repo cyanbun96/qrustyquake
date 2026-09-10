@@ -182,7 +182,7 @@ static void Host_Map_f()
 	SCR_BeginLoadingPlaque();
 	svs.serverflags = 0;// haven't completed an episode yet
 	s8 name[MAX_QPATH];
-	strlcpy(name, Cmd_Argv(1), sizeof(name));
+	q_strlcpy(name, Cmd_Argv(1), sizeof(name));
 	// remove(any) trailing ".bsp" from mapname -- S.A.
 	s8 *p = strstr(name, ".bsp");
 	if(p && p[4] == '\0')
@@ -195,8 +195,8 @@ static void Host_Map_f()
 	if(cls.state != ca_dedicated){
 		memset(cls.spawnparms, 0, MAX_MAPSTRING);
 		for(s32 i = 2; i < Cmd_Argc(); i++){
-			strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
-			strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
+			q_strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
+			q_strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
 		}
 		Cmd_ExecuteString("connect local", src_command);
 	}
@@ -359,7 +359,7 @@ if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
 	fclose(f);
 	PR_SwitchQCVM(NULL);
 	if(Cmd_Argc()!=3)Con_Printf("done.\n");
-	strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
+	q_strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
 }
 
 bool Host_ValidateSave(const s8 *name)
@@ -501,7 +501,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++)
 		svs.clients->spawn_parms[i] = spawn_parms[i];
 	PR_SwitchQCVM(NULL);
-	strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
+	q_strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
 	if(cls.state != ca_dedicated){
 		CL_EstablishConnection("local");
 		Host_Reconnect_f();
@@ -554,8 +554,8 @@ static void Host_Name_f()
 		Con_Printf("\"name\" is \"%s\"\n", cl_name.string);
 		return;
 	}
-	if(Cmd_Argc() == 2) strlcpy(newName, Cmd_Argv(1), sizeof(newName));
-	else strlcpy(newName, Cmd_Args(), sizeof(newName));
+	if(Cmd_Argc() == 2) q_strlcpy(newName, Cmd_Argv(1), sizeof(newName));
+	else q_strlcpy(newName, Cmd_Args(), sizeof(newName));
 	newName[15] = 0; // client_t structure actually says name[32].
 	if(cmd_source == src_command){
 		if(strcmp(cl_name.string, newName) == 0) return;
@@ -639,7 +639,7 @@ void Host_Tell_f()
 	for(client_t *client = svs.clients; j < svs.maxclients; j++, client++){
 		if(!client->active || !client->spawned)
 			continue;
-		if(strcasecmp(client->name, Cmd_Argv(1)))
+		if(q_strcasecmp(client->name, Cmd_Argv(1)))
 			continue;
 		host_client = client;
 		SV_ClientPrintf("%s", text);
@@ -844,7 +844,7 @@ void Host_Kick_f() // Kicks a user off of the server
 		for(i = 0, host_client = svs.clients; i < svs.maxclients;
 							i++, host_client++){
 			if(!host_client->active) continue;
-			if(strcasecmp(host_client->name,Cmd_Argv(1))==0)break;
+			if(q_strcasecmp(host_client->name,Cmd_Argv(1))==0)break;
 		}
 	}
 	if(i < svs.maxclients){
@@ -1065,16 +1065,16 @@ void FileList_Add(const char *name, const char *desc, filelist_item_t **list)
 	for(item = *list; item; item = item->next) // ignore duplicate
 		if(!strcmp(name, item->name)) return;
 	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-	strlcpy(item->name, name, sizeof(item->name));
-	if(desc) strlcpy(item->desc, desc, sizeof(item->desc));
+	q_strlcpy(item->name, name, sizeof(item->name));
+	if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
 	// insert each entry in alphabetical order
-	if(*list == NULL || strcasecmp(item->name, (*list)->name) < 0){
+	if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
 		item->next = *list; //insert at front
 		*list = item;
 	} else { //insert later
 		prev = *list;
 		cursor = (*list)->next;
-		while(cursor && (strcasecmp(item->name, cursor->name) > 0)){
+		while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
 			prev = cursor;
 			cursor = cursor->next;
 		}
@@ -1089,19 +1089,19 @@ void FileList_AddMap(const char *name, const char *desc, filelist_item_t **list)
 	for(item = *list; item; item = item->next) // ignore duplicate
 		if(!strcmp(name, item->name)) return;
 	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-	strlcpy(item->name, name, sizeof(item->name));
-	if(desc) strlcpy(item->desc, desc, sizeof(item->desc));
+	q_strlcpy(item->name, name, sizeof(item->name));
+	if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
 	item->data1 = Mod_CountMonsters(name);
 	item->data2 = Mod_CountSecrets(name);
 	item->date = Mod_GetMapDate(name);
 	// insert each entry in alphabetical order
-	if(*list == NULL || strcasecmp(item->name, (*list)->name) < 0){
+	if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
 		item->next = *list; //insert at front
 		*list = item;
 	} else { //insert later
 		prev = *list;
 		cursor = (*list)->next;
-		while(cursor && (strcasecmp(item->name, cursor->name) > 0)){
+		while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
 			prev = cursor;
 			cursor = cursor->next;
 		}
@@ -1251,7 +1251,7 @@ void Modlist_Add(const char *name, const char *desc){
 static const char *Modlist_KnownDescription(const char *modname)
 {
 	for(u32 i = 0; i < SDL_arraysize(knownmods); i++){
-		if(!strcasecmp(modname, knownmods[i][0]))
+		if(!q_strcasecmp(modname, knownmods[i][0]))
 			return knownmods[i][1];
 	}
 	return NULL;

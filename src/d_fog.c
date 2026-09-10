@@ -106,13 +106,13 @@ void Fog_ParseWorldspawn () // from Quakespasm
 	while(1){
 		if(!data) return; // error
 		if(com_token[0] == '}') break; // end of worldspawn
-		if(com_token[0] == '_')strlcpy(key, com_token+1, sizeof(key));
-		else strlcpy(key, com_token, sizeof(key));
+		if(com_token[0] == '_')q_strlcpy(key, com_token+1, sizeof(key));
+		else q_strlcpy(key, com_token, sizeof(key));
 		while(key[0] && key[strlen(key)-1] == ' ') // no trailing spaces
 			key[strlen(key)-1] = 0;
 		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 		if(!data) return; // error
-		strlcpy(value, com_token, sizeof(value));
+		q_strlcpy(value, com_token, sizeof(value));
 		if(!strcmp("fog", key))
 			sscanf(value, "%f %f %f %f", &fog_density, &fog_red,
 					&fog_green, &fog_blue);

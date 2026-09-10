@@ -51,8 +51,8 @@ sfxcache_t *S_LoadSound(sfx_t *s)
 	u8 stackbuf[1*1024]; // avoid dirtying the cache heap
 	sfxcache_t *sc = (sfxcache_t *) Cache_Check(&s->cache);
 	if(sc) return sc; // see if still in memory
-	strlcpy(namebuffer, "sound/", sizeof(namebuffer)); // load it in
-	strlcat(namebuffer, s->name, sizeof(namebuffer));
+	q_strlcpy(namebuffer, "sound/", sizeof(namebuffer)); // load it in
+	q_strlcat(namebuffer, s->name, sizeof(namebuffer));
 	u8 *data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf), 0);
 	if(!data) {
 		Con_Printf("Couldn't load %s\n", namebuffer);

@@ -156,7 +156,7 @@ static model_t *Mod_FindName(const s8 *name)
 	if(i == mod_numknown){
 		if(mod_numknown == MAX_MOD_KNOWN)
 			Sys_Error("mod_numknown == MAX_MOD_KNOWN");
-		strlcpy(mod->name, name, MAX_QPATH);
+		q_strlcpy(mod->name, name, MAX_QPATH);
 		mod->needload = 1;
 		mod_numknown++;
 	}
@@ -485,9 +485,9 @@ static void Mod_LoadLighting(lump_t *l)
 	s8 litfilename[MAX_OSPATH];
 	loadmodel->lightdata = NULL;
 	// LordHavoc: check for a .lit file
-	strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
+	q_strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
 	COM_StripExtension(litfilename, litfilename, sizeof(litfilename));
-	strlcat(litfilename, ".lit", sizeof(litfilename));
+	q_strlcat(litfilename, ".lit", sizeof(litfilename));
 	s32 mark = Hunk_LowMark();
 	u32 path_id;
 	u8 *data = COM_LoadHunkFile(litfilename, &path_id);
@@ -599,7 +599,7 @@ static void Mod_LoadEntities(lump_t *l)
 	s32 mark = Hunk_LowMark();
 	u32 crc = 0;
 	if(l->filelen > 0) crc = CRC_Block(mod_base+l->fileofs, l->filelen-1);
-	strlcpy(basemapname, loadmodel->name, sizeof(basemapname));
+	q_strlcpy(basemapname, loadmodel->name, sizeof(basemapname));
 	COM_StripExtension(basemapname, basemapname, sizeof(basemapname));
 	snprintf(entfilename,sizeof(entfilename),"%s@%04x.ent",basemapname,crc);
 	u32 path_id;
@@ -771,7 +771,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		}
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
-		if(!strncasecmp(out->texinfo->texture->name,"sky",3))
+		if(!q_strncasecmp(out->texinfo->texture->name,"sky",3))
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
 		else if(out->texinfo->texture->name[0] == '*' ||
 			out->texinfo->texture->name[0] == '!') { // warp surface
@@ -1641,7 +1641,7 @@ static FILE *Mod_FindVisibilityExternal()
 			fclose(f);
 			return NULL;
 		}
-		if(!strcasecmp(header.mapname, shortname)) break;
+		if(!q_strcasecmp(header.mapname, shortname)) break;
 		pos += header.filelen + VISPATCH_HEADER_LEN;
 		fseek(f, pos, SEEK_SET);
 	}
@@ -1707,7 +1707,7 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 	Mod_LoadFaces(&header->lumps[LUMP_FACES], bsp2);
 	Mod_LoadMarksurfaces(&header->lumps[LUMP_MARKSURFACES], bsp2);
 	if(mod->bspversion == BSPVERSION && external_vis.value &&
-			sv.modelname[0] && !strcasecmp(loadname, sv.name)){
+			sv.modelname[0] && !q_strcasecmp(loadname, sv.name)){
 		Con_DPrintf("trying to open external vis file\n");
 		FILE *fvis = Mod_FindVisibilityExternal();
 		if(fvis){
@@ -1780,7 +1780,7 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax, aliashdr_t *pheader,
 	s8 *name, maliasframedesc_t *frame, s32 recursed) {
 	daliasframe_t *pdaliasframe = (daliasframe_t *) pin;
-	strlcpy(name, pdaliasframe->name, 16);
+	q_strlcpy(name, pdaliasframe->name, 16);
 	if(!recursed){
 		frame->firstpose = posenum;
 		frame->numposes = 1;

@@ -268,9 +268,9 @@ nextmsg:
 				break;
 			case clc_stringcmd:
 				s = MSG_ReadString();
-				if(strncasecmp(s, "spawn",5) &&
-					strncasecmp(s, "begin", 5) &&
-					strncasecmp(s, "prespawn", 8) &&
+				if(q_strncasecmp(s, "spawn",5) &&
+					q_strncasecmp(s, "begin", 5) &&
+					q_strncasecmp(s, "prespawn", 8) &&
 					qcvm->extfuncs.SV_ParseClientCommand){
 // the spawn/begin/prespawn are because of numerous mods that disobey the rules.
 // at a minimum, we must be able to join the server, so that we can see any
@@ -294,45 +294,45 @@ nextmsg:
 					break;
 				}
 				ret = 0;
-				if(strncasecmp(s, "status", 6) == 0)
+				if(q_strncasecmp(s, "status", 6) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "god", 3) == 0)
+				else if(q_strncasecmp(s, "god", 3) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "notarget", 8) == 0)
+				else if(q_strncasecmp(s, "notarget", 8) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "fly", 3) == 0)
+				else if(q_strncasecmp(s, "fly", 3) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "name", 4) == 0)
+				else if(q_strncasecmp(s, "name", 4) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "noclip", 6) == 0)
+				else if(q_strncasecmp(s, "noclip", 6) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "setpos", 6) == 0)
+				else if(q_strncasecmp(s, "setpos", 6) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "say", 3) == 0)
+				else if(q_strncasecmp(s, "say", 3) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "say_team", 8) == 0)
+				else if(q_strncasecmp(s, "say_team", 8) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "tell", 4) == 0)
+				else if(q_strncasecmp(s, "tell", 4) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "color", 5) == 0)
+				else if(q_strncasecmp(s, "color", 5) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "kill", 4) == 0)
+				else if(q_strncasecmp(s, "kill", 4) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "pause", 5) == 0)
+				else if(q_strncasecmp(s, "pause", 5) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "spawn", 5) == 0)
+				else if(q_strncasecmp(s, "spawn", 5) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "begin", 5) == 0)
+				else if(q_strncasecmp(s, "begin", 5) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "prespawn", 8) == 0)
+				else if(q_strncasecmp(s, "prespawn", 8) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "kick", 4) == 0)
+				else if(q_strncasecmp(s, "kick", 4) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "ping", 4) == 0)
+				else if(q_strncasecmp(s, "ping", 4) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "give", 4) == 0)
+				else if(q_strncasecmp(s, "give", 4) == 0)
 					ret = 1;
-				else if(strncasecmp(s, "ban", 3) == 0)
+				else if(q_strncasecmp(s, "ban", 3) == 0)
 					ret = 1;
 				if(ret == 1)
 					Cmd_ExecuteString(s, src_client);
