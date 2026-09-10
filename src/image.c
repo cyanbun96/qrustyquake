@@ -202,7 +202,7 @@ breakOut:;
 u8 *Image_LoadImage(const s8 *name, s32 *width, s32 *height)
 { // returns a pointer to hunk allocated RGBA data
 	FILE *f;
-	q_snprintf(loadfilename, sizeof(loadfilename), "%s.tga", name);
+	snprintf(loadfilename, sizeof(loadfilename), "%s.tga", name);
 	COM_FOpenFile(loadfilename, &f, NULL);
 	if(f) return Image_LoadTGA(f, width, height);
 	return NULL;

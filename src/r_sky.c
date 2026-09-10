@@ -56,8 +56,8 @@ void Sky_LoadSkyBox (const s8 *name)
 			return;
 		}
 	}
-	q_strlcpy(skybox_name, name, sizeof(skybox_name));
-	q_strlcpy(last_skybox_name, skybox_name, sizeof(last_skybox_name));
+	strlcpy(skybox_name, name, sizeof(skybox_name));
+	strlcpy(last_skybox_name, skybox_name, sizeof(last_skybox_name));
 }
 
 void R_BuildRGBLUT() {
@@ -118,13 +118,13 @@ s32 R_LoadSkybox (const s8 *name)
 	}
 	if (!strcmp (name, skybox_name)) // the same skybox we are using now
 		return 1;
-	q_strlcpy (skybox_name, name, sizeof(skybox_name));
+	strlcpy (skybox_name, name, sizeof(skybox_name));
 	s32 mark = Hunk_LowMark ();
 	for (s32 i = 0 ; i < 6 ; i++) {
 		s8 pathname[1024];
 		s8 *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 		s32 r_skysideimage[6] = {5, 2, 4, 1, 0, 3};
-		q_snprintf (pathname, sizeof(pathname), "gfx/env/%s%s", name, suf[r_skysideimage[i]]);
+		snprintf (pathname, sizeof(pathname), "gfx/env/%s%s", name, suf[r_skysideimage[i]]);
 		s32 width, height;
 		u8 *pic = Image_LoadImage (pathname, &width, &height);
 		if (!pic) {
@@ -316,15 +316,15 @@ void Sky_NewMap()
 		if (com_token[0] == '}')
 			break; // end of worldspawn
 		if (com_token[0] == '_')
-			q_strlcpy(key, com_token + 1, sizeof(key));
+			strlcpy(key, com_token + 1, sizeof(key));
 		else
-			q_strlcpy(key, com_token, sizeof(key));
+			strlcpy(key, com_token, sizeof(key));
 		while (key[0] && key[strlen(key)-1] == ' ') // remove trailing spaces
 			key[strlen(key)-1] = 0;
 		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 		if (!data)
 			return; // error
-		q_strlcpy(value, com_token, sizeof(value));
+		strlcpy(value, com_token, sizeof(value));
 		if (!strcmp("sky", key))
 			Sky_LoadSkyBox(value);
 		if (!strcmp("skyfog", key))

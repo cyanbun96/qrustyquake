@@ -14,7 +14,7 @@ void R_InitParticles()
 {
 	s32 i = COM_CheckParm("-particles");
 	if (i) {
-		r_numparticles = (s32)(Q_atoi(com_argv[i + 1]));
+		r_numparticles = (s32)(atoi(com_argv[i + 1]));
 		if (r_numparticles < ABSOLUTE_MIN_PARTICLES)
 			r_numparticles = ABSOLUTE_MIN_PARTICLES;
 	} else

@@ -116,7 +116,7 @@ void PR_RunError(const s8 *error, ...)
 	va_list argptr;
 	s8 string[1024];
 	va_start(argptr, error);
-	q_vsnprintf(string, sizeof(string), error, argptr);
+	vsnprintf(string, sizeof(string), error, argptr);
 	va_end(argptr);
 	PR_PrintStatement(qcvm->statements + qcvm->xstatement);
 	PR_StackTrace();

@@ -90,7 +90,7 @@ void IN_UseDown (){KeyDown(&in_use);}
 void IN_UseUp (){KeyUp(&in_use);}
 void IN_JumpDown (){KeyDown(&in_jump);}
 void IN_JumpUp (){KeyUp(&in_jump);}
-void IN_Impulse (){in_impulse=Q_atoi(Cmd_Argv(1));}
+void IN_Impulse (){in_impulse=atoi(Cmd_Argv(1));}
 
 f32 CL_KeyState (kbutton_t *key)
 {
@@ -154,7 +154,7 @@ void CL_AdjustAngles ()
 void CL_BaseMove (usercmd_t *cmd)
 { // Send the intended movement message to the server
 	if(cls.signon != SIGNONS) return;
-	Q_memset (cmd, 0, sizeof(*cmd));
+	memset (cmd, 0, sizeof(*cmd));
 	if(in_strafe.state & 1){
 		cmd->sidemove += cl_sidespeed.value * CL_KeyState (&in_right);
 		cmd->sidemove -= cl_sidespeed.value * CL_KeyState (&in_left);

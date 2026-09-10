@@ -233,7 +233,7 @@ void SV_LocalSound(client_t *client, const s8 *sample)
 }
 
 static bool SV_IsLocalClient(client_t *client)
-{ return Q_strcmp(client->netconnection->address, "LOCAL") == 0; }
+{ return strcmp(client->netconnection->address, "LOCAL") == 0; }
 
 // Sends the first message from the server to a connected client.
 // This will be sent on the initial connection and upon each server load.
@@ -362,7 +362,7 @@ u8 *SV_FatPVS(vec3_t org, model_t *worldmodel) // Calculates a PVS that is the
 		if(!fatpvs)
 	  Sys_Error("SV_FatPVS: realloc() failed on %d bytes", fatpvs_capacity);
 	}
-	Q_memset(fatpvs, 0, fatbytes);
+	memset(fatpvs, 0, fatbytes);
 	SV_AddToFatPVS(org, worldmodel->nodes, worldmodel);
 	return fatpvs;
 }
@@ -585,7 +585,7 @@ bool SV_SendClientDatagram(client_t *client)
 	msg.maxsize = sizeof(buf);
 	msg.cursize = 0;
 // if client is nonlocal, use smaller max size so packets aren't fragmented
-	if(Q_strcmp(client->netconnection->address, "LOCAL") != 0) //johnfitz
+	if(strcmp(client->netconnection->address, "LOCAL") != 0) //johnfitz
 		msg.maxsize = DATAGRAM_MTU;
 	MSG_WriteByte(&msg, svc_time);
 	MSG_WriteFloat(&msg, qcvm->time);
@@ -908,7 +908,7 @@ void SV_SpawnServer(s8 *server)
 		current_skill = 3;
 	Cvar_SetValue("skill", (float)current_skill);
 	Host_ClearMemory(); // set up the new server
-	q_strlcpy(sv.name, server, sizeof(sv.name));
+	strlcpy(sv.name, server, sizeof(sv.name));
 	sv.protocol = sv_protocol; // johnfitz
 	if(sv.protocol == PROTOCOL_RMQ){
 		// set up the protocol flags used by this server
@@ -944,15 +944,15 @@ void SV_SpawnServer(s8 *server)
 	sv.paused = false;
 	sv.nomonsters = (nomonsters.value != 0.f);
 	qcvm->time = 1.0;
-	q_strlcpy(sv.name, server, sizeof(sv.name));
-	q_snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
+	strlcpy(sv.name, server, sizeof(sv.name));
+	snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
 	for(s32 i = 0; i < MAXSKIES; ++i)
 		r_skyname[i][0] = 0;
 	lit_loaded = 0;
 	sv.worldmodel = Mod_ForName(sv.modelname, false);
 	if(!sv.worldmodel){
 		str_tolower(server);
-		q_snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
+		snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
 		sv.worldmodel = Mod_ForName(sv.modelname, false);
 		if(!sv.worldmodel){
 			Con_Printf("Couldn't spawn server %s\n", sv.modelname);

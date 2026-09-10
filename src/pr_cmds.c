@@ -102,7 +102,7 @@ static s8 *PF_VarString(s32 first)
 		s32 offset = first + 1;
 		s = LOC_Format(format, PF_GetStringArg, &offset, out, sizeof(out));
 	} else for(s32 i = first; i < qcvm->argc; i++){
-		s = q_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)), sizeof(out));
+		s = strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)), sizeof(out));
 		if(s >= sizeof(out)) {
 			Con_DPrintf("PF_VarString: overflow(string truncated)\n");
 			return out;
@@ -257,7 +257,7 @@ static void PF_ArgV()
 		G_INT(OFS_RETURN) = 0;
 	else {
 		s8 *ret = PR_GetTempString();
-		q_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
+		strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(ret);
 	}
 }
@@ -457,35 +457,35 @@ nolength:
 				switch(*s) {
 				case 'd': case 'i':
 					if(precision < 0) // not set
-						q_snprintf(o, end - o, formatbuf, width, (isfloat ? (s32) GETARG_FLOAT(thisarg) : (s32) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, (isfloat ? (s32) GETARG_FLOAT(thisarg) : (s32) GETARG_INT(thisarg)));
 					else
-						q_snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (s32) GETARG_FLOAT(thisarg) : (s32) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (s32) GETARG_FLOAT(thisarg) : (s32) GETARG_INT(thisarg)));
 					o += strlen(o);
 					break;
 				case 'o': case 'u': case 'x': case 'X': case 'p': case 'P':
 					if(precision < 0) // not set
-						q_snprintf(o, end - o, formatbuf, width, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
 					else
-						q_snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
 					o += strlen(o);
 					break;
 				case 'e': case 'E': case 'f': case 'F': case 'g': case 'G':
 					if(precision < 0) // not set
-						q_snprintf(o, end - o, formatbuf, width, (isfloat ? (f64) GETARG_FLOAT(thisarg) : (f64) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, (isfloat ? (f64) GETARG_FLOAT(thisarg) : (f64) GETARG_INT(thisarg)));
 					else
-						q_snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (f64) GETARG_FLOAT(thisarg) : (f64) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (f64) GETARG_FLOAT(thisarg) : (f64) GETARG_INT(thisarg)));
 					o += strlen(o);
 					break;
 				case 'v': case 'V':
 					f[-2] += 'g' - 'v';
 					if(precision < 0) // not set
-						q_snprintf(o, end - o, va("%s %s %s", /* NESTED SPRINTF IS NESTED */ formatbuf, formatbuf, formatbuf),
+						snprintf(o, end - o, va("%s %s %s", /* NESTED SPRINTF IS NESTED */ formatbuf, formatbuf, formatbuf),
 								width, (isfloat ? (f64) GETARG_VECTOR(thisarg)[0] : (f64) GETARG_INTVECTOR(thisarg)[0]),
 								width, (isfloat ? (f64) GETARG_VECTOR(thisarg)[1] : (f64) GETARG_INTVECTOR(thisarg)[1]),
 								width, (isfloat ? (f64) GETARG_VECTOR(thisarg)[2] : (f64) GETARG_INTVECTOR(thisarg)[2])
 							  );
 					else
-						q_snprintf(o, end - o, va("%s %s %s", /* NESTED SPRINTF IS NESTED */ formatbuf, formatbuf, formatbuf),
+						snprintf(o, end - o, va("%s %s %s", /* NESTED SPRINTF IS NESTED */ formatbuf, formatbuf, formatbuf),
 								width, precision, (isfloat ? (f64) GETARG_VECTOR(thisarg)[0] : (f64) GETARG_INTVECTOR(thisarg)[0]),
 								width, precision, (isfloat ? (f64) GETARG_VECTOR(thisarg)[1] : (f64) GETARG_INTVECTOR(thisarg)[1]),
 								width, precision, (isfloat ? (f64) GETARG_VECTOR(thisarg)[2] : (f64) GETARG_INTVECTOR(thisarg)[2])
@@ -495,9 +495,9 @@ nolength:
 				case 'c':
 					//UTF-8-FIXME: figure it out yourself
 					if(precision < 0) // not set
-						q_snprintf(o, end - o, formatbuf, width, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
 					else
-						q_snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
+						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
 					o += strlen(o);
 					break;
 				case 'S':
@@ -522,9 +522,9 @@ nolength:
 						//                                                              if(flags & PRINTF_ALTERNATE)
 						{
 							if(precision < 0) // not set
-								q_snprintf(o, end - o, formatbuf, width, quotedarg);
+								snprintf(o, end - o, formatbuf, width, quotedarg);
 							else
-								q_snprintf(o, end - o, formatbuf, width, precision, quotedarg);
+								snprintf(o, end - o, formatbuf, width, precision, quotedarg);
 							o += strlen(o);
 						}
 						/*                                                              else
@@ -538,9 +538,9 @@ nolength:
 				case 's':
 						//UTF-8-FIXME: figure it out yourself
 						if(precision < 0) // not set
-							q_snprintf(o, end - o, formatbuf, width, GETARG_STRING(thisarg));
+							snprintf(o, end - o, formatbuf, width, GETARG_STRING(thisarg));
 						else
-							q_snprintf(o, end - o, formatbuf, width, precision, GETARG_STRING(thisarg));
+							snprintf(o, end - o, formatbuf, width, precision, GETARG_STRING(thisarg));
 						o += strlen(o);
 						break;
 				default:
@@ -1352,7 +1352,7 @@ static void PF_stov()
 static void PF_etos()
 { //yes, this is lame
 	s8 *result = PR_GetTempString();
-	q_snprintf(result,STRINGTEMP_LENGTH,"entity %i",G_EDICTNUM(OFS_PARM0));
+	snprintf(result,STRINGTEMP_LENGTH,"entity %i",G_EDICTNUM(OFS_PARM0));
 	G_INT(OFS_RETURN) = PR_SetEngineString(result);
 }
 
@@ -1454,7 +1454,7 @@ static void PF_strcat()
 	out[0] = 0;
 	size_t s = 0;
 	for(s32 i = 0; i < qcvm->argc; i++) {
-		s = q_strlcat(out, G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
+		s = strlcat(out, G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
 		if(s >= STRINGTEMP_LENGTH) {
 			Con_DPrintf("PF_strcat: overflow(string truncated)\n");
 			break;
@@ -1782,7 +1782,7 @@ static void PF_cl_getstat_string()
 		G_INT(OFS_RETURN) = 0;
 	else {
 		s8 *result = PR_GetTempString();
-		q_strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
+		strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(result);
 	}
 }
@@ -1790,7 +1790,7 @@ static void PF_cl_getstat_string()
 s32 PR_MakeTempString(const s8 *val)
 {
 	s8 *tmp = PR_GetTempString();
-	q_strlcpy(tmp, val, STRINGTEMP_LENGTH);
+	strlcpy(tmp, val, STRINGTEMP_LENGTH);
 	return PR_SetEngineString(tmp);
 }
 
@@ -1803,35 +1803,35 @@ void PF_cl_playerkey_internal(s32 player, const s8 *key, bool retfloat)
 	if (player < 0 || player >= MAX_SCOREBOARD)
 		ret = NULL;
 	else if (!strcmp(key, "viewentity"))
-		q_snprintf(buf, sizeof(buf), "%i", player+1);   //hack for DP compat. always returned even when the slot is empty (so long as its valid).
+		snprintf(buf, sizeof(buf), "%i", player+1);   //hack for DP compat. always returned even when the slot is empty (so long as its valid).
 	else if (!*cl.scores[player].name)
 		ret = NULL;
 	else if (!strcmp(key, "name"))
 		ret = cl.scores[player].name;
 	else if (!strcmp(key, "frags"))
-		q_snprintf(buf, sizeof(buf), "%i", cl.scores[player].frags);
+		snprintf(buf, sizeof(buf), "%i", cl.scores[player].frags);
 	else if (!strcmp(key, "ping"))
 		ret = NULL; //unknown
 	else if (!strcmp(key, "pl"))
 		ret = NULL; //unknown
 	else if (!strcmp(key, "entertime"))
-		q_snprintf(buf, sizeof(buf), "%g", cl.scores[player].entertime);
+		snprintf(buf, sizeof(buf), "%g", cl.scores[player].entertime);
 	else if (!strcmp(key, "topcolor_rgb")) {
 		s32 c = (cl.scores[player].colors & 0xf0) >> 4;
-		q_snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
+		snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
 			host_basepal[c+1]/255.0, host_basepal[c]+2/255.0);
 	}
 	else if (!strcmp(key, "bottomcolor_rgb")) {
 		s32 c = cl.scores[player].colors & 0x0f;
-		q_snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
+		snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
 			host_basepal[c+1]/255.0, host_basepal[c+2]/255.0);
 	}
 	else if (!strcmp(key, "topcolor"))
-		q_snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors & 0xf0) >> 4);
+		snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors & 0xf0) >> 4);
 	else if (!strcmp(key, "bottomcolor"))
-		q_snprintf(buf, sizeof(buf), "%i", cl.scores[player].colors & 0x0f);
+		snprintf(buf, sizeof(buf), "%i", cl.scores[player].colors & 0x0f);
 	else if (!strcmp(key, "team"))  //quakeworld uses team infokeys to decide teams (instead of colours). but NQ never did, so that's fun. Lets allow mods to use either so that they can favour QW and let the engine hide differences .
-		q_snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors & 0x0f)+1);
+		snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors & 0x0f)+1);
 	else
 		ret = NULL;
 	if (retfloat)

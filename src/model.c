@@ -156,7 +156,7 @@ static model_t *Mod_FindName(const s8 *name)
 	if(i == mod_numknown){
 		if(mod_numknown == MAX_MOD_KNOWN)
 			Sys_Error("mod_numknown == MAX_MOD_KNOWN");
-		q_strlcpy(mod->name, name, MAX_QPATH);
+		strlcpy(mod->name, name, MAX_QPATH);
 		mod->needload = 1;
 		mod_numknown++;
 	}
@@ -355,7 +355,7 @@ void Mod_LoadTextures(lump_t *l)
 					}
 				}
 			}
-			if(!Q_strncmp_i(mt->name, "sky", 3))
+			if(!strncmp(mt->name, "sky", 3))
 				R_InitSky(tx);
 			continue;
 		} else if((mt->width & 8) || (mt->height & 8))
@@ -398,7 +398,7 @@ void Mod_LoadTextures(lump_t *l)
 				sizeof(miptex_t);
 		// the pixels immediately follow the structures
 		memcpy(tx + 1, mt + 1, pixels);
-		if(!Q_strncmp_i(mt->name, "sky", 3))
+		if(!strncmp(mt->name, "sky", 3))
 			R_InitSky(tx);
 		if (!r_rebuildmips.value) continue;
 		u8 *base = (u8 *)tx + LittleLong(tx->offsets[0]);
@@ -485,9 +485,9 @@ static void Mod_LoadLighting(lump_t *l)
 	s8 litfilename[MAX_OSPATH];
 	loadmodel->lightdata = NULL;
 	// LordHavoc: check for a .lit file
-	q_strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
+	strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
 	COM_StripExtension(litfilename, litfilename, sizeof(litfilename));
-	q_strlcat(litfilename, ".lit", sizeof(litfilename));
+	strlcat(litfilename, ".lit", sizeof(litfilename));
 	s32 mark = Hunk_LowMark();
 	u32 path_id;
 	u8 *data = COM_LoadHunkFile(litfilename, &path_id);
@@ -599,7 +599,7 @@ static void Mod_LoadEntities(lump_t *l)
 	s32 mark = Hunk_LowMark();
 	u32 crc = 0;
 	if(l->filelen > 0) crc = CRC_Block(mod_base+l->fileofs, l->filelen-1);
-	q_strlcpy(basemapname, loadmodel->name, sizeof(basemapname));
+	strlcpy(basemapname, loadmodel->name, sizeof(basemapname));
 	COM_StripExtension(basemapname, basemapname, sizeof(basemapname));
 	snprintf(entfilename,sizeof(entfilename),"%s@%04x.ent",basemapname,crc);
 	u32 path_id;
@@ -771,7 +771,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		}
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
-		if(!q_strncasecmp(out->texinfo->texture->name,"sky",3))
+		if(!strncasecmp(out->texinfo->texture->name,"sky",3))
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
 		else if(out->texinfo->texture->name[0] == '*' ||
 			out->texinfo->texture->name[0] == '!') { // warp surface
@@ -843,7 +843,7 @@ bool Mod_LoadMapDescription(s8 *desc, size_t maxchars, const s8 *map)
 	bool ret = false;
 	if (!maxchars) return false;
 	*desc = '\0';
-	if ((size_t) q_snprintf (path, sizeof(path), "maps/%s.bsp", map) >= sizeof(path))
+	if ((size_t) snprintf (path, sizeof(path), "maps/%s.bsp", map) >= sizeof(path))
 		return false;
 	filesize = COM_FOpenFile (path, &f, NULL);
 	if (filesize <= (s32) sizeof(header)) {
@@ -938,7 +938,7 @@ s32 Mod_CountSecrets(const s8 *map)
 	dheader_t header;
 	s32 i, filesize;
 	s32 secret_count = 0;
-	if ((size_t) q_snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+	if ((size_t) snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
 		return 0;
 	filesize = COM_FOpenFile (path, &f, NULL);
 	if (filesize <= (s32) sizeof (header)) {
@@ -1029,7 +1029,7 @@ s32 Mod_CountMonsters(const s8 *map)
 	dheader_t header;
 	s32 i, filesize;
 	s32 monster_count = 0;
-	if ((size_t) q_snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+	if ((size_t) snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
 		return 0;
 	filesize = COM_FOpenFile (path, &f, NULL);
 	if (filesize <= (s32) sizeof (header)) {
@@ -1641,7 +1641,7 @@ static FILE *Mod_FindVisibilityExternal()
 			fclose(f);
 			return NULL;
 		}
-		if(!q_strcasecmp(header.mapname, shortname)) break;
+		if(!strcasecmp(header.mapname, shortname)) break;
 		pos += header.filelen + VISPATCH_HEADER_LEN;
 		fseek(f, pos, SEEK_SET);
 	}
@@ -1707,7 +1707,7 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 	Mod_LoadFaces(&header->lumps[LUMP_FACES], bsp2);
 	Mod_LoadMarksurfaces(&header->lumps[LUMP_MARKSURFACES], bsp2);
 	if(mod->bspversion == BSPVERSION && external_vis.value &&
-			sv.modelname[0] && !q_strcasecmp(loadname, sv.name)){
+			sv.modelname[0] && !strcasecmp(loadname, sv.name)){
 		Con_DPrintf("trying to open external vis file\n");
 		FILE *fvis = Mod_FindVisibilityExternal();
 		if(fvis){
@@ -1780,7 +1780,7 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax, aliashdr_t *pheader,
 	s8 *name, maliasframedesc_t *frame, s32 recursed) {
 	daliasframe_t *pdaliasframe = (daliasframe_t *) pin;
-	q_strlcpy(name, pdaliasframe->name, 16);
+	strlcpy(name, pdaliasframe->name, 16);
 	if(!recursed){
 		frame->firstpose = posenum;
 		frame->numposes = 1;
@@ -2069,7 +2069,7 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 	size = width * height;
 	mspriteframe_t *pspriteframe = Hunk_AllocName(sizeof(mspriteframe_t) +
 			size, loadname);
-	Q_memset(pspriteframe, 0, sizeof(mspriteframe_t) + size);
+	memset(pspriteframe, 0, sizeof(mspriteframe_t) + size);
 	*ppframe = pspriteframe;
 	pspriteframe->width = width;
 	pspriteframe->height = height;
@@ -2079,7 +2079,7 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
-	Q_memcpy(&pspriteframe->pixels[0], (u8 *) (pinframe+1), size);
+	memcpy(&pspriteframe->pixels[0], (u8 *) (pinframe+1), size);
 	return(void *)((u8 *) pinframe + sizeof(dspriteframe_t) + size);
 }
 

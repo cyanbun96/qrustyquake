@@ -26,12 +26,12 @@ s8 *Cmd_Argv(s32 arg){ return arg>=cmd_argc ? cmd_null_string : cmd_argv[arg]; }
 
 void Cbuf_AddText(const s8 *text)
 { // Adds command text at the end of the buffer
-	s32 l = Q_strlen(text);
+	s32 l = strlen(text);
 	if(cmd_text.cursize + l >= cmd_text.maxsize){
 		Con_Printf("Cbuf_AddText: overflow\n");
 		return;
 	}
-	SZ_Write(&cmd_text, text, Q_strlen(text));
+	SZ_Write(&cmd_text, text, strlen(text));
 }
 
 void Cbuf_AddTextLen(const char *text, int l)
@@ -49,7 +49,7 @@ void Cbuf_InsertText(s8 *text)
 	s32 templen = cmd_text.cursize; // in the exec buffer
 	if(templen){
 		temp = Z_Malloc(templen);
-		Q_memcpy(temp, cmd_text.data, templen);
+		memcpy(temp, cmd_text.data, templen);
 		SZ_Clear(&cmd_text);
 	} 
 	Cbuf_AddText(text); // add the entire text of the file
@@ -225,7 +225,7 @@ void Cmd_Unalias_f() // -- johnfitz
 bool Cmd_AliasExists(const char *aliasname)
 {
 	for(cmdalias_t *a = cmd_alias; a; a = a->next){
-		if(!q_strcasecmp(aliasname, a->name))
+		if(!strcasecmp(aliasname, a->name))
 			return true;
 	}
 	return false;
@@ -247,11 +247,11 @@ void Cmd_List_f() // Command Execution // -- johnfitz
 	s32 len = 0;
 	if(Cmd_Argc() > 1){
 		partial = Cmd_Argv(1);
-		len = Q_strlen(partial);
+		len = strlen(partial);
 	}
 	s32 count = 0;
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next){
-		if(partial && Q_strncmp(partial, cmd->name, len)) continue;
+		if(partial && strncmp(partial, cmd->name, len)) continue;
 		Con_SafePrintf(" %s\n", cmd->name);
 		count++;
 	}
@@ -291,8 +291,8 @@ void Cmd_TokenizeString(const s8 *text)
 		text = COM_Parse(text);
 		if(!text) return;
 		if(cmd_argc < MAX_ARGS){
-			cmd_argv[cmd_argc] = Z_Malloc(Q_strlen(com_token) + 1);
-			Q_strcpy(cmd_argv[cmd_argc], com_token);
+			cmd_argv[cmd_argc] = Z_Malloc(strlen(com_token) + 1);
+			strcpy(cmd_argv[cmd_argc], com_token);
 			cmd_argc++;
 		}
 	}
@@ -310,7 +310,7 @@ cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
 	}
 	// fail if the command already exists
 	for(cmd=cmd_functions ; cmd ; cmd=cmd->next) {
-		if(!Q_strcmp(cmd_name, cmd->name) && cmd->srctype == srctype) {
+		if(!strcmp(cmd_name, cmd->name) && cmd->srctype == srctype) {
 			if(cmd->function != function && function)
 		   Con_Printf("Cmd_AddCommand: %s already defined\n", cmd_name);
 			return NULL;
@@ -349,10 +349,10 @@ cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
 
 s32 Cmd_ListCompletions(const s8 *text)
 {
-	s32 len = Q_strlen(text);
+	s32 len = strlen(text);
 	s32 tot = 0;
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!len || !Q_strncmp(text, cmd->name, len))
+		if(!len || !strncmp(text, cmd->name, len))
 			++tot;
 	for(cvar_t *cvar = cvar_vars; cvar; cvar = cvar->next)
 		if(!len || !strncmp(text, cvar->name, len))
@@ -360,7 +360,7 @@ s32 Cmd_ListCompletions(const s8 *text)
 	if(tot <= 1) return tot;
 	Con_Printf("\n");
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!len || !Q_strncmp(text, cmd->name, len))
+		if(!len || !strncmp(text, cmd->name, len))
 			Con_Printf("(cmd) %s\n", cmd->name);
 	for(cvar_t *cvar = cvar_vars; cvar; cvar = cvar->next)
 		if(!len || !strncmp(text, cvar->name, len))
@@ -371,16 +371,16 @@ s32 Cmd_ListCompletions(const s8 *text)
 bool Cmd_Exists(const s8 *cmd_name)
 {
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!Q_strcmp(cmd_name, cmd->name)) return 1;
+		if(!strcmp(cmd_name, cmd->name)) return 1;
 	return 0;
 }
 
 s8 *Cmd_CompleteCommand(s8 *partial)
 {
-	s32 len = Q_strlen(partial);
+	s32 len = strlen(partial);
 	if(!len) return NULL;
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!Q_strncmp(partial, cmd->name, len)) // check functions
+		if(!strncmp(partial, cmd->name, len)) // check functions
 			return cmd->name;
 	return NULL;
 }
@@ -391,14 +391,14 @@ bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
 	Cmd_TokenizeString(text);
 	if(!Cmd_Argc()) return 1; // no tokens
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
-		if(!q_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
+		if(!strcasecmp(cmd_argv[0], cmd->name)){ // check functions
 			if(src == src_server && cmd->srctype != src_server)
 				continue;//src_server may only execute server commands (such commands must be safe to parse within the context of a network message, so no disconnect/connect/playdemo/etc)
 			cmd->function();
 			return 1;
 		}
 	for(cmdalias_t *a = cmd_alias; a; a = a->next) // check alias
-		if(!q_strcasecmp(cmd_argv[0], a->name)){
+		if(!strcasecmp(cmd_argv[0], a->name)){
 			Cbuf_InsertText(a->value);
 			return 1;
 		}
@@ -417,7 +417,7 @@ void Cmd_ForwardToServer()
 	}
 	if(cls.demoplayback) return; // not really connected
 	MSG_WriteByte(&cls.message, clc_stringcmd);
-	if(q_strcasecmp(Cmd_Argv(0), "cmd") != 0){
+	if(strcasecmp(Cmd_Argv(0), "cmd") != 0){
 		SZ_Print(&cls.message, Cmd_Argv(0));
 		SZ_Print(&cls.message, " ");
 	}

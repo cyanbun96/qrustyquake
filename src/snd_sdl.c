@@ -81,7 +81,7 @@ bool SNDDMA_Init(dma_t *dma)
 			desired.freq, samples, desired.channels);
 	const s8 *driver = SDL_GetCurrentAudioDriver();
 	const s8 *device = SDL_GetAudioDeviceName(0);
-	q_snprintf(drivername, sizeof(drivername), "%s - %s",
+	snprintf(drivername, sizeof(drivername), "%s - %s",
 			driver != NULL ? driver : (s8*)"(UNKNOWN)",
 			device != NULL ? device : (s8*)"(UNKNOWN)");
 	buffersize = shm->samples * (shm->samplebits / 8);

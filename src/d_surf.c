@@ -9,7 +9,7 @@ s32 D_SurfaceCacheForRes(s32 width, s32 height)
 {
 	s32 size;
 	if (COM_CheckParm("-surfcachesize")) {
-		size = Q_atoi(com_argv[COM_CheckParm("-surfcachesize")+1])*1024;
+		size = atoi(com_argv[COM_CheckParm("-surfcachesize")+1])*1024;
 		return size;
 	}
 	size = SURFCACHE_SIZE_AT_320X200;

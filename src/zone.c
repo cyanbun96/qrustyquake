@@ -111,7 +111,7 @@ void *Z_Malloc(s32 size)
 	Z_CheckHeap(); // DEBUG
 	void *buf = Z_TagMalloc(size, 1);
 	if(!buf) Sys_Error("Z_Malloc: failed on allocation of %i bytes", size);
-	Q_memset(buf, 0, size);
+	memset(buf, 0, size);
 	return buf;
 }
 
@@ -228,7 +228,7 @@ void *Hunk_AllocInternal(s32 size, const s8 *name, bool clear)
 	if(clear)memset(h, 0, size);
 	h->size = size;
 	h->sentinel = HUNK_SENTINEL;
-	q_strlcpy(h->name, name, HUNKNAME_LEN);
+	strlcpy(h->name, name, HUNKNAME_LEN);
 	return(void *)(h+1);
 }
 
@@ -291,7 +291,7 @@ void *Hunk_HighAllocName(s32 size, const s8 *name)
 	memset(h, 0, size);
 	h->size = size;
 	h->sentinel = HUNK_SENTINEL;
-	q_strlcpy(h->name, name, HUNKNAME_LEN);
+	strlcpy(h->name, name, HUNKNAME_LEN);
 	return(void *)(h+1);
 }
 
@@ -322,9 +322,9 @@ void Cache_Move( cache_system_t *c)
 	// we are clearing up space at the bottom, so only allocate it late
 	cache_system_t *new_cs = Cache_TryAlloc(c->size, 1);
 	if(new_cs) {
-		Q_memcpy( new_cs+1, c+1, c->size - sizeof(cache_system_t) );
+		memcpy( new_cs+1, c+1, c->size - sizeof(cache_system_t) );
 		new_cs->user = c->user;
-		Q_memcpy(new_cs->name, c->name, sizeof(new_cs->name));
+		memcpy(new_cs->name, c->name, sizeof(new_cs->name));
 		Cache_Free(c->user, 0); //johnfitz -- added second argument
 		new_cs->user->data = (void *)(new_cs+1);
 	} else Cache_Free(c->user, 1); // tough luck...
@@ -478,7 +478,7 @@ void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name)
 	while(1) { // find memory for it
 		cache_system_t *cs = Cache_TryAlloc(size, 0);
 		if(cs) {
-			q_strlcpy(cs->name, name, CACHENAME_LEN);
+			strlcpy(cs->name, name, CACHENAME_LEN);
 			c->data = (void *)(cs+1);
 			cs->user = c;
 			break;
@@ -517,7 +517,7 @@ void Memory_Init(void *buf, s32 size)
 	Cache_Init();
 	s32 p = COM_CheckParm("-zone");
 	if(p) {
-		if(p < com_argc-1) zonesize = Q_atoi(com_argv[p+1]) * 1024;
+		if(p < com_argc-1) zonesize = atoi(com_argv[p+1]) * 1024;
 		else
 	    Sys_Error("Memory_Init: you must specify a size in KB after -zone");
 	}

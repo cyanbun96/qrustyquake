@@ -7,7 +7,7 @@ void Sys_Printf(const s8 *fmt, ...)
 	s8 qtext[MAXPRINTMSG];
 	s8 u8text[MAXPRINTMSG*4];
 	va_start(argptr, fmt);
-	q_vsnprintf(qtext, sizeof(qtext), fmt, argptr);
+	vsnprintf(qtext, sizeof(qtext), fmt, argptr);
 	va_end(argptr);
 	UTF8_FromQuake(u8text, sizeof(u8text), qtext);
 	printf("%s", u8text);
@@ -186,7 +186,7 @@ int main(int c, char **v)
 	host_parms.memsize = DEFAULT_MEMORY;
 	if(COM_CheckParm("-heapsize")){
 		s32 t = COM_CheckParm("-heapsize") + 1;
-		if(t < c) host_parms.memsize = Q_atoi(v[t]) * 1024;
+		if(t < c) host_parms.memsize = atoi(v[t]) * 1024;
 	}
 	host_parms.membase = malloc(host_parms.memsize);
 	if(host_parms.membase == NULL){

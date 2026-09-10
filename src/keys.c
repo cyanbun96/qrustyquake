@@ -43,7 +43,7 @@ keyname_t keynames[] = {
 
 static void Con_InsertChar(s32 c)
 {
-	s32 len = Q_strlen(key_lines[edit_line]);
+	s32 len = strlen(key_lines[edit_line]);
 	if (len >= MAXCMDLINE - 2) // keep room for prompt and NUL
 		return;
 	memmove(&key_lines[edit_line][key_linepos + 1],
@@ -55,7 +55,7 @@ static void Con_InsertChar(s32 c)
 
 static void Con_BackspaceChar()
 {
-	s32 len = Q_strlen(key_lines[edit_line]);
+	s32 len = strlen(key_lines[edit_line]);
 	if (key_linepos <= 1)
 		return;
 	memmove(&key_lines[edit_line][key_linepos - 1],
@@ -66,7 +66,7 @@ static void Con_BackspaceChar()
 
 static void Con_DeleteChar()
 {
-	s32 len = Q_strlen(key_lines[edit_line]);
+	s32 len = strlen(key_lines[edit_line]);
 	if (key_linepos >= len)
 		return;
 	memmove(&key_lines[edit_line][key_linepos],
@@ -87,7 +87,7 @@ static void Con_WordLeft()
 
 static void Con_WordRight()
 {
-	s32 len = Q_strlen(key_lines[edit_line]);
+	s32 len = strlen(key_lines[edit_line]);
 	if (key_linepos >= len) return;
 	while(key_linepos<len && Con_IsSpace(key_lines[edit_line][key_linepos]))
 		key_linepos++;
@@ -100,7 +100,7 @@ static void Con_DeleteWordLeft()
 	s32 old = key_linepos;
 	Con_WordLeft();
 	s32 newpos = key_linepos;
-	s32 len = Q_strlen(key_lines[edit_line]);
+	s32 len = strlen(key_lines[edit_line]);
 	memmove(&key_lines[edit_line][newpos], &key_lines[edit_line][old],
 			len - old + 1); // include NUL
 }
@@ -108,7 +108,7 @@ static void Con_DeleteWordLeft()
 static void Con_DeleteWordRight()
 {
 	s32 start = key_linepos;
-	s32 len = Q_strlen(key_lines[edit_line]);
+	s32 len = strlen(key_lines[edit_line]);
 	if (start >= len) return;
 	s32 pos = start;
 	while (pos < len && Con_IsSpace(key_lines[edit_line][pos]))
@@ -148,8 +148,8 @@ void Key_Console(s32 key) // Line typing into the console
 		const s8 *cmd = Cmd_CompleteCommand(key_lines[edit_line] + 1);
 		if(!cmd) cmd = Cvar_CompleteVariable(key_lines[edit_line] + 1);
 		if(cmd){
-			Q_strcpy(key_lines[edit_line] + 1, cmd);
-			key_linepos = Q_strlen(cmd) + 1;
+			strcpy(key_lines[edit_line] + 1, cmd);
+			key_linepos = strlen(cmd) + 1;
 			key_lines[edit_line][key_linepos] = ' ';
 			key_linepos++;
 			key_lines[edit_line][key_linepos] = 0;
@@ -166,7 +166,7 @@ void Key_Console(s32 key) // Line typing into the console
 	if (key == K_RIGHTARROW) {
 		if(keydown[K_CTRL])
 			Con_WordRight();
-		else if(key_linepos < Q_strlen(key_lines[edit_line]))
+		else if(key_linepos < (s32)strlen(key_lines[edit_line]))
 			key_linepos++;
 		return;
 	}
@@ -188,8 +188,8 @@ void Key_Console(s32 key) // Line typing into the console
 		do { history_line = (history_line - 1) & 31; }
 		while(history_line != edit_line && !key_lines[history_line][1]);
 		if(history_line==edit_line) history_line = (edit_line + 1) & 31;
-		Q_strcpy(key_lines[edit_line], key_lines[history_line]);
-		key_linepos = Q_strlen(key_lines[edit_line]);
+		strcpy(key_lines[edit_line], key_lines[history_line]);
+		key_linepos = strlen(key_lines[edit_line]);
 		return;
 	}
 	if(key == K_DOWNARROW){
@@ -202,8 +202,8 @@ void Key_Console(s32 key) // Line typing into the console
 			key_linepos = 1;
 			memset(&key_lines[edit_line][1], 0, MAXCMDLINE-1);
 		} else {
-			Q_strcpy(key_lines[edit_line], key_lines[history_line]);
-			key_linepos = Q_strlen(key_lines[edit_line]);
+			strcpy(key_lines[edit_line], key_lines[history_line]);
+			key_linepos = strlen(key_lines[edit_line]);
 		}
 		return;
 	}
@@ -252,8 +252,8 @@ void Key_Console(s32 key) // Line typing into the console
 	if ((key == 'v' || key == 'V') && keydown[K_CTRL]) {
 		s8 *cb = SDL_GetClipboardText();
 		if (!cb) return;
-		s32 len_cb = Q_strlen(cb);
-		s32 len_line = Q_strlen(key_lines[edit_line]);
+		s32 len_cb = strlen(cb);
+		s32 len_line = strlen(key_lines[edit_line]);
 		if (len_cb <= 0) {
 			SDL_free(cb);
 			return;
@@ -314,7 +314,7 @@ s32 Key_StringToKeynum(s8 *str)
 	if(!str || !str[0]) return -1;
 	if(!str[1]) return str[0];
 	for(keyname_t *kn = keynames; kn->name; kn++)
-		if(!q_strcasecmp(str, kn->name)) return kn->keynum;
+		if(!strcasecmp(str, kn->name)) return kn->keynum;
 	return -1;
 }
 
@@ -342,9 +342,9 @@ void Key_SetBinding(s32 keynum, s8 *binding)
 		Z_Free(keybindings[keynum]);
 		keybindings[keynum] = NULL;
 	}
-	s32 l = Q_strlen(binding); // allocate memory for new binding
+	s32 l = strlen(binding); // allocate memory for new binding
 	s8 *new = Z_Malloc(l + 1);
-	Q_strcpy(new, binding);
+	strcpy(new, binding);
 	new[l] = 0;
 	keybindings[keynum] = new;
 }

@@ -66,14 +66,14 @@ void Host_FindMaxClients()
 	s32 i = COM_CheckParm("-dedicated");
 	if(i){
 		cls.state = ca_dedicated;
-		if(i!=(com_argc - 1)) svs.maxclients = Q_atoi(com_argv[i + 1]);
+		if(i!=(com_argc - 1)) svs.maxclients = atoi(com_argv[i + 1]);
 		else svs.maxclients = 8;
 	} else cls.state = ca_disconnected;
 	i = COM_CheckParm("-listen");
 	if(i){
 		if(cls.state == ca_dedicated)
 	       Sys_Error("Only one of -dedicated or -listen can be specified");
-		if(i!=(com_argc - 1)) svs.maxclients = Q_atoi(com_argv[i + 1]);
+		if(i!=(com_argc - 1)) svs.maxclients = atoi(com_argv[i + 1]);
 		else svs.maxclients = 8;
 	}
 	if(svs.maxclients < 1) svs.maxclients = 8;
@@ -404,13 +404,13 @@ void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
 		if(worst == -1 || t[i] > t[worst]) worst = i;
 		total += t[i];
 	}
-	if(showtotal)q_snprintf(line,sizeof(line),"%5.2f tot | ",total*1000.0);
+	if(showtotal)snprintf(line,sizeof(line),"%5.2f tot | ",total*1000.0);
 	else line[0] = '\0';
 	for(i = 0; i < count; i++){
 		s8 entry[256];
-		q_snprintf(entry,sizeof(entry),"%5.2f %s",t[i]*1000.0,names[i]);
-		if(i != 0) q_strlcat(line, " | ", sizeof(line));
-		q_strlcat(line, entry, sizeof(line));
+		snprintf(entry,sizeof(entry),"%5.2f %s",t[i]*1000.0,names[i]);
+		if(i != 0) strlcat(line, " | ", sizeof(line));
+		strlcat(line, entry, sizeof(line));
 	}
 	Con_Printf("%s\n", line);
 }

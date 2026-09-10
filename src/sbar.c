@@ -372,13 +372,13 @@ void Sbar_UpdateLevelNameBuf()
 	s32 len = strlen(src);
 	static s8 last_levelname[128];
 	static s8 scrollbuf[128];
-	if (Q_strcmp(last_levelname, src) != 0) {
-		Q_strncpy(last_levelname, src, sizeof(last_levelname) - 1);
+	if (strcmp(last_levelname, src) != 0) {
+		strncpy(last_levelname, src, sizeof(last_levelname) - 1);
 		last_levelname[sizeof(last_levelname) - 1] = '\0';
-		q_snprintf(scrollbuf,sizeof(scrollbuf),"%s%*s%s",src,3,"",src);
+		snprintf(scrollbuf,sizeof(scrollbuf),"%s%*s%s",src,3,"",src);
 	}
 	if (len <= 20) {
-		Q_strncpy(lvnamebuf, src, 20);
+		strncpy(lvnamebuf, src, 20);
 		lvnamebuf[len] = '\0';
 		return;
 	}
@@ -406,7 +406,7 @@ void Sbar_SoloScoreboard()
 	sprintf(str, "Time :%3i:%i%i", minutes, tens, units);
 	Draw_StringScaled(WW/2+24*SCL+xx, HH-20*SCL, str, SCL);
 	Sbar_UpdateLevelNameBuf();
-	s32 l = Q_strlen (lvnamebuf);
+	s32 l = strlen (lvnamebuf);
 	Draw_StringScaled(WW/2+72*SCL+xx-l*4*SCL, HH-12*SCL, lvnamebuf, SCL);
 }
 

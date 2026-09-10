@@ -186,22 +186,22 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	if((pnum = COM_CheckParm("-winsize"))){
 		if(pnum >= com_argc - 2)
 			Sys_Error("VID: -winsize <width> <height>\n");
-		vid.width = Q_atoi(com_argv[pnum + 1]);
-		vid.height = Q_atoi(com_argv[pnum + 2]);
+		vid.width = atoi(com_argv[pnum + 1]);
+		vid.height = atoi(com_argv[pnum + 2]);
 		if(!vid.width || !vid.height)
 			Sys_Error("VID: Bad window width/height\n");
 	}
 	if((pnum = COM_CheckParm("-width"))){
 		if(pnum >= com_argc - 1)
 			Sys_Error("VID: -width <width>\n");
-		vid.width = Q_atoi(com_argv[pnum + 1]);
+		vid.width = atoi(com_argv[pnum + 1]);
 		if(!vid.width)
 			Sys_Error("VID: Bad window width\n");
 	}
 	if((pnum = COM_CheckParm("-height"))){
 		if(pnum >= com_argc - 1)
 			Sys_Error("VID: -height <height>\n");
-		vid.height = Q_atoi(com_argv[pnum + 1]);
+		vid.height = atoi(com_argv[pnum + 1]);
 		if(!vid.height)
 			Sys_Error("VID: Bad window height\n");
 	}
@@ -542,7 +542,7 @@ void VID_SetScaleModeCommand_f()
 		Con_Printf("   current: %d\n", scalemode);
 		return;
 	case 2:
-		i = Q_atof(Cmd_Argv(1));
+		i = atof(Cmd_Argv(1));
 		if(i < 0 || i > 2){
 			Con_Printf("valid values:\n");
 			Con_Printf("   0 - nearest (default, pixelated)\n");

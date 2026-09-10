@@ -401,19 +401,19 @@ void Pal_ParseWorldspawn ()
 	while(1){
 		if(!data) return; // error
 		if(com_token[0] == '}') break; // end of worldspawn
-		if(com_token[0] == '_')q_strlcpy(key, com_token+1, sizeof(key));
-		else q_strlcpy(key, com_token, sizeof(key));
+		if(com_token[0] == '_')strlcpy(key, com_token+1, sizeof(key));
+		else strlcpy(key, com_token, sizeof(key));
 		while(key[0] && key[strlen(key)-1] == ' ') // no trailing spaces
 			key[strlen(key)-1] = 0;
 		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 		if(!data) return; // error
-		q_strlcpy(value, com_token, sizeof(value));
+		strlcpy(value, com_token, sizeof(value));
 		if(!strcmp("palette", key)){
 			s8 pal[MAX_OSPATH];
 			s8 cmap[MAX_OSPATH];
 			sscanf(value, "%s", pal);
-			q_strlcpy(cmap, pal, MAX_OSPATH);
-			q_strlcat(cmap, "_colormap", MAX_OSPATH);
+			strlcpy(cmap, pal, MAX_OSPATH);
+			strlcat(cmap, "_colormap", MAX_OSPATH);
 			Con_DPrintf("Requested palettes %s %s\n", pal, cmap);
 			SetWorldPal(pal, cmap);
 		}

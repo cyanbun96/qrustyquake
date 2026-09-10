@@ -37,12 +37,12 @@ s32 R_ClipSpriteFace(s32 nump, clipplane_t *pclipplane) // Clips the winding at
 	for (s32 i = 0; i < nump; i++, instep += sizeof(vec5_t) / sizeof(f32))
 		dists[i] = DotProduct(instep, pclipnormal) - clipdist;
 	dists[nump] = dists[0]; // handle wraparound case
-	Q_memcpy(instep, in, sizeof(vec5_t));
+	memcpy(instep, in, sizeof(vec5_t));
 	instep = in; // clip the winding
 	s32 outcount = 0;
 	for (s32 i = 0; i < nump; i++, instep += sizeof(vec5_t)/sizeof(f32)) {
 		if (dists[i] >= 0) {
-			Q_memcpy(outstep, instep, sizeof(vec5_t));
+			memcpy(outstep, instep, sizeof(vec5_t));
 			outstep += sizeof(vec5_t) / sizeof(f32);
 			outcount++;
 		}

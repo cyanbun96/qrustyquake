@@ -42,7 +42,7 @@ void Con_CheckResize()
 		width = 38;
 		con_linewidth = width;
 		con_totallines = CON_TEXTSIZE / con_linewidth;
-		Q_memset(con_text, ' ', CON_TEXTSIZE);
+		memset(con_text, ' ', CON_TEXTSIZE);
 	} else {
 		oldwidth = con_linewidth;
 		con_linewidth = width;
@@ -52,8 +52,8 @@ void Con_CheckResize()
 		if(con_totallines < numlines) numlines = con_totallines;
 		numchars = oldwidth;
 		if(con_linewidth < numchars) numchars = con_linewidth;
-		Q_memcpy(tbuf, con_text, CON_TEXTSIZE);
-		Q_memset(con_text, ' ', CON_TEXTSIZE);
+		memcpy(tbuf, con_text, CON_TEXTSIZE);
+		memset(con_text, ' ', CON_TEXTSIZE);
 		for(i = 0; i < numlines; i++){
 		for(j = 0; j < numchars; j++){
 			con_text[(con_totallines - 1 - i) * con_linewidth + j] =
@@ -78,7 +78,7 @@ void Con_Init()
 		}
 	}
 	con_text = Hunk_AllocName(CON_TEXTSIZE, "context");
-	Q_memset(con_text, ' ', CON_TEXTSIZE);
+	memset(con_text, ' ', CON_TEXTSIZE);
 	con_linewidth = -1;
 	Con_CheckResize();
 	Con_Printf("Console initialized.\n");
@@ -135,7 +135,7 @@ void Con_CenterPrintf(s32 linewidth, const s8 *fmt, ...)
 	s8 line[MAXPRINTMSG]; //one line from the message
 	s8 spaces[21]; //buffer for spaces
 	va_start(argptr, fmt);
-	q_vsnprintf(msg, sizeof(msg), fmt, argptr);
+	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 	linewidth = q_min(linewidth, con_linewidth);
 	for(s8 *src = msg; *src;){
@@ -162,7 +162,7 @@ void Con_Linefeed()
 	if(!con_initialized) return;
 	con_x = 0;
 	con_current++;
-	Q_memset(&con_text[(con_current % con_totallines) * con_linewidth]
+	memset(&con_text[(con_current % con_totallines) * con_linewidth]
 		 , ' ', con_linewidth);
 }
 
@@ -266,7 +266,7 @@ void Con_DrawInput()
 	if (key_dest != key_console && !con_forcedup)
 		return;
 	const s8 *line = key_lines[edit_line];
-	s32 len = Q_strlen(line);
+	s32 len = strlen(line);
 	s32 start = 0;
 	if (key_linepos >= con_linewidth)
 		start = key_linepos - con_linewidth + 1;

@@ -79,27 +79,12 @@ static const uint32_t qchar_to_unicode[256] =
       ----------------------------------------------------------------------------------------------------------------------------------
 */};
 
-static s32 q_islower(s32 c){return(c >= 'a' && c <= 'z');}
-static s32 q_isupper(s32 c){return(c >= 'A' && c <= 'Z');}
-static s32 q_tolower(s32 c){return((q_isupper(c)) ? (c | ('a' - 'A')) : c);}
-static s32 q_toupper(s32 c){return((q_islower(c)) ? (c & ~('a' - 'A')) : c);}
-static s32 q_isdigit(s32 c){return(c >= '0' && c <= '9');}
-static s32 q_isblank(s32 c){return(c == ' ' || c == '\t');}
-static s32 q_isspace(s32 c){
-	switch(c){
-		case ' ': case '\t':
-		case '\n': case '\r':
-		case '\f': case '\v': return 1;
-	}
-	return 0;
-}
-
 void COM_CloseFile(s32 h);
 void ClearLink(link_t *l){ l->prev = l->next = l; } // used for new headnodes
 void RemoveLink(link_t *l){ l->next->prev = l->prev; l->prev->next = l->next;}
 
 const s8 *COM_SkipSpace(const s8 *str)
-{ while(q_isspace(*str)) str++; return str; }
+{ while(isspace(*str)) str++; return str; }
 
 void InsertLinkBefore(link_t *l, link_t *before)
 {
@@ -186,285 +171,6 @@ size_t UTF8_FromQuake(s8 *dst, size_t maxbytes, const s8 *src)
 	return j;
 }
 
-s32 q_strlcpy(s8 *dst, const s8 *src, size_t siz) // $OpenBSD: q_strlcpy.c,v1.11
-{ // Copyright(c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
-	s8 *d = dst;
-	const s8 *s = src;
-	size_t n = siz;
-	if(n != 0){ // Copy as many bytes as will fit
-		while(--n != 0){ if((*d++ = *s++) == '\0') break; }
-	}
-	if(n == 0){// Not enough room in dst, add NUL and traverse rest of src
-		if(siz != 0) *d = '\0'; // NUL-terminate dst
-		while(*s++);
-	}
-	return(s - src - 1); // count does not include NUL
-}
-
-
-size_t q_strlcat(s8 *dst, const s8 *src, size_t siz)//$OpenBSD:q_strlcat.c,v1.13
-{
-	s8 *d = dst;
-	const s8 *s = src;
-	size_t n = siz;
-	// Find the end of dst and adjust bytes left but don't go past end
-	while(n-- != 0 && *d != '\0') d++;
-	size_t dlen = d - dst;
-	n = siz - dlen;
-	if(n == 0) return(dlen + strlen(s));
-	while(*s != '\0'){ if(n != 1){ *d++ = *s; n--; } s++; }
-	*d = '\0';
-	return(dlen + (s - src)); // count does not include NUL
-}
-
-s32 q_strcasecmp(const s8 * s1, const s8 * s2)
-{
-	const s8 * p1 = s1;
-	const s8 * p2 = s2;
-	s8 c1, c2;
-	if(p1 == p2) return 0;
-	do {
-		c1 = q_tolower(*p1++);
-		c2 = q_tolower(*p2++);
-		if(c1 == '\0') break;
-	} while(c1 == c2);
-	return(s32)(c1 - c2);
-}
-
-s32 q_strncasecmp(const s8 *s1, const s8 *s2, size_t n)
-{
-	const s8 * p1 = s1;
-	const s8 * p2 = s2;
-	s8 c1, c2;
-	if(p1 == p2 || n == 0) return 0;
-	do {
-		c1 = q_tolower(*p1++);
-		c2 = q_tolower(*p2++);
-		if(c1 == '\0' || c1 != c2)
-			break;
-	} while(--n > 0);
-	return(s32)(c1 - c2);
-}
-
-s8 *q_strcasestr(const s8 *haystack, const s8 *needle)
-{
-	const size_t len = strlen(needle);
-	while(*haystack){
-		if(!q_strncasecmp(haystack, needle, len))
-			return(s8 *)haystack;
-		++haystack;
-	}
-	return NULL;
-}
-
-s8 *q_strlwr(s8 *str)
-{
-	s8 *c = str;
-	while(*c){ *c = q_tolower(*c); c++; }
-	return str;
-}
-
-s8 *q_strupr(s8 *str)
-{
-	s8 *c = str;
-	while(*c){ *c = q_toupper(*c); c++; }
-	return str;
-}
-
-s8 *q_strdup(const s8 *str)
-{
-	size_t len = strlen(str) + 1;
-	s8 *newstr = (s8 *)malloc(len);
-	memcpy(newstr, str, len);
-	return newstr;
-}
-
-
-s32 q_vsnprintf(s8 *str, size_t size, const s8 *format, va_list args)
-{
-	s32 ret = vsnprintf_func(str, size, format, args);
-	if(ret < 0) ret = (s32)size;
-	if(size == 0) return ret; // no buffer
-	if((size_t)ret >= size) str[size - 1] = '\0';
-	return ret;
-}
-
-s32 q_snprintf(s8 *str, size_t size, const s8 *format, ...)
-{
-	va_list argptr;
-	va_start(argptr, format);
-	s32 ret = q_vsnprintf(str, size, format, argptr);
-	va_end(argptr);
-	return ret;
-}
-
-void Q_memset(void *dest, s32 fill, size_t count)
-{
-	size_t i;
-	if( (((uintptr_t)dest | count) & 3) == 0){
-		count >>= 2;
-		fill = fill | (fill<<8) | (fill<<16) | (fill<<24);
-		for(i = 0; i < count; i++)
-			((s32 *)dest)[i] = fill;
-	}
-	else for(i = 0; i < count; i++)
-		((u8 *)dest)[i] = fill;
-}
-
-void Q_memcpy(void *dest, const void *src, size_t count)
-{ memcpy(dest, src, count); }
-
-void Q_strcpy(s8 *dest, const s8 *src)
-{
-	while(*src) *dest++ = *src++;
-	*dest++ = 0;
-}
-
-void Q_strncpy(s8 *dest, const s8 *src, s32 count)
-{
-	while(*src && count--)
-		*dest++ = *src++;
-	if(count) *dest++ = 0;
-}
-
-s32 Q_strlen(const s8 *str)
-{
-	s32 count = 0;
-	while(str[count]) count++;
-	return count;
-}
-
-s8 *Q_strrchr(const s8 *s, s8 c)
-{
-	s32 len = Q_strlen(s);
-	s += len;
-	while(len--) if(*--s == c) return(s8 *)s;
-	return NULL;
-}
-
-void Q_strcat(s8 *dest, const s8 *src)
-{
-	dest += Q_strlen(dest);
-	Q_strcpy(dest, src);
-}
-
-s32 Q_strcmp(const s8 *s1, const s8 *s2)
-{
-	while(1){
-		if(*s1 != *s2) return -1; // strings not equal
-		if(!*s1) return 0; // strings are equal
-		s1++;
-		s2++;
-	}
-	return -1;
-}
-
-s32 Q_strncmp_i(const s8 *s1, const s8 *s2, s32 count) // case-insensitive
-{
-	while(1){
-		if(!count--) return 0;
-		if(tolower(*s1) != tolower(*s2)) return -1; // strings not equal
-		if(!*s1) return 0; // strings are equal
-		s1++;
-		s2++;
-	}
-	return -1;
-}
-
-s32 Q_strncmp(const s8 *s1, const s8 *s2, s32 count)
-{
-	while(1){
-		if(!count--) return 0;
-		if(*s1 != *s2) return -1; // strings not equal
-		if(!*s1) return 0; // strings are equal
-		s1++;
-		s2++;
-	}
-	return -1;
-}
-
-s32 Q_atoi(const s8 *str)
-{
-	while(q_isspace(*str)) ++str;
-	s32 sign = 1;
-	if(*str == '-'){
-		sign = -1;
-		str++;
-	}
-	s32 val = 0;
-	if(str[0] == '0' && (str[1] == 'x' || str[1] == 'X') ){ //check for hex
-		str += 2;
-		while(1){
-			s32 c = *str++;
-			if(c >= '0' && c <= '9')
-				val = (val<<4) + c - '0';
-			else if(c >= 'a' && c <= 'f')
-				val = (val<<4) + c - 'a' + 10;
-			else if(c >= 'A' && c <= 'F')
-				val = (val<<4) + c - 'A' + 10;
-			else
-				return val*sign;
-		}
-	}
-	if(str[0] == '\'') // check for character
-		return sign * str[1];
-	while(1){ // assume decimal
-		s32 c = *str++;
-		if(c <'0' || c > '9')
-			return val*sign;
-		val = val*10 + c - '0';
-	}
-	return 0;
-}
-
-
-f32 Q_atof(const s8 *str)
-{
-	while(q_isspace(*str)) ++str;
-	s32 sign = 1;
-	if(*str == '-'){
-		sign = -1;
-		str++;
-	}
-	f64 val = 0;
-	if(str[0] == '0' && (str[1] == 'x' || str[1] == 'X') ){ //check for hex
-		str += 2;
-		while(1){
-			s32 c = *str++;
-			if(c >= '0' && c <= '9')
-				val = (val*16) + c - '0';
-			else if(c >= 'a' && c <= 'f')
-				val = (val*16) + c - 'a' + 10;
-			else if(c >= 'A' && c <= 'F')
-				val = (val*16) + c - 'A' + 10;
-			else
-				return val*sign;
-		}
-	}
-	if(str[0] == '\'') // check for character
-		return sign * str[1];
-	s32 decimal = -1; // assume decimal
-	s32 total = 0;
-	while(1){
-		s32 c = *str++;
-		if(c == '.'){
-			decimal = total;
-			continue;
-		}
-		if(c <'0' || c > '9')
-			break;
-		val = val*10 + c - '0';
-		total++;
-	}
-	if(decimal == -1)
-		return val*sign;
-	while(total > decimal){
-		val /= 10;
-		total--;
-	}
-	return val*sign;
-}
-
 s16 ShortSwap(s16 l)
 {
 	u8 b1 = l&255;
@@ -537,7 +243,7 @@ void MSG_WriteFloat(sizebuf_t *sb, f32 f)
 void MSG_WriteString(sizebuf_t *sb, const s8 *s)
 {
 	if(!s) SZ_Write(sb, "", 1);
-	else SZ_Write(sb, s, Q_strlen(s)+1);
+	else SZ_Write(sb, s, strlen(s)+1);
 }
 
 void MSG_WriteCoord16(sizebuf_t *sb, f32 f)
@@ -712,21 +418,21 @@ void *SZ_GetSpace(sizebuf_t *buf, s32 length)
 }
 
 void SZ_Write(sizebuf_t *buf, const void *data, s32 length)
-{ Q_memcpy(SZ_GetSpace(buf,length),data,length); }
+{ memcpy(SZ_GetSpace(buf,length),data,length); }
 
 void SZ_Print(sizebuf_t *buf, const s8 *data)
 {
-	s32 len = Q_strlen(data) + 1;
+	s32 len = strlen(data) + 1;
 	if(buf->data[buf->cursize-1]) // no trailing 0
-		Q_memcpy((u8 *)SZ_GetSpace(buf, len ) , data, len);
+		memcpy((u8 *)SZ_GetSpace(buf, len ) , data, len);
 	else // write over trailing 0
-		Q_memcpy((u8 *)SZ_GetSpace(buf, len-1)-1, data, len);
+		memcpy((u8 *)SZ_GetSpace(buf, len-1)-1, data, len);
 }
 
 s32 COM_WordLength(const s8 *text)
 {
 	const s8 *start = text;
-	while (*text && !q_isspace (*text))
+	while (*text && !isspace (*text))
 		text++;
 	return text - start;
 }
@@ -744,7 +450,7 @@ s32 COM_AdvanceLineWrapped(const s8 **text, s32 maxchars)
 			return i;
 		}
 		// new word
-		if(!q_isspace(str[i]) && (i == 0 || q_isspace(str[i - 1]))) {
+		if(!isspace(str[i]) && (i == 0 || isspace(str[i - 1]))) {
 			s32 len = COM_WordLength(str + i);
 			// split word if longer than given limit
 			if (len > maxchars) {
@@ -761,7 +467,7 @@ s32 COM_AdvanceLineWrapped(const s8 **text, s32 maxchars)
 		else i++;
 	}
 	// avoid starting next line with a space
-	*text += i + (q_isspace (str[i]) ? 1 : 0);
+	*text += i + (isspace (str[i]) ? 1 : 0);
 	return i;
 }
 
@@ -772,7 +478,7 @@ void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols)
 {
 	s32 ofs;
 	if(maxcols <= 0) {
-		q_strlcpy(dst, src, dstsize);
+		strlcpy(dst, src, dstsize);
 		return;
 	}
 	if(!dstsize) return;
@@ -809,7 +515,7 @@ void COM_StripExtension(const s8 *in, s8 *out, size_t outsize)
 		return;
 	}
 	if(in != out) // copy when not in-place editing
-		q_strlcpy(out, in, outsize);
+		strlcpy(out, in, outsize);
 	s32 length = (s32)strlen(out) - 1;
 	while(length > 0 && out[length] != '.'){
 		--length;
@@ -846,7 +552,7 @@ void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
 		s++;
 	}
 	if(dot == NULL) dot = s;
-	if(dot - slash < 2) q_strlcpy(out, "?model?", outsize);
+	if(dot - slash < 2) strlcpy(out, "?model?", outsize);
 	else {
 		size_t len = dot - slash;
 		if(len >= outsize)
@@ -859,7 +565,7 @@ void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
 void COM_AddExtension(s8 *path, const s8 *extension, size_t len)
 { // if path extension != .EXT, append it(extension should include leading '.')
 	if(strcmp(COM_FileGetExtension(path), extension + 1) != 0)
-		q_strlcat(path, extension, len);
+		strlcat(path, extension, len);
 }
 
 // Parse a token out of a string
@@ -922,7 +628,7 @@ s32 COM_CheckParm(const s8 *parm) // Returns the position(1 to argc-1) in the
 { // program's argument list where given parameter apears, or 0 if not present
 	for(s32 i = 1; i < com_argc; i++){
 		if(!com_argv[i]) continue;
-		if(!Q_strcmp(parm,com_argv[i])) return i;
+		if(!strcmp(parm,com_argv[i])) return i;
 	}
 	return 0;
 }
@@ -983,7 +689,7 @@ void COM_InitArgv(s32 argc, s8 **argv)
 	Con_Printf("Command line: %s\n", com_cmdline);
 	for(com_argc=0; (com_argc<MAX_NUM_ARGVS)&&(com_argc<argc); com_argc++){
 		largv[com_argc] = argv[com_argc];
-		if(!Q_strcmp("-safe", argv[com_argc]))
+		if(!strcmp("-safe", argv[com_argc]))
 			safemode = 1;
 	}
 	largv[com_argc] = argvdummy;
@@ -1024,7 +730,7 @@ s8 *va(const s8 *format, ...)
 	va_list argptr;
 	s8 *va_buf = get_va_buffer();
 	va_start(argptr, format);
-	q_vsnprintf(va_buf, VA_BUFFERLEN, format, argptr);
+	vsnprintf(va_buf, VA_BUFFERLEN, format, argptr);
 	va_end(argptr);
 	return va_buf;
 }
@@ -1045,7 +751,7 @@ void COM_WriteFile(const s8 *filename, const void *data, s32 len)
 	s32 handle;
 	s8 name[MAX_OSPATH];
 	Sys_mkdir(com_gamedir); // create if nonexistant gamedir to avoid crash
-	q_snprintf(name, sizeof(name), "%s/%s", com_gamedir, filename);
+	snprintf(name, sizeof(name), "%s/%s", com_gamedir, filename);
 	handle = Sys_FileOpenWrite(name);
 	if(handle == -1){
 		Sys_Printf("COM_WriteFile: failed on %s\n", name);
@@ -1104,7 +810,7 @@ static s32 COM_FindFileInternal(const s8 *name, s32 *handle, FILE **file, u32 *p
 			if(!registered.value)
 				if(strchr(name, '/') || strchr(name,'\\'))
 					continue;
-			q_snprintf(netpath, sizeof(netpath),
+			snprintf(netpath, sizeof(netpath),
 					"%s/%s",search->filename, name);
 			if(!(Sys_FileType(netpath) & FS_ENT_FILE)) continue;
 			if(path_id) *path_id = search->path_id;
@@ -1291,12 +997,12 @@ static pack_t *COM_LoadPackFile(const s8 *packfile)
 	if(crc != PAK0_CRC_V106 && crc != PAK0_CRC_V101 && crc != PAK0_CRC_V100)
 		com_modified = 1;
 	for(s32 i = 0; i < numpackfiles; i++){ // parse the directory
-		q_strlcpy(newf[i].name,info[i].name,sizeof(newf[i].name));
+		strlcpy(newf[i].name,info[i].name,sizeof(newf[i].name));
 		newf[i].filepos = LittleLong(info[i].filepos);
 		newf[i].filelen = LittleLong(info[i].filelen);
 	}
 	pack_t *pack = (pack_t *) Z_Malloc(sizeof(pack_t));
-	q_strlcpy(pack->filename, packfile, sizeof(pack->filename));
+	strlcpy(pack->filename, packfile, sizeof(pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = numpackfiles;
 	pack->files = newf;
@@ -1307,11 +1013,11 @@ static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
 {
 	s8 pakfile[MAX_OSPATH+32];
 	bool been_here = 0;
-	q_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
+	strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
 	u32 path_id = com_searchpaths ? com_searchpaths->path_id << 1 : 1U;
 	searchpath_t *search = (searchpath_t *) Z_Malloc(sizeof(searchpath_t));
 	search->path_id = path_id;
-	q_strlcpy(search->filename, com_gamedir, sizeof(search->filename));
+	strlcpy(search->filename, com_gamedir, sizeof(search->filename));
 	search->next = com_searchpaths;
 	com_searchpaths = search;
 	for(s32 i=0;;i++){//add any pak files in the format pak0.pak pak1.pak...
@@ -1322,7 +1028,7 @@ static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
 		else {
 			bool old = com_modified;
 			if(been_here) base = host_parms.userdir;
-			q_snprintf(pakfile, sizeof(pakfile),
+			snprintf(pakfile, sizeof(pakfile),
 					"%s/quakespasm.pak", base);
 			qspak = COM_LoadPackFile(pakfile);
 			com_modified = old;
@@ -1349,8 +1055,8 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 {
 	u8 worldpalbuf[768];
 	s8 ppath[MAX_OSPATH] = "gfx/";
-	q_strlcat(ppath, path, MAX_OSPATH);
-	q_strlcat(ppath, ".lmp", MAX_OSPATH);
+	strlcat(ppath, path, MAX_OSPATH);
+	strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
 	COM_FOpenFile(ppath, &f, NULL);
 	if(!f){Con_Printf("Couldn't load %s\n", ppath); return;}
@@ -1359,8 +1065,8 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 	fclose(f);
 	u8 worldcmapbuf[256*64];
 	s8 cmpath[MAX_OSPATH] = "gfx/";
-	q_strlcat(cmpath, cmappath, MAX_OSPATH);
-	q_strlcat(cmpath, ".lmp", MAX_OSPATH);
+	strlcat(cmpath, cmappath, MAX_OSPATH);
+	strlcat(cmpath, ".lmp", MAX_OSPATH);
 	COM_FOpenFile(cmpath, &f, NULL);
 	if(!f){Con_Printf("Couldn't load %s\n", cmpath); return;}
 	if(fread(worldcmapbuf, 256*64, 1, f) != 1)
@@ -1368,10 +1074,10 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 	fclose(f);
 	Con_DPrintf("Setting %s %s\n", ppath, cmpath);
 	memcpy(worldpal, worldpalbuf, 768);
-	q_strlcpy(worldpalname, path, MAX_OSPATH);
+	strlcpy(worldpalname, path, MAX_OSPATH);
 	VID_SetPalette(worldpal, screen);
 	memcpy(worldcmap, worldcmapbuf, 64*256);
-	q_strlcpy(worldcmapname, cmappath, MAX_OSPATH);
+	strlcpy(worldcmapname, cmappath, MAX_OSPATH);
 	vid.colormap = worldcmap;
 	fog_lut_built = lit_lut_initialized = 0;
 }
@@ -1380,8 +1086,8 @@ void SetUiPal(s8 *path)
 {
 	u8 uipalbuf[768];
 	s8 ppath[MAX_OSPATH] = "gfx/";
-	q_strlcat(ppath, path, MAX_OSPATH);
-	q_strlcat(ppath, ".lmp", MAX_OSPATH);
+	strlcat(ppath, path, MAX_OSPATH);
+	strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
 	COM_FOpenFile(ppath, &f, NULL);
 	if(!f){Con_Printf("Couldn't load %s\n", ppath); return;}
@@ -1390,7 +1096,7 @@ void SetUiPal(s8 *path)
 	fclose(f);
 	Con_DPrintf("Setting %s\n", ppath);
 	memcpy(uipal, uipalbuf, 768);
-	q_strlcpy(uipalname, path, MAX_OSPATH);
+	strlcpy(uipalname, path, MAX_OSPATH);
 	VID_SetPalette(uipal, screenui);
 }
 
@@ -1439,7 +1145,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 		Con_Printf("invalid mission pack argument to \"game\"\n");
 			return;
 		}
-		if(!q_strcasecmp(p, GAMENAME)){
+		if(!strcasecmp(p, GAMENAME)){
 		Con_Printf("no mission pack arguments to %s game\n", GAMENAME);
 			return;
 		}
@@ -1452,12 +1158,12 @@ Con_Printf("You must have the registered version to use modified games\n");
 			return;
 		}
 	}
-	if(!q_strcasecmp(p, COM_SkipPath(com_gamedir))){ //no change
+	if(!strcasecmp(p, COM_SkipPath(com_gamedir))){ //no change
 		if(com_searchpaths->path_id > 1){ //current game not id1
 			if(*p2 && com_searchpaths->path_id == 2){
 				// rely on QSpasm treating '-game missionpack'
 				// as '-missionpack', otherwise would be a mess
-				if(!q_strcasecmp(p, &p2[1])) goto _same;
+				if(!strcasecmp(p, &p2[1])) goto _same;
 	Con_Printf("reloading game \"%s\" with \"%s\" support\n", p, &p2[1]);
 			}
 			else if(!*p2 && com_searchpaths->path_id > 2)
@@ -1486,7 +1192,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	hipnotic = 0;
 	rogue = 0;
 	standard_quake = 1;
-	if(q_strcasecmp(p, GAMENAME)){ //game is not id1
+	if(strcasecmp(p, GAMENAME)){ //game is not id1
 		if(*p2){
 			COM_AddGameDirectory(com_basedir, &p2[1]);
 			standard_quake = 0;
@@ -1494,22 +1200,22 @@ Con_Printf("You must have the registered version to use modified games\n");
 				hipnotic = 1;
 			else if(!strcmp(p2,"-rogue"))
 				rogue = 1;
-			if(q_strcasecmp(p, &p2[1])) //don't load twice
+			if(strcasecmp(p, &p2[1])) //don't load twice
 				COM_AddGameDirectory(com_basedir, p);
 		} else {
 			COM_AddGameDirectory(com_basedir, p);
-			if(!q_strcasecmp(p,"hipnotic") // -game missionpack ==
-				||!q_strcasecmp(p,"quoth")){ // -missionpack
+			if(!strcasecmp(p,"hipnotic") // -game missionpack ==
+				||!strcasecmp(p,"quoth")){ // -missionpack
 				hipnotic = 1;
 				standard_quake = 0;
-			} else if(!q_strcasecmp(p,"rogue")){
+			} else if(!strcasecmp(p,"rogue")){
 				rogue = 1;
 				standard_quake = 0;
 			}
 		}
 	}
 	else { // just update com_gamedir
-		q_snprintf(com_gamedir, sizeof(com_gamedir), "%s/%s",
+		snprintf(com_gamedir, sizeof(com_gamedir), "%s/%s",
 				(host_parms.userdir != host_parms.basedir)?
 				(s8 *)host_parms.userdir : com_basedir,
 				GAMENAME);
@@ -1538,8 +1244,8 @@ void COM_InitFilesystem()
 	Cmd_AddCommand("uipal", COM_UiPal_f);
 	s32 i = COM_CheckParm("-basedir");
 	if(i && i < com_argc-1)
-		q_strlcpy(com_basedir, com_argv[i + 1], sizeof(com_basedir));
-	else q_strlcpy(com_basedir, host_parms.basedir, sizeof(com_basedir));
+		strlcpy(com_basedir, com_argv[i + 1], sizeof(com_basedir));
+	else strlcpy(com_basedir, host_parms.basedir, sizeof(com_basedir));
 	s32 j = strlen(com_basedir);
 	if(j < 1) Sys_Error("Bad argument to -basedir");
 	if((com_basedir[j-1]=='\\')||(com_basedir[j-1]=='/'))com_basedir[j-1]=0;
@@ -1563,21 +1269,21 @@ void COM_InitFilesystem()
 	Sys_Error("gamedir should be a single directory name, not a path\n");
 		com_modified = 1;
 		// don't load mission packs twice
-		if(COM_CheckParm("-rogue") && !q_strcasecmp(p, "rogue"))
+		if(COM_CheckParm("-rogue") && !strcasecmp(p, "rogue"))
 			p = NULL;
-		if(p && COM_CheckParm("-hipnotic")&&!q_strcasecmp(p,"hipnotic"))
+		if(p && COM_CheckParm("-hipnotic")&&!strcasecmp(p,"hipnotic"))
 			p = NULL;
-		if(p && COM_CheckParm("-quoth") && !q_strcasecmp(p, "quoth")) 
+		if(p && COM_CheckParm("-quoth") && !strcasecmp(p, "quoth")) 
 			p = NULL;
 		if(p != NULL){
 			COM_AddGameDirectory(com_basedir, p);
 			// QSpasm extension: treat '-game mpack' as '-mpack'
-			if(!q_strcasecmp(p,"rogue")){
+			if(!strcasecmp(p,"rogue")){
 				rogue = 1;
 				standard_quake = 0;
 			}
-			if(!q_strcasecmp(p,"hipnotic") ||
-					!q_strcasecmp(p,"quoth")){
+			if(!strcasecmp(p,"hipnotic") ||
+					!strcasecmp(p,"quoth")){
 				hipnotic = 1;
 				standard_quake = 0;
 			}
@@ -1679,7 +1385,7 @@ bool LOC_Init()
 	while(*cursor){
 		s8 *line, *equals;
 		lineno++;
-		while(q_isblank(*cursor)) ++cursor; // skip leading whitespace
+		while(isblank(*cursor)) ++cursor; // skip leading whitespace
 		line = cursor;
 		equals = NULL;
 		// find line end and first equals sign, if any
@@ -1703,12 +1409,12 @@ bool LOC_Init()
 			s8 *value_dst;
 			s8 *value;
 			// trim whitespace before equals sign
-			while(key_end != line && q_isspace(key_end[-1]))
+			while(key_end != line && isspace(key_end[-1]))
 				key_end--;
 			*key_end = 0;
 			value = equals + 1;
 			// skip whitespace after equals sign
-			while(value != cursor && q_isspace(*value))
+			while(value != cursor && isspace(*value))
 				value++;
 			leading_quote = (*value == '\"');
 			trailing_quote = 0;
@@ -1750,7 +1456,7 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 			// if not a quoted string, trim trailing whitespace
 			if(!trailing_quote){
 				while(value_dst != value
-					&& q_isblank(value_dst[-1])){
+					&& isblank(value_dst[-1])){
 					*value_dst = 0;
 					value_dst--;
 				}
@@ -1814,7 +1520,7 @@ const s8* LOC_GetRawString(const s8 *key)
 		locentry_t *entry;
 		if(!idx) return NULL;
 		entry = &localization.entries[idx - 1];
-		if(!Q_strcmp(entry->key, key)) return entry->value;
+		if(!strcmp(entry->key, key)) return entry->value;
 		++pos;
 		if((s32)pos == localization.numindices) pos = 0;
 	} while(pos != end);
@@ -1836,7 +1542,7 @@ static s32 LOC_ParseArg(const s8 **pstr)
 	if(*str != '{') return -1; // opening brace
 	++str;
 	s32 arg = 0; // optional index, defaulting to 0
-	while(q_isdigit(*str)) arg = arg * 10 + *str++ - '0';
+	while(isdigit(*str)) arg = arg * 10 + *str++ - '0';
 	if(*str != '}') return -1; // closing brace
 	*pstr = ++str;
 	return arg;
@@ -1876,12 +1582,12 @@ size_t LOC_Format(const s8 *format, const s8* (*getarg_fn)
 		}
 		insert = getarg_fn(argindex, userdata);
 		space_left = len - written;
-		insert_len = Q_strlen(insert);
+		insert_len = strlen(insert);
 		if(insert_len > space_left){
 		  Con_DPrintf("LOC_Format: overflow at argument #%d\n",numargs);
 			insert_len = space_left;
 		}
-		Q_memcpy(out + written, insert, insert_len);
+		memcpy(out + written, insert, insert_len);
 		written += insert_len;
 	}
 	if(*format) Con_DPrintf("LOC_Format: overflow\n");

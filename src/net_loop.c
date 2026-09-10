@@ -30,20 +30,20 @@ void Loop_SearchForHosts(bool xmit)
 	if (!sv.active)
 		return;
 	hostCacheCount = 1;
-	if (Q_strcmp(hostname.string, "UNNAMED") == 0)
-		Q_strcpy(hostcache[0].name, "local");
+	if (strcmp(hostname.string, "UNNAMED") == 0)
+		strcpy(hostcache[0].name, "local");
 	else
-		Q_strcpy(hostcache[0].name, hostname.string);
-	Q_strcpy(hostcache[0].map, sv.name);
+		strcpy(hostcache[0].name, hostname.string);
+	strcpy(hostcache[0].map, sv.name);
 	hostcache[0].users = net_activeconnections;
 	hostcache[0].maxusers = svs.maxclients;
 	hostcache[0].driver = net_driverlevel;
-	Q_strcpy(hostcache[0].cname, "local");
+	strcpy(hostcache[0].cname, "local");
 }
 
 qsocket_t *Loop_Connect(const s8 *host)
 {
-	if (Q_strcmp(host, "local") != 0)
+	if (strcmp(host, "local") != 0)
 		return NULL;
 	localconnectpending = 1;
 	if (!loop_client) {
@@ -51,7 +51,7 @@ qsocket_t *Loop_Connect(const s8 *host)
 			Con_Printf("Loop_Connect: no qsocket available\n");
 			return NULL;
 		}
-		Q_strcpy(loop_client->address, "localhost");
+		strcpy(loop_client->address, "localhost");
 	}
 	loop_client->receiveMessageLength = 0;
 	loop_client->sendMessageLength = 0;
@@ -61,7 +61,7 @@ qsocket_t *Loop_Connect(const s8 *host)
 			Con_Printf("Loop_Connect: no qsocket available\n");
 			return NULL;
 		}
-		Q_strcpy(loop_server->address, "LOCAL");
+		strcpy(loop_server->address, "LOCAL");
 	}
 	loop_server->receiveMessageLength = 0;
 	loop_server->sendMessageLength = 0;
@@ -122,7 +122,7 @@ s32 Loop_SendMessage(qsocket_t *sock, sizebuf_t *data)
 	*buffer++ = data->cursize & 0xff; // length
 	*buffer++ = data->cursize >> 8;
 	buffer++; // align
-	Q_memcpy(buffer, data->data, data->cursize); // message
+	memcpy(buffer, data->data, data->cursize); // message
 	*bufferLength = IntAlign(*bufferLength + data->cursize + 4);
 	sock->canSend = 0;
 	return 1;
@@ -143,7 +143,7 @@ s32 Loop_SendUnreliableMessage(qsocket_t *sock, sizebuf_t *data)
 	*buffer++ = data->cursize & 0xff; // length
 	*buffer++ = data->cursize >> 8;
 	buffer++; // align
-	Q_memcpy(buffer, data->data, data->cursize); // message
+	memcpy(buffer, data->data, data->cursize); // message
 	*bufferLength = IntAlign(*bufferLength + data->cursize + 4);
 	return 1;
 }

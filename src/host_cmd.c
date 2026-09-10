@@ -182,7 +182,7 @@ static void Host_Map_f()
 	SCR_BeginLoadingPlaque();
 	svs.serverflags = 0;// haven't completed an episode yet
 	s8 name[MAX_QPATH];
-	q_strlcpy(name, Cmd_Argv(1), sizeof(name));
+	strlcpy(name, Cmd_Argv(1), sizeof(name));
 	// remove(any) trailing ".bsp" from mapname -- S.A.
 	s8 *p = strstr(name, ".bsp");
 	if(p && p[4] == '\0')
@@ -195,8 +195,8 @@ static void Host_Map_f()
 	if(cls.state != ca_dedicated){
 		memset(cls.spawnparms, 0, MAX_MAPSTRING);
 		for(s32 i = 2; i < Cmd_Argc(); i++){
-			q_strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
-			q_strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
+			strlcat(cls.spawnparms, Cmd_Argv(i), MAX_MAPSTRING);
+			strlcat(cls.spawnparms, " ", MAX_MAPSTRING);
 		}
 		Cmd_ExecuteString("connect local", src_command);
 	}
@@ -294,7 +294,7 @@ void Host_SavegameComment(s8 *text)
 	for(i = 0; i < SAVEGAME_COMMENT_LENGTH; i++) text[i] = ' ';
 	text[SAVEGAME_COMMENT_LENGTH] = '\0';
 	s8 *levelname = cl.levelname[0] ? cl.levelname : cl.mapname;
-	i = (s32)strlen(levelname);
+	i = (s32)(s32)strlen(levelname);
 	if(i > 22) i = 22;
 	memcpy(text, levelname, (size_t)i);
 // Remove CR/LFs from level name to avoid broken saves, e.g. with autumn_sp map:
@@ -304,7 +304,7 @@ void Host_SavegameComment(s8 *text)
 	while((p = strchr(text, '\r')) != NULL) *p = ' ';
 	sprintf(kills,"kills:%3i/%3i", cl.stats[STAT_MONSTERS],
 					cl.stats[STAT_TOTALMONSTERS]);
-	memcpy(text+22, kills, strlen(kills));
+	memcpy(text+22, kills, (s32)strlen(kills));
 	// convert space to _ to make stdio happy
 	for(i = 0; i < SAVEGAME_COMMENT_LENGTH; i++)
 		if (text[i] == ' ') text[i] = '_';
@@ -359,7 +359,7 @@ if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
 	fclose(f);
 	PR_SwitchQCVM(NULL);
 	if(Cmd_Argc()!=3)Con_Printf("done.\n");
-	q_strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
+	strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
 }
 
 bool Host_ValidateSave(const s8 *name)
@@ -401,7 +401,7 @@ void Host_Loadgame_f()
 {
 	s8 name[MAX_OSPATH+2];
 	s8 orgname[MAX_OSPATH+2];
-	Q_strncpy(orgname, name, sizeof(name));
+	strncpy(orgname, name, sizeof(name));
 	s8 mapname[MAX_QPATH];
 	s8 str[32768];
 	f32 spawn_parms[NUM_SPAWN_PARMS];
@@ -457,7 +457,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	s32 i = 0;
 	for(; i < MAX_LIGHTSTYLES; i++){ // load the light styles
 		fscanf(f, "%s\n", str);
-		s8 *dst = Hunk_Alloc(strlen(str) + 1);
+		s8 *dst = Hunk_Alloc((s32)strlen(str) + 1);
 		strcpy(dst, str);
 		sv.lightstyles[i] = dst;
 	}
@@ -501,7 +501,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++)
 		svs.clients->spawn_parms[i] = spawn_parms[i];
 	PR_SwitchQCVM(NULL);
-	q_strlcpy(sv.lastsave, orgname, sizeof(orgname));
+	strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
 	if(cls.state != ca_dedicated){
 		CL_EstablishConnection("local");
 		Host_Reconnect_f();
@@ -554,19 +554,19 @@ static void Host_Name_f()
 		Con_Printf("\"name\" is \"%s\"\n", cl_name.string);
 		return;
 	}
-	if(Cmd_Argc() == 2) q_strlcpy(newName, Cmd_Argv(1), sizeof(newName));
-	else q_strlcpy(newName, Cmd_Args(), sizeof(newName));
+	if(Cmd_Argc() == 2) strlcpy(newName, Cmd_Argv(1), sizeof(newName));
+	else strlcpy(newName, Cmd_Args(), sizeof(newName));
 	newName[15] = 0; // client_t structure actually says name[32].
 	if(cmd_source == src_command){
-		if(Q_strcmp(cl_name.string, newName) == 0) return;
+		if(strcmp(cl_name.string, newName) == 0) return;
 		Cvar_Set("_cl_name", newName);
 		if(cls.state == ca_connected) Cmd_ForwardToServer();
 		return;
 	}
 	if(host_client->name[0] && strcmp(host_client->name, "unconnected")
-		&& Q_strcmp(host_client->name, newName) != 0)
+		&& strcmp(host_client->name, newName) != 0)
 		Con_Printf("%s renamed to %s\n", host_client->name, newName);
-	Q_strcpy(host_client->name, newName);
+	strcpy(host_client->name, newName);
 	host_client->edict->v.netname = PR_SetEngineString(host_client->name);
 	// send notification to all clients
 	MSG_WriteByte(&sv.reliable_datagram, svc_updatename);
@@ -593,12 +593,12 @@ void Host_Say(bool teamonly)
 	s8 *p = Cmd_Args();
 	if(*p == '"'){ // remove quotes if present
 		p++;
-		p[Q_strlen(p) - 1] = 0;
+		p[(s32)strlen(p) - 1] = 0;
 	}
 	if(!fromServer)sprintf(text,"%c%s: ",1,save->name);//turn on color set 1
 	else sprintf(text, "%c<%s> ", 1, hostname.string);
-	s32 j = sizeof(text)-2-Q_strlen(text); // -2 for /n and null terminator
-	if(Q_strlen(p) > j) p[j] = 0;
+	s32 j = sizeof(text)-2-(s32)strlen(text); // -2 for /n and null terminator
+	if((s32)strlen(p) > j) p[j] = 0;
 	strcat(text, p);
 	strcat(text, "\n");
 	j = 0;
@@ -621,16 +621,16 @@ void Host_Tell_f()
 	s8 text[64];
 	if(cmd_source == src_command){ Cmd_ForwardToServer(); return; }
 	if(Cmd_Argc() < 3) return;
-	Q_strcpy(text, host_client->name);
-	Q_strcat(text, ": ");
+	strcpy(text, host_client->name);
+	strcat(text, ": ");
 	s8 *p = Cmd_Args();
 	if(*p == '"'){ // remove quotes if present
 		p++;
-		p[Q_strlen(p) - 1] = 0;
+		p[(s32)strlen(p) - 1] = 0;
 	}
 	// check length & truncate if necessary
-	s32 j = sizeof(text)-2-Q_strlen(text); // -2 for /n and null terminator
-	if(Q_strlen(p) > j)
+	s32 j = sizeof(text)-2-(s32)strlen(text); // -2 for /n and null terminator
+	if((s32)strlen(p) > j)
 		p[j] = 0;
 	strcat(text, p);
 	strcat(text, "\n");
@@ -639,7 +639,7 @@ void Host_Tell_f()
 	for(client_t *client = svs.clients; j < svs.maxclients; j++, client++){
 		if(!client->active || !client->spawned)
 			continue;
-		if(q_strcasecmp(client->name, Cmd_Argv(1)))
+		if(strcasecmp(client->name, Cmd_Argv(1)))
 			continue;
 		host_client = client;
 		SV_ClientPrintf("%s", text);
@@ -834,8 +834,8 @@ void Host_Kick_f() // Kicks a user off of the server
 	client_t *save = host_client;
 	s32 i;
 	bool byNumber = 0;
-	if(Cmd_Argc() > 2 && Q_strcmp(Cmd_Argv(1), "#") == 0){
-		i = Q_atof(Cmd_Argv(2)) - 1;
+	if(Cmd_Argc() > 2 && strcmp(Cmd_Argv(1), "#") == 0){
+		i = atof(Cmd_Argv(2)) - 1;
 		if(i < 0 || i >= svs.maxclients) return;
 		if(!svs.clients[i].active) return;
 		host_client = &svs.clients[i];
@@ -844,7 +844,7 @@ void Host_Kick_f() // Kicks a user off of the server
 		for(i = 0, host_client = svs.clients; i < svs.maxclients;
 							i++, host_client++){
 			if(!host_client->active) continue;
-			if(q_strcasecmp(host_client->name,Cmd_Argv(1))==0)break;
+			if(strcasecmp(host_client->name,Cmd_Argv(1))==0)break;
 		}
 	}
 	if(i < svs.maxclients){
@@ -860,7 +860,7 @@ void Host_Kick_f() // Kicks a user off of the server
 				message++; // skip the #
 				while(*message == ' ') // skip white space
 					message++;
-				message += Q_strlen(Cmd_Argv(2)); // skip number
+				message += (s32)strlen(Cmd_Argv(2)); // skip number
 			}
 			while(*message && *message == ' ') message++;
 		}
@@ -1049,7 +1049,7 @@ void Host_Stopdemo_f()
 time_t Mod_GetMapDate(const s8 *map)
 {
 	s8 path[MAX_QPATH];
-	if((size_t) q_snprintf(path, sizeof(path), "%s/maps/%s.bsp",
+	if((size_t) snprintf(path, sizeof(path), "%s/maps/%s.bsp",
 				com_gamedir, map) >= sizeof(path))
 		return 0;
 	SDL_PathInfo info;
@@ -1063,18 +1063,18 @@ void FileList_Add(const char *name, const char *desc, filelist_item_t **list)
 {
 	filelist_item_t *item,*cursor,*prev;
 	for(item = *list; item; item = item->next) // ignore duplicate
-		if(!Q_strcmp(name, item->name)) return;
+		if(!strcmp(name, item->name)) return;
 	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-	q_strlcpy(item->name, name, sizeof(item->name));
-	if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
+	strlcpy(item->name, name, sizeof(item->name));
+	if(desc) strlcpy(item->desc, desc, sizeof(item->desc));
 	// insert each entry in alphabetical order
-	if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
+	if(*list == NULL || strcasecmp(item->name, (*list)->name) < 0){
 		item->next = *list; //insert at front
 		*list = item;
 	} else { //insert later
 		prev = *list;
 		cursor = (*list)->next;
-		while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
+		while(cursor && (strcasecmp(item->name, cursor->name) > 0)){
 			prev = cursor;
 			cursor = cursor->next;
 		}
@@ -1087,21 +1087,21 @@ void FileList_AddMap(const char *name, const char *desc, filelist_item_t **list)
 {
 	filelist_item_t *item,*cursor,*prev;
 	for(item = *list; item; item = item->next) // ignore duplicate
-		if(!Q_strcmp(name, item->name)) return;
+		if(!strcmp(name, item->name)) return;
 	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-	q_strlcpy(item->name, name, sizeof(item->name));
-	if(desc) q_strlcpy(item->desc, desc, sizeof(item->desc));
+	strlcpy(item->name, name, sizeof(item->name));
+	if(desc) strlcpy(item->desc, desc, sizeof(item->desc));
 	item->data1 = Mod_CountMonsters(name);
 	item->data2 = Mod_CountSecrets(name);
 	item->date = Mod_GetMapDate(name);
 	// insert each entry in alphabetical order
-	if(*list == NULL || q_strcasecmp(item->name, (*list)->name) < 0){
+	if(*list == NULL || strcasecmp(item->name, (*list)->name) < 0){
 		item->next = *list; //insert at front
 		*list = item;
 	} else { //insert later
 		prev = *list;
 		cursor = (*list)->next;
-		while(cursor && (q_strcasecmp(item->name, cursor->name) > 0)){
+		while(cursor && (strcasecmp(item->name, cursor->name) > 0)){
 			prev = cursor;
 			cursor = cursor->next;
 		}
@@ -1116,7 +1116,7 @@ void ExtraMaps_Add(const s8 *name, const s8 *game)
 	filelist_item_t **list = &extralevels;
 	if(!Mod_LoadMapDescription(buf, sizeof(buf), name))
 		return;
-	if(Q_strncmp(COM_SkipPath(game), "id1", 4))
+	if(strncmp(COM_SkipPath(game), "id1", 4))
 		list = &extralevels_mod;
 	FileList_AddMap(name, buf, list);
 }
@@ -1127,7 +1127,7 @@ static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 	s8 maps_dir[MAX_OSPATH];
 	s8 mapname[32];
 
-	q_snprintf(maps_dir, sizeof(maps_dir), "%s/maps", search->filename);
+	snprintf(maps_dir, sizeof(maps_dir), "%s/maps", search->filename);
 
 	SDL_Storage* storage = SDL_OpenFileStorage(maps_dir);
 	if (storage) {
@@ -1137,8 +1137,8 @@ static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 		if (matches) {
 			for (int i = 0; i < count; i++) {
 				COM_StripExtension(matches[i], mapname, sizeof(mapname));
-				if (maxlevelnamelen < Q_strlen(mapname))
-					maxlevelnamelen = Q_strlen(mapname);
+				if (maxlevelnamelen < (s32)strlen(mapname))
+					maxlevelnamelen = (s32)strlen(mapname);
 				ExtraMaps_Add(mapname, search->filename);
 			}
 			SDL_free(matches);
@@ -1154,7 +1154,7 @@ static void ExtraMaps_Init_SearchPak(searchpath_t *search)
 	s8 ignorepakdir[32];
 	// we don't want to list the maps in id1 pakfiles,
 	// because these are not "add-on" levels
-	q_snprintf(ignorepakdir, sizeof(ignorepakdir), "/%s/", GAMENAME);
+	snprintf(ignorepakdir, sizeof(ignorepakdir), "/%s/", GAMENAME);
 	if(strstr(search->pack->filename, ignorepakdir))
 		return;
 	s32 i = 0;
@@ -1206,7 +1206,7 @@ void ExtraMaps_NewGame()
 static const s8 *RightPad(const s8 *str, size_t minlen, s8 c)
 {
 	static s8 buf[1024];
-	size_t len = strlen(str);
+	size_t len = (s32)strlen(str);
 	minlen = q_min(minlen, sizeof(buf) - 1);
 	if(len >= minlen)
 		return str;
@@ -1230,7 +1230,7 @@ void Host_Maps_f()
 			maxlevelnamelen, padchar), padchar, level->desc);
 		++tot;
 	}
-	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
+	if(!strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		goto host_maps_f_fin;
 	Con_Printf("%s\n", RightPad(COM_SkipPath(com_gamedir), 32, padchar2));
 	for(level = extralevels_mod, i = 0; level; level = level->next, i++){
@@ -1251,7 +1251,7 @@ void Modlist_Add(const char *name, const char *desc){
 static const char *Modlist_KnownDescription(const char *modname)
 {
 	for(u32 i = 0; i < SDL_arraysize(knownmods); i++){
-		if(!q_strcasecmp(modname, knownmods[i][0]))
+		if(!strcasecmp(modname, knownmods[i][0]))
 			return knownmods[i][1];
 	}
 	return NULL;
@@ -1262,7 +1262,7 @@ char *Modlist_ReadDescription(const char *mod_path)
 	static s8 desc[128];
 	FILE *f;
 	s8 path[MAX_OSPATH];
-	q_snprintf(path, sizeof(path), "%s/descript.ion", mod_path);
+	snprintf(path, sizeof(path), "%s/descript.ion", mod_path);
 	f = fopen(path, "rb");
 	if(!f)
 		return NULL;
@@ -1283,14 +1283,14 @@ static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const ch
 {
 	SDL_PathInfo info;
 	s8 fullpath[MAX_OSPATH];
-	q_snprintf(fullpath, sizeof(fullpath), "%s%s", dirname, fname);
+	snprintf(fullpath, sizeof(fullpath), "%s%s", dirname, fname);
 
 	if (SDL_GetPathInfo(fullpath, &info) && info.type == SDL_PATHTYPE_DIRECTORY) {
 			// don't bother testing for pak files / progs.dat
 			s8* file_desc = Modlist_ReadDescription(fullpath);
 			const s8* desc = file_desc ? file_desc : Modlist_KnownDescription(fname);
-			if (maxmodnamelen < Q_strlen(fname))
-				maxmodnamelen = Q_strlen(fname);
+			if (maxmodnamelen < (s32)strlen(fname))
+				maxmodnamelen = (s32)strlen(fname);
 			Modlist_Add(fname, desc);
 	}
 

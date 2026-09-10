@@ -89,32 +89,32 @@ static const s8 *PR_UglyValueString(s32 type, eval_t *val)
     type &= ~DEF_SAVEGLOBAL;
     switch(type) {
     case ev_string:
-	q_snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
+	snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
 	break;
     case ev_entity:
-	q_snprintf(line, sizeof(line), "%i", 
+	snprintf(line, sizeof(line), "%i", 
 				NUM_FOR_EDICT(PROG_TO_EDICT(val->edict)));
 	break;
     case ev_function:
 	f = qcvm->functions + val->function;
-	q_snprintf(line, sizeof(line), "%s", PR_GetString(f->s_name));
+	snprintf(line, sizeof(line), "%s", PR_GetString(f->s_name));
 	break;
     case ev_field:
 	def = ED_FieldAtOfs( val->_int );
-	q_snprintf(line, sizeof(line), "%s", PR_GetString(def->s_name));
+	snprintf(line, sizeof(line), "%s", PR_GetString(def->s_name));
 	break;
     case ev_void:
-	q_snprintf(line, sizeof(line), "void");
+	snprintf(line, sizeof(line), "void");
 	break;
     case ev_float:
-	q_snprintf(line, sizeof(line), "%f", val->_float);
+	snprintf(line, sizeof(line), "%f", val->_float);
 	break;
     case ev_vector:
-	q_snprintf(line, sizeof(line), "%f %f %f", val->vector[0],
+	snprintf(line, sizeof(line), "%f %f %f", val->vector[0],
 						val->vector[1], val->vector[2]);
 	break;
     default:
-	q_snprintf(line, sizeof(line), "bad type %i", type);
+	snprintf(line, sizeof(line), "bad type %i", type);
 	break;
     }
     return line;
@@ -387,43 +387,43 @@ static const s8 *PR_ValueString(s32 type, eval_t *val)
 	type &= ~DEF_SAVEGLOBAL;
 	switch(type){
 	case ev_string:
-		q_snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
+		snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
 		break;
 	case ev_entity:
 		ed = PROG_TO_EDICT(val->edict);
 		str = PR_GetString(ed->v.classname);
-		q_snprintf(line, sizeof(line), *str?"entity %i(%s)":"entity %i",
+		snprintf(line, sizeof(line), *str?"entity %i(%s)":"entity %i",
 			NUM_FOR_EDICT(ed), PR_GetString(ed->v.classname));
 		break;
 	case ev_function:
 		f = qcvm->functions + val->function;
-		q_snprintf(line, sizeof(line), "%s()", PR_GetString(f->s_name));
+		snprintf(line, sizeof(line), "%s()", PR_GetString(f->s_name));
 		break;
 	case ev_field:
 		def = ED_FieldAtOfs( val->_int );
-		q_snprintf(line, sizeof(line), ".%s", PR_GetString(def->s_name));
+		snprintf(line, sizeof(line), ".%s", PR_GetString(def->s_name));
 		break;
 	case ev_void:
-		q_snprintf(line, sizeof(line), "void");
+		snprintf(line, sizeof(line), "void");
 		break;
 	case ev_float: // Note: leading space, so that float fields are aligned
 		       // with the first value in vector fields
-		q_snprintf(fmt, sizeof(fmt), " %s",PR_FloatFormat(val->_float));
-		q_snprintf(line, sizeof(line), fmt, val->_float);
+		snprintf(fmt, sizeof(fmt), " %s",PR_FloatFormat(val->_float));
+		snprintf(line, sizeof(line), fmt, val->_float);
 		break;
 	case ev_vector:
-		q_snprintf(fmt, sizeof(fmt), "'%s %s %s'",
+		snprintf(fmt, sizeof(fmt), "'%s %s %s'",
 				PR_FloatFormat(val->vector[0]),
 				PR_FloatFormat(val->vector[1]),
 				PR_FloatFormat(val->vector[2]));
-		q_snprintf(line, sizeof(line), fmt, val->vector[0],
+		snprintf(line, sizeof(line), fmt, val->vector[0],
 					val->vector[1], val->vector[2]);
 		break;
 	case ev_pointer:
-		q_snprintf(line, sizeof(line), "pointer");
+		snprintf(line, sizeof(line), "pointer");
 		break;
 	default:
-		q_snprintf(line, sizeof(line), "bad type %i", type);
+		snprintf(line, sizeof(line), "bad type %i", type);
 		break;
 	}
 	return line;
@@ -436,10 +436,10 @@ const s8 *PR_GlobalString(s32 ofs) // Returns a string with a description and
 	void *val = (void *)&qcvm->globals[ofs];
 	ddef_t *def = ED_GlobalAtOfs(ofs);
 	if(!def)
-		q_snprintf(line, sizeof(line), "%i(?)", ofs);
+		snprintf(line, sizeof(line), "%i(?)", ofs);
 	else {
 		const s8 *s = PR_ValueString(def->type, (eval_t *)val);
-		q_snprintf(line, sizeof(line), "%i(%s)%s", ofs,
+		snprintf(line, sizeof(line), "%i(%s)%s", ofs,
 				PR_GetString(def->s_name), s);
 	}
 	s32 i = strlen(line);
@@ -458,9 +458,9 @@ const s8 *PR_GlobalStringNoContents(s32 ofs)
 	static const s32 lastchari = Q_COUNTOF(line) - 2;
 	ddef_t *def = ED_GlobalAtOfs(ofs);
 	if(!def)
-		q_snprintf(line, sizeof(line), "%i(?)", ofs);
+		snprintf(line, sizeof(line), "%i(?)", ofs);
 	else
-		q_snprintf(line, sizeof(line), "%i(%s)", ofs,
+		snprintf(line, sizeof(line), "%i(%s)", ofs,
 				PR_GetString(def->s_name));
 	s32 i = strlen(line);
 	for( ; i < 20; i++)
@@ -475,8 +475,8 @@ const s8 *PR_GlobalStringNoContents(s32 ofs)
 static void ED_AppendFlagString(s8 *dst, size_t dstsize, const s8 *desc)
 {
 	if(*dst)
-		q_strlcat(dst, " | ", dstsize);
-	q_strlcat(dst, desc, dstsize);
+		strlcat(dst, " | ", dstsize);
+	strlcat(dst, desc, dstsize);
 }
 
 const s8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
@@ -613,13 +613,13 @@ void ED_Print(edict_t *ed)
 		Con_SafePrintf("FREE\n");
 		return;
 	}
-	q_snprintf(buf, sizeof(buf), "\nEDICT %i:\n", NUM_FOR_EDICT(ed));
+	snprintf(buf, sizeof(buf), "\nEDICT %i:\n", NUM_FOR_EDICT(ed));
 	p = buf + strlen(buf);
 	for(s32 i = 1; i < qcvm->progs->numfielddefs; i++){
 		ddef_t *d = &qcvm->fielddefs[i];
 		if(!ED_IsRelevantField(ed, d))
 			continue;
-		q_snprintf(field, sizeof(field), "%-14s %s\n",
+		snprintf(field, sizeof(field), "%-14s %s\n",
 			PR_GetString(d->s_name), ED_FieldValueString(ed, d));
 		s32 l = strlen(field);
 		if(l + 1 > buf + sizeof(buf) - p) {
@@ -676,7 +676,7 @@ void ED_PrintEdicts()
 static void ED_PrintEdict_f()
 { // For debugging, prints a single edict
 	if(!sv.active) return;
-	s32 i = Q_atoi(Cmd_Argv(1));
+	s32 i = atoi(Cmd_Argv(1));
 	if(i < 0 || i >= qcvm->num_edicts){
 		Con_Printf("Bad edict number\n");
 		return;
@@ -730,7 +730,7 @@ const s8 *ED_ParseGlobals(const s8 *data)
 			break;
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
-		q_strlcpy(keyname, com_token, sizeof(keyname));
+		strlcpy(keyname, com_token, sizeof(keyname));
 		data = COM_Parse(data); // parse value
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
@@ -812,7 +812,7 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s, bool zoned)
 		*(f32*)d = atof(s);
 		break;
 	case ev_vector:
-		q_strlcpy(string, s, sizeof(string));
+		strlcpy(string, s, sizeof(string));
 		end = (s8*)string + strlen(string);
 		v = string;
 		w = string;
@@ -892,7 +892,7 @@ const s8 *ED_ParseEdict(const s8 *data, edict_t *ent)
 		// FIXME: change light to _light to get rid of this hack
 		if(!strcmp(com_token, "light"))
 		    strcpy(com_token, "light_lev");//hack for single light def
-		q_strlcpy(keyname, com_token, sizeof(keyname));
+		strlcpy(keyname, com_token, sizeof(keyname));
 		// another hack to fix keynames with trailing spaces
 		s32 n = strlen(keyname);
 		while(n && keyname[n-1] == ' '){
@@ -916,7 +916,7 @@ const s8 *ED_ParseEdict(const s8 *data, edict_t *ent)
 			continue;
 //johnfitz -- hack to support .alpha even when progs.dat doesn't know about it
 		if(!strcmp(keyname, "alpha"))
-			ent->alpha = ENTALPHA_ENCODE(Q_atof(com_token));
+			ent->alpha = ENTALPHA_ENCODE(atof(com_token));
 		key = ED_FindField(keyname);
 		if(!key){
 		//johnfitz -- HACK -- suppress error becuase fog/sky/alpha
@@ -1033,7 +1033,7 @@ void ED_LoadFromFile(const s8 *data)
 			inhibit++;
 			continue;
 		}
-		if(sv.nomonsters && !Q_strncmp(classname, "monster_", 8)){
+		if(sv.nomonsters && !strncmp(classname, "monster_", 8)){
 			ED_Free(ent); // remove monsters if nomonsters is set
 			inhibit++;
 			continue;

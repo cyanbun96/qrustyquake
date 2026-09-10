@@ -41,7 +41,7 @@ void Cvar_Inc_f()
 		Cvar_SetValue(Cmd_Argv(1), Cvar_VariableValue(Cmd_Argv(1)) + 1);
 		break;
 	case 3:
-Cvar_SetValue(Cmd_Argv(1),Cvar_VariableValue(Cmd_Argv(1))+Q_atof(Cmd_Argv(2)));
+Cvar_SetValue(Cmd_Argv(1),Cvar_VariableValue(Cmd_Argv(1))+atof(Cmd_Argv(2)));
 		break;
 	}
 }
@@ -75,10 +75,10 @@ Con_Printf("cycle <cvar> <value list>: cycle cvar through a list of values\n");
 // worst case is that the first time you call this command, it won't match on
 // zero when it should, but after that, it will be comparing strings that all
 // had the same source(the user) so it will work.
-		if(Q_atof(Cmd_Argv(i)) == 0){
+		if(atof(Cmd_Argv(i)) == 0){
 		      if(!strcmp(Cmd_Argv(i), Cvar_VariableString(Cmd_Argv(1))))
 				break;
-		}else if(Q_atof(Cmd_Argv(i)) == Cvar_VariableValue(Cmd_Argv(1)))
+		}else if(atof(Cmd_Argv(i)) == Cvar_VariableValue(Cmd_Argv(1)))
 				break;
 	}
 	if(i == Cmd_Argc())
@@ -159,7 +159,7 @@ f32 Cvar_VariableValue(const s8 *var_name)
 	cvar_t *var;
 	var = Cvar_FindVar(var_name);
 	if(!var) return 0;
-	return Q_atof(var->string);
+	return atof(var->string);
 }
 
 const s8 *Cvar_VariableString(const s8 *var_name)
@@ -194,7 +194,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 		}
 		memcpy((s8 *)var->string, value, len + 1);
 	}
-	var->value = Q_atof(var->string);
+	var->value = atof(var->string);
 	//johnfitz -- save initial value for "reset" command
 	if(!var->default_string) var->default_string = Z_Strdup(var->string);
 	//johnfitz -- during initialization, update default too
@@ -212,9 +212,9 @@ void Cvar_SetValueQuick(cvar_t *var, const f32 value)
 {
 	s8 val[32], *ptr = val;
 	if(value == (f32)((s32)value))
-		q_snprintf(val, sizeof(val), "%i", (s32)value);
+		snprintf(val, sizeof(val), "%i", (s32)value);
 	else {
-		q_snprintf(val, sizeof(val), "%f", value);
+		snprintf(val, sizeof(val), "%f", value);
 		while(*ptr) ptr++; // kill trailing zeroes
 		while(--ptr > val && *ptr == '0' && ptr[-1] != '.') *ptr = '\0';
 	}
@@ -235,9 +235,9 @@ void Cvar_SetValue(const s8 *var_name, const f32 value)
 {
 	s8 val[32], *ptr = val;
 	if(value == (f32)((s32)value))
-		q_snprintf(val, sizeof(val), "%i", (s32)value);
+		snprintf(val, sizeof(val), "%i", (s32)value);
 	else {
-		q_snprintf(val, sizeof(val), "%f", value);
+		snprintf(val, sizeof(val), "%f", value);
 		while(*ptr) ptr++; // kill trailing zeroes
 		while(--ptr > val && *ptr == '0' && ptr[-1] != '.') *ptr = '\0';
 	}
@@ -281,7 +281,7 @@ void Cvar_RegisterVariable(cvar_t *variable)
 	} //johnfitz
 	variable->flags |= CVAR_REGISTERED;
 	// copy the value off, because future sets will Z_Free it
-	q_strlcpy(value, variable->string, sizeof(value));
+	strlcpy(value, variable->string, sizeof(value));
 	variable->string = NULL;
 	variable->default_string = NULL;
 	if(!(variable->flags & CVAR_CALLBACK)) variable->callback = NULL;

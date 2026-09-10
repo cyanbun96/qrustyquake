@@ -67,7 +67,7 @@ void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
 	for(s32 path_id = com_searchpaths->path_id; path_id >= 0; path_id--) { // look in mod folders first
 		for(u32 i = 0; i < Q_COUNTOF(music_formats); i++) {
 			for(u32 j = 0; j < music_formats[i].num_extensions; j++) {
-				q_snprintf(filename, sizeof(filename), "music/%s%s",
+				snprintf(filename, sizeof(filename), "music/%s%s",
 						musicname, music_formats[i].extensions[j]);
 				u32 path_id2 = path_id;
 				file = COM_LoadMallocFile(filename, &path_id2);
@@ -102,7 +102,7 @@ found:
 		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
 		return;
 	}
-	q_strlcpy(current_name, musicname, MAX_OSPATH);
+	strlcpy(current_name, musicname, MAX_OSPATH);
 }
 
 static void BGM_Play_f()
@@ -120,7 +120,7 @@ static void BGM_Play_f()
 void CDAudio_Play(u8 track, bool looping)
 {
 	s8 name[16];
-	q_snprintf(name, sizeof(name), "track%02d", (s32)track);
+	snprintf(name, sizeof(name), "track%02d", (s32)track);
 	BGM_Play(name, looping);
 }
 

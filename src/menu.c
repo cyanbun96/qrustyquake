@@ -787,8 +787,8 @@ void M_Menu_Setup_f()
 	key_dest = key_menu;
 	m_state = m_setup;
 	m_entersound = 1;
-	Q_strcpy(setup_myname, cl_name.string);
-	Q_strcpy(setup_hostname, hostname.string);
+	strcpy(setup_myname, cl_name.string);
+	strcpy(setup_hostname, hostname.string);
 	setup_top = setup_oldtop = ((s32)cl_color.value) >> 4;
 	setup_bottom = setup_oldbottom = ((s32)cl_color.value) & 15;
 }
@@ -880,9 +880,9 @@ forward:
 		if (setup_cursor == 2 || setup_cursor == 3)
 			goto forward;
 		// setup_cursor == 4 (OK)
-		if (Q_strcmp(cl_name.string, setup_myname) != 0)
+		if (strcmp(cl_name.string, setup_myname) != 0)
 			Cbuf_AddText(va("name \"%s\"\n", setup_myname));
-		if (Q_strcmp(hostname.string, setup_hostname) != 0)
+		if (strcmp(hostname.string, setup_hostname) != 0)
 			Cvar_Set("hostname", setup_hostname);
 		if (setup_top!=setup_oldtop || setup_bottom!=setup_oldbottom)
 			Cbuf_AddText(va("color%i%i\n",setup_top,setup_bottom));
@@ -1437,7 +1437,7 @@ void M_Gamepad_Draw()
 	} else {
 		if (joysticknum.value > count - 1 || joysticknum.value < -1)
 			joysticknum.value = 0;
-		q_strlcpy(temp, SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]), 28);
+		strlcpy(temp, SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]), 28);
 		M_Print(xoffs + 72, 32, temp);
 	}
 	M_Print(xoffs, 48,  "         Deadzone");
@@ -1502,12 +1502,12 @@ void M_Gamepad_Draw()
 	M_DrawSlider(176, 152, ((f32)(jaxis_trig_1+(1<<15))/(1<<16)));
 	M_DrawSlider(176, 160, ((f32)(jaxis_trig_2+(1<<15))/(1<<16)));
 	s32 total = SDL_GetNumJoystickButtons(joystick);
-	q_strlcpy(temp, "Held buttons:", 14);
+	strlcpy(temp, "Held buttons:", 14);
 	for (s32 i = 0; i < total; i++) {
 		if (SDL_GetJoystickButton(joystick, i)) {
 			s8 btn[4];
 			snprintf(btn, 4, " %d", i);
-			q_strlcat(temp, btn, 28);
+			strlcat(temp, btn, 28);
 		}
 	}
 	M_Print(120, 168, temp);
@@ -1544,17 +1544,17 @@ s32 Maps_SortByMonsters(const void *a, const void *b)
 
 void M_Maps_List_Update()
 {
-	if(!Q_strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game))
+	if(!strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game))
 		&& maps_list_sorted_by == maps_sortby
 		&& maps_list_skill == (s32)skill.value)
 		return;
 	Con_DPrintf("Rebuilding custom map list\n");
-	Q_strncpy(maps_game, COM_SkipPath(com_gamedir), sizeof(maps_game));
+	strncpy(maps_game, COM_SkipPath(com_gamedir), sizeof(maps_game));
 	maps_list_sorted_by = maps_sortby;
 	maps_list_skill = (s32)skill.value;
 	filelist_item_t *level;
 	maps_total = 0;
-	if(!Q_strncmp("id1", COM_SkipPath(com_gamedir), 4))
+	if(!strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		level = extralevels;
 	else
 		level = extralevels_mod;
@@ -1588,13 +1588,13 @@ static void Format_DateTime(s8 *buf, size_t size, const SDL_DateTime *date_time)
 
 	switch(*date_format) {
 	case SDL_DATE_FORMAT_YYYYMMDD:
-		q_snprintf(buf, size, "%d/%02d/%02d", date_time->year, date_time->month, date_time->day);
+		snprintf(buf, size, "%d/%02d/%02d", date_time->year, date_time->month, date_time->day);
 		break;
 	case SDL_DATE_FORMAT_DDMMYYYY:
-		q_snprintf(buf, size, "%02d/%02d/%d", date_time->day, date_time->month, date_time->year);
+		snprintf(buf, size, "%02d/%02d/%d", date_time->day, date_time->month, date_time->year);
 		break;
 	case SDL_DATE_FORMAT_MMDDYYYY:
-		q_snprintf(buf, size, "%02d/%02d/%d", date_time->month, date_time->day, date_time->year);
+		snprintf(buf, size, "%02d/%02d/%d", date_time->month, date_time->day, date_time->year);
 		break;
 	}
 }
@@ -1643,7 +1643,7 @@ void M_Maps_Draw()
 			M_Print(xoffset+14*8, 40+i*8, temp);
 		} else if (maps_sortby == 3) {
 			time_t seconds = level->date;
-			Q_strcpy(temp, "Unknown");
+			strcpy(temp, "Unknown");
 			if(seconds){
 				SDL_DateTime date_time;
 				if (SDL_TimeToDateTime(SDL_SECONDS_TO_NS(seconds), &date_time, false)) {
@@ -2245,12 +2245,12 @@ void M_Display_Key(s32 k)
 			VID_SetMode(0,mode->w, mode->h, newwinmode, vid_curpal);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		} else if (display_cursor == 14
-			   && Q_atoi(customwidthstr) >= 320
-			   && Q_atoi(customheightstr) >= 200
-			   && Q_atoi(customwidthstr) <= MAXWIDTH
-			   && Q_atoi(customheightstr) <= MAXHEIGHT) {
-			VID_SetMode(0, Q_atoi(customwidthstr),
-				    Q_atoi(customheightstr), newwinmode,
+			   && atoi(customwidthstr) >= 320
+			   && atoi(customheightstr) >= 200
+			   && atoi(customwidthstr) <= MAXWIDTH
+			   && atoi(customheightstr) <= MAXHEIGHT) {
+			VID_SetMode(0, atoi(customwidthstr),
+				    atoi(customheightstr), newwinmode,
 				    vid_curpal);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		}
@@ -2435,7 +2435,7 @@ void M_Display_Draw()
 		}
 		mode = modes[display_sel_moden];
 		M_Print(xoffset, 128, "                  Mode");
-		q_snprintf(temp, 16, "%dx%d@%d", mode->w, mode->h,
+		snprintf(temp, 16, "%dx%d@%d", mode->w, mode->h,
 				(s32)(mode->refresh_rate+0.5));
 		M_Print(xoffset + 204, 128, temp);
 	} else {
@@ -3732,7 +3732,7 @@ void M_LanConfig_Key(s32 key)
 	}
 	if (StartingGame && lanConfig_cursor == 2)
 		lanConfig_cursor = (key == K_UPARROW);
-	s32 l = Q_atoi(lanConfig_portname);
+	s32 l = atoi(lanConfig_portname);
 	if (l > 65535)
 		l = lanConfig_port;
 	else
@@ -4067,12 +4067,12 @@ void M_ServerList_Draw()
 				for (j = i + 1; j < hostCacheCount; j++)
 					if (strcmp (hostcache[j].name,
 					     hostcache[i].name) < 0) {
-						Q_memcpy(&temp, &hostcache[j],
+						memcpy(&temp, &hostcache[j],
 							 sizeof(hostcache_t));
-						Q_memcpy(&hostcache[j],
+						memcpy(&hostcache[j],
 							 &hostcache[i],
 							 sizeof(hostcache_t));
-						Q_memcpy(&hostcache[i], &temp,
+						memcpy(&hostcache[i], &temp,
 							 sizeof(hostcache_t));
 					}
 		}

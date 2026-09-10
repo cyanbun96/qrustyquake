@@ -63,28 +63,28 @@ void Fog_FogCommand_f () // yanked from Quakespasm, mostly
 		Con_Printf("   \"blue\" is \"%f\"\n", fog_blue);
 		return;
 	case 2:
-		d = Q_atof(Cmd_Argv(1));
+		d = atof(Cmd_Argv(1));
 		r = fog_red;
 		g = fog_green;
 		b = fog_blue;
 		break;
 	case 3: //TEST
-		d = Q_atof(Cmd_Argv(1));
+		d = atof(Cmd_Argv(1));
 		r = fog_red;
 		g = fog_green;
 		b = fog_blue;
 		break;
 	case 4:
 		d = fog_density;
-		r = Q_atof(Cmd_Argv(1));
-		g = Q_atof(Cmd_Argv(2));
-		b = Q_atof(Cmd_Argv(3));
+		r = atof(Cmd_Argv(1));
+		g = atof(Cmd_Argv(2));
+		b = atof(Cmd_Argv(3));
 		break;
 	case 5:
-		d = Q_atof(Cmd_Argv(1));
-		r = Q_atof(Cmd_Argv(2));
-		g = Q_atof(Cmd_Argv(3));
-		b = Q_atof(Cmd_Argv(4));
+		d = atof(Cmd_Argv(1));
+		r = atof(Cmd_Argv(2));
+		g = atof(Cmd_Argv(3));
+		b = atof(Cmd_Argv(4));
 		break;
 	}
 	Fog_Update(d, r, g, b);
@@ -106,13 +106,13 @@ void Fog_ParseWorldspawn () // from Quakespasm
 	while(1){
 		if(!data) return; // error
 		if(com_token[0] == '}') break; // end of worldspawn
-		if(com_token[0] == '_')q_strlcpy(key, com_token+1, sizeof(key));
-		else q_strlcpy(key, com_token, sizeof(key));
+		if(com_token[0] == '_')strlcpy(key, com_token+1, sizeof(key));
+		else strlcpy(key, com_token, sizeof(key));
 		while(key[0] && key[strlen(key)-1] == ' ') // no trailing spaces
 			key[strlen(key)-1] = 0;
 		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 		if(!data) return; // error
-		q_strlcpy(value, com_token, sizeof(value));
+		strlcpy(value, com_token, sizeof(value));
 		if(!strcmp("fog", key))
 			sscanf(value, "%f %f %f %f", &fog_density, &fog_red,
 					&fog_green, &fog_blue);
