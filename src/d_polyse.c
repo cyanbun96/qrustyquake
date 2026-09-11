@@ -460,7 +460,7 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 						pix = D_GetRGBPix(((u8*)acolormap)[*lptex]);
 					else
 						pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
-					if (pix!=0xFF) {
+					if (((u8*)acolormap)[*lptex + (llight & 0xFF00)] != 0xFF) {
 						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 							s32 curpix = *lpdest;
 							*lpdest = color_mix_lut[curpix][pix]
@@ -559,7 +559,7 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
 					else
 						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
-					if (pix!=0xFF) {
+					if(((u8*)acolormap)[texel + (llight & 0xFF00)] != 0xFF) {
 						if (r_alphastyle.value == 0 && cur_ent_alpha != 1) {
 							s32 curpix = *lpdest;
 							*lpdest = color_mix_lut[curpix][pix]
