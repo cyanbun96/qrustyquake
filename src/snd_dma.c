@@ -128,7 +128,7 @@ static sfx_t *S_FindName(const s8 *name)
 			return &known_sfx[i];
 	if(num_sfx == MAX_SFX) Sys_Error("S_FindName: out of sfx_t");
 	sfx_t *sfx = &known_sfx[i];
-	q_strlcpy(sfx->name, name, sizeof(sfx->name));
+	SDL_strlcpy(sfx->name, name, sizeof(sfx->name));
 	num_sfx++;
 	return sfx;
 }
@@ -428,9 +428,9 @@ static void S_Play()
 	s8 name[256];
 	s32 i = 1;
 	while(i < Cmd_Argc()) {
-		q_strlcpy(name, Cmd_Argv(i), sizeof(name));
+		SDL_strlcpy(name, Cmd_Argv(i), sizeof(name));
 		if(!strrchr(Cmd_Argv(i), '.'))
-			q_strlcat(name, ".wav", sizeof(name));
+			SDL_strlcat(name, ".wav", sizeof(name));
 		sfx_t *sfx = S_PrecacheSound(name);
 		S_StartSound(hash++, 0, sfx, listener_origin, 1.0, 1.0);
 		i++;
@@ -443,9 +443,9 @@ static void S_PlayVol()
 	s8 name[256];
 	s32 i = 1;
 	while(i < Cmd_Argc()) {
-		q_strlcpy(name, Cmd_Argv(i), sizeof(name));
+		SDL_strlcpy(name, Cmd_Argv(i), sizeof(name));
 		if(!strrchr(Cmd_Argv(i), '.'))
-			q_strlcat(name, ".wav", sizeof(name));
+			SDL_strlcat(name, ".wav", sizeof(name));
 		sfx_t *sfx = S_PrecacheSound(name);
 		f32 vol = atof(Cmd_Argv(i + 1));
 		S_StartSound(hash++, 0, sfx, listener_origin, vol, 1.0);

@@ -102,7 +102,7 @@ found:
 		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
 		return;
 	}
-	q_strlcpy(current_name, musicname, MAX_OSPATH);
+	SDL_strlcpy(current_name, musicname, MAX_OSPATH);
 }
 
 static void BGM_Play_f()

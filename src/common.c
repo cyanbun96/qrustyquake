@@ -171,65 +171,6 @@ size_t UTF8_FromQuake(s8 *dst, size_t maxbytes, const s8 *src)
 	return j;
 }
 
-s32 q_strlcpy(s8 *dst, const s8 *src, size_t siz) // $OpenBSD: q_strlcpy.c,v1.11
-{ // Copyright(c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
-	s8 *d = dst; // older systems don't have this in stdlib
-	const s8 *s = src;
-	size_t n = siz;
-	if(n != 0){ // Copy as many bytes as will fit
-		while(--n != 0){ if((*d++ = *s++) == '\0') break; }
-	}
-	if(n == 0){// Not enough room in dst, add NUL and traverse rest of src
-		if(siz != 0) *d = '\0'; // NUL-terminate dst
-		while(*s++);
-	}
-	return(s - src - 1); // count does not include NUL
-}
-
-size_t q_strlcat(s8 *dst, const s8 *src, size_t siz)//$OpenBSD:q_strlcat.c,v1.13
-{ // older systems don't have this in stdlib
-	s8 *d = dst;
-	const s8 *s = src;
-	size_t n = siz;
-	// Find the end of dst and adjust bytes left but don't go past end
-	while(n-- != 0 && *d != '\0') d++;
-	size_t dlen = d - dst;
-	n = siz - dlen;
-	if(n == 0) return(dlen + strlen(s));
-	while(*s != '\0'){ if(n != 1){ *d++ = *s; n--; } s++; }
-	*d = '\0';
-	return(dlen + (s - src)); // count does not include NUL
-}
-
-s32 q_strcasecmp(const s8 * s1, const s8 * s2)
-{ // older systems don't have this in stdlib
-	const s8 * p1 = s1;
-	const s8 * p2 = s2;
-	s8 c1, c2;
-	if(p1 == p2) return 0;
-	do {
-		c1 = tolower(*p1++);
-		c2 = tolower(*p2++);
-		if(c1 == '\0') break;
-	} while(c1 == c2);
-	return(s32)(c1 - c2);
-}
-
-s32 q_strncasecmp(const s8 *s1, const s8 *s2, size_t n)
-{ // older systems don't have this in stdlib
-	const s8 * p1 = s1;
-	const s8 * p2 = s2;
-	s8 c1, c2;
-	if(p1 == p2 || n == 0) return 0;
-	do {
-		c1 = tolower(*p1++);
-		c2 = tolower(*p2++);
-		if(c1 == '\0' || c1 != c2)
-			break;
-	} while(--n > 0);
-	return(s32)(c1 - c2);
-}
-
 s16 ShortSwap(s16 l)
 {
 	u8 b1 = l&255;
@@ -537,7 +478,7 @@ void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols)
 {
 	s32 ofs;
 	if(maxcols <= 0) {
-		q_strlcpy(dst, src, dstsize);
+		SDL_strlcpy(dst, src, dstsize);
 		return;
 	}
 	if(!dstsize) return;
@@ -574,7 +515,7 @@ void COM_StripExtension(const s8 *in, s8 *out, size_t outsize)
 		return;
 	}
 	if(in != out) // copy when not in-place editing
-		q_strlcpy(out, in, outsize);
+		SDL_strlcpy(out, in, outsize);
 	s32 length = (s32)strlen(out) - 1;
 	while(length > 0 && out[length] != '.'){
 		--length;
@@ -611,7 +552,7 @@ void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
 		s++;
 	}
 	if(dot == NULL) dot = s;
-	if(dot - slash < 2) q_strlcpy(out, "?model?", outsize);
+	if(dot - slash < 2) SDL_strlcpy(out, "?model?", outsize);
 	else {
 		size_t len = dot - slash;
 		if(len >= outsize)
@@ -624,7 +565,7 @@ void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
 void COM_AddExtension(s8 *path, const s8 *extension, size_t len)
 { // if path extension != .EXT, append it(extension should include leading '.')
 	if(strcmp(COM_FileGetExtension(path), extension + 1) != 0)
-		q_strlcat(path, extension, len);
+		SDL_strlcat(path, extension, len);
 }
 
 // Parse a token out of a string
@@ -1056,12 +997,12 @@ static pack_t *COM_LoadPackFile(const s8 *packfile)
 	if(crc != PAK0_CRC_V106 && crc != PAK0_CRC_V101 && crc != PAK0_CRC_V100)
 		com_modified = 1;
 	for(s32 i = 0; i < numpackfiles; i++){ // parse the directory
-		q_strlcpy(newf[i].name,info[i].name,sizeof(newf[i].name));
+		SDL_strlcpy(newf[i].name,info[i].name,sizeof(newf[i].name));
 		newf[i].filepos = LittleLong(info[i].filepos);
 		newf[i].filelen = LittleLong(info[i].filelen);
 	}
 	pack_t *pack = (pack_t *) Z_Malloc(sizeof(pack_t));
-	q_strlcpy(pack->filename, packfile, sizeof(pack->filename));
+	SDL_strlcpy(pack->filename, packfile, sizeof(pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = numpackfiles;
 	pack->files = newf;
@@ -1072,11 +1013,11 @@ static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
 {
 	s8 pakfile[MAX_OSPATH+32];
 	bool been_here = 0;
-	q_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
+	SDL_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
 	u32 path_id = com_searchpaths ? com_searchpaths->path_id << 1 : 1U;
 	searchpath_t *search = (searchpath_t *) Z_Malloc(sizeof(searchpath_t));
 	search->path_id = path_id;
-	q_strlcpy(search->filename, com_gamedir, sizeof(search->filename));
+	SDL_strlcpy(search->filename, com_gamedir, sizeof(search->filename));
 	search->next = com_searchpaths;
 	com_searchpaths = search;
 	for(s32 i=0;;i++){//add any pak files in the format pak0.pak pak1.pak...
@@ -1114,8 +1055,8 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 {
 	u8 worldpalbuf[768];
 	s8 ppath[MAX_OSPATH] = "gfx/";
-	q_strlcat(ppath, path, MAX_OSPATH);
-	q_strlcat(ppath, ".lmp", MAX_OSPATH);
+	SDL_strlcat(ppath, path, MAX_OSPATH);
+	SDL_strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
 	COM_FOpenFile(ppath, &f, NULL);
 	if(!f){Con_Printf("Couldn't load %s\n", ppath); return;}
@@ -1124,8 +1065,8 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 	fclose(f);
 	u8 worldcmapbuf[256*64];
 	s8 cmpath[MAX_OSPATH] = "gfx/";
-	q_strlcat(cmpath, cmappath, MAX_OSPATH);
-	q_strlcat(cmpath, ".lmp", MAX_OSPATH);
+	SDL_strlcat(cmpath, cmappath, MAX_OSPATH);
+	SDL_strlcat(cmpath, ".lmp", MAX_OSPATH);
 	COM_FOpenFile(cmpath, &f, NULL);
 	if(!f){Con_Printf("Couldn't load %s\n", cmpath); return;}
 	if(fread(worldcmapbuf, 256*64, 1, f) != 1)
@@ -1133,10 +1074,10 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 	fclose(f);
 	Con_DPrintf("Setting %s %s\n", ppath, cmpath);
 	memcpy(worldpal, worldpalbuf, 768);
-	q_strlcpy(worldpalname, path, MAX_OSPATH);
+	SDL_strlcpy(worldpalname, path, MAX_OSPATH);
 	VID_SetPalette(worldpal, screen);
 	memcpy(worldcmap, worldcmapbuf, 64*256);
-	q_strlcpy(worldcmapname, cmappath, MAX_OSPATH);
+	SDL_strlcpy(worldcmapname, cmappath, MAX_OSPATH);
 	vid.colormap = worldcmap;
 	fog_lut_built = lit_lut_initialized = 0;
 }
@@ -1145,8 +1086,8 @@ void SetUiPal(s8 *path)
 {
 	u8 uipalbuf[768];
 	s8 ppath[MAX_OSPATH] = "gfx/";
-	q_strlcat(ppath, path, MAX_OSPATH);
-	q_strlcat(ppath, ".lmp", MAX_OSPATH);
+	SDL_strlcat(ppath, path, MAX_OSPATH);
+	SDL_strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
 	COM_FOpenFile(ppath, &f, NULL);
 	if(!f){Con_Printf("Couldn't load %s\n", ppath); return;}
@@ -1155,7 +1096,7 @@ void SetUiPal(s8 *path)
 	fclose(f);
 	Con_DPrintf("Setting %s\n", ppath);
 	memcpy(uipal, uipalbuf, 768);
-	q_strlcpy(uipalname, path, MAX_OSPATH);
+	SDL_strlcpy(uipalname, path, MAX_OSPATH);
 	VID_SetPalette(uipal, screenui);
 }
 
@@ -1204,7 +1145,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 		Con_Printf("invalid mission pack argument to \"game\"\n");
 			return;
 		}
-		if(!q_strcasecmp(p, GAMENAME)){
+		if(!SDL_strcasecmp(p, GAMENAME)){
 		Con_Printf("no mission pack arguments to %s game\n", GAMENAME);
 			return;
 		}
@@ -1217,12 +1158,12 @@ Con_Printf("You must have the registered version to use modified games\n");
 			return;
 		}
 	}
-	if(!q_strcasecmp(p, COM_SkipPath(com_gamedir))){ //no change
+	if(!SDL_strcasecmp(p, COM_SkipPath(com_gamedir))){ //no change
 		if(com_searchpaths->path_id > 1){ //current game not id1
 			if(*p2 && com_searchpaths->path_id == 2){
 				// rely on QSpasm treating '-game missionpack'
 				// as '-missionpack', otherwise would be a mess
-				if(!q_strcasecmp(p, &p2[1])) goto _same;
+				if(!SDL_strcasecmp(p, &p2[1])) goto _same;
 	Con_Printf("reloading game \"%s\" with \"%s\" support\n", p, &p2[1]);
 			}
 			else if(!*p2 && com_searchpaths->path_id > 2)
@@ -1251,7 +1192,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	hipnotic = 0;
 	rogue = 0;
 	standard_quake = 1;
-	if(q_strcasecmp(p, GAMENAME)){ //game is not id1
+	if(SDL_strcasecmp(p, GAMENAME)){ //game is not id1
 		if(*p2){
 			COM_AddGameDirectory(com_basedir, &p2[1]);
 			standard_quake = 0;
@@ -1259,15 +1200,15 @@ Con_Printf("You must have the registered version to use modified games\n");
 				hipnotic = 1;
 			else if(!strcmp(p2,"-rogue"))
 				rogue = 1;
-			if(q_strcasecmp(p, &p2[1])) //don't load twice
+			if(SDL_strcasecmp(p, &p2[1])) //don't load twice
 				COM_AddGameDirectory(com_basedir, p);
 		} else {
 			COM_AddGameDirectory(com_basedir, p);
-			if(!q_strcasecmp(p,"hipnotic") // -game missionpack ==
-				||!q_strcasecmp(p,"quoth")){ // -missionpack
+			if(!SDL_strcasecmp(p,"hipnotic") // -game missionpack ==
+				||!SDL_strcasecmp(p,"quoth")){ // -missionpack
 				hipnotic = 1;
 				standard_quake = 0;
-			} else if(!q_strcasecmp(p,"rogue")){
+			} else if(!SDL_strcasecmp(p,"rogue")){
 				rogue = 1;
 				standard_quake = 0;
 			}
@@ -1303,8 +1244,8 @@ void COM_InitFilesystem()
 	Cmd_AddCommand("uipal", COM_UiPal_f);
 	s32 i = COM_CheckParm("-basedir");
 	if(i && i < com_argc-1)
-		q_strlcpy(com_basedir, com_argv[i + 1], sizeof(com_basedir));
-	else q_strlcpy(com_basedir, host_parms.basedir, sizeof(com_basedir));
+		SDL_strlcpy(com_basedir, com_argv[i + 1], sizeof(com_basedir));
+	else SDL_strlcpy(com_basedir, host_parms.basedir, sizeof(com_basedir));
 	s32 j = strlen(com_basedir);
 	if(j < 1) Sys_Error("Bad argument to -basedir");
 	if((com_basedir[j-1]=='\\')||(com_basedir[j-1]=='/'))com_basedir[j-1]=0;
@@ -1328,21 +1269,21 @@ void COM_InitFilesystem()
 	Sys_Error("gamedir should be a single directory name, not a path\n");
 		com_modified = 1;
 		// don't load mission packs twice
-		if(COM_CheckParm("-rogue") && !q_strcasecmp(p, "rogue"))
+		if(COM_CheckParm("-rogue") && !SDL_strcasecmp(p, "rogue"))
 			p = NULL;
-		if(p && COM_CheckParm("-hipnotic")&&!q_strcasecmp(p,"hipnotic"))
+		if(p && COM_CheckParm("-hipnotic")&&!SDL_strcasecmp(p,"hipnotic"))
 			p = NULL;
-		if(p && COM_CheckParm("-quoth") && !q_strcasecmp(p, "quoth")) 
+		if(p && COM_CheckParm("-quoth") && !SDL_strcasecmp(p, "quoth")) 
 			p = NULL;
 		if(p != NULL){
 			COM_AddGameDirectory(com_basedir, p);
 			// QSpasm extension: treat '-game mpack' as '-mpack'
-			if(!q_strcasecmp(p,"rogue")){
+			if(!SDL_strcasecmp(p,"rogue")){
 				rogue = 1;
 				standard_quake = 0;
 			}
-			if(!q_strcasecmp(p,"hipnotic") ||
-					!q_strcasecmp(p,"quoth")){
+			if(!SDL_strcasecmp(p,"hipnotic") ||
+					!SDL_strcasecmp(p,"quoth")){
 				hipnotic = 1;
 				standard_quake = 0;
 			}

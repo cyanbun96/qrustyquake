@@ -281,7 +281,7 @@ void Cvar_RegisterVariable(cvar_t *variable)
 	} //johnfitz
 	variable->flags |= CVAR_REGISTERED;
 	// copy the value off, because future sets will Z_Free it
-	q_strlcpy(value, variable->string, sizeof(value));
+	SDL_strlcpy(value, variable->string, sizeof(value));
 	variable->string = NULL;
 	variable->default_string = NULL;
 	if(!(variable->flags & CVAR_CALLBACK)) variable->callback = NULL;

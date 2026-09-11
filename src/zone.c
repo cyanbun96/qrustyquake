@@ -228,7 +228,7 @@ void *Hunk_AllocInternal(s32 size, const s8 *name, bool clear)
 	if(clear)memset(h, 0, size);
 	h->size = size;
 	h->sentinel = HUNK_SENTINEL;
-	q_strlcpy(h->name, name, HUNKNAME_LEN);
+	SDL_strlcpy(h->name, name, HUNKNAME_LEN);
 	return(void *)(h+1);
 }
 
@@ -291,7 +291,7 @@ void *Hunk_HighAllocName(s32 size, const s8 *name)
 	memset(h, 0, size);
 	h->size = size;
 	h->sentinel = HUNK_SENTINEL;
-	q_strlcpy(h->name, name, HUNKNAME_LEN);
+	SDL_strlcpy(h->name, name, HUNKNAME_LEN);
 	return(void *)(h+1);
 }
 
@@ -478,7 +478,7 @@ void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name)
 	while(1) { // find memory for it
 		cache_system_t *cs = Cache_TryAlloc(size, 0);
 		if(cs) {
-			q_strlcpy(cs->name, name, CACHENAME_LEN);
+			SDL_strlcpy(cs->name, name, CACHENAME_LEN);
 			c->data = (void *)(cs+1);
 			cs->user = c;
 			break;

@@ -152,7 +152,7 @@ printf( "WAD file %s lump \"%.16s\" extends %li bytes beyond end of WAD(lump siz
 		}
 	}
 	wad_t *wad = (wad_t *)malloc(sizeof(wad_t));
-	q_strlcpy(wad->name, name, sizeof(wad->name));
+	SDL_strlcpy(wad->name, name, sizeof(wad->name));
 	wad->id = id;
 	wad->fh = *fh;
 	wad->numlumps = numlumps;

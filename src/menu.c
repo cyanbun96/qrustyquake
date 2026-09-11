@@ -1437,7 +1437,7 @@ void M_Gamepad_Draw()
 	} else {
 		if (joysticknum.value > count - 1 || joysticknum.value < -1)
 			joysticknum.value = 0;
-		q_strlcpy(temp, SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]), 28);
+		SDL_strlcpy(temp, SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]), 28);
 		M_Print(xoffs + 72, 32, temp);
 	}
 	M_Print(xoffs, 48,  "         Deadzone");
@@ -1502,12 +1502,12 @@ void M_Gamepad_Draw()
 	M_DrawSlider(176, 152, ((f32)(jaxis_trig_1+(1<<15))/(1<<16)));
 	M_DrawSlider(176, 160, ((f32)(jaxis_trig_2+(1<<15))/(1<<16)));
 	s32 total = SDL_GetNumJoystickButtons(joystick);
-	q_strlcpy(temp, "Held buttons:", 14);
+	SDL_strlcpy(temp, "Held buttons:", 14);
 	for (s32 i = 0; i < total; i++) {
 		if (SDL_GetJoystickButton(joystick, i)) {
 			s8 btn[4];
 			snprintf(btn, 4, " %d", i);
-			q_strlcat(temp, btn, 28);
+			SDL_strlcat(temp, btn, 28);
 		}
 	}
 	M_Print(120, 168, temp);

@@ -475,8 +475,8 @@ const s8 *PR_GlobalStringNoContents(s32 ofs)
 static void ED_AppendFlagString(s8 *dst, size_t dstsize, const s8 *desc)
 {
 	if(*dst)
-		q_strlcat(dst, " | ", dstsize);
-	q_strlcat(dst, desc, dstsize);
+		SDL_strlcat(dst, " | ", dstsize);
+	SDL_strlcat(dst, desc, dstsize);
 }
 
 const s8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
@@ -730,7 +730,7 @@ const s8 *ED_ParseGlobals(const s8 *data)
 			break;
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
-		q_strlcpy(keyname, com_token, sizeof(keyname));
+		SDL_strlcpy(keyname, com_token, sizeof(keyname));
 		data = COM_Parse(data); // parse value
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
@@ -812,7 +812,7 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s, bool zoned)
 		*(f32*)d = atof(s);
 		break;
 	case ev_vector:
-		q_strlcpy(string, s, sizeof(string));
+		SDL_strlcpy(string, s, sizeof(string));
 		end = (s8*)string + strlen(string);
 		v = string;
 		w = string;
@@ -892,7 +892,7 @@ const s8 *ED_ParseEdict(const s8 *data, edict_t *ent)
 		// FIXME: change light to _light to get rid of this hack
 		if(!strcmp(com_token, "light"))
 		    strcpy(com_token, "light_lev");//hack for single light def
-		q_strlcpy(keyname, com_token, sizeof(keyname));
+		SDL_strlcpy(keyname, com_token, sizeof(keyname));
 		// another hack to fix keynames with trailing spaces
 		s32 n = strlen(keyname);
 		while(n && keyname[n-1] == ' '){

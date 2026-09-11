@@ -56,8 +56,8 @@ void Sky_LoadSkyBox (const s8 *name)
 			return;
 		}
 	}
-	q_strlcpy(skybox_name, name, sizeof(skybox_name));
-	q_strlcpy(last_skybox_name, skybox_name, sizeof(last_skybox_name));
+	SDL_strlcpy(skybox_name, name, sizeof(skybox_name));
+	SDL_strlcpy(last_skybox_name, skybox_name, sizeof(last_skybox_name));
 }
 
 void R_BuildRGBLUT() {
@@ -118,7 +118,7 @@ s32 R_LoadSkybox (const s8 *name)
 	}
 	if (!strcmp (name, skybox_name)) // the same skybox we are using now
 		return 1;
-	q_strlcpy (skybox_name, name, sizeof(skybox_name));
+	SDL_strlcpy (skybox_name, name, sizeof(skybox_name));
 	s32 mark = Hunk_LowMark ();
 	for (s32 i = 0 ; i < 6 ; i++) {
 		s8 pathname[1024];
@@ -316,15 +316,15 @@ void Sky_NewMap()
 		if (com_token[0] == '}')
 			break; // end of worldspawn
 		if (com_token[0] == '_')
-			q_strlcpy(key, com_token + 1, sizeof(key));
+			SDL_strlcpy(key, com_token + 1, sizeof(key));
 		else
-			q_strlcpy(key, com_token, sizeof(key));
+			SDL_strlcpy(key, com_token, sizeof(key));
 		while (key[0] && key[strlen(key)-1] == ' ') // remove trailing spaces
 			key[strlen(key)-1] = 0;
 		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 		if (!data)
 			return; // error
-		q_strlcpy(value, com_token, sizeof(value));
+		SDL_strlcpy(value, com_token, sizeof(value));
 		if (!strcmp("sky", key))
 			Sky_LoadSkyBox(value);
 		if (!strcmp("skyfog", key))

@@ -782,10 +782,6 @@ EX searchpath_t *com_searchpaths;
 EX filelist_item_t *extralevels;
 EX filelist_item_t *extralevels_mod;
 EX filelist_item_t *modlist;
-s32 q_strlcpy(s8 *dst, const s8 *src, size_t siz);
-size_t q_strlcat(s8 *dst, const s8 *src, size_t siz);
-s32 q_strcasecmp(const s8 * s1, const s8 * s2);
-s32 q_strncasecmp(const s8 *s1, const s8 *s2, size_t n);
 EX vec3_t vec3_origin;                                              // mathlib.c
 EX f32 cur_ent_alpha;                                              // d_polyse.c
 EX sspan_t spans[MAXHEIGHT + 1];                                   // d_sprite.c

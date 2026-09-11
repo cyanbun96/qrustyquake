@@ -314,7 +314,7 @@ s32 Key_StringToKeynum(s8 *str)
 	if(!str || !str[0]) return -1;
 	if(!str[1]) return str[0];
 	for(keyname_t *kn = keynames; kn->name; kn++)
-		if(!q_strcasecmp(str, kn->name)) return kn->keynum;
+		if(!SDL_strcasecmp(str, kn->name)) return kn->keynum;
 	return -1;
 }
 
