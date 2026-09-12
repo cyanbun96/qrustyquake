@@ -12,6 +12,18 @@ typedef int64_t  s64;
 typedef float    f32;
 typedef double   f64;
 
+_Static_assert(sizeof(u8)  == 1, "c8 broken");
+_Static_assert(sizeof(s8)  == 1, "u8 broken");
+_Static_assert(sizeof(s8)  == 1, "s8 broken");
+_Static_assert(sizeof(u16) == 2, "u16 broken");
+_Static_assert(sizeof(s16) == 2, "s16 broken");
+_Static_assert(sizeof(u32) == 4, "u32 broken");
+_Static_assert(sizeof(s32) == 4, "s32 broken");
+_Static_assert(sizeof(u64) == 8, "u64 broken");
+_Static_assert(sizeof(s64) == 8, "s64 broken");
+_Static_assert(sizeof(f32) == 4, "f32 broken");
+_Static_assert(sizeof(f64) == 8, "f64 broken");
+
 typedef struct { // specified by the host system                   // quakedef.h
 	c8 *basedir;
 	c8 *userdir;
