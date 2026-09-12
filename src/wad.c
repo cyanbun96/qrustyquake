@@ -137,14 +137,14 @@ static wad_t *W_AddWadFile(const s8 *name, fshandle_t *fh)
 				+ info->size > fh->length) {
 			if(info->filepos > fh->length || info->size < 0) {
 
-printf("WAD file %s lump \"%.16s\" begins %li bytes beyond end of WAD\n"
+printf("WAD file %s lump \"%.16s\" begins %lli bytes beyond end of WAD\n"
 		, name, info->name, info->filepos - fh->length);
 
 				info->filepos = 0;
 				info->size = q_max(0,info->size-info->filepos);
 			} else { 
 
-printf( "WAD file %s lump \"%.16s\" extends %li bytes beyond end of WAD(lump size is %i)\n"
+printf( "WAD file %s lump \"%.16s\" extends %lli bytes beyond end of WAD(lump size is %i)\n"
 , name, info->name, (info->filepos + info->size) - fh->length, info->size);
 
 				info->size = q_max(0,info->size-info->filepos);

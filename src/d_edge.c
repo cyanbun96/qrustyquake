@@ -346,7 +346,7 @@ void D_DrawSurfacesAlpha()
 	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
 		if (!s->spans) continue;
 		msurface_t *pface = s->data;
-		u64 is_ent = (ul64)s->entity & 0xffff000ull;
+		u64 is_ent = (u64)s->entity & 0xffff000ull;
 		if(!(s->flags&SURF_DRAWTURB) && !is_ent) continue;
 		if (pface == 0) continue;
 		d_zistepu = s->d_zistepu;
