@@ -1,11 +1,11 @@
 #include "quakedef.h"
 static FILE *sys_handles[MAX_HANDLES];
 
-void Sys_Printf(const s8 *fmt, ...)
+void Sys_Printf(const c8 *fmt, ...)
 {
 	va_list argptr;
-	s8 qtext[MAXPRINTMSG];
-	s8 u8text[MAXPRINTMSG*4];
+	c8 qtext[MAXPRINTMSG];
+	c8 u8text[MAXPRINTMSG*4];
 	va_start(argptr, fmt);
 	vsnprintf(qtext, sizeof(qtext), fmt, argptr);
 	va_end(argptr);
@@ -31,10 +31,10 @@ void Sys_Quit()
 #endif
 }
 
-void Sys_Error(const s8 *error, ...)
+void Sys_Error(const c8 *error, ...)
 {
 	va_list argptr;
-	s8 str[1024];
+	c8 str[1024];
 	CDAudio_Stop();
 	va_start(argptr, error);
 	vsnprintf(str, sizeof(str), error, argptr);
@@ -99,7 +99,7 @@ static f64 Sys_WaitUntil (f64 endtime)
 static f64 Sys_Throttle (f64 oldtime)
 { return Sys_WaitUntil (oldtime + Host_GetFrameInterval ()); }
 
-s32 Sys_FileOpenRead(const s8 *path, s32 *hndl)
+s32 Sys_FileOpenRead(const c8 *path, s32 *hndl)
 {
 	s32 i = findhandle();
 	FILE *f = fopen(path, "rb");
@@ -122,14 +122,14 @@ s32 Sys_FileRead(s32 handle, void *dst, s32 count)
 s32 Sys_FileWrite(s32 handle, const void *src, s32 count)
 { return fwrite(src, 1, count, sys_handles[handle]); }
 
-s32 Sys_FileTime(const s8 *path)
+s32 Sys_FileTime(const c8 *path)
 {
 	FILE *f = fopen(path, "rb");
 	if(f){ fclose(f); return 1; }
 	return -1;
 }
 
-s32 Sys_FileOpenWrite(const s8 *path)
+s32 Sys_FileOpenWrite(const c8 *path)
 {
 	s32 i = findhandle();
 	FILE *f = fopen(path, "wb");
@@ -145,7 +145,7 @@ f64 Sys_DoubleTime()
 	return ((double)(SDL_GetTicksNS() - starttime)) / 1000000000;
 }
 
-s32 Sys_FileType(const s8* path)
+s32 Sys_FileType(const c8* path)
 {
 	SDL_PathInfo info;
 	if (SDL_GetPathInfo(path, &info)) {
@@ -158,7 +158,7 @@ s32 Sys_FileType(const s8* path)
 	return FS_ENT_NONE;
 }
 
-void Sys_mkdir(const s8* path) {
+void Sys_mkdir(const c8* path) {
 	SDL_CreateDirectory(path);
 }
 
@@ -181,8 +181,8 @@ int main(int c, char **v)
 	if(!SDL_Init(SDL_INIT_VIDEO))
 		Sys_Error("SDL_Init failed: %s", SDL_GetError());
 	host_parms.argc = c;
-	host_parms.argv = (s8**)v;
-	COM_InitArgv(host_parms.argc, (s8**)host_parms.argv);
+	host_parms.argv = (c8**)v;
+	COM_InitArgv(host_parms.argc, (c8**)host_parms.argv);
 	host_parms.memsize = DEFAULT_MEMORY;
 	if(COM_CheckParm("-heapsize")){
 		s32 t = COM_CheckParm("-heapsize") + 1;

@@ -10,14 +10,14 @@ static s32 r_frustum_indexes[4 * 6];
 
 void R_ParseWorldspawn()
 {
-	s8 key[128], value[4096];
+	c8 key[128], value[4096];
 	map_fallbackalpha = r_wateralpha.value;
 	s32 ct = cl.worldmodel->contentstransparent;
 	map_wateralpha = (ct&SURF_DRAWWATER)?r_wateralpha.value:1;
 	map_lavaalpha =  (ct&SURF_DRAWLAVA)? r_lavaalpha.value:1;
 	map_telealpha =  (ct&SURF_DRAWTELE)? r_telealpha.value:1;
 	map_slimealpha = (ct&SURF_DRAWSLIME)?r_slimealpha.value:1;
-	const s8 *data = COM_Parse(cl.worldmodel->entities);
+	const c8 *data = COM_Parse(cl.worldmodel->entities);
 	if(!data)return; // error
 	if(com_token[0] != '{')return; // error
 	while(1){

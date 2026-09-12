@@ -239,7 +239,7 @@ void SV_ReadClientMove(usercmd_t *move)
 
 bool SV_ReadClientMessage()
 { // Returns 0 if the client should be killed
-	const s8 *s;
+	const c8 *s;
 	s32 ret;
 	do {
 nextmsg:
@@ -262,7 +262,7 @@ nextmsg:
 			case -1:
 				goto nextmsg; // end of message
 			default:
-		       Sys_Printf("SV_ReadClientMessage: unknown command s8\n");
+		       Sys_Printf("SV_ReadClientMessage: unknown command c8\n");
 				return 0;
 			case clc_nop:
 				break;

@@ -121,7 +121,7 @@ static void Con_DeleteWordRight()
 
 static bool Con_LineIsEmpty(int line)
 {
-	s8 *text = con_text + (line % con_totallines) * con_linewidth;
+	c8 *text = con_text + (line % con_totallines) * con_linewidth;
 	for (s32 i = 0; i < con_linewidth; i++)
 		if (text[i] > ' ') return false;
 	return true;
@@ -145,7 +145,7 @@ void Key_Console(s32 key) // Line typing into the console
 	}
 	if(key == K_TAB){ // command completion
 		Cmd_ListCompletions(key_lines[edit_line] + 1);
-		const s8 *cmd = Cmd_CompleteCommand(key_lines[edit_line] + 1);
+		const c8 *cmd = Cmd_CompleteCommand(key_lines[edit_line] + 1);
 		if(!cmd) cmd = Cvar_CompleteVariable(key_lines[edit_line] + 1);
 		if(cmd){
 			strcpy(key_lines[edit_line] + 1, cmd);
@@ -250,7 +250,7 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if ((key == 'v' || key == 'V') && keydown[K_CTRL]) {
-		s8 *cb = SDL_GetClipboardText();
+		c8 *cb = SDL_GetClipboardText();
 		if (!cb) return;
 		s32 len_cb = strlen(cb);
 		s32 len_line = strlen(key_lines[edit_line]);
@@ -309,7 +309,7 @@ void Key_Message(s32 key)
 // Returns a key number to be used to index keybindings[] by looking at
 // the given string. Single ascii characters return themselves, while
 // the K_* names are matched up.
-s32 Key_StringToKeynum(s8 *str)
+s32 Key_StringToKeynum(c8 *str)
 {
 	if(!str || !str[0]) return -1;
 	if(!str[1]) return str[0];
@@ -318,9 +318,9 @@ s32 Key_StringToKeynum(s8 *str)
 	return -1;
 }
 
-s8 *Key_KeynumToString(s32 keynum) // Returns a string (either a single ascii
-{ // s8, or a K_* name) for the given keynum.
-	static s8 tinystr[2];
+c8 *Key_KeynumToString(s32 keynum) // Returns a string (either a single ascii
+{ // c8, or a K_* name) for the given keynum.
+	static c8 tinystr[2];
 	if(keynum == -1)
 		return "<KEY NOT FOUND>";
 	if(keynum > 32 && keynum < 127){ // printable ascii
@@ -333,7 +333,7 @@ s8 *Key_KeynumToString(s32 keynum) // Returns a string (either a single ascii
 	return "<UNKNOWN KEYNUM>";
 }
 
-void Key_SetBinding(s32 keynum, s8 *binding)
+void Key_SetBinding(s32 keynum, c8 *binding)
 {
 	if(keynum == 48 && !strncmp(binding, "impulse 0", 10))
 		return; // useless and breaks hipnotic's mjolnir bind
@@ -343,7 +343,7 @@ void Key_SetBinding(s32 keynum, s8 *binding)
 		keybindings[keynum] = NULL;
 	}
 	s32 l = strlen(binding); // allocate memory for new binding
-	s8 *new = Z_Malloc(l + 1);
+	c8 *new = Z_Malloc(l + 1);
 	strcpy(new, binding);
 	new[l] = 0;
 	keybindings[keynum] = new;
@@ -368,7 +368,7 @@ void Key_Unbindall_f()
 
 void Key_Bind_f()
 {
-	s8 cmd[1024];
+	c8 cmd[1024];
 	s32 c = Cmd_Argc();
 	if(c != 2 && c != 3){
 		Con_Printf ("bind <key> [command] : attach a command to a key\n"
@@ -534,8 +534,8 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 // character from continuing an action started before a console switch. Button
 // commands include a keynum parameter so multiple downs can be matched with ups
 	if(!down){
-		s8 *kb = keybindings[key];
-		s8 cmd[1024];
+		c8 *kb = keybindings[key];
+		c8 cmd[1024];
 		if(kb && kb[0] == '+'){
 			sprintf(cmd, "-%s %i\n", kb + 1, key);
 			Cbuf_AddText(cmd);
@@ -559,8 +559,8 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 	if((key_dest == key_menu && menubound[key])
 	    || (key_dest == key_console && !consolekeys[key])
 	    || (key_dest == key_game && (!con_forcedup || !consolekeys[key]))){
-		s8 *kb = keybindings[key];
-		s8 cmd[1024];
+		c8 *kb = keybindings[key];
+		c8 cmd[1024];
 		if(kb){
 			if(kb[0] == '+'){ // button cmds add keynum as a parm
 				sprintf(cmd, "%s %i\n", kb, key);

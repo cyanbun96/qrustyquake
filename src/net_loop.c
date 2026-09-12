@@ -41,7 +41,7 @@ void Loop_SearchForHosts(bool xmit)
 	strcpy(hostcache[0].cname, "local");
 }
 
-qsocket_t *Loop_Connect(const s8 *host)
+qsocket_t *Loop_Connect(const c8 *host)
 {
 	if (strcmp(host, "local") != 0)
 		return NULL;

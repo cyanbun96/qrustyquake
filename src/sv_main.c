@@ -5,13 +5,13 @@
 // sv_main.c -- server main program
 #include "quakedef.h"
 
-static s8 localmodels[MAX_MODELS][8]; // inline model names for precache
+static c8 localmodels[MAX_MODELS][8]; // inline model names for precache
 static s32 sv_protocol = PROTOCOL_RMQ;
 static s32 fatbytes;
 static u8 *fatpvs;
 static s32 fatpvs_capacity;
 
-void SV_CalcStats(client_t *client, s32 *statsi, f32 *statsf, const s8 **statss)
+void SV_CalcStats(client_t *client, s32 *statsi, f32 *statsf, const c8 **statss)
 {
 	edict_t *ent = client->edict;
 	//FIXME: string stats!
@@ -112,7 +112,7 @@ void SV_Init()
 		sprintf(localmodels[i], "*%i", i);
 	s32 i = COM_CheckParm("-protocol");
 	if(i && i < com_argc - 1) sv_protocol = atoi(com_argv[i + 1]);
-	const s8 *p;
+	const c8 *p;
 	switch(sv_protocol){
 	case PROTOCOL_NETQUAKE:
 		p = "NetQuake";
@@ -154,7 +154,7 @@ void SV_StartParticle(vec3_t org, vec3_t dir, s32 color, s32 count)
 // already running on that entity/channel pair.
 // An attenuation of 0 will play full volume everywhere in the level.
 // Larger attenuations will drop off. (max 4 attenuation)
-void SV_StartSound(edict_t *entity, s32 channel, const s8 *sample, s32 volume, f32 attenuation)
+void SV_StartSound(edict_t *entity, s32 channel, const c8 *sample, s32 volume, f32 attenuation)
 {
 	if(volume < 0 || volume > 255)
 		Host_Error("SV_StartSound: volume = %i", volume);
@@ -208,7 +208,7 @@ void SV_StartSound(edict_t *entity, s32 channel, const s8 *sample, s32 volume, f
 			(entity->v.mins[i]+entity->v.maxs[i]),sv.protocolflags);
 }
 
-void SV_LocalSound(client_t *client, const s8 *sample)
+void SV_LocalSound(client_t *client, const c8 *sample)
 { // for 2021 rerelease
 	s32 sound_num = 1;
 	for(;sound_num<MAX_SOUNDS && sv.sound_precache[sound_num]; sound_num++){
@@ -239,7 +239,7 @@ static bool SV_IsLocalClient(client_t *client)
 // This will be sent on the initial connection and upon each server load.
 void SV_SendServerinfo(client_t *client)
 {
-	s8 message[2048];
+	c8 message[2048];
 	MSG_WriteByte(&client->message, svc_print);
 	sprintf(message, "%c\nFITZQUAKE %1.2f SERVER(%i CRC)\n",
 			2, FITZQUAKE_VERSION, qcvm->crc);
@@ -256,7 +256,7 @@ void SV_SendServerinfo(client_t *client)
 	MSG_WriteString(&client->message, PR_GetString(qcvm->edicts->v.message));
 //johnfitz - only send the first 256 model and sound precaches if protocol is 15
 	s32 i;
-	const s8 **s;
+	const c8 **s;
 	for(i = 1, s = sv.model_precache+1; *s; s++,i++)
 		if(sv.protocol != PROTOCOL_NETQUAKE || i < 256)
 			MSG_WriteString(&client->message, *s);
@@ -607,7 +607,7 @@ void SV_WriteStats(client_t *client)
 {
 	s32 statsi[MAX_CL_STATS];
 	f32 statsf[MAX_CL_STATS];
-	const s8 *statss[MAX_CL_STATS];
+	const c8 *statss[MAX_CL_STATS];
 	SV_CalcStats(client, statsi, statsf, statss);
 	for(s32 i = 0; i < MAX_CL_STATS; i++){
 		if(!statsi[i])
@@ -777,7 +777,7 @@ static void SV_AddSignonBuffer()
 void SV_ReserveSignonSpace(s32 numbytes)
 { if(sv.signon->cursize + numbytes > sv.signon->maxsize) SV_AddSignonBuffer(); }
 
-s32 SV_ModelIndex(const s8 *name)
+s32 SV_ModelIndex(const c8 *name)
 {
 	if(!name || !name[0]) return 0;
 	s32 i = 0;
@@ -883,11 +883,11 @@ void SV_SaveSpawnparms() // Grabs the current state of each client for saving
 	}
 }
 
-void str_tolower(s8 *s) { while(*s){ *s = tolower(*s); s++; } }
+void str_tolower(c8 *s) { while(*s){ *s = tolower(*s); s++; } }
 
-void SV_SpawnServer(s8 *server)
+void SV_SpawnServer(c8 *server)
 {
-	static s8 dummy[8] = { 0,0,0,0,0,0,0,0 };
+	static c8 dummy[8] = { 0,0,0,0,0,0,0,0 };
 	s32 i, signonsize;
 	qcvm_t *vm = qcvm;
 	// let's not have any servers with no name

@@ -74,7 +74,7 @@ void R_ClearParticles()
 
 void R_ReadPointFile_f()
 {
-	s8 name[MAX_OSPATH];
+	c8 name[MAX_OSPATH];
 	sprintf(name, "maps/%s.pts", sv.name);
 	FILE *f;
 	COM_FOpenFile(name, &f, NULL);

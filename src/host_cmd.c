@@ -51,7 +51,7 @@ void Host_Quit_f()
 
 void Host_Status_f()
 {
-	void(*print)(const s8 *fmt, ...);
+	void(*print)(const c8 *fmt, ...);
 	if(!sv.active){
 		Cmd_ForwardToServer();
 		return;
@@ -181,10 +181,10 @@ static void Host_Map_f()
 	key_dest = key_game;// remove console or menu
 	SCR_BeginLoadingPlaque();
 	svs.serverflags = 0;// haven't completed an episode yet
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	SDL_strlcpy(name, Cmd_Argv(1), sizeof(name));
 	// remove(any) trailing ".bsp" from mapname -- S.A.
-	s8 *p = strstr(name, ".bsp");
+	c8 *p = strstr(name, ".bsp");
 	if(p && p[4] == '\0')
 		*p = '\0';
 	PR_SwitchQCVM(&sv.qcvm);
@@ -229,7 +229,7 @@ static bool Host_AutoLoad ()
 
 void Host_Changelevel_f()
 { // Goes to a new map, taking all clients along
-	s8 level[MAX_QPATH];
+	c8 level[MAX_QPATH];
 	if(Cmd_Argc() != 2){
 	Con_Printf("changelevel <levelname> : continue game on a new level\n");
 		return;
@@ -250,7 +250,7 @@ void Host_Changelevel_f()
 
 void Host_Restart_f()
 { // Restarts the current server for a dead player
-	s8 mapname[MAX_QPATH];
+	c8 mapname[MAX_QPATH];
 	if(cls.demoplayback || !sv.active) return;
 	if(cmd_source != src_command) return;
 	if(Host_AutoLoad()) return;
@@ -270,7 +270,7 @@ void Host_Reconnect_f() // This command causes the client to wait for the signon
 
 void Host_Connect_f()
 { // User command to connect to server
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	cls.demonum = -1; // stop demo loop in case this fails
 	if(cls.demoplayback){
 		CL_StopPlayback();
@@ -287,19 +287,19 @@ static void Host_InvalidateSave (const char *relname)
 		sv.lastsave[0] = '\0';
 }
 
-void Host_SavegameComment(s8 *text)
+void Host_SavegameComment(c8 *text)
 { // Writes a SAVEGAME_COMMENT_LENGTH character comment describing the current
 	s32 i;
-	s8 kills[20];
+	c8 kills[20];
 	for(i = 0; i < SAVEGAME_COMMENT_LENGTH; i++) text[i] = ' ';
 	text[SAVEGAME_COMMENT_LENGTH] = '\0';
-	s8 *levelname = cl.levelname[0] ? cl.levelname : cl.mapname;
+	c8 *levelname = cl.levelname[0] ? cl.levelname : cl.mapname;
 	i = (s32)(s32)strlen(levelname);
 	if(i > 22) i = 22;
 	memcpy(text, levelname, (size_t)i);
 // Remove CR/LFs from level name to avoid broken saves, e.g. with autumn_sp map:
 // https://celephais.net/board/view_thread.php?id=60452&start=3666
-	s8 *p;
+	c8 *p;
 	while((p = strchr(text, '\n')) != NULL) *p = ' ';
 	while((p = strchr(text, '\r')) != NULL) *p = ' ';
 	sprintf(kills,"kills:%3i/%3i", cl.stats[STAT_MONSTERS],
@@ -312,10 +312,10 @@ void Host_SavegameComment(s8 *text)
 
 void Host_Savegame_f()
 {//CyanBun96: send 3 arguments for a quiet save
-	s8 name[256];
-	s8 orgname[256];
+	c8 name[256];
+	c8 orgname[256];
 	strncpy(orgname, name, sizeof(name));
-	s8 comment[SAVEGAME_COMMENT_LENGTH + 1];
+	c8 comment[SAVEGAME_COMMENT_LENGTH + 1];
 	if(cmd_source != src_command) return;
 if(!sv.active){ Con_Printf("Not playing a local game.\n"); return; }
 if(cl.intermission){ Con_Printf("Can't save in intermission.\n"); return; }
@@ -362,14 +362,14 @@ if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
 	SDL_strlcpy(sv.lastsave, orgname, sizeof(sv.lastsave));
 }
 
-bool Host_ValidateSave(const s8 *name)
+bool Host_ValidateSave(const c8 *name)
 {
 	FILE *f = fopen(name, "r");
 	if(!f) return false;
 	s32 version;
 	if(fscanf(f, "%i", &version) != 1) goto invalid;
 	if(version != SAVEGAME_VERSION) goto invalid;
-	s8 description[256];
+	c8 description[256];
 	if(fscanf(f, "%255s", description) != 1) goto invalid;
 	f32 parm;
 	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++){
@@ -382,7 +382,7 @@ bool Host_ValidateSave(const s8 *name)
 	s32 iskill = (s32)(skill + 0.1f);
 	if(iskill < 0 || iskill > 3)
 		goto invalid;
-	s8 mapname[MAX_QPATH];
+	c8 mapname[MAX_QPATH];
 	if(fscanf(f, "%63s", mapname) != 1)
 		goto invalid;
 	if(mapname[0] == '\0')
@@ -399,11 +399,11 @@ invalid:
 
 void Host_Loadgame_f()
 {
-	s8 name[MAX_OSPATH+2];
-	s8 orgname[MAX_OSPATH+2];
+	c8 name[MAX_OSPATH+2];
+	c8 orgname[MAX_OSPATH+2];
 	strncpy(orgname, name, sizeof(name));
-	s8 mapname[MAX_QPATH];
-	s8 str[32768];
+	c8 mapname[MAX_QPATH];
+	c8 str[32768];
 	f32 spawn_parms[NUM_SPAWN_PARMS];
 	if(cmd_source != src_command) return;
 if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
@@ -457,7 +457,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	s32 i = 0;
 	for(; i < MAX_LIGHTSTYLES; i++){ // load the light styles
 		fscanf(f, "%s\n", str);
-		s8 *dst = Hunk_Alloc((s32)strlen(str) + 1);
+		c8 *dst = Hunk_Alloc((s32)strlen(str) + 1);
 		strcpy(dst, str);
 		sv.lightstyles[i] = dst;
 	}
@@ -472,7 +472,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		}
 		if(i == sizeof(str) - 1) Sys_Error("Loadgame buffer overflow");
 		str[i] = 0;
-		const s8 *start = str;
+		const c8 *start = str;
 		start = COM_Parse(str);
 		if(!com_token[0]) break; // end of file
 		if(strcmp(com_token,"{"))Sys_Error("First token isn't a brace");
@@ -510,13 +510,13 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 
 void Host_DeleteSave_f()
 {
-	s8 name[MAX_OSPATH + 2];
+	c8 name[MAX_OSPATH + 2];
 	if(cmd_source != src_command) return;
 	if(Cmd_Argc() != 2){
 		Con_Printf("deletesave <savename> : delete a save game\n");
 		return;
 	}
-	const s8 *arg = Cmd_Argv(1);
+	const c8 *arg = Cmd_Argv(1);
 	if(strchr(arg, '/') || strchr(arg, '\\')){
 		Con_Printf("ERROR: save name contains slashes\n");
 		return;
@@ -549,7 +549,7 @@ void Host_DeleteSave_f()
 
 static void Host_Name_f()
 {
-	s8 newName[32];
+	c8 newName[32];
 	if(Cmd_Argc() == 1){
 		Con_Printf("\"name\" is \"%s\"\n", cl_name.string);
 		return;
@@ -582,7 +582,7 @@ void Host_Version_f()
 
 void Host_Say(bool teamonly)
 {
-	s8 text[64];
+	c8 text[64];
 	bool fromServer = 0;
 	if(cmd_source == src_command){
 		if(cls.state == ca_dedicated){ fromServer = 1; teamonly = 0; }
@@ -590,7 +590,7 @@ void Host_Say(bool teamonly)
 	}
 	if(Cmd_Argc() < 2) return;
 	client_t *save = host_client;
-	s8 *p = Cmd_Args();
+	c8 *p = Cmd_Args();
 	if(*p == '"'){ // remove quotes if present
 		p++;
 		p[(s32)strlen(p) - 1] = 0;
@@ -618,12 +618,12 @@ void Host_Say_f(){ Host_Say(0); }
 void Host_Say_Team_f(){ Host_Say(1); }
 void Host_Tell_f()
 {
-	s8 text[64];
+	c8 text[64];
 	if(cmd_source == src_command){ Cmd_ForwardToServer(); return; }
 	if(Cmd_Argc() < 3) return;
 	strcpy(text, host_client->name);
 	strcat(text, ": ");
-	s8 *p = Cmd_Args();
+	c8 *p = Cmd_Args();
 	if(*p == '"'){ // remove quotes if present
 		p++;
 		p[(s32)strlen(p) - 1] = 0;
@@ -777,7 +777,7 @@ static void Host_Spawn_f()
 	// send all current light styles
 	for(i = 0; i < MAX_LIGHTSTYLES; i++){
 		MSG_WriteByte(&host_client->message, svc_lightstyle);
-		MSG_WriteByte(&host_client->message, (s8)i);
+		MSG_WriteByte(&host_client->message, (c8)i);
 		MSG_WriteString(&host_client->message, sv.lightstyles[i]);
 	}
 	// send some stats
@@ -848,12 +848,12 @@ void Host_Kick_f() // Kicks a user off of the server
 		}
 	}
 	if(i < svs.maxclients){
-		const s8 *who;
+		const c8 *who;
 		if(cmd_source == src_command)
-		      who=cls.state==ca_dedicated?(s8*)"Console":cl_name.string;
+		      who=cls.state==ca_dedicated?(c8*)"Console":cl_name.string;
 		else who = save->name;
 		if(host_client == save) return; // can't kick yourself!
-		const s8 *message = NULL;
+		const c8 *message = NULL;
 		if(Cmd_Argc() > 2){
 			message = COM_Parse(Cmd_Args());
 			if(byNumber){
@@ -876,7 +876,7 @@ void Host_Give_f()
 	eval_t *val;
 	if(cmd_source == src_command){ Cmd_ForwardToServer(); return; }
 	if(pr_global_struct->deathmatch) return;
-	s8 *t = Cmd_Argv(1);
+	c8 *t = Cmd_Argv(1);
 	s32 v = atoi(Cmd_Argv(2));
 	switch(t[0]){
 	case '0': case '1': case '2': case '3': case '4':
@@ -1046,9 +1046,9 @@ void Host_Stopdemo_f()
 	CL_Disconnect();
 }
 
-time_t Mod_GetMapDate(const s8 *map)
+time_t Mod_GetMapDate(const c8 *map)
 {
-	s8 path[MAX_QPATH];
+	c8 path[MAX_QPATH];
 	if((size_t) snprintf(path, sizeof(path), "%s/maps/%s.bsp",
 				com_gamedir, map) >= sizeof(path))
 		return 0;
@@ -1110,9 +1110,9 @@ void FileList_AddMap(const char *name, const char *desc, filelist_item_t **list)
 	}
 }
 
-void ExtraMaps_Add(const s8 *name, const s8 *game)
+void ExtraMaps_Add(const c8 *name, const c8 *game)
 {
-	s8 buf[128];
+	c8 buf[128];
 	filelist_item_t **list = &extralevels;
 	if(!Mod_LoadMapDescription(buf, sizeof(buf), name))
 		return;
@@ -1124,8 +1124,8 @@ void ExtraMaps_Add(const s8 *name, const s8 *game)
 
 static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 {
-	s8 maps_dir[MAX_OSPATH];
-	s8 mapname[32];
+	c8 maps_dir[MAX_OSPATH];
+	c8 mapname[32];
 
 	snprintf(maps_dir, sizeof(maps_dir), "%s/maps", search->filename);
 
@@ -1150,8 +1150,8 @@ static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 
 static void ExtraMaps_Init_SearchPak(searchpath_t *search)
 {
-	s8 mapname[32];
-	s8 ignorepakdir[32];
+	c8 mapname[32];
+	c8 ignorepakdir[32];
 	// we don't want to list the maps in id1 pakfiles,
 	// because these are not "add-on" levels
 	snprintf(ignorepakdir, sizeof(ignorepakdir), "/%s/", GAMENAME);
@@ -1203,9 +1203,9 @@ void ExtraMaps_NewGame()
 	ExtraMaps_Init();
 }
 
-static const s8 *RightPad(const s8 *str, size_t minlen, s8 c)
+static const c8 *RightPad(const c8 *str, size_t minlen, c8 c)
 {
-	static s8 buf[1024];
+	static c8 buf[1024];
 	size_t len = (s32)strlen(str);
 	minlen = q_min(minlen, sizeof(buf) - 1);
 	if(len >= minlen)
@@ -1221,8 +1221,8 @@ void Host_Maps_f()
 {
 	s32 i;
 	s32 tot = 0;
-	s8 padchar = (s8)('.' | 0x80);
-	s8 padchar2 = (s8)('-' | 0x80);
+	c8 padchar = (c8)('.' | 0x80);
+	c8 padchar2 = (c8)('-' | 0x80);
 	filelist_item_t *level;
 	Con_Printf("%s\n", RightPad("id1", 32, padchar2));
 	for(level = extralevels, i = 0; level; level = level->next, i++){
@@ -1259,9 +1259,9 @@ static const char *Modlist_KnownDescription(const char *modname)
 
 char *Modlist_ReadDescription(const char *mod_path)
 {
-	static s8 desc[128];
+	static c8 desc[128];
 	FILE *f;
-	s8 path[MAX_OSPATH];
+	c8 path[MAX_OSPATH];
 	snprintf(path, sizeof(path), "%s/descript.ion", mod_path);
 	f = fopen(path, "rb");
 	if(!f)
@@ -1282,13 +1282,13 @@ char *Modlist_ReadDescription(const char *mod_path)
 static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const char* dirname, const char* fname)
 {
 	SDL_PathInfo info;
-	s8 fullpath[MAX_OSPATH];
+	c8 fullpath[MAX_OSPATH];
 	snprintf(fullpath, sizeof(fullpath), "%s%s", dirname, fname);
 
 	if (SDL_GetPathInfo(fullpath, &info) && info.type == SDL_PATHTYPE_DIRECTORY) {
 			// don't bother testing for pak files / progs.dat
-			s8* file_desc = Modlist_ReadDescription(fullpath);
-			const s8* desc = file_desc ? file_desc : Modlist_KnownDescription(fname);
+			c8* file_desc = Modlist_ReadDescription(fullpath);
+			const c8* desc = file_desc ? file_desc : Modlist_KnownDescription(fname);
 			if (maxmodnamelen < (s32)strlen(fname))
 				maxmodnamelen = (s32)strlen(fname);
 			Modlist_Add(fname, desc);
@@ -1309,7 +1309,7 @@ void Host_Mods_f()
 {//list all potential mod directories(contain either a pak file or a progs.dat)
 	s32 i;
 	filelist_item_t *mod;
-	s8 padchar = (s8)('.' | 0x80);
+	c8 padchar = (c8)('.' | 0x80);
 	for(mod = modlist, i=0; mod; mod = mod->next, i++)
 		Con_Printf("   %s%c%s\n", RightPad(mod->name,
 			maxmodnamelen, padchar), padchar, mod->desc);

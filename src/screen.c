@@ -9,14 +9,14 @@ static qpic_t *scr_turtle;
 static u32 clearconsole;
 static bool scr_drawloading;
 static f32 scr_disabled_time;
-static s8 scr_centerstring[MAXPRINTMSG]; // center printing
+static c8 scr_centerstring[MAXPRINTMSG]; // center printing
 static f32 scr_centertime_start; // for slow victory printing
 static s32 scr_center_lines;
 static s32 scr_erase_lines;
 static u32 scr_erase_center;
 static f32 oldscreensize, oldfov;
 static f32 scr_conlines; // lines of console to display
-static s8 *scr_notifystring;
+static c8 *scr_notifystring;
 static bool scr_drawdialog;
 
 void SCR_ScreenShot_f();
@@ -40,7 +40,7 @@ void SCR_DrawSellScreen()
 	               pic, uiscale);
 }
 
-void SCR_CenterPrint(const s8 *str) // Called for important messages
+void SCR_CenterPrint(const c8 *str) // Called for important messages
 { // that should stay in the center of the screen for a few moments
 	if(con_logcenterprint.value)
 		Con_LogCenterPrint(str);
@@ -71,9 +71,9 @@ void SCR_EraseCenterString()
 void SCR_DrawCenterString()
 {
 	s32 remaining = cl.intermission ? scr_printspeed.value // the finale
-		* (cl.time - scr_centertime_start) : 9999; // s8-by-s8 print
+		* (cl.time - scr_centertime_start) : 9999; // c8-by-c8 print
 	scr_erase_center = 0;
-	s8 *start = scr_centerstring;
+	c8 *start = scr_centerstring;
 	s32 y = scr_center_lines <= 4 ? vid.height * 0.35 : 48 * uiscale;
 	drawlayer = lyr_centerprint.value;
 	do {
@@ -218,7 +218,7 @@ void SCR_DrawFPS()
 		oldframecount = r_framecount;
 	}
 	if (scr_showfps.value && scr_viewsize.value < 130 && lastfps) {
-		s8 st[16];
+		c8 st[16];
 		if (scr_showfps.value > 0.f)
 			sprintf(st, "%4.0f fps", lastfps);
 		else
@@ -333,7 +333,7 @@ void SCR_DrawConsole()
 			Con_DrawNotify(); // only draw notify in game
 }
 
-void WriteBMPfile(s8 *filename, u8 *data, s32 width, s32 height,
+void WriteBMPfile(c8 *filename, u8 *data, s32 width, s32 height,
 				  s32 rowbytes, u8 *palette)
 {
 	SDL_Surface *surface = SDL_CreateSurfaceFrom(
@@ -357,8 +357,8 @@ void WriteBMPfile(s8 *filename, u8 *data, s32 width, s32 height,
 
 void SCR_ScreenShot_f()
 {
-	s8 bmpname[80];
-	s8 checkname[MAX_OSPATH*2];
+	c8 bmpname[80];
+	c8 checkname[MAX_OSPATH*2];
 	strcpy(bmpname, "quake00.bmp"); // find a file name to save it to
 	s32 i = 0;
 	for (; i <= 99; i++) {
@@ -405,7 +405,7 @@ void SCR_EndLoadingPlaque()
 
 void SCR_DrawNotifyString()
 {
-	s8 *start = scr_notifystring;
+	c8 *start = scr_notifystring;
 	s32 y = vid.height * 0.35;
 	do {
 		s32 l = 0;
@@ -424,7 +424,7 @@ void SCR_DrawNotifyString()
 	} while (1);
 }
 
-s32 SCR_ModalMessage(s8 *text, s32 adj) // Displays a text string in the center
+s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 { // of the screen and waits for a Y or N keypress.
 	if (cls.state == ca_dedicated)
 		return 1;

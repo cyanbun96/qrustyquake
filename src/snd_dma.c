@@ -70,7 +70,7 @@ void S_Init()
 	Cvar_RegisterVariable(&nosound);
 	Cvar_RegisterVariable(&sfxvolume);
 	Cvar_RegisterVariable(&precache);
-	Cvar_RegisterVariable(&loadas8bit);
+	Cvar_RegisterVariable(&loadac8bit);
 	Cvar_RegisterVariable(&bgmvolume);
 	Cvar_RegisterVariable(&keepmusic);
 	Cvar_RegisterVariable(&ambient_level);
@@ -93,7 +93,7 @@ void S_Init()
 	i = COM_CheckParm("-mixspeed");
 	if(i && i < com_argc-1) Cvar_SetQuick(&snd_mixspeed, com_argv[i + 1]);
 	if(host_parms.memsize < 0x800000) {
-		Cvar_SetQuick(&loadas8bit, "1");
+		Cvar_SetQuick(&loadac8bit, "1");
 		Con_Printf("loading all sounds as 8bit\n");
 	}
 	Cvar_SetCallback(&sfxvolume, SND_Callback_sfxvolume);
@@ -118,7 +118,7 @@ void S_Shutdown()
 	shm = NULL;
 }
 
-static sfx_t *S_FindName(const s8 *name)
+static sfx_t *S_FindName(const c8 *name)
 {
 	if(!name) Sys_Error("S_FindName: NULL");
 	if(strlen(name) >= MAX_QPATH) Sys_Error("Sound name too s64: %s", name);
@@ -133,14 +133,14 @@ static sfx_t *S_FindName(const s8 *name)
 	return sfx;
 }
 
-void S_TouchSound(const s8 *name)
+void S_TouchSound(const c8 *name)
 {
 	if(!sound_started) return;
 	sfx_t *sfx = S_FindName(name);
 	Cache_Check(&sfx->cache);
 }
 
-sfx_t *S_PrecacheSound(const s8 *name)
+sfx_t *S_PrecacheSound(const c8 *name)
 {
 	if(!sound_started || nosound.value) return NULL;
 	sfx_t *sfx = S_FindName(name);
@@ -425,7 +425,7 @@ static void S_Update_()
 static void S_Play()
 {
 	static s32 hash = 345;
-	s8 name[256];
+	c8 name[256];
 	s32 i = 1;
 	while(i < Cmd_Argc()) {
 		SDL_strlcpy(name, Cmd_Argv(i), sizeof(name));
@@ -440,7 +440,7 @@ static void S_Play()
 static void S_PlayVol()
 {
 	static s32 hash = 543;
-	s8 name[256];
+	c8 name[256];
 	s32 i = 1;
 	while(i < Cmd_Argc()) {
 		SDL_strlcpy(name, Cmd_Argv(i), sizeof(name));
@@ -469,7 +469,7 @@ static void S_SoundList()
 	Con_Printf("%i sounds, %i bytes\n", num_sfx, total);
 }
 
-void S_LocalSound(const s8 *name)
+void S_LocalSound(const c8 *name)
 {
 	if(nosound.value) return;
 	if(!sound_started) return;

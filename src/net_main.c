@@ -17,8 +17,8 @@ s32 net_numsockets = 0;
 bool tcpipAvailable = 0;
 s32 net_hostport;
 s32 DEFAULTnet_hostport = 26000;
-s8 my_ipx_address[NET_NAMELEN];
-s8 my_tcpip_address[NET_NAMELEN];
+c8 my_ipx_address[NET_NAMELEN];
+c8 my_tcpip_address[NET_NAMELEN];
 static bool listening = 0;
 bool slistInProgress = 0;
 bool slistSilent = 0;
@@ -249,7 +249,7 @@ static void Slist_Poll(void *unused)
 	slistLocal = 1;
 }
 
-qsocket_t *NET_Connect(const s8 *host)
+qsocket_t *NET_Connect(const c8 *host)
 {
 	qsocket_t *ret;
 	s32 n;

@@ -51,7 +51,7 @@ void SDLCALL paint_audio_new(void *userdata, SDL_AudioStream *stream, s32 additi
 
 bool SNDDMA_Init(dma_t *dma)
 {
-	s8 drivername[128];
+	c8 drivername[128];
 	if(!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
 		Con_Printf("Couldn't init SDL audio: %s\n", SDL_GetError());
 		return 0;
@@ -79,11 +79,11 @@ bool SNDDMA_Init(dma_t *dma)
 	shm->submission_chunk = 1;
 	Con_Printf("SDL audio spec: %d Hz, %d samples, %d channels\n",
 			desired.freq, samples, desired.channels);
-	const s8 *driver = SDL_GetCurrentAudioDriver();
-	const s8 *device = SDL_GetAudioDeviceName(0);
+	const c8 *driver = SDL_GetCurrentAudioDriver();
+	const c8 *device = SDL_GetAudioDeviceName(0);
 	snprintf(drivername, sizeof(drivername), "%s - %s",
-			driver != NULL ? driver : (s8*)"(UNKNOWN)",
-			device != NULL ? device : (s8*)"(UNKNOWN)");
+			driver != NULL ? driver : (c8*)"(UNKNOWN)",
+			device != NULL ? device : (c8*)"(UNKNOWN)");
 	buffersize = shm->samples * (shm->samplebits / 8);
 	Con_Printf("SDL audio driver: %s, %d bytes buffer\n",
 			drivername, buffersize);

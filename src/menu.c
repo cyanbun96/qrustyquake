@@ -10,13 +10,13 @@ static s32 m_singleplayer_cursor;
 static s32 load_cursor; // 0 < load_cursor < MAX_SAVEGAMES
 static s32 delete_save = 0;
 static bool rescan_saves = 0;
-static s8 m_filenames[MAX_SAVEGAMES][MAX_OSPATH*2 + 1];
+static c8 m_filenames[MAX_SAVEGAMES][MAX_OSPATH*2 + 1];
 static s32 loadable[MAX_SAVEGAMES];
 static s32 m_multiplayer_cursor;
 static s32 setup_cursor = 4;
 static s32 setup_cursor_table[] = { 40, 56, 80, 104, 140 };
-static s8 setup_hostname[16];
-static s8 setup_myname[16];
+static c8 setup_hostname[16];
+static c8 setup_myname[16];
 static s32 setup_oldtop;
 static s32 setup_oldbottom;
 static s32 setup_top;
@@ -44,19 +44,19 @@ static s32 mods_items_cap = 0;
 static s32 mod_list_built = 0;
 static s32 maps_list_sorted_by = -1;
 static s32 maps_list_skill = -1;
-static s8 maps_game[64];
+static c8 maps_game[64];
 static s32 gamepad_cursor;
 static s32 display_cursor;
 static s32 graphics_cursor;
-static s8 customwidthstr[16];
-static s8 customheightstr[16];
+static c8 customwidthstr[16];
+static c8 customheightstr[16];
 static s32 newwinmode;
 static s32 msgNumber;
 static s32 m_quit_prevstate;
 static bool wasInMenus;
 static s32 lanConfig_port;
-static s8 lanConfig_portname[6];
-static s8 lanConfig_joinname[22];
+static c8 lanConfig_portname[6];
+static c8 lanConfig_joinname[22];
 static s32 lanConfig_cursor = -1;
 static s32 lanConfig_cursor_table[] = { 72, 92, 124 };
 static s32 startepisode;
@@ -182,7 +182,7 @@ episode_t rogueepisodes[] = { //PGM 01/07/97 added rogue episodes
 	{ "Deathmatch Arena", 16, 1 }
 };
 
-s8 *quitMessage[] = {
+c8 *quitMessage[] = {
 //	 .........1.........2....
 	"  Are you gonna quit    ",
 	"  this game just like   ",
@@ -294,7 +294,7 @@ bool m_entersound; // play after drawing a frame, so caching won't disrupt the s
 bool m_recursiveDraw;
 s32 m_return_state;
 bool m_return_onerror;
-s8 m_return_reason[32];
+c8 m_return_reason[32];
 
 void M_DrawCharacter(s32 cx, s32 cy, s32 num)
 { // Draws one solid graphics character
@@ -311,7 +311,7 @@ void M_DrawCursor(s32 x, s32 y)
 void M_DrawCursorLine(s32 x, s32 y)
 { M_DrawCharacter(x, y, 10 + ((s32)(realtime * 4) & 1)); }
 
-void M_Print(s32 cx, s32 cy, s8 *str)
+void M_Print(s32 cx, s32 cy, c8 *str)
 {
 	while (*str) {
 		M_DrawCharacter(cx, cy, (*str) + 128);
@@ -320,7 +320,7 @@ void M_Print(s32 cx, s32 cy, s8 *str)
 	}
 }
 
-void M_PrintWhite(s32 cx, s32 cy, s8 *str)
+void M_PrintWhite(s32 cx, s32 cy, c8 *str)
 {
 	while (*str) {
 		M_DrawCharacter(cx, cy, *str);
@@ -571,7 +571,7 @@ void M_ScanSaves()
 	for (s32 i = 0; i < MAX_SAVEGAMES; i++) {
 		strcpy(m_filenames[i], "--- UNUSED SLOT ---");
 		loadable[i] = 0;
-		s8 name[MAX_OSPATH*2];
+		c8 name[MAX_OSPATH*2];
 		sprintf(name, "%s/s%i.sav", com_gamedir, i);
 		FILE *f = fopen(name, "r");
 		if (!f) continue;
@@ -928,7 +928,7 @@ forward:
 		setup_bottom = 13;
 }
 
-s8 *net_helpMessage[] = {
+c8 *net_helpMessage[] = {
 //	 .........1.........2....
 	"                        ",
 	" Two computers connected",
@@ -1260,7 +1260,7 @@ void M_Options_Key(s32 k)
 	}
 }
 
-s8 *bindnames[][2] = {
+c8 *bindnames[][2] = {
 	{ "+attack", "attack" },
 	{ "impulse 10", "next weapon" },
 	{ "impulse 12", "previous weapon" },
@@ -1289,13 +1289,13 @@ void M_Menu_Keys_f()
 	m_entersound = 1;
 }
 
-void M_FindKeysForCommand(s8 *command, s32 *twokeys)
+void M_FindKeysForCommand(c8 *command, s32 *twokeys)
 {
 	twokeys[0] = twokeys[1] = -1;
 	s32 l = strlen(command);
 	s32 count = 0;
 	for (s32 j = 0; j < 256; j++) {
-		s8 *b = keybindings[j];
+		c8 *b = keybindings[j];
 		if (!b)
 			continue;
 		if (!strncmp(b, command, l)) {
@@ -1307,11 +1307,11 @@ void M_FindKeysForCommand(s8 *command, s32 *twokeys)
 	}
 }
 
-void M_UnbindCommand(s8 *command)
+void M_UnbindCommand(c8 *command)
 {
 	s32 l = strlen(command);
 	for (s32 j = 0; j < 256; j++) {
-		s8 *b = keybindings[j];
+		c8 *b = keybindings[j];
 		if (!b)
 			continue;
 		if (!strncmp(b, command, l))
@@ -1335,7 +1335,7 @@ void M_Keys_Draw()
 		if (keys[0] == -1) {
 			M_Print(140, y, "???");
 		} else {
-			s8 *name = Key_KeynumToString(keys[0]);
+			c8 *name = Key_KeynumToString(keys[0]);
 			M_Print(140, y, name);
 			s32 x = strlen(name) * 8;
 			if (keys[1] != -1) {
@@ -1359,7 +1359,7 @@ void M_Keys_Key(s32 k)
 		if (k == K_ESCAPE) {
 			bind_grab = 0;
 		} else if (k != '`') {
-			s8 cmd[80];
+			c8 cmd[80];
 			sprintf(cmd, "bind \"%s\" \"%s\"\n",
 				Key_KeynumToString(k),
 				bindnames[keys_cursor][0]);
@@ -1417,7 +1417,7 @@ void M_Menu_Gamepad_f()
 
 void M_Gamepad_Draw()
 {
-	s8 temp[28];
+	c8 temp[28];
 	s32 xoffs = 16;
 	qpic_t *p = Draw_CachePic("gfx/ttl_cstm.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
@@ -1505,7 +1505,7 @@ void M_Gamepad_Draw()
 	SDL_strlcpy(temp, "Held buttons:", 14);
 	for (s32 i = 0; i < total; i++) {
 		if (SDL_GetJoystickButton(joystick, i)) {
-			s8 btn[4];
+			c8 btn[4];
 			snprintf(btn, 4, " %d", i);
 			SDL_strlcat(temp, btn, 28);
 		}
@@ -1576,7 +1576,7 @@ void M_Maps_List_Update()
 		maps_scroll = q_max(0, maps_total - 19);
 }
 
-static void Format_DateTime(s8 *buf, size_t size, const SDL_DateTime *date_time)
+static void Format_DateTime(c8 *buf, size_t size, const SDL_DateTime *date_time)
 {
 	static SDL_DateFormat *date_format = NULL;
 	if(!date_format) {
@@ -1601,7 +1601,7 @@ static void Format_DateTime(s8 *buf, size_t size, const SDL_DateTime *date_time)
 
 void M_Maps_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 64;
 	M_Maps_List_Update();
 	if (maps_cursor >= maps_total)
@@ -1658,7 +1658,7 @@ void M_Maps_Draw()
 
 void M_Maps_Key(s32 k)
 {
-	s8 temp[40];
+	c8 temp[40];
 	s32 curr_i = maps_scroll + maps_cursor;
 	s32 idx;
 	switch (k) {
@@ -1773,7 +1773,7 @@ void M_Mods_List_Update()
 
 void M_Palette_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 0;
 	M_DrawCursor(192, 32+palette_cursor*8);
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
@@ -1901,7 +1901,7 @@ void M_Palette_Key(s32 k)
 
 void M_CSQC_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 0;
 	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
 	M_DrawCursor(192, 48+csqc_cursor*8);
@@ -1995,7 +1995,7 @@ void M_CSQC_Key(s32 k)
 
 void M_Mods_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 64;
 	M_Mods_List_Update();
 	if (mods_cursor >= mods_total)
@@ -2018,7 +2018,7 @@ void M_Mods_Draw()
 
 void M_Mods_Key(s32 k)
 {
-	s8 temp[40];
+	c8 temp[40];
 	s32 curr_i = mods_scroll + mods_cursor;
 	s32 idx;
 	switch (k) {
@@ -2328,7 +2328,7 @@ void M_Menu_Display_f()
 
 void M_Display_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 0;
 	if (newwinmode != 1) {
 		if (display_cursor < 12) M_DrawCursor(192, 32+display_cursor*8);
@@ -2778,7 +2778,7 @@ void M_Menu_Graphics_f()
 
 void M_Graphics_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 0;
 	switch(graphics_cursor/100){
 		case 0: M_DrawCursor(6, 32 + graphics_cursor*8); break;
@@ -3028,7 +3028,7 @@ void M_Menu_New_f()
 
 void M_New_Draw()
 {
-	s8 temp[32];
+	c8 temp[32];
 	s32 xoffset = 0;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
@@ -3322,7 +3322,7 @@ void M_Video_Draw()
 	// all of them get scaled to the window size in the end, so these modes
 	// here are just some nice-looking classics from the original
 	// taken from WINQUAKE.EXE ran through wine
-	s8 temp[64];
+	c8 temp[64];
 	qpic_t *p = Draw_CachePic("gfx/vidmodes.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	for (s32 i = 0; i < NUM_OLDMODES; ++i)
@@ -3362,7 +3362,7 @@ void M_Video_Draw()
 			"Press Enter to set mode");
 		M_Print(6 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 3,
 			"T to test mode for 5 seconds");
-		s8 *ptr = VID_GetModeDescription(vid_modenum);
+		c8 *ptr = VID_GetModeDescription(vid_modenum);
 		if (vid_modenum >= 0 && vid_modenum < NUM_OLDMODES) {
 			sprintf(temp, "D to set default: %s", ptr);
 			M_Print(2 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 5, temp);
@@ -3620,12 +3620,12 @@ void M_LanConfig_Draw()
 	qpic_t *p = Draw_CachePic("gfx/p_multi.lmp");
 	s32 basex = (320 - p->width) / 2;
 	M_DrawTransPic(basex, 4, p);
-	s8 *startJoin;
+	c8 *startJoin;
 	if (StartingGame)
 		startJoin = "New Game";
 	else
 		startJoin = "Join Game";
-	s8 *protocol;
+	c8 *protocol;
 	protocol = "TCP/IP";
 	M_Print(basex, 32, va("%s - %s", startJoin, protocol));
 	basex += 8;
@@ -3766,7 +3766,7 @@ void M_GameOptions_Draw()
 	else
 		M_Print(160, 64, "Deathmatch");
 	M_Print(0, 72, "        Teamplay");
-	s8 *msg;
+	c8 *msg;
 	if (rogue) {
 		switch ((s32)teamplay.value) {
 			case 1: msg = "No Friendly Fire"; break;
@@ -4081,7 +4081,7 @@ void M_ServerList_Draw()
 	qpic_t *p = Draw_CachePic("gfx/p_multi.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	for (s32 n = 0; n < hostCacheCount; n++) {
-		s8 string[64];
+		c8 string[64];
 		if (hostcache[n].maxusers)
 			sprintf(string, "%-15.15s %-15.15s %2u/%2u\n",
 				hostcache[n].name, hostcache[n].map,

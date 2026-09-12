@@ -19,7 +19,7 @@ SDL_Surface *screentop; // default palette, not scaled
 SDL_Surface *screenui; // custom ui palette, scaled
 SDL_Surface *screensbar; // custom ui palette, scaled
 SDL_Surface *scrbuffs[4]; // contains the above four
-s8 modelist[NUM_OLDMODES][8]; // "320x240" etc. for menus
+c8 modelist[NUM_OLDMODES][8]; // "320x240" etc. for menus
 u32 SDLWindowFlags;
 u32 uiscale;
 u32 vimmode;
@@ -104,15 +104,15 @@ entity_t *cl_visedicts[MAX_VISEDICTS];
 entity_t cl_temp_entities[MAX_TEMP_ENTITIES];                       // cl_tent.c
 beam_t cl_beams[MAX_BEAMS];
 s32 safemode;                                                        // common.c
-s8 com_token[1024];
+c8 com_token[1024];
 s32 com_argc;
-s8 **com_argv;
+c8 **com_argv;
 bool standard_quake = 1, rogue, hipnotic;
 s32 msg_readcount;
 bool msg_badread;
 s32 com_filesize;
-s8 com_gamedir[MAX_OSPATH];
-s8 com_basedir[MAX_OSPATH];
+c8 com_gamedir[MAX_OSPATH];
+c8 com_basedir[MAX_OSPATH];
 s32 file_from_pak;
 s16 (*BigShort) (s16 l);
 s16 (*LittleShort) (s16 l);
@@ -126,7 +126,7 @@ s32 con_backscroll; // lines up from bottom to display
 bool con_initialized;
 s32 con_notifylines; // scan lines to clear for notify lines
 s32 con_current; // where next message will be printed
-s8 *con_text = 0;
+c8 *con_text = 0;
 s32 con_linewidth;
 surfcache_t *d_initial_rover;                                        // d_init.c
 bool d_roverwrapped;
@@ -156,14 +156,14 @@ u8 *host_colormap;
 s32 current_skill;                                                 // host_cmd.c
 bool noclip_anglehack;
 cvar_t *cvar_vars;                                                     // cvar.c
-s8 key_lines[32][MAXCMDLINE];                                          // keys.c
+c8 key_lines[32][MAXCMDLINE];                                          // keys.c
 s32 key_linepos;
 s32 key_lastpress;
 s32 edit_line = 0;
 keydest_t key_dest;
 s32 key_count; // incremented every key event
-s8 *keybindings[256];
-s8 chat_buffer[32];
+c8 *keybindings[256];
+c8 chat_buffer[32];
 bool team_message = 0;
 s32 lwmark = 0;                                                      // d_scan.c
 u8 *litwater_base;
@@ -212,16 +212,16 @@ f32 skyspeed, skyspeed2;
 f32 skytime;
 u8 r_skysource[MAXSKIES][128*256];
 s32 r_skymade[MAXSKIES];
-s8 r_skyname[MAXSKIES][16];
-s8 skybox_name[1024]; // name of current skybox, or "" if no skybox
+c8 r_skyname[MAXSKIES][16];
+c8 skybox_name[1024]; // name of current skybox, or "" if no skybox
 drawsurf_t r_drawsurf;                                               // r_surf.c
 u8 lit_loaded = 0;
 u8 worldpal[768]; // custom world palette, set with "worldpal"       // common.c
 u8 worldcmap[64*256];
 u8 uipal[768];
-s8 worldpalname[MAX_OSPATH];
-s8 worldcmapname[MAX_OSPATH];
-s8 uipalname[MAX_OSPATH];
+c8 worldpalname[MAX_OSPATH];
+c8 worldcmapname[MAX_OSPATH];
+c8 uipalname[MAX_OSPATH];
 searchpath_t *com_base_searchpaths;
 searchpath_t *com_searchpaths;
 filelist_item_t *extralevels;

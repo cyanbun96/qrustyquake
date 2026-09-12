@@ -5,13 +5,13 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static s8 pr_string_temp[STRINGTEMP_BUFFERS][STRINGTEMP_LENGTH];
+static c8 pr_string_temp[STRINGTEMP_BUFFERS][STRINGTEMP_LENGTH];
 static u8 pr_string_tempindex = 0;
 static u8 *checkpvs; //ericw -- changed to malloc
 static s32 checkpvs_capacity;
 static s32 c_invis, c_notvis;
 static struct {
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	u32 flags;
 	qpic_t *pic;
 	bool malloced;
@@ -21,9 +21,9 @@ static s32 maxqcpics;
 
 void PF_Fixme(){ if(developer.value)PR_RunError("unimplemented builtin"); }
 
-static qpic_t *DrawQC_CachePic(const s8 *picname1, u32 flags)
+static qpic_t *DrawQC_CachePic(const c8 *picname1, u32 flags)
 { // CyanBun96: this is in dire need of rewrite
-	s8 picname[MAX_OSPATH] = "gfx/";
+	c8 picname[MAX_OSPATH] = "gfx/";
 	if(strncmp(picname, picname1, 4))
 		strncpy(picname+4, picname1, MAX_OSPATH-4-4);
 	else
@@ -56,7 +56,7 @@ static qpic_t *DrawQC_CachePic(const s8 *picname1, u32 flags)
 		qcpics[i].malloced = true;
 	}
 	if(!qcpics[i].pic){
-		qcpics[i].pic = Draw_PicFromWad((s8*)picname1+(strncmp(picname1,
+		qcpics[i].pic = Draw_PicFromWad((c8*)picname1+(strncmp(picname1,
 						"gfx/", 4)?0:4));
 		strcpy(qcpics[i].name, picname1);
 	}
@@ -79,20 +79,20 @@ void PR_ReloadPics(SDL_UNUSED bool purge)
 	maxqcpics = 0;
 }
 
-static s8 *PR_GetTempString()
+static c8 *PR_GetTempString()
 { return pr_string_temp[(STRINGTEMP_BUFFERS-1) & ++pr_string_tempindex]; }
 
-static const s8* PF_GetStringArg(s32 idx, void* userdata)
+static const c8* PF_GetStringArg(s32 idx, void* userdata)
 {
 	if(userdata) idx += *(s32*)userdata;
 	if(idx < 0 || idx >= qcvm->argc) return "";
 	return LOC_GetString(G_STRING(OFS_PARM0 + idx * 3));
 }
 
-static s8 *PF_VarString(s32 first)
+static c8 *PF_VarString(s32 first)
 {
-	static s8 out[1024];
-	const s8 *format;
+	static c8 out[1024];
+	const c8 *format;
 	out[0] = 0;
 	size_t s = 0;
 	if(first >= qcvm->argc)
@@ -113,7 +113,7 @@ static s8 *PF_VarString(s32 first)
 
 static void PF_error()
 { // This is a TERMINAL error, which will kill off the entire server.
-	s8 *s = PF_VarString(0);
+	c8 *s = PF_VarString(0);
 	Con_Printf("======SERVER ERROR in %s:\n%s\n",
 			PR_GetString(qcvm->xfunction->s_name), s);
 	edict_t *ed = PROG_TO_EDICT(pr_global_struct->self);
@@ -124,7 +124,7 @@ static void PF_error()
 
 static void PF_objerror() // Dumps out self, then an error message. The program
 { // is aborted and self is removed, but the level can continue.
-	s8 *s = PF_VarString(0);
+	c8 *s = PF_VarString(0);
 	Con_Printf("======OBJECT ERROR in %s:\n%s\n",
 			PR_GetString(qcvm->xfunction->s_name), s);
 	edict_t *ed = PROG_TO_EDICT(pr_global_struct->self);
@@ -176,7 +176,7 @@ static void PF_setsize() // the size box is rotated by the current angle
 static void PF_setmodel()
 { // setmodel(entity, model)
 	s32 i;
-	const s8 *m, **check;
+	const c8 *m, **check;
 	model_t *mod;
 	edict_t *e;
 	e = G_EDICT(OFS_PARM0);
@@ -202,19 +202,19 @@ static void PF_setmodel()
 }
 
 static void PF_bprint() // broadcast print to everyone on server
-{ s8 *s = PF_VarString(0); SV_BroadcastPrintf("%s", s); }
+{ c8 *s = PF_VarString(0); SV_BroadcastPrintf("%s", s); }
 
 #define MAXQCTOKENS 64
 static struct {
-	s8 *token;
+	c8 *token;
 	u32 start;
 	u32 end;
 } qctoken[MAXQCTOKENS];
 static u32 qctoken_count;
 
-static s32 tokenizeqc(const s8 *str, SDL_UNUSED bool dpfuckage)
+static s32 tokenizeqc(const c8 *str, SDL_UNUSED bool dpfuckage)
 {//FIXME: if dpfuckage, then we should handle punctuation specially, as well as /*.
-	const s8 *start = str;
+	const c8 *start = str;
 	while(qctoken_count > 0) {
 		qctoken_count--;
 		free(qctoken[qctoken_count].token);
@@ -256,7 +256,7 @@ static void PF_ArgV()
 	if((u32)idx >= qctoken_count)
 		G_INT(OFS_RETURN) = 0;
 	else {
-		s8 *ret = PR_GetTempString();
+		c8 *ret = PR_GetTempString();
 		SDL_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(ret);
 	}
@@ -265,13 +265,13 @@ static void PF_ArgV()
 static void PF_ArgC()
 { G_FLOAT(OFS_RETURN) = qctoken_count; }
 
-static void PF_sprintf_internal(const s8 *s, s32 firstarg, s8 *outbuf, s32 outbuflen)
+static void PF_sprintf_internal(const c8 *s, s32 firstarg, c8 *outbuf, s32 outbuflen)
 {
-	const s8 *s0;
-	s8 *o = outbuf, *end = outbuf + outbuflen, *err;
+	const c8 *s0;
+	c8 *o = outbuf, *end = outbuf + outbuflen, *err;
 	s32 width, precision, thisarg, flags;
-	s8 formatbuf[16];
-	s8 *f;
+	c8 formatbuf[16];
+	c8 *f;
 	s32 argpos = firstarg;
 	s32 isfloat;
 	static s32 dummyivec[3] = {0, 0, 0};
@@ -502,9 +502,9 @@ nolength:
 					break;
 				case 'S':
 					{       //tokenizable string
-						const s8 *quotedarg = GETARG_STRING(thisarg);
+						const c8 *quotedarg = GETARG_STRING(thisarg);
 						//try and escape it... hopefully it won't get truncated by precision limits...
-						s8 quotedbuf[65536];
+						c8 quotedbuf[65536];
 						size_t l;
 						l = strlen(quotedarg);
 						if(strchr(quotedarg, '\"') || strchr(quotedarg, '\n') || strchr(quotedarg, '\r') || l+3 >= sizeof(quotedbuf))
@@ -564,21 +564,21 @@ finished:
 
 static void PF_sprintf()
 {
-	s8 *outbuf = PR_GetTempString();
+	c8 *outbuf = PR_GetTempString();
 	PF_sprintf_internal(G_STRING(OFS_PARM0), 1, outbuf, STRINGTEMP_LENGTH);
 	G_INT(OFS_RETURN) = PR_SetEngineString(outbuf);
 }
 
 static void PF_cl_registercommand()
 {
-	const s8 *cmdname = G_STRING(OFS_PARM0);
-	Cmd_AddCommand((s8*)cmdname, NULL);
+	const c8 *cmdname = G_STRING(OFS_PARM0);
+	Cmd_AddCommand((c8*)cmdname, NULL);
 }
 
 static void PF_sprint() // single print to a specific client
 {
 	s32 entnum = G_EDICTNUM(OFS_PARM0);
-	s8 *s = PF_VarString(1);
+	c8 *s = PF_VarString(1);
 	if(entnum < 1 || entnum > svs.maxclients){
 		Con_Printf("tried to sprint to a non-client\n");
 		return;
@@ -591,7 +591,7 @@ static void PF_sprint() // single print to a specific client
 static void PF_centerprint() // single centerprint to a specific client
 {
 	s32 entnum = G_EDICTNUM(OFS_PARM0);
-	s8 *s = PF_VarString(1);
+	c8 *s = PF_VarString(1);
 	if(entnum < 1 || entnum > svs.maxclients){
 		Con_Printf("tried to sprint to a non-client\n");
 		return;
@@ -675,12 +675,12 @@ static void PF_ambientsound()
 {
 	s32 large = 0; //johnfitz -- PROTOCOL_FITZQUAKE
 	f32 *pos = G_VECTOR(OFS_PARM0);
-	const s8 *samp = G_STRING(OFS_PARM1);
+	const c8 *samp = G_STRING(OFS_PARM1);
 	f32 vol = G_FLOAT(OFS_PARM2);
 	f32 attenuation = G_FLOAT(OFS_PARM3);
 	// check to see if samp was properly precached
 	s32 soundnum = 0;
-	const s8 **check = sv.sound_precache;
+	const c8 **check = sv.sound_precache;
 	for(; *check; check++, soundnum++)
 		if(!strcmp(*check, samp)) break;
 	if(!*check){ Con_Printf("no precache: %s\n", samp); return; }
@@ -710,7 +710,7 @@ static void PF_sound()
 {
 	edict_t *entity = G_EDICT(OFS_PARM0);
 	s32 channel = G_FLOAT(OFS_PARM1);
-	const s8 *sample = G_STRING(OFS_PARM2);
+	const c8 *sample = G_STRING(OFS_PARM2);
 	s32 volume = G_FLOAT(OFS_PARM3) * 255;
 	f32 attenuation = G_FLOAT(OFS_PARM4);
 	SV_StartSound(entity, channel, sample, volume, attenuation);
@@ -822,7 +822,7 @@ static void PF_stuffcmd()
 	s32 entnum = G_EDICTNUM(OFS_PARM0);
 	if(entnum < 1 || entnum > svs.maxclients)
 		PR_RunError("Parm 0 not a client");
-	const s8 *str = G_STRING(OFS_PARM1);
+	const c8 *str = G_STRING(OFS_PARM1);
 	client_t *old = host_client;
 	host_client = &svs.clients[entnum-1];
 	Host_ClientCommands("%s", str);
@@ -831,20 +831,20 @@ static void PF_stuffcmd()
 
 static void PF_localcmd() // Sends text over to the client's execution buffer
 {
-	const s8 *str = G_STRING(OFS_PARM0);
+	const c8 *str = G_STRING(OFS_PARM0);
 	Cbuf_AddText(str);
 }
 
 static void PF_cvar()
 {
-	const s8 *str = G_STRING(OFS_PARM0);
+	const c8 *str = G_STRING(OFS_PARM0);
 	G_FLOAT(OFS_RETURN) = Cvar_VariableValue(str);
 }
 
 static void PF_cvar_set()
 {
-	const s8 *var = G_STRING(OFS_PARM0);
-	const s8 *val = G_STRING(OFS_PARM1);
+	const c8 *var = G_STRING(OFS_PARM0);
+	const c8 *val = G_STRING(OFS_PARM1);
 	Cvar_Set(var, val);
 }
 
@@ -880,7 +880,7 @@ static void PF_dprint(){ Con_DPrintf("%s",PF_VarString(0)); }
 static void PF_ftos()
 {
 	f32 v = G_FLOAT(OFS_PARM0);
-	s8 *s = PR_GetTempString();
+	c8 *s = PR_GetTempString();
 	if(v == (s32)v) sprintf(s, "%d",(s32)v);
 	else sprintf(s, "%5.1f",v);
 	G_INT(OFS_RETURN) = PR_SetEngineString(s);
@@ -895,7 +895,7 @@ static void PF_fabs()
 
 static void PF_vtos()
 {
-	s8 *s = PR_GetTempString();
+	c8 *s = PR_GetTempString();
 	sprintf(s, "'%5.1f %5.1f %5.1f'", G_VECTOR(OFS_PARM0)[0],
 			G_VECTOR(OFS_PARM0)[1], G_VECTOR(OFS_PARM0)[2]);
 	G_INT(OFS_RETURN) = PR_SetEngineString(s);
@@ -919,7 +919,7 @@ static void PF_Find()
 { // entity(entity start, .string field, string match) find = #5;
 	s32 e;
 	s32 f;
-	const s8  *s, *t;
+	const c8  *s, *t;
 	edict_t *ed;
 	e = G_EDICTNUM(OFS_PARM0);
 	f = G_INT(OFS_PARM1);
@@ -942,7 +942,7 @@ static void PF_Find()
 	RETURN_EDICT(qcvm->edicts);
 }
 
-static void PR_CheckEmptyString(const s8 *s)
+static void PR_CheckEmptyString(const c8 *s)
 { if(s[0] <= ' ') PR_RunError("Bad string"); }
 
 static void PF_precache_file() // only used to copy files with qcc, does nothing
@@ -952,7 +952,7 @@ static void PF_precache_sound()
 {
 	if(sv.state != ss_loading)
 PR_RunError("PF_Precache_*: Precache can only be done in spawn functions");
-	const s8 *s = G_STRING(OFS_PARM0);
+	const c8 *s = G_STRING(OFS_PARM0);
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
 	PR_CheckEmptyString(s);
 	for(s32 i = 0; i < MAX_SOUNDS; i++){
@@ -966,7 +966,7 @@ static void PF_precache_model()
 {
 	if(sv.state != ss_loading)
 PR_RunError("PF_Precache_*: Precache can only be done in spawn functions");
-	const s8 *s = G_STRING(OFS_PARM0);
+	const c8 *s = G_STRING(OFS_PARM0);
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
 	PR_CheckEmptyString(s);
 	for(s32 i = 0; i < MAX_MODELS; i++){
@@ -1027,7 +1027,7 @@ static void PF_droptofloor()
 static void PF_lightstyle()
 {
 	s32 style = G_FLOAT(OFS_PARM0);
-	const s8 *val = G_STRING(OFS_PARM1);
+	const c8 *val = G_STRING(OFS_PARM1);
 	// bounds check to avoid clobbering sv struct
 	if(style < 0 || style >= MAX_LIGHTSTYLES){
 		printf("PF_lightstyle: invalid style %d\n", style);
@@ -1102,7 +1102,7 @@ static void PF_checkcommand()
 static void PF_clientcommand()
 {
 	edict_t *ed             = G_EDICT(OFS_PARM0);
-	const s8 *str         = G_STRING(OFS_PARM1);
+	const c8 *str         = G_STRING(OFS_PARM1);
 	u32 i          = NUM_FOR_EDICT(ed)-1;
 	if(i < (u32)svs.maxclients && svs.clients[i].active) {
 		client_t *ohc = host_client;
@@ -1298,7 +1298,7 @@ static void PF_changelevel()
 	// make sure we don't issue two changelevels
 	if(svs.changelevel_issued) return;
 	svs.changelevel_issued = 1;
-	const s8 *s = G_STRING(OFS_PARM0);
+	const c8 *s = G_STRING(OFS_PARM0);
 	Cbuf_AddText(va("changelevel %s\n",s));
 }
 
@@ -1309,7 +1309,7 @@ static void PF_walkpathtogoal(){ G_FLOAT(OFS_RETURN) = 0; /* PATH_ERROR */ }
 static void PF_localsound()
 {
 	s32 entnum = G_EDICTNUM(OFS_PARM0);
-	const s8 *sample = G_STRING(OFS_PARM1);
+	const c8 *sample = G_STRING(OFS_PARM1);
 	if(entnum < 1 || entnum > svs.maxclients){
 		Con_Printf("tried to localsound to a non-client\n");
 		return;
@@ -1340,7 +1340,7 @@ static void PF_stof()
 
 static void PF_stov()
 {
-	const s8 *s = G_STRING(OFS_PARM0);
+	const c8 *s = G_STRING(OFS_PARM0);
 	s = COM_Parse(s);
 	G_VECTOR(OFS_RETURN)[0] = atof(com_token);
 	s = COM_Parse(s);
@@ -1351,7 +1351,7 @@ static void PF_stov()
 
 static void PF_etos()
 { //yes, this is lame
-	s8 *result = PR_GetTempString();
+	c8 *result = PR_GetTempString();
 	snprintf(result,STRINGTEMP_LENGTH,"entity %i",G_EDICTNUM(OFS_PARM0));
 	G_INT(OFS_RETURN) = PR_SetEngineString(result);
 }
@@ -1428,7 +1428,7 @@ static void PF_vectorvectors()
 
 static void PF_checkextension()
 {
-	const s8 *extname = G_STRING(OFS_PARM0);
+	const c8 *extname = G_STRING(OFS_PARM0);
 	s32 i = PR_FindExtensionByName(extname);
 	if(i)
 		SetBit(qcvm->checked_ext, i);
@@ -1444,13 +1444,13 @@ static void PF_checkextension()
 
 static void PF_strlen()
 { //FIXME: doesn't try to handle utf-8
-	const s8 *s = G_STRING(OFS_PARM0);
+	const c8 *s = G_STRING(OFS_PARM0);
 	G_FLOAT(OFS_RETURN) = strlen(s);
 }
 
 static void PF_strcat()
 {
-	s8 *out = PR_GetTempString();
+	c8 *out = PR_GetTempString();
 	out[0] = 0;
 	size_t s = 0;
 	for(s32 i = 0; i < qcvm->argc; i++) {
@@ -1465,7 +1465,7 @@ static void PF_strcat()
 
 static void PF_substring()
 {
-	const s8 *s = G_STRING(OFS_PARM0);
+	const c8 *s = G_STRING(OFS_PARM0);
 	s32 start = G_FLOAT(OFS_PARM1);
 	s32 length = G_FLOAT(OFS_PARM2);
 	s32 slen = strlen(s); //utf-8 should use chars, not bytes.
@@ -1487,7 +1487,7 @@ static void PF_substring()
 		length = STRINGTEMP_LENGTH-1;
 		Con_DPrintf("PF_substring: truncation\n");
 	}
-	s8 *string = PR_GetTempString();
+	c8 *string = PR_GetTempString();
 	memcpy(string, s, length);
 	string[length] = '\0';
 	G_INT(OFS_RETURN) = PR_SetEngineString(string);
@@ -1496,7 +1496,7 @@ static void PF_substring()
 static void PF_strzone()
 {
 	size_t len = 0;
-	const s8 *s[8];
+	const c8 *s[8];
 	size_t l[8];
 	for(s32 i = 0; i < qcvm->argc; i++) {
 		s[i] = G_STRING(OFS_PARM0+i*3);
@@ -1504,7 +1504,7 @@ static void PF_strzone()
 		len += l[i];
 	}
 	len++; //for the null
-	s8 *buf = Z_Malloc(len);
+	c8 *buf = Z_Malloc(len);
 	G_INT(OFS_RETURN) = PR_SetEngineString(buf);
 	size_t id = -1-G_INT(OFS_RETURN);
 	if(id >= qcvm->knownzonesize) {
@@ -1521,7 +1521,7 @@ static void PF_strzone()
 }
 static void PF_strunzone()
 {
-	const s8 *foo = G_STRING(OFS_PARM0);
+	const c8 *foo = G_STRING(OFS_PARM0);
 	if(!G_INT(OFS_PARM0))
 		return; //don't bug out if they gave a null string
 	size_t id = -1-G_INT(OFS_PARM0);
@@ -1540,7 +1540,7 @@ static bool qc_isascii(u32 u) { return (u < 256); }
 
 static void PF_str2chr()
 {
-	const s8 *instr = G_STRING(OFS_PARM0);
+	const c8 *instr = G_STRING(OFS_PARM0);
 	s32 ofs = (qcvm->argc>1)?G_FLOAT(OFS_PARM1):0;
 	if(ofs < 0)
 		ofs = strlen(instr)+ofs;
@@ -1552,7 +1552,7 @@ static void PF_str2chr()
 
 static void PF_chr2str()
 {
-	s8 *ret = PR_GetTempString(), *out;
+	c8 *ret = PR_GetTempString(), *out;
 	s32 i = 0;
 	for(out = ret; out-ret < STRINGTEMP_LENGTH-6 && i < qcvm->argc; i++) {
 		u32 u = G_FLOAT(OFS_PARM0 + i*3);
@@ -1618,7 +1618,7 @@ static void PF_cl_drawcharacter()
 static void PF_cl_drawrawstring()
 {
 	f32 *pos = G_VECTOR(OFS_PARM0);
-	const s8 *text = G_STRING(OFS_PARM1);
+	const c8 *text = G_STRING(OFS_PARM1);
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
@@ -1646,7 +1646,7 @@ static void PF_cl_drawrawstring()
 static void PF_cl_drawstring()
 { // TODO markup?
 	f32 *pos = G_VECTOR(OFS_PARM0);
-	const s8 *text = G_STRING(OFS_PARM1);
+	const c8 *text = G_STRING(OFS_PARM1);
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
@@ -1673,7 +1673,7 @@ static void PF_cl_drawstring()
 
 static void PF_cl_precachepic()
 {
-	const s8 *name    = G_STRING(OFS_PARM0);
+	const c8 *name    = G_STRING(OFS_PARM0);
 	u32 flags = G_FLOAT(OFS_PARM1);
 	//return input string, for convienience
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
@@ -1683,7 +1683,7 @@ static void PF_cl_precachepic()
 
 static void PF_cl_iscachedpic()
 {
-	const s8 *name    = G_STRING(OFS_PARM0);
+	const c8 *name    = G_STRING(OFS_PARM0);
 	if(DrawQC_CachePic(name, PICFLAG_NOLOAD))
 		G_FLOAT(OFS_RETURN) = true;
 	else
@@ -1706,7 +1706,7 @@ static void PF_cl_drawresetclip()
 
 static void PF_cl_stringwidth()
 { // TODO markup?
-	const s8 *text = G_STRING(OFS_PARM0);
+	const c8 *text = G_STRING(OFS_PARM0);
 	G_FLOAT(OFS_RETURN) = strlen(text) * 8;
 }
 
@@ -1781,23 +1781,23 @@ static void PF_cl_getstat_string()
 	if(stnum < 0 || stnum>=(s32)(Q_COUNTOF(cl.statss)) || !cl.statss[stnum])
 		G_INT(OFS_RETURN) = 0;
 	else {
-		s8 *result = PR_GetTempString();
+		c8 *result = PR_GetTempString();
 		SDL_strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(result);
 	}
 }
 
-s32 PR_MakeTempString(const s8 *val)
+s32 PR_MakeTempString(const c8 *val)
 {
-	s8 *tmp = PR_GetTempString();
+	c8 *tmp = PR_GetTempString();
 	SDL_strlcpy(tmp, val, STRINGTEMP_LENGTH);
 	return PR_SetEngineString(tmp);
 }
 
-void PF_cl_playerkey_internal(s32 player, const s8 *key, bool retfloat)
+void PF_cl_playerkey_internal(s32 player, const c8 *key, bool retfloat)
 {
-	s8 buf[1024];
-	const s8 *ret = buf;
+	c8 buf[1024];
+	const c8 *ret = buf;
 	//FIXMEif (player < 0 && player >= -scoreboardlines)
 	//FIXME	player = fragsort[-1-player];
 	if (player < 0 || player >= MAX_SCOREBOARD)
@@ -1842,14 +1842,14 @@ void PF_cl_playerkey_internal(s32 player, const s8 *key, bool retfloat)
 static void PF_cl_playerkey_s()
 {
 	s32 playernum = G_FLOAT(OFS_PARM0);
-	const s8 *keyname = G_STRING(OFS_PARM1);
+	const c8 *keyname = G_STRING(OFS_PARM1);
 	PF_cl_playerkey_internal(playernum, keyname, 0);
 }
 
 static void PF_cl_playerkey_f()
 {
 	s32 playernum = G_FLOAT(OFS_PARM0);
-	const s8 *keyname = G_STRING(OFS_PARM1);
+	const c8 *keyname = G_STRING(OFS_PARM1);
 	PF_cl_playerkey_internal(playernum, keyname, 1);
 }
 
@@ -1933,7 +1933,7 @@ static void PF_strconv()
 	s32 redalpha = G_FLOAT(OFS_PARM1);//0 same, 1 white, 2 red, 5 alternate, 6 alternate-alternate
 	s32 rednum = G_FLOAT(OFS_PARM2);  //0 same, 1 white, 2 red, 3 redspecial, 4 whitespecial, 5 alternate, 6 alternate-alternate
 	const u8 *string = (const u8*)PF_VarString(3);
-	s32 len = strlen((const s8*)string);
+	s32 len = strlen((const c8*)string);
 	u8 *resbuf = (u8*)PR_GetTempString();
 	u8 *result = resbuf;
 	//UTF-8-FIXME: cope with utf+^U etc
@@ -1964,7 +1964,7 @@ static void PF_strconv()
 			*result = chrconv_punct(*string, 128, redalpha);
 	}
 	*result = '\0';
-	G_INT(OFS_RETURN) = PR_SetEngineString((s8*)resbuf);
+	G_INT(OFS_RETURN) = PR_SetEngineString((c8*)resbuf);
 }
 
 static struct svcustomstat_s *PR_CustomStat(s32 idx, s32 type)
@@ -2118,7 +2118,7 @@ builtindef_t pr_builtindefs[] =
 {"checkextension",          PF_BOTH(PF_checkextension),     99, 0}, // float(string extname)
 
 {"strlen",                  PF_BOTH(PF_strlen),             114, FRIK_FILE}, // float(string s)
-{"strcat",                  PF_BOTH(PF_strcat),             115, FRIK_FILE}, // string(string s1, optional string s2, optional string s3, optional string s4, optional string s5, optional string s6, optional string s7, optional string s8)
+{"strcat",                  PF_BOTH(PF_strcat),             115, FRIK_FILE}, // string(string s1, optional string s2, optional string s3, optional string s4, optional string s5, optional string s6, optional string s7, optional string c8)
 {"substring",               PF_BOTH(PF_substring),          116, FRIK_FILE}, // string(string s, float start, float length)
 {"stov",                    PF_BOTH(PF_stov),               117, FRIK_FILE}, // vector(string s)
 {"strzone",                 PF_BOTH(PF_strzone),            118, FRIK_FILE}, // string(string s, ...)

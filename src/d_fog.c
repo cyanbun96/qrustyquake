@@ -92,7 +92,7 @@ void Fog_FogCommand_f () // yanked from Quakespasm, mostly
 
 void Fog_ParseWorldspawn () // from Quakespasm
 { // called at map load
-	s8 key[128], value[4096];
+	c8 key[128], value[4096];
 	if(r_lockfog.value){
 		fog_density = r_lockfogd.value;
 		fog_red = r_lockfogr.value;
@@ -101,7 +101,7 @@ void Fog_ParseWorldspawn () // from Quakespasm
 		Fog_SetPalIndex(0);
 		return;
 	} else fog_density = fog_red = fog_green = fog_blue = 0;
-	const s8 *data = COM_Parse(cl.worldmodel->entities);
+	const c8 *data = COM_Parse(cl.worldmodel->entities);
 	if(!data || com_token[0] != '{') return; // error
 	while(1){
 		if(!data) return; // error

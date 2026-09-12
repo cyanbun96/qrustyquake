@@ -1,7 +1,8 @@
 #ifndef QTYPEDEFS_
 #define QTYPEDEFS_
+typedef char     c8; // char differs in signedness depending on platform
 typedef uint8_t  u8;
-typedef char     s8;
+typedef int8_t   s8;
 typedef uint16_t u16;
 typedef int16_t  s16;
 typedef uint32_t u32;
@@ -12,11 +13,11 @@ typedef float    f32;
 typedef double   f64;
 
 typedef struct { // specified by the host system                   // quakedef.h
-	s8 *basedir;
-	s8 *userdir;
-	s8 *cachedir; // for development over ISDN lines
+	c8 *basedir;
+	c8 *userdir;
+	c8 *cachedir; // for development over ISDN lines
 	s32 argc;
-	s8 **argv;
+	c8 **argv;
 	void *membase;
 	s32 memsize;
 } quakeparms_t;
@@ -45,18 +46,18 @@ typedef struct vec_header_t {
 	size_t size;
 } vec_header_t;
 typedef struct {
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	s32 filepos, filelen;
 } packfile_t;
 typedef struct pack_s {
-	s8 filename[MAX_OSPATH];
+	c8 filename[MAX_OSPATH];
 	s32 handle;
 	s32 numfiles;
 	packfile_t *files;
 } pack_t;
 typedef struct searchpath_s {
 	u32 path_id; // identifier assigned to the game directory
-	s8 filename[MAX_OSPATH];
+	c8 filename[MAX_OSPATH];
 	pack_t *pack; // only one of filename / pack will be used
 	struct searchpath_s *next;
 } searchpath_t;
@@ -68,8 +69,8 @@ typedef struct _fshandle_t {
 	s64 pos; /* current position relative to start */
 } fshandle_t;
 typedef struct filelist_item_s {
-	s8 name[32];
-	s8 desc[128];
+	c8 name[32];
+	c8 desc[128];
 	time_t date;
 	s32 data1; // monsters
 	s32 data2; // secrets
@@ -95,7 +96,7 @@ typedef struct {
 	s32 dataofs[4]; // [nummiptex]
 } dmiptexlump_t;
 typedef struct miptex_s {
-	s8 name[16];
+	c8 name[16];
 	unsigned width, height;
 	unsigned offsets[MIPLEVELS]; // four mip maps stored
 } miptex_t;
@@ -198,11 +199,11 @@ typedef struct {
 typedef struct cvar_s cvar_t;                                          // cvar.h
 typedef void (*cvarcallback_t)(cvar_t *);
 struct cvar_s {
-	const s8 *name;
-	const s8 *string;
+	const c8 *name;
+	const c8 *string;
 	u32 flags;
 	f32  value;
-	const s8 *default_string; // remember defaults for reset function
+	const c8 *default_string; // remember defaults for reset function
 	cvarcallback_t callback;
 	cvar_t  *next;
 };
@@ -229,7 +230,7 @@ typedef struct {                                                      // model.h
 	vec3_t position;
 } mvertex_t;
 typedef struct texture_s {
-	s8 name[16];
+	c8 name[16];
 	unsigned width, height;
 	unsigned shift; // Q64
 	bool update_warp; //johnfitz -- update warp this frame
@@ -352,7 +353,7 @@ typedef struct {
 typedef struct {
 	trivertx_t bboxmin; // lightnormal isn't used
 	trivertx_t bboxmax; // lightnormal isn't used
-	s8 name[16]; // frame name from grabbing
+	c8 name[16]; // frame name from grabbing
 } daliasframe_t;
 typedef struct {
 	s32 numframes;
@@ -581,7 +582,7 @@ typedef struct aliasmesh_s{//from RMQEngine, split out to keep vertex sizes down
 } aliasmesh_t;
 typedef struct meshxyz_s {
 	u8 xyz[4];
-	s8 normal[4];
+	c8 normal[4];
 } meshxyz_t;
 typedef struct meshst_s {
 	f32 st[2];
@@ -594,7 +595,7 @@ typedef struct {
 	trivertx_t bboxmin;
 	trivertx_t bboxmax;
 	s32 frame;
-	s8 name[16];
+	c8 name[16];
 } maliasframedesc_t;
 typedef struct {
 	trivertx_t bboxmin;
@@ -646,7 +647,7 @@ typedef struct {
 typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
 typedef struct model_s {
 	f32 radius;
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	u32 path_id; // path id of game dir that this model came from
 	bool needload; // bmodels and sprites don't cache normally
 	modtype_t type;
@@ -686,7 +687,7 @@ typedef struct model_s {
 	texture_t **textures;
 	u8 *visdata;
 	u8 *lightdata;
-	s8 *entities;
+	c8 *entities;
 	bool viswarn; // for Mod_DecompressVis()
 	s32 bspversion;
 	s32 contentstransparent; //spike -- added this so we can disable glitchy
@@ -806,7 +807,7 @@ typedef struct {
 } drawsurf_t;
 
 typedef enum {key_game, key_console, key_message, key_menu}keydest_t;  // keys.h
-typedef struct { s8 *name; s32 keynum; } keyname_t;
+typedef struct { c8 *name; s32 keynum; } keyname_t;
 
 #ifndef _WIN32                                                      // net_sys.h
 typedef s32 sys_socket_t;
@@ -841,10 +842,10 @@ typedef struct qsocket_s {
 	s32 receiveMessageLength;
 	u8 receiveMessage [NET_MAXMESSAGE];
 	struct qsockaddr addr;
-	s8 address[NET_NAMELEN];
+	c8 address[NET_NAMELEN];
 } qsocket_t;
 typedef struct {
-	const s8 *name;
+	const c8 *name;
 	bool initialized;
 	sys_socket_t controlSock;
 	sys_socket_t (*Init) ();
@@ -857,22 +858,22 @@ typedef struct {
 	s32 (*Read) (sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr);
 	s32 (*Write) (sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr);
 	s32 (*Broadcast) (sys_socket_t socketid, u8 *buf, s32 len);
-	const s8 * (*AddrToString) (struct qsockaddr *addr);
-	s32 (*StringToAddr) (const s8 *string, struct qsockaddr *addr);
+	const c8 * (*AddrToString) (struct qsockaddr *addr);
+	s32 (*StringToAddr) (const c8 *string, struct qsockaddr *addr);
 	s32 (*GetSocketAddr) (sys_socket_t socketid, struct qsockaddr *addr);
-	s32 (*GetNameFromAddr) (struct qsockaddr *addr, s8 *name);
-	s32 (*GetAddrFromName) (const s8 *name, struct qsockaddr *addr);
+	s32 (*GetNameFromAddr) (struct qsockaddr *addr, c8 *name);
+	s32 (*GetAddrFromName) (const c8 *name, struct qsockaddr *addr);
 	s32 (*AddrCompare) (struct qsockaddr *addr1, struct qsockaddr *addr2);
 	s32 (*GetSocketPort) (struct qsockaddr *addr);
 	s32 (*SetSocketPort) (struct qsockaddr *addr, s32 port);
 } net_landriver_t;
 typedef struct {
-	const s8 *name;
+	const c8 *name;
 	bool initialized;
 	s32 (*Init) ();
 	void (*Listen) (bool state);
 	void (*SearchForHosts) (bool xmit);
-	qsocket_t *(*Connect) (const s8 *host);
+	qsocket_t *(*Connect) (const c8 *host);
 	qsocket_t *(*CheckNewConnections) ();
 	s32 (*QGetMessage) (qsocket_t *sock);
 	s32 (*QSendMessage) (qsocket_t *sock, sizebuf_t *data);
@@ -883,9 +884,9 @@ typedef struct {
 	void (*Shutdown) ();
 } net_driver_t;
 typedef struct {
-	s8 name[16];
-	s8 map[16];
-	s8 cname[32];
+	c8 name[16];
+	c8 map[16];
+	c8 cname[32];
 	s32 users;
 	s32 maxusers;
 	s32 driver;
@@ -912,7 +913,7 @@ typedef struct {                                                        // wad.h
 	u8 data[]; // variably sized
 } qpic_t;
 typedef struct {
-	s8 identification[4]; // should be WAD2 or 2DAW
+	c8 identification[4]; // should be WAD2 or 2DAW
 	s32 numlumps;
 	s32 infotableofs;
 } wadinfo_t;
@@ -920,13 +921,13 @@ typedef struct {
 	s32 filepos;
 	s32 disksize;
 	s32 size; // uncompressed
-	s8 type;
-	s8 compression;
-	s8 pad1, pad2;
-	s8 name[16]; // must be null terminated
+	c8 type;
+	c8 compression;
+	c8 pad1, pad2;
+	c8 name[16]; // must be null terminated
 } lumpinfo_t;
 typedef struct wad_s {
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	s32 id;
 	fshandle_t fh;
 	s32 numlumps;
@@ -1174,7 +1175,7 @@ typedef struct edict_s {
 	entvars_t v;
 } edict_t;
 typedef struct {
-	const s8 *name;
+	const c8 *name;
 	s32 first_statement;
 	s32 patch_statement;
 } exbuiltin_t;
@@ -1197,8 +1198,8 @@ typedef struct {
 typedef void (*xcommand_t) ();                                          // cmd.h
 typedef struct cmdalias_s {
 	struct cmdalias_s *next;
-	s8 name[MAX_ALIAS_NAME];
-	s8 *value;
+	c8 name[MAX_ALIAS_NAME];
+	c8 *value;
 } cmdalias_t;
 typedef enum
 {
@@ -1210,7 +1211,7 @@ typedef enum
 extern  cmd_source_t    cmd_source;
 typedef struct cmd_function_s {
 	struct cmd_function_s *next;
-	s8 *name;
+	c8 *name;
 	xcommand_t function;
 	cmd_source_t srctype;
 	bool dynamic;
@@ -1218,7 +1219,7 @@ typedef struct cmd_function_s {
 } cmd_function_t;
 
 typedef struct { s32 left; s32 right; } portable_samplepair_t;      // q_sound.h
-typedef struct sfx_s { s8 name[MAX_QPATH]; cache_user_t cache; } sfx_t;
+typedef struct sfx_s { c8 name[MAX_QPATH]; cache_user_t cache; } sfx_t;
 typedef struct {
 	s32 length;
 	s32 loopstart;
@@ -1267,7 +1268,7 @@ typedef struct {                                                       // draw.c
 	s32 rowbytes;
 } rectdesc_t;
 typedef struct cachepic_s {
-	s8 name[MAX_QPATH];
+	c8 name[MAX_QPATH];
 	cache_user_t cache;
 } cachepic_t;
 
@@ -1282,32 +1283,32 @@ typedef enum { touchessolid, drawnode, nodrawnode } solidstate_t;     // r_bsp.c
 typedef struct { s32 index0; s32 index1; } aedge_t;                 // r_alias.c
 
 typedef struct vispatch_s { // External VIS file support              // model.c
-	s8 mapname[32];
+	c8 mapname[32];
 	s32 filelen; // length of data after header (VIS+Leafs)
 } vispatch_t;
 
 typedef struct { s32 s; dfunction_t *f; } prstack_t;                // pr_exec.c
 
-typedef struct { s8 *name; s8 *description; } level_t;                 // menu.c
-typedef struct { s8 *description; s32 firstLevel; s32 levels; } episode_t;
+typedef struct { c8 *name; c8 *description; } level_t;                 // menu.c
+typedef struct { c8 *description; s32 firstLevel; s32 levels; } episode_t;
 
 typedef struct {                                                     // screen.c
-	s8 manufacturer;
-	s8 version;
-	s8 encoding;
-	s8 bits_per_pixel;
+	c8 manufacturer;
+	c8 version;
+	c8 encoding;
+	c8 bits_per_pixel;
 	u16 xmin, ymin, xmax, ymax;
 	u16 hres, vres;
 	u8 palette[48];
-	s8 reserved;
-	s8 color_planes;
+	c8 reserved;
+	c8 color_planes;
 	u16 bytes_per_line;
 	u16 palette_type;
-	s8 filler[58];
+	c8 filler[58];
 	u8 data; // unbounded
 } pcx_t;
 
-typedef struct{ddef_t *pcache;s8 field[MAX_FIELD_LEN];}gefv_cache; // pr_edict.c
+typedef struct{ddef_t *pcache;c8 field[MAX_FIELD_LEN];}gefv_cache; // pr_edict.c
 struct pr_extfuncs_s
 {
 /*ssqc*/
@@ -1414,7 +1415,7 @@ typedef enum
 typedef struct prhashtable_s
 {
 	s32 capacity;
-	const s8 **strings;
+	const c8 **strings;
 	s32 *indices;
 } prhashtable_t;
 
@@ -1443,10 +1444,10 @@ typedef struct qcvm_s
 	u32 advertised_ext[(QCEXT_COUNT + 31) / 32];
 	char *strings; //was static inside pr_edict
 	s32 stringssize;
-	const s8 **knownstrings;
+	const c8 **knownstrings;
 	s32 maxknownstrings;
 	s32 numknownstrings;
-	const s8 **firstfreeknownstring; // free list (singly linked)
+	const c8 **firstfreeknownstring; // free list (singly linked)
 	u8 *knownzone;
 	size_t knownzonesize;
 	ddef_t *globaldefs;
@@ -1479,12 +1480,12 @@ typedef struct qcvm_s
 
 typedef struct {                                                     // client.h
 	s32 length;
-	s8 map[MAX_STYLESTRING];
-	s8 average; //johnfitz
-	s8 peak; //johnfitz
+	c8 map[MAX_STYLESTRING];
+	c8 average; //johnfitz
+	c8 peak; //johnfitz
 } lightstyle_t;
 typedef struct {
-	s8 name[MAX_SCOREBOARDNAME];
+	c8 name[MAX_SCOREBOARDNAME];
 	f32 entertime;
 	s32 frags;
 	s32 colors; // two 4 bit fields
@@ -1516,9 +1517,9 @@ typedef enum {
 } cactive_t;
 typedef struct {
 	cactive_t state; // personalization data sent to server
-	s8 spawnparms[MAX_MAPSTRING]; // to restart a level
+	c8 spawnparms[MAX_MAPSTRING]; // to restart a level
 	s32 demonum; // -1 = don't play demos
-	s8 demos[MAX_DEMOS][MAX_DEMONAME];
+	c8 demos[MAX_DEMOS][MAX_DEMONAME];
 	bool demorecording;
 	bool demoplayback;
 	bool demopaused;
@@ -1540,7 +1541,7 @@ typedef struct {
 	usercmd_t pendingcmd;
 	s32 stats[MAX_CL_STATS]; // health, etc
 	f32 statsf[MAX_CL_STATS];
-	s8 *statss[MAX_CL_STATS];
+	c8 *statss[MAX_CL_STATS];
 	s32 items; // inventory bit flags
 	f32 item_gettime[32]; // cl.time of aquiring item, for blinking
 	f32 faceanimtime; // use anim frame if cl.time < this
@@ -1569,8 +1570,8 @@ typedef struct {
 	f32 last_received_message;
 	struct model_s *model_precache[MAX_MODELS];
 	struct sfx_s *sound_precache[MAX_SOUNDS];
-	s8 mapname[128];
-	s8 levelname[128];
+	c8 mapname[128];
+	c8 levelname[128];
 	s32 viewentity; // cl_entitites[cl.viewentity] = player
 	s32 maxclients;
 	s32 gametype;
@@ -1585,7 +1586,7 @@ typedef struct {
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
 	bool sendprespawn;
-	s8 stuffcmdbuf[1024]; //comment-extensions are a thing with certain
+	c8 stuffcmdbuf[1024]; //comment-extensions are a thing with certain
 	//servers, make sure we can handle them properly without further
 	//hacks/breakages. there's also some server->client only console
 	//commands that we might as well try to handle better, like reconnect
@@ -1597,7 +1598,7 @@ typedef struct {
 } kbutton_t;
 typedef struct builtindef_s
 {
-	const s8 *name;
+	const c8 *name;
 	builtin_t ssqcfunc;
 	builtin_t csqcfunc;
 	s32 number;
@@ -1620,13 +1621,13 @@ typedef struct {
 	s32 lastcheck; // used by PF_checkclient
 	f64 lastchecktime;
 	qcvm_t qcvm; // Spike: entire qcvm state
-	s8 name[64]; // map name
-	s8 modelname[64]; // maps/<name>.bsp, for model_precache[0]
+	c8 name[64]; // map name
+	c8 modelname[64]; // maps/<name>.bsp, for model_precache[0]
 	struct model_s *worldmodel;
-	const s8 *model_precache[MAX_MODELS]; // NULL terminated
+	const c8 *model_precache[MAX_MODELS]; // NULL terminated
 	struct model_s *models[MAX_MODELS];
-	const s8 *sound_precache[MAX_SOUNDS]; // NULL terminated
-	const s8 *lightstyles[MAX_LIGHTSTYLES];
+	const c8 *sound_precache[MAX_SOUNDS]; // NULL terminated
+	const c8 *lightstyles[MAX_LIGHTSTYLES];
 	edict_t *edicts;
 	server_state_t state; // some actions are only valid during load
 	sizebuf_t datagram;
@@ -1645,7 +1646,7 @@ typedef struct {
 		eval_t *ptr;
 	} customstats[MAX_CL_STATS*2];  //strings or numeric...
 	size_t numcustomstats;
-	s8 lastsave[MAX_OSPATH];
+	c8 lastsave[MAX_OSPATH];
 	bool autoloading;
 	struct {
 		f32 secret_boost;
@@ -1689,7 +1690,7 @@ typedef struct client_s {
 	sizebuf_t message;
 	u8 msgbuf[MAX_MSGLEN];
 	edict_t *edict; // EDICT_NUM(clientnum+1)
-	s8 name[32]; // for printing to other people
+	c8 name[32]; // for printing to other people
 	s32 colors;
 	f32 ping_times[NUM_PING_TIMES];
 	s32 num_pings; // ping_times[num_pings%NUM_PING_TIMES]
@@ -1697,7 +1698,7 @@ typedef struct client_s {
 	s32 old_frags;
 	s32 oldstats_i[MAX_CL_STATS]; //previous values of stats.
 	f32 oldstats_f[MAX_CL_STATS]; //if these differ from the current values,
-	s8 *oldstats_s[MAX_CL_STATS]; //reflag resendstats.
+	c8 *oldstats_s[MAX_CL_STATS]; //reflag resendstats.
 } client_t;
 
 typedef struct {                                                   // d_polyse.c
@@ -1726,7 +1727,7 @@ typedef struct {
 typedef struct cache_system_s {                                        // zone.c
 	s32 size; // including this header
 	cache_user_t *user;
-	s8 name[CACHENAME_LEN];
+	c8 name[CACHENAME_LEN];
 	struct cache_system_s *prev, *next;
 	struct cache_system_s *lru_prev, *lru_next; // for LRU flushing
 } cache_system_t;
@@ -1745,21 +1746,21 @@ typedef struct {
 typedef struct {
 	s32 sentinel;
 	s32 size; // including sizeof(hunk_t), -1 = not allocated
-	s8 name[HUNKNAME_LEN];
+	c8 name[HUNKNAME_LEN];
 } hunk_t;
 
 typedef struct { // on-disk pakfile                                  // common.c
-	s8 name[56];
+	c8 name[56];
 	s32 filepos, filelen;
 } dpackfile_t;
 typedef struct {
-	s8 id[4];
+	c8 id[4];
 	s32 dirofs;
 	s32 dirlen;
 } dpackheader_t;
 typedef struct {
-	s8 *key;
-	s8 *value;
+	c8 *key;
+	c8 *value;
 } locentry_t;
 typedef struct {
 	s32 numentries;
@@ -1767,7 +1768,7 @@ typedef struct {
 	s32 numindices;
 	u32 *indices;
 	locentry_t *entries;
-	s8 *text;
+	c8 *text;
 } localization_t;
 
 typedef struct stdio_buffer_s {                                       // image.c

@@ -134,10 +134,10 @@ void *Z_Realloc(void *ptr, s32 size)
 	return ptr;
 }
 
-s8 *Z_Strdup(const s8 *s)
+c8 *Z_Strdup(const c8 *s)
 {
 	size_t sz = strlen(s) + 1;
-	s8 *ptr = (s8 *) Z_Malloc(sz);
+	c8 *ptr = (c8 *) Z_Malloc(sz);
 	memcpy(ptr, s, sz);
 	return ptr;
 }
@@ -175,7 +175,7 @@ void Hunk_Check()
 // Otherwise, allocations with the same name will be totaled up before printing.
 void Hunk_Print(bool all)
 {
-	s8 name[HUNKNAME_LEN];
+	c8 name[HUNKNAME_LEN];
 	s32 sum = 0;
 	s32 totalblocks = 0;
 	hunk_t *h = (hunk_t *)hunk_base;
@@ -216,7 +216,7 @@ void Hunk_Print(bool all)
 
 void Hunk_Print_f() { Hunk_Print(0); }
 
-void *Hunk_AllocInternal(s32 size, const s8 *name, bool clear)
+void *Hunk_AllocInternal(s32 size, const c8 *name, bool clear)
 {
 	if(size < 0) Sys_Error("Hunk_Alloc: bad size: %i", size);
 	size = sizeof(hunk_t) + ((size+15)&~15);
@@ -235,7 +235,7 @@ void *Hunk_AllocInternal(s32 size, const s8 *name, bool clear)
 void *Hunk_AllocNoFill(s32 size)
 { return Hunk_AllocInternal(size, "nofill", 0); }
 
-void *Hunk_AllocName(s32 size, const s8 *name)
+void *Hunk_AllocName(s32 size, const c8 *name)
 { return Hunk_AllocInternal(size, name, 1); }
 
 void *Hunk_Alloc(s32 size)
@@ -273,7 +273,7 @@ void Hunk_FreeToHighMark(s32 mark)
 	hunk_high_used = mark;
 }
 
-void *Hunk_HighAllocName(s32 size, const s8 *name)
+void *Hunk_HighAllocName(s32 size, const c8 *name)
 {
 	if(size < 0) Sys_Error("Hunk_HighAllocName: bad size: %i", size);
 	if(hunk_tempactive) {
@@ -309,10 +309,10 @@ void *Hunk_TempAlloc(s32 size) // Return space from the top of the hunk
 	return buf;
 }
 
-s8 *Hunk_Strdup(const s8 *s, const s8 *name)
+c8 *Hunk_Strdup(const c8 *s, const c8 *name)
 {
 	size_t sz = strlen(s) + 1;
-	s8 *ptr = (s8 *) Hunk_AllocName(sz, name);
+	c8 *ptr = (c8 *) Hunk_AllocName(sz, name);
 	memcpy(ptr, s, sz);
 	return ptr;
 }
@@ -470,7 +470,7 @@ void *Cache_Check(cache_user_t *c)
 	return c->data;
 }
 
-void *Cache_Alloc(cache_user_t *c, s32 size, const s8 *name)
+void *Cache_Alloc(cache_user_t *c, s32 size, const c8 *name)
 {
 	if(c->data) Sys_Error("Cache_Alloc: already allocated");
 	if(size <= 0) Sys_Error("Cache_Alloc: size %i", size);

@@ -4,7 +4,7 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static s8 loadfilename[MAX_OSPATH];
+static c8 loadfilename[MAX_OSPATH];
 
 static stdio_buffer_t *Buf_Alloc(FILE *f)
 {
@@ -199,7 +199,7 @@ breakOut:;
 	return targa_rgba;
 }
 
-u8 *Image_LoadImage(const s8 *name, s32 *width, s32 *height)
+u8 *Image_LoadImage(const c8 *name, s32 *width, s32 *height)
 { // returns a pointer to hunk allocated RGBA data
 	FILE *f;
 	snprintf(loadfilename, sizeof(loadfilename), "%s.tga", name);

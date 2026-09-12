@@ -4,10 +4,10 @@
 
 #include "quakedef.h"
 
-const s8 *PR_GlobalString(s32 ofs);
-const s8 *PR_GlobalStringNoContents(s32 ofs);
+const c8 *PR_GlobalString(s32 ofs);
+const c8 *PR_GlobalStringNoContents(s32 ofs);
 
-static const s8 *pr_opnames[] = {
+static const c8 *pr_opnames[] = {
 	"DONE",
 	"MUL_F", "MUL_V", "MUL_FV", "MUL_VF", "DIV",
 	"ADD_F", "ADD_V", "SUB_F", "SUB_V",
@@ -27,7 +27,7 @@ static const s8 *pr_opnames[] = {
 	"AND", "OR", "BITAND", "BITOR"
 };
 
-static const s8 *const pr_extnames[QCEXT_COUNT] =
+static const c8 *const pr_extnames[QCEXT_COUNT] =
 {
 	"STD_QC",
 	#define QCEXTENSION(name) #name,
@@ -35,7 +35,7 @@ static const s8 *const pr_extnames[QCEXT_COUNT] =
 	#undef QCEXTENSION
 };
 
-s32 PR_FindExtensionByName(const s8 *name)
+s32 PR_FindExtensionByName(const c8 *name)
 {
 	for(s32 i = 1; i < QCEXT_COUNT; i++)
 		if(!strcmp(name, pr_extnames[i]))
@@ -111,10 +111,10 @@ void PR_Profile_f()
 	PR_SwitchQCVM(NULL);
 }
 
-void PR_RunError(const s8 *error, ...)
+void PR_RunError(const c8 *error, ...)
 { // Aborts the currently executing function
 	va_list argptr;
-	s8 string[1024];
+	c8 string[1024];
 	va_start(argptr, error);
 	vsnprintf(string, sizeof(string), error, argptr);
 	va_end(argptr);

@@ -4,10 +4,10 @@
 
 static entity_t cl_static_entities[MAX_STATIC_ENTITIES];
 static u8 net_olddata[NET_MAXMESSAGE];
-static s8 model_precache[MAX_MODELS][MAX_QPATH];
-static s8 sound_precache[MAX_SOUNDS][MAX_QPATH];
+static c8 model_precache[MAX_MODELS][MAX_QPATH];
+static c8 sound_precache[MAX_SOUNDS][MAX_QPATH];
 
-static s8 *svc_strings[] = {
+static c8 *svc_strings[] = {
 	"svc_bad",
 	"svc_nop",
 	"svc_disconnect",
@@ -55,10 +55,10 @@ static s8 *svc_strings[] = {
 //some servers or mods use //prefixed commands as extensions to avoid spam about
 //unrecognised commands.
 //proquake has its own extension coding thing.
-static void CL_ParseStuffText(const s8 *msg)
+static void CL_ParseStuffText(const c8 *msg)
 {
 	SDL_strlcat(cl.stuffcmdbuf, msg, sizeof(cl.stuffcmdbuf));
-	const s8 *str;
+	const c8 *str;
 	for(; (str = strchr(cl.stuffcmdbuf, '\n'));
 			memmove(cl.stuffcmdbuf, str, strlen(str)+1)) {
 		bool handled = false;
@@ -226,7 +226,7 @@ void CL_ParseServerInfo()
 	cl.scores =(scoreboard_t *) Hunk_AllocName
 		(cl.maxclients*sizeof(*cl.scores), "scores");
 	cl.gametype = MSG_ReadByte(); // parse gametype
-	const s8 *str = MSG_ReadString(); // parse signon message
+	const c8 *str = MSG_ReadString(); // parse signon message
 	SDL_strlcpy(cl.levelname, str, sizeof(cl.levelname));
 	// seperate the printfs so the server message can have a color
 	Con_Printf("%c%s\n", 2, str);
@@ -533,7 +533,7 @@ void CL_ParseServerMessage()
 	MSG_BeginReading(); // parse the message
 	s32 lastcmd = 0;
 	while(1){
-	const s8 *str;
+	const c8 *str;
 	if(msg_badread)
 		Host_Error("CL_ParseServerMessage: Bad server message");
 	s32 cmd = MSG_ReadByte();

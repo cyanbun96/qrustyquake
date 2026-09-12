@@ -22,11 +22,11 @@ static s32 shortPacketCount = 0;
 static s32 droppedDatagrams;
 static s32 myDriverLevel;
 extern bool m_return_onerror;
-extern s8 m_return_reason[32];
+extern c8 m_return_reason[32];
 
-static s8 *StrAddr(struct qsockaddr *addr)
+static c8 *StrAddr(struct qsockaddr *addr)
 {
-	static s8 buf[34];
+	static c8 buf[34];
 	u8 *p = (u8 *) addr;
 	s32 n;
 	for (n = 0; n < 16; n++)
@@ -313,11 +313,11 @@ static void NET_Stats_f()
 }
 
 // recognize ip:port (based on ProQuake)
-static const s8 *Strip_Port(const s8 *host)
+static const c8 *Strip_Port(const c8 *host)
 {
-	static s8 noport[MAX_QPATH];
+	static c8 noport[MAX_QPATH];
 	/* array size as in Host_Connect_f() */
-	s8 *p;
+	c8 *p;
 	s32 port;
 	if (!host || !*host)
 		return host;
@@ -345,8 +345,8 @@ static void Test_Poll(void *unused)
 	struct qsockaddr clientaddr;
 	s32 control;
 	s32 len;
-	s8 name[32];
-	s8 address[64];
+	c8 name[32];
+	c8 address[64];
 	s32 colors;
 	s32 frags;
 	s32 connectTime;
@@ -391,7 +391,7 @@ static void Test_Poll(void *unused)
 
 static void Test_f()
 {
-	const s8 *host;
+	const c8 *host;
 	s32 n;
 	s32 maxusers = MAX_SCOREBOARD;
 	struct qsockaddr sendaddr;
@@ -458,8 +458,8 @@ static void Test2_Poll(SDL_UNUSED void *unused)
 	struct qsockaddr clientaddr;
 	s32 control;
 	s32 len;
-	s8 name[256];
-	s8 value[256];
+	c8 name[256];
+	c8 value[256];
 	net_landriverlevel = test2Driver;
 	name[0] = 0;
 	len =
@@ -507,7 +507,7 @@ Done:
 
 static void Test2_f()
 {
-	const s8 *host;
+	const c8 *host;
 	s32 n;
 	struct qsockaddr sendaddr;
 	if (test2InProgress)
@@ -656,7 +656,7 @@ static qsocket_t *_Datagram_CheckNewConnections()
 		MSG_WriteLong(&net_message, 0);
 		MSG_WriteByte(&net_message, CCREP_SERVER_INFO);
 		dfunc.GetSocketAddr(acceptsock, &newaddr);
-		MSG_WriteString(&net_message, (s8*)dfunc.AddrToString(&newaddr));
+		MSG_WriteString(&net_message, (c8*)dfunc.AddrToString(&newaddr));
 		MSG_WriteString(&net_message, hostname.string);
 		MSG_WriteString(&net_message, sv.name);
 		MSG_WriteByte(&net_message, net_activeconnections);
@@ -708,7 +708,7 @@ static qsocket_t *_Datagram_CheckNewConnections()
 		return NULL;
 	}
 	if (command == CCREQ_RULE_INFO) {
-		const s8 *prevCvarName;
+		const c8 *prevCvarName;
 		cvar_t *var;
 		// find the search start location
 		prevCvarName = MSG_ReadString();
@@ -966,7 +966,7 @@ void Datagram_SearchForHosts(bool xmit)
 	}
 }
 
-static qsocket_t *_Datagram_Connect(const s8 *host)
+static qsocket_t *_Datagram_Connect(const c8 *host)
 {
 	struct qsockaddr sendaddr;
 	struct qsockaddr readaddr;
@@ -976,7 +976,7 @@ static qsocket_t *_Datagram_Connect(const s8 *host)
 	s32 reps;
 	f64 start_time;
 	s32 control;
-	const s8 *reason;
+	const c8 *reason;
 	// see if we can resolve the host name
 	if (dfunc.GetAddrFromName(host, &sendaddr) == -1) {
 		Con_Printf("Could not resolve %s\n", host);
@@ -1115,7 +1115,7 @@ ErrorReturn2:
 	return NULL;
 }
 
-qsocket_t *Datagram_Connect(const s8 *host)
+qsocket_t *Datagram_Connect(const c8 *host)
 {
 	qsocket_t *ret = NULL;
 	host = Strip_Port(host);

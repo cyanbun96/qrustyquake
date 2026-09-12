@@ -76,7 +76,7 @@ static void S_TransferPaintBuffer(s32 endtime)
 			out_idx = (out_idx + 1) & out_mask;
 		}
 	} else if(shm->samplebits == 8) {
-		s8 *out = (s8 *) shm->buffer;
+		c8 *out = (c8 *) shm->buffer;
 		while(count--) {
 			s32 val = *p / 256;
 			p+= step;

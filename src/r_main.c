@@ -201,8 +201,8 @@ void R_ParseDebugEntities() {
 	R_AllocShowTris();
 	r_numdebugpoints = 0;
 	if (!cl.worldmodel || !cl.worldmodel->entities) return;
-	const s8 *data = cl.worldmodel->entities;
-	s8 key[128], value[4096];
+	const c8 *data = cl.worldmodel->entities;
+	c8 key[128], value[4096];
 	while (1) {
 		data = COM_Parse(data);
 		if (!data) break;
@@ -395,8 +395,8 @@ void R_Init()
 
 void Pal_ParseWorldspawn ()
 { // called at map load
-	s8 key[128], value[4096];
-	const s8 *data = COM_Parse(cl.worldmodel->entities);
+	c8 key[128], value[4096];
+	const c8 *data = COM_Parse(cl.worldmodel->entities);
 	if(!data || com_token[0] != '{') return; // error
 	while(1){
 		if(!data) return; // error
@@ -409,8 +409,8 @@ void Pal_ParseWorldspawn ()
 		if(!data) return; // error
 		SDL_strlcpy(value, com_token, sizeof(value));
 		if(!strcmp("palette", key)){
-			s8 pal[MAX_OSPATH];
-			s8 cmap[MAX_OSPATH];
+			c8 pal[MAX_OSPATH];
+			c8 cmap[MAX_OSPATH];
 			sscanf(value, "%s", pal);
 			SDL_strlcpy(cmap, pal, MAX_OSPATH);
 			SDL_strlcat(cmap, "_colormap", MAX_OSPATH);

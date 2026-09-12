@@ -23,10 +23,10 @@ static void Max_Fps_f(cvar_t *var)
 	}
 }
 
-void Host_EndGame(s8 *message, ...)
+void Host_EndGame(c8 *message, ...)
 {
 	va_list argptr;
-	s8 string[1024];
+	c8 string[1024];
 	va_start(argptr, message);
 	vsprintf(string, message, argptr);
 	va_end(argptr);
@@ -38,10 +38,10 @@ void Host_EndGame(s8 *message, ...)
 	longjmp(host_abortserver, 1);
 }
 
-void Host_Error(s8 *error, ...)
+void Host_Error(c8 *error, ...)
 {
 	va_list argptr;
-	s8 string[1024];
+	c8 string[1024];
 	static bool inerror = 0;
 	if(inerror) Sys_Error("Host_Error: recursively entered");
 	inerror = 1;
@@ -134,10 +134,10 @@ void Host_WriteConfiguration()
 	}
 }
 
-void SV_ClientPrintf(const s8 *fmt, ...) // Sends text across to be displayed 
+void SV_ClientPrintf(const c8 *fmt, ...) // Sends text across to be displayed 
 {
 	va_list argptr;
-	s8 string[1024];
+	c8 string[1024];
 	va_start(argptr, fmt);
 	vsprintf(string, fmt, argptr);
 	va_end(argptr);
@@ -145,10 +145,10 @@ void SV_ClientPrintf(const s8 *fmt, ...) // Sends text across to be displayed
 	MSG_WriteString(&host_client->message, string);
 }
 
-void SV_BroadcastPrintf(const s8 *fmt, ...)
+void SV_BroadcastPrintf(const c8 *fmt, ...)
 { // Sends text to all active clients
 	va_list argptr;
-	s8 string[1024];
+	c8 string[1024];
 	va_start(argptr, fmt);
 	vsprintf(string, fmt, argptr);
 	va_end(argptr);
@@ -159,10 +159,10 @@ void SV_BroadcastPrintf(const s8 *fmt, ...)
 		}
 }
 
-void Host_ClientCommands(s8 *fmt, ...)
+void Host_ClientCommands(c8 *fmt, ...)
 { // Send text over to the client to be executed
 	va_list argptr;
-	s8 string[1024];
+	c8 string[1024];
 	va_start(argptr, fmt);
 	vsprintf(string, fmt, argptr);
 	va_end(argptr);
@@ -395,9 +395,9 @@ void Host_ServerFrame()
 	Host_CheckAutosave ();
 }
 
-void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
+void Host_PrintTimes(const f64 t[],const c8 *names[], s32 count, bool showtotal)
 {
-	s8 line[1024];
+	c8 line[1024];
 	f64 total = 0.0;
 	s32 i, worst;
 	for(i = 0, worst = -1; i < count; i++){
@@ -407,7 +407,7 @@ void Host_PrintTimes(const f64 t[],const s8 *names[], s32 count, bool showtotal)
 	if(showtotal)snprintf(line,sizeof(line),"%5.2f tot | ",total*1000.0);
 	else line[0] = '\0';
 	for(i = 0; i < count; i++){
-		s8 entry[256];
+		c8 entry[256];
 		snprintf(entry,sizeof(entry),"%5.2f %s",t[i]*1000.0,names[i]);
 		if(i != 0) SDL_strlcat(line, " | ", sizeof(line));
 		SDL_strlcat(line, entry, sizeof(line));
@@ -549,7 +549,7 @@ void _Host_Frame(f32 time)
 		pass[2] += time3;
 		elapsed += time;
 		if(elapsed >= host_speeds.value * 0.375){
-			const s8 *names[3] = {"server", "gfx", "snd"};
+			const c8 *names[3] = {"server", "gfx", "snd"};
 			pass[0] /= q_max(numserverframes, 1);
 			pass[1] /= numframes;
 			pass[2] /= numframes;
@@ -585,7 +585,7 @@ void Host_Frame(f32 time)
 void Host_Init()
 {
 	com_argc = host_parms.argc;
-	com_argv = (s8 **)host_parms.argv;
+	com_argv = (c8 **)host_parms.argv;
 	Memory_Init(host_parms.membase, host_parms.memsize);
 	Cbuf_Init();
 	Cmd_Init();

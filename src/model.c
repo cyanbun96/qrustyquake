@@ -10,7 +10,7 @@ static aliashdr_t *pheader;
 static trivertx_t *poseverts[MAXALIASFRAMES];
 static s32 posenum;
 static model_t* loadmodel;
-static s8 loadname[32]; // for hunk tags
+static c8 loadname[32]; // for hunk tags
 static u8 *mod_base;
 static void Mod_LoadSpriteModel(model_t *mod, void *buffer);
 static void Mod_LoadBrushModel(model_t *mod, void *buffer);
@@ -146,7 +146,7 @@ void Mod_ResetAll()
 	mod_numknown = 0;
 }
 
-static model_t *Mod_FindName(const s8 *name)
+static model_t *Mod_FindName(const c8 *name)
 {
 	if(!name[0]) Sys_Error("Mod_FindName: NULL name");
 	s32 i = 0; // search the currently loaded models
@@ -163,7 +163,7 @@ static model_t *Mod_FindName(const s8 *name)
 	return mod;
 }
 
-void Mod_TouchModel(const s8 *name)
+void Mod_TouchModel(const c8 *name)
 {
 	model_t *mod = Mod_FindName(name);
 	if(!mod->needload == NL_PRESENT && mod->type == mod_alias)
@@ -200,7 +200,7 @@ static model_t *Mod_LoadModel(model_t *mod, bool crash)
 	return mod;
 }
 
-model_t *Mod_ForName(const s8 *name, bool crash)
+model_t *Mod_ForName(const c8 *name, bool crash)
 { // Loads in a model for the given name
 	model_t *mod = Mod_FindName(name);
 	return Mod_LoadModel(mod, crash);
@@ -482,7 +482,7 @@ rebuild:
 
 static void Mod_LoadLighting(lump_t *l)
 { // johnfitz -- replaced with lit support code via lordhavoc
-	s8 litfilename[MAX_OSPATH];
+	c8 litfilename[MAX_OSPATH];
 	loadmodel->lightdata = NULL;
 	// LordHavoc: check for a .lit file
 	SDL_strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
@@ -593,8 +593,8 @@ static void Mod_LoadVertexes(lump_t *l)
 
 static void Mod_LoadEntities(lump_t *l)
 {
-	s8 basemapname[MAX_QPATH];
-	s8 entfilename[MAX_QPATH+16];
+	c8 basemapname[MAX_QPATH];
+	c8 entfilename[MAX_QPATH+16];
 	if(!external_ents.value) goto _load_embedded;
 	s32 mark = Hunk_LowMark();
 	u32 crc = 0;
@@ -603,10 +603,10 @@ static void Mod_LoadEntities(lump_t *l)
 	COM_StripExtension(basemapname, basemapname, sizeof(basemapname));
 	snprintf(entfilename,sizeof(entfilename),"%s@%04x.ent",basemapname,crc);
 	u32 path_id;
-	s8 *ents = (s8*)COM_LoadHunkFile(entfilename, &path_id);
+	c8 *ents = (c8*)COM_LoadHunkFile(entfilename, &path_id);
 	if(!ents) {
 		snprintf(entfilename,sizeof(entfilename),"%s.ent", basemapname);
-		ents = (s8*)COM_LoadHunkFile(entfilename, &path_id);
+		ents = (c8*)COM_LoadHunkFile(entfilename, &path_id);
 	}
 	if(ents) {
 		// use ent file only from the same gamedir as the map
@@ -625,7 +625,7 @@ _load_embedded:
 		loadmodel->entities = NULL;
 		return;
 	}
-	loadmodel->entities = (s8 *) Hunk_AllocName( l->filelen, loadname);
+	loadmodel->entities = (c8 *) Hunk_AllocName( l->filelen, loadname);
 	memcpy(loadmodel->entities, mod_base + l->fileofs, l->filelen);
 }
 
@@ -805,12 +805,12 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 // - replaces consecutive spaces with single one
 // - removes leading/trailing spaces
 // Returns dst string length (excluding NUL terminator)
-size_t Mod_SanitizeMapDescription(s8 *dst, size_t dstsize, const s8 *src)
+size_t Mod_SanitizeMapDescription(c8 *dst, size_t dstsize, const c8 *src)
 {
 	s32 srcpos, dstpos;
 	if (!dstsize) return 0;
 	for (srcpos = dstpos = 0; src[srcpos] && (size_t)dstpos + 1 < dstsize; srcpos++) {
-		s8 c = src[srcpos] & 0x7f; // remove color
+		c8 c = src[srcpos] & 0x7f; // remove color
 		if (c == '\n' || c == '\r') // replace newlines with spaces
 			c = ' ';
 		else if (c == '\\' && src[srcpos + 1] == 'n') { // replace '\\' followed by 'n' with space
@@ -831,11 +831,11 @@ size_t Mod_SanitizeMapDescription(s8 *dst, size_t dstsize, const s8 *src)
 // Parses the entity lump in the given map to find its worldspawn message
 // Writes at most maxchars bytes to dest, including the NUL terminator
 // Returns true if map is playable, false otherwise
-bool Mod_LoadMapDescription(s8 *desc, size_t maxchars, const s8 *map)
+bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 {
-	s8 buf[4 * 1024];
-	s8 path[MAX_QPATH];
-	const s8 *data;
+	c8 buf[4 * 1024];
+	c8 path[MAX_QPATH];
+	const c8 *data;
 	FILE *f;
 	lump_t *entlump;
 	dheader_t header;
@@ -929,10 +929,10 @@ bool Mod_LoadMapDescription(s8 *desc, size_t maxchars, const s8 *map)
 	return ret;
 }
 
-s32 Mod_CountSecrets(const s8 *map)
+s32 Mod_CountSecrets(const c8 *map)
 {
-	s8 path[MAX_QPATH];
-	const s8 *data;
+	c8 path[MAX_QPATH];
+	const c8 *data;
 	FILE *f;
 	lump_t *entlump;
 	dheader_t header;
@@ -969,7 +969,7 @@ s32 Mod_CountSecrets(const s8 *map)
 		fclose (f);
 		return 0;
 	}
-	s8 *buf = malloc(entlump->filelen + 1);
+	c8 *buf = malloc(entlump->filelen + 1);
 	if (!buf)
 		return 0;
 	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
@@ -1020,10 +1020,10 @@ s32 Mod_CountSecrets(const s8 *map)
 	return secret_count;
 }
 
-s32 Mod_CountMonsters(const s8 *map)
+s32 Mod_CountMonsters(const c8 *map)
 {
-	s8 path[MAX_QPATH];
-	const s8 *data;
+	c8 path[MAX_QPATH];
+	const c8 *data;
 	FILE *f;
 	lump_t *entlump;
 	dheader_t header;
@@ -1060,7 +1060,7 @@ s32 Mod_CountMonsters(const s8 *map)
 		fclose (f);
 		return 0;
 	}
-	s8 *buf = malloc(entlump->filelen + 1);
+	c8 *buf = malloc(entlump->filelen + 1);
 	if (!buf)
 		return 0;
 	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
@@ -1612,7 +1612,7 @@ static void Mod_LoadSubmodels(lump_t *l)
 static FILE *Mod_FindVisibilityExternal()
 {
 	vispatch_t header;
-	s8 visfilename[MAX_QPATH];
+	c8 visfilename[MAX_QPATH];
 	u32 path_id;
 	FILE *f;
 	size_t r;
@@ -1633,7 +1633,7 @@ static FILE *Mod_FindVisibilityExternal()
 		return NULL;
 	}
 	Con_DPrintf("Found external VIS %s\n", visfilename);
-	const s8 *shortname = COM_SkipPath(loadmodel->name);
+	const c8 *shortname = COM_SkipPath(loadmodel->name);
 	s64 pos = 0;
 	while((r=fread(&header,1,VISPATCH_HEADER_LEN,f))==VISPATCH_HEADER_LEN){
 		header.filelen = LittleLong(header.filelen);
@@ -1766,7 +1766,7 @@ visdone:
 		}
 		mod->numleafs = bm->visleafs;
 		if(i < mod->numsubmodels-1){ // duplicate the basic information
-			s8 name[12];
+			c8 name[12];
 			sprintf(name, "*%i", i+1);
 			loadmodel = Mod_FindName(name);
 			*loadmodel = *mod;
@@ -1778,7 +1778,7 @@ visdone:
 
 void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax, aliashdr_t *pheader,
-	s8 *name, maliasframedesc_t *frame, s32 recursed) {
+	c8 *name, maliasframedesc_t *frame, s32 recursed) {
 	daliasframe_t *pdaliasframe = (daliasframe_t *) pin;
 	SDL_strlcpy(name, pdaliasframe->name, 16);
 	if(!recursed){
@@ -1805,7 +1805,7 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 
 void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 		SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax,
-		aliashdr_t *pheader, s8 *name, maliasframedesc_t *frame)
+		aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame)
 {
 	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
 	s32 numframes = LittleLong(pingroup->numframes);
@@ -1864,10 +1864,10 @@ static void Mod_CalcAliasBounds(aliashdr_t *a) // johnfitz -- calculate bounds
 		}
 }
 
-bool nameInList(const s8 *list, const s8 *name)
+bool nameInList(const c8 *list, const c8 *name)
 {
-	s8 tmp[MAX_QPATH];
-	const s8 *s = list;
+	c8 tmp[MAX_QPATH];
+	const c8 *s = list;
 	while(*s){
 		s32 i = 0; // make a copy until the next comma or end of string
 		while(*s && *s != ','){

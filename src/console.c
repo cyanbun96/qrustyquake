@@ -6,7 +6,7 @@ static f32 con_cursorspeed = 4;
 static s32 con_vislines;
 static bool con_debuglog;
 static f32 con_times[NUM_CON_TIMES];
-static s8 con_lastcenterstring[MAXPRINTMSG];
+static c8 con_lastcenterstring[MAXPRINTMSG];
 static s32 con_x; // offset in current line for next print
 
 void Con_ToggleConsole_f()
@@ -34,7 +34,7 @@ void Con_MessageMode2_f()
 void Con_CheckResize()
 { // If the line width has changed, reformat the buffer.
 	s32 i, j, width, oldwidth, oldtotallines, numlines, numchars;
-	s8 tbuf[CON_TEXTSIZE];
+	c8 tbuf[CON_TEXTSIZE];
 	width = (vid.width >> 3) - 2;
 	if(uiscale) width /= uiscale;
 	if(width == con_linewidth) return;
@@ -68,8 +68,8 @@ void Con_CheckResize()
 
 void Con_Init()
 {
-	s8 temp[MAXGAMEDIRLEN + 1];
-	s8 *t2 = "/qconsole.log";
+	c8 temp[MAXGAMEDIRLEN + 1];
+	c8 *t2 = "/qconsole.log";
 	con_debuglog = COM_CheckParm("-condebug");
 	if(con_debuglog){
 		if(strlen(com_gamedir) < (MAXGAMEDIRLEN - strlen(t2))){
@@ -96,7 +96,7 @@ void Con_Init()
 //includes a newline, unless len >= con_linewidth.
 const char *Con_Quakebar(s32 len)
 {
-	static s8 bar[42];
+	static c8 bar[42];
 	len = q_min(len, (int)sizeof(bar) - 2);
 	len = q_min(len, con_linewidth);
 	bar[0] = '\35';
@@ -112,7 +112,7 @@ const char *Con_Quakebar(s32 len)
 	return bar;
 }
 
-void Con_LogCenterPrint(const s8 *str)
+void Con_LogCenterPrint(const c8 *str)
 {
 	if(!strcmp(str, con_lastcenterstring))
 		return; //ignore duplicates
@@ -128,18 +128,18 @@ void Con_LogCenterPrint(const s8 *str)
 	}
 }
 
-void Con_CenterPrintf(s32 linewidth, const s8 *fmt, ...)
+void Con_CenterPrintf(s32 linewidth, const c8 *fmt, ...)
 {
 	va_list argptr;
-	s8 msg[MAXPRINTMSG]; //the original message
-	s8 line[MAXPRINTMSG]; //one line from the message
-	s8 spaces[21]; //buffer for spaces
+	c8 msg[MAXPRINTMSG]; //the original message
+	c8 line[MAXPRINTMSG]; //one line from the message
+	c8 spaces[21]; //buffer for spaces
 	va_start(argptr, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 	linewidth = q_min(linewidth, con_linewidth);
-	for(s8 *src = msg; *src;){
-		s8 *dst = line;
+	for(c8 *src = msg; *src;){
+		c8 *dst = line;
 		while(*src && *src != '\n')
 			*dst++ = *src++;
 		*dst = 0;
@@ -169,7 +169,7 @@ void Con_Linefeed()
 // Handles cursor positioning, line wrapping, etc
 // All console printing must go through this in order to be logged to disk
 // If no console is visible, the notify window will pop up (if notify != 0).
-void Con_Print(s8 *txt, s32 notify)
+void Con_Print(c8 *txt, s32 notify)
 {
 	static s32 cr;
 	if(!con_initialized) return;
@@ -209,11 +209,11 @@ void Con_Print(s8 *txt, s32 notify)
 	}
 }
 
-void Con_DebugLog(s8 *file, s8 *fmt, ...)
+void Con_DebugLog(c8 *file, c8 *fmt, ...)
 {
 	va_list argptr;
 	va_start(argptr, fmt);
-	static s8 data[MAXPRINTMSG];
+	static c8 data[MAXPRINTMSG];
 	vsnprintf(data, sizeof(data), fmt, argptr);
 	va_end(argptr);
 	s32 fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
@@ -221,11 +221,11 @@ void Con_DebugLog(s8 *file, s8 *fmt, ...)
 	close(fd);
 }
 
-void Con_Printf(const s8 *fmt, ...)
+void Con_Printf(const c8 *fmt, ...)
 { // Handles cursor positioning, line wrapping, etc
 	va_list argptr;
 	va_start(argptr, fmt);
-	s8 msg[MAXPRINTMSG];
+	c8 msg[MAXPRINTMSG];
 	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 	Sys_Printf("%s", msg);// also echo to debugging console
@@ -236,10 +236,10 @@ void Con_Printf(const s8 *fmt, ...)
 	Con_Print(msg, 1); // write it to the scrollable buffer
 }
 
-void Con_DPrintf(s8 *fmt, ...)
+void Con_DPrintf(c8 *fmt, ...)
 { // A Con_Printf that only shows up if the "developer" cvar is set
 	va_list argptr;
-	s8 msg[MAXPRINTMSG];
+	c8 msg[MAXPRINTMSG];
 	if(!developer.value)
 		return; // don't confuse non-developers with techie stuff...
 	va_start(argptr, fmt);
@@ -248,9 +248,9 @@ void Con_DPrintf(s8 *fmt, ...)
 	Con_Printf("%s", msg);
 }
 
-void Con_SafePrintf(s8 *fmt, ...)
+void Con_SafePrintf(c8 *fmt, ...)
 { // Okay to call even when the screen can't be updated
-	s8 msg[MAXPRINTMSG];
+	c8 msg[MAXPRINTMSG];
 	va_list argptr;
 	va_start(argptr, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, argptr);
@@ -265,7 +265,7 @@ void Con_DrawInput()
 {
 	if (key_dest != key_console && !con_forcedup)
 		return;
-	const s8 *line = key_lines[edit_line];
+	const c8 *line = key_lines[edit_line];
 	s32 len = strlen(line);
 	s32 start = 0;
 	if (key_linepos >= con_linewidth)
@@ -283,7 +283,7 @@ void Con_DrawInput()
 	}
 }
 
-s32 spstrlen(s8 *s) // two spaces terminate the string
+s32 spstrlen(c8 *s) // two spaces terminate the string
 { // that's necessary here since the console is full of spaces
 	s32 i = 0;
 	while (i < con_linewidth) {
@@ -296,7 +296,7 @@ s32 spstrlen(s8 *s) // two spaces terminate the string
 
 void Con_DrawNotify()
 { // Draws the last few lines of output transparently over the game top
-	extern s8 chat_buffer[];
+	extern c8 chat_buffer[];
 	s32 x = 0, v = 0;
 	drawlayer = lyr_notify.value;
 	for(s32 i = con_current - NUM_CON_TIMES + 1; i <= con_current; i++){
@@ -305,7 +305,7 @@ void Con_DrawNotify()
 		if(time == 0) continue;
 		time = realtime - time;
 		if(time > con_notifytime.value) continue;
-		s8 *text = con_text + (i % con_totallines) * con_linewidth;
+		c8 *text = con_text + (i % con_totallines) * con_linewidth;
 		clearnotify = 0;
 		if(!con_notifycenter.value){
 			for(x = 0; x < con_linewidth; x++)
@@ -340,7 +340,7 @@ void Con_DrawNotify()
 
 void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 { // Typing input line at the bottom should only be drawn if typing is allowed
-	s8 *text;
+	c8 *text;
 	if(lines <= 0 || key_dest == key_menu) return;
 	drawlayer = lyr_console.value;
 	Draw_ConsoleBackground(lines); // draw the background

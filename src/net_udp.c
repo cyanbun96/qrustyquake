@@ -41,7 +41,7 @@ sys_socket_t UDP_Init()
 		return INVALID_SOCKET;
 	}
 #endif
-	s8 buff[MAXHOSTNAMELEN];
+	c8 buff[MAXHOSTNAMELEN];
 	struct hostent *local;
 	struct qsockaddr addr;
 	if (COM_CheckParm("-noudp"))
@@ -56,7 +56,7 @@ sys_socket_t UDP_Init()
 		buff[MAXHOSTNAMELEN - 1] = 0;
 		if (!(local = gethostbyname(buff))) {
 #ifdef _WIN32
-			const s8 herrmsg[1024];
+			const c8 herrmsg[1024];
 			FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
 				FORMAT_MESSAGE_FROM_SYSTEM |
 				FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -102,7 +102,7 @@ sys_socket_t UDP_Init()
 	broadcastaddr.sin_port = htons((u16)net_hostport);
 	UDP_GetSocketAddr(net_controlsocket, &addr);
 	strcpy(my_tcpip_address, UDP_AddrToString(&addr));
-	s8 *tst = strrchr(my_tcpip_address, ':');
+	c8 *tst = strrchr(my_tcpip_address, ':');
 	if (tst)
 		*tst = 0;
 	Con_SafePrintf("UDP Initialized\n");
@@ -172,11 +172,11 @@ PartialIPAddress
 this lets you type only as much of the net address as required, using
 the local network components to fill in the rest
 */
-static s32 PartialIPAddress(const s8 *in, struct qsockaddr *hostaddr)
+static s32 PartialIPAddress(const c8 *in, struct qsockaddr *hostaddr)
 {
-	s8 buff[256];
+	c8 buff[256];
 	buff[0] = '.';
-	s8 *b = buff;
+	c8 *b = buff;
 	strcpy(buff + 1, in);
 	if (buff[1] == '.')
 		b++;
@@ -220,7 +220,7 @@ sys_socket_t UDP_CheckNewConnections()
 	s32 available;
 	struct sockaddr_in from;
 	socklen_t fromlen;
-	s8 buff[1];
+	c8 buff[1];
 	if (net_acceptsocket == INVALID_SOCKET)
 		return INVALID_SOCKET;
 	if (ioctlsocket(net_acceptsocket, FIONREAD, (u_long *)&available) == -1) {
@@ -252,7 +252,7 @@ static s32 UDP_MakeSocketBroadcastCapable(sys_socket_t socketid)
 {
 	s32 i = 1;
 	// make this socket broadcast capable
-	if (setsockopt(socketid, SOL_SOCKET, SO_BROADCAST, (s8*)&i, sizeof(i))
+	if (setsockopt(socketid, SOL_SOCKET, SO_BROADCAST, (c8*)&i, sizeof(i))
 	    == SOCKET_ERROR) {
 		s32 err = SOCKETERRNO;
 		Con_SafePrintf("UDP, setsockopt: %s\n", socketerror(err));
@@ -291,9 +291,9 @@ s32 UDP_Write(sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr)
 	return ret;
 }
 
-const s8 *UDP_AddrToString(struct qsockaddr *addr)
+const c8 *UDP_AddrToString(struct qsockaddr *addr)
 {
-	static s8 buffer[22];
+	static c8 buffer[22];
 	s32 haddr = ntohl(((struct sockaddr_in *)addr)->sin_addr.s_addr);
 	snprintf(buffer, sizeof(buffer), "%d.%d.%d.%d:%d", (haddr >> 24) & 0xff,
 		 (haddr >> 16) & 0xff, (haddr >> 8) & 0xff, haddr & 0xff,
@@ -301,7 +301,7 @@ const s8 *UDP_AddrToString(struct qsockaddr *addr)
 	return buffer;
 }
 
-s32 UDP_StringToAddr(const s8 *string, struct qsockaddr *addr)
+s32 UDP_StringToAddr(const c8 *string, struct qsockaddr *addr)
 {
 	s32 ha1, ha2, ha3, ha4, hp, ipaddr;
 	sscanf(string, "%d.%d.%d.%d:%d", &ha1, &ha2, &ha3, &ha4, &hp);
@@ -325,19 +325,19 @@ s32 UDP_GetSocketAddr(sys_socket_t socketid, struct qsockaddr *addr)
 	return 0;
 }
 
-s32 UDP_GetNameFromAddr(struct qsockaddr *addr, s8 *name)
+s32 UDP_GetNameFromAddr(struct qsockaddr *addr, c8 *name)
 {
-	struct hostent *hostentry = gethostbyaddr((s8*)&((struct sockaddr_in*)
+	struct hostent *hostentry = gethostbyaddr((c8*)&((struct sockaddr_in*)
 			addr)->sin_addr, sizeof(struct in_addr), AF_INET);
 	if (hostentry) {
-		strncpy(name, (s8 *)hostentry->h_name, NET_NAMELEN - 1);
+		strncpy(name, (c8 *)hostentry->h_name, NET_NAMELEN - 1);
 		return 0;
 	}
 	strcpy(name, UDP_AddrToString(addr));
 	return 0;
 }
 
-s32 UDP_GetAddrFromName(const s8 *name, struct qsockaddr *addr)
+s32 UDP_GetAddrFromName(const c8 *name, struct qsockaddr *addr)
 {
 	struct hostent *hostentry;
 	if (name[0] >= '0' && name[0] <= '9')

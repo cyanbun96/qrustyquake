@@ -27,15 +27,15 @@ a file is found by the normal search path, it will be mirrored into the cache
 directory, then opened there. */
 
 static bool com_modified; // set 1 if using non-id files
-static s8 *largv[MAX_NUM_ARGVS + 1];
-static s8 argvdummy[] = " ";
+static c8 *largv[MAX_NUM_ARGVS + 1];
+static c8 argvdummy[] = " ";
 static void COM_Path_f();
 static u8 *loadbuf;
 static cache_user_t *loadcache;
 static s32 loadsize;
 static localization_t localization;
 static bool fitzmode;
-static s8 com_cmdline[CMDLINE_LENGTH];
+static c8 com_cmdline[CMDLINE_LENGTH];
 static u16 pop[] =
 { // this graphic needs to be in the pak file to use registered features
 	     0,     0,     0,     0,     0,     0,     0,     0,
@@ -83,7 +83,7 @@ void COM_CloseFile(s32 h);
 void ClearLink(link_t *l){ l->prev = l->next = l; } // used for new headnodes
 void RemoveLink(link_t *l){ l->next->prev = l->prev; l->prev->next = l->next;}
 
-const s8 *COM_SkipSpace(const s8 *str)
+const c8 *COM_SkipSpace(const c8 *str)
 { while(isspace(*str)) str++; return str; }
 
 void InsertLinkBefore(link_t *l, link_t *before)
@@ -108,11 +108,11 @@ size_t UTF8_CodePointLength(u32 codepoint)
 //Writes a single Unicode code point using UTF-8
 //Returns the number of bytes written (up to 4),
 //or 0 on error (overflow or invalid code point)
-size_t UTF8_WriteCodePoint(s8 *dst, size_t maxbytes, u32 codepoint)
+size_t UTF8_WriteCodePoint(c8 *dst, size_t maxbytes, u32 codepoint)
 {
 	if(!maxbytes)return 0;
 	if(codepoint < 0x80){
-		dst[0] = (s8)codepoint;
+		dst[0] = (c8)codepoint;
 		return 1;
 	}
 	if(codepoint < 0x800){
@@ -144,7 +144,7 @@ size_t UTF8_WriteCodePoint(s8 *dst, size_t maxbytes, u32 codepoint)
 //valid output buffer is provided (dst is non-NULL, maxbytes > 0), or the total
 //amount of space necessary to encode the entire src string if dst is NULL and
 //maxbytes is 0.
-size_t UTF8_FromQuake(s8 *dst, size_t maxbytes, const s8 *src)
+size_t UTF8_FromQuake(c8 *dst, size_t maxbytes, const c8 *src)
 {
 	size_t i, j, written;
 	if(!maxbytes){
@@ -240,7 +240,7 @@ void MSG_WriteFloat(sizebuf_t *sb, f32 f)
 	SZ_Write(sb, &dat.l, 4);
 }
 
-void MSG_WriteString(sizebuf_t *sb, const s8 *s)
+void MSG_WriteString(sizebuf_t *sb, const c8 *s)
 {
 	if(!s) SZ_Write(sb, "", 1);
 	else SZ_Write(sb, s, strlen(s)+1);
@@ -288,8 +288,7 @@ s32 MSG_ReadChar()
 		msg_badread = 1;
 		return -1;
 	}
-// (signed char) because char signedness is ambiguous and architecture-dependent
-	s32 c = (signed char)net_message.data[msg_readcount];
+	s32 c = (s8)net_message.data[msg_readcount];
 	msg_readcount++;
 	return c;
 }
@@ -343,9 +342,9 @@ f32 MSG_ReadFloat()
 	return dat.f;
 }
 
-const s8 *MSG_ReadString()
+const c8 *MSG_ReadString()
 {
-	static s8 string[2048];
+	static c8 string[2048];
 	size_t l = 0;
 	do {
 		s32 c = MSG_ReadByte();
@@ -420,7 +419,7 @@ void *SZ_GetSpace(sizebuf_t *buf, s32 length)
 void SZ_Write(sizebuf_t *buf, const void *data, s32 length)
 { memcpy(SZ_GetSpace(buf,length),data,length); }
 
-void SZ_Print(sizebuf_t *buf, const s8 *data)
+void SZ_Print(sizebuf_t *buf, const c8 *data)
 {
 	s32 len = strlen(data) + 1;
 	if(buf->data[buf->cursize-1]) // no trailing 0
@@ -429,9 +428,9 @@ void SZ_Print(sizebuf_t *buf, const s8 *data)
 		memcpy((u8 *)SZ_GetSpace(buf, len-1)-1, data, len);
 }
 
-s32 COM_WordLength(const s8 *text)
+s32 COM_WordLength(const c8 *text)
 {
-	const s8 *start = text;
+	const c8 *start = text;
 	while (*text && !isspace (*text))
 		text++;
 	return text - start;
@@ -440,9 +439,9 @@ s32 COM_WordLength(const s8 *text)
 // Advances text by as much as possible until the maxchars limit is hit,
 // avoiding splitting words if possible. Returns the length of the consumed
 // text, excluding a potential trailing space or newline.
-s32 COM_AdvanceLineWrapped(const s8 **text, s32 maxchars)
+s32 COM_AdvanceLineWrapped(const c8 **text, s32 maxchars)
 {
-	const s8 *str = *text;
+	const c8 *str = *text;
 	s32 i = 0;
 	for(; i < maxchars && str[i];) {
 		if (str[i] == '\n') {
@@ -474,7 +473,7 @@ s32 COM_AdvanceLineWrapped(const s8 **text, s32 maxchars)
 // Copies src to dst by word-wrapping lines longer than maxcols, preserving
 // existing linefeeds. If maxcols <= 0 no wrapping is performed (plain string
 // copy). dst is always NUL terminated if dstsize > 0.
-void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols)
+void COM_WordWrap(c8 *dst, const c8 *src, s32 dstsize, s32 maxcols)
 {
 	s32 ofs;
 	if(maxcols <= 0) {
@@ -485,7 +484,7 @@ void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols)
 	--dstsize; // reserve space for terminating NUL
 	ofs = 0;
 	while(*src) {
-		const s8 *start = src;
+		const c8 *start = src;
 		s32 len = (s32)COM_AdvanceLineWrapped(&src, maxcols);
 		s32 remaining = dstsize - ofs;
 		len = q_min(len, remaining);
@@ -497,9 +496,9 @@ void COM_WordWrap(s8 *dst, const s8 *src, s32 dstsize, s32 maxcols)
 	dst[ofs++] = '\0';
 }
 
-const s8 *COM_SkipPath(const s8 *pathname)
+const c8 *COM_SkipPath(const c8 *pathname)
 {
-	const s8 *last = pathname;
+	const c8 *last = pathname;
 	while(*pathname){
 		if(*pathname == '/')
 			last = pathname + 1;
@@ -508,7 +507,7 @@ const s8 *COM_SkipPath(const s8 *pathname)
 	return last;
 }
 
-void COM_StripExtension(const s8 *in, s8 *out, size_t outsize)
+void COM_StripExtension(const c8 *in, c8 *out, size_t outsize)
 {
 	if(!*in){
 		*out = '\0';
@@ -525,9 +524,9 @@ void COM_StripExtension(const s8 *in, s8 *out, size_t outsize)
 	if(length > 0) out[length] = '\0';
 }
 
-const s8 *COM_FileGetExtension(const s8 *in)
+const c8 *COM_FileGetExtension(const c8 *in)
 { // COM_FileGetExtension - doesn't return NULL
-	const s8 *src;
+	const c8 *src;
 	size_t len = strlen(in);
 	if(len < 2) // nothing meaningful
 		return "";
@@ -539,11 +538,11 @@ const s8 *COM_FileGetExtension(const s8 *in)
 	return src;
 }
 
-void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
+void COM_FileBase(const c8 *in, c8 *out, size_t outsize)
 { // take 'somedir/otherdir/filename.ext', write only 'filename' to the output
-	const s8 *s = in;
-	const s8 *slash = in;
-	const s8 *dot = NULL;
+	const c8 *s = in;
+	const c8 *slash = in;
+	const c8 *dot = NULL;
 	while(*s){
 		if(*s == '/' || *s == '\\')
 			slash = s + 1;
@@ -562,7 +561,7 @@ void COM_FileBase(const s8 *in, s8 *out, size_t outsize)
 	}
 }
 
-void COM_AddExtension(s8 *path, const s8 *extension, size_t len)
+void COM_AddExtension(c8 *path, const c8 *extension, size_t len)
 { // if path extension != .EXT, append it(extension should include leading '.')
 	if(strcmp(COM_FileGetExtension(path), extension + 1) != 0)
 		SDL_strlcat(path, extension, len);
@@ -572,7 +571,7 @@ void COM_AddExtension(s8 *path, const s8 *extension, size_t len)
 // The mode argument controls how overflow is handled:
 // - CPE_NOTRUNC: return NULL(abort parsing)
 // - CPE_ALLOWTRUNC: truncate com_token(ignore extra characters in this token)
-const s8 *COM_ParseEx(const s8 *data, cpe_mode mode)
+const c8 *COM_ParseEx(const c8 *data, cpe_mode mode)
 {
 	s32 len = 0;
 	com_token[0] = 0;
@@ -619,12 +618,12 @@ skipwhitespace:
 	return data;
 }
 
-const s8 *COM_Parse(const s8 *data)
+const c8 *COM_Parse(const c8 *data)
 { // Parse a token out of a string, return NULL in case of overflow
 	return COM_ParseEx(data, CPE_NOTRUNC);
 }
 
-s32 COM_CheckParm(const s8 *parm) // Returns the position(1 to argc-1) in the
+s32 COM_CheckParm(const c8 *parm) // Returns the position(1 to argc-1) in the
 { // program's argument list where given parameter apears, or 0 if not present
 	for(s32 i = 1; i < com_argc; i++){
 		if(!com_argv[i]) continue;
@@ -672,7 +671,7 @@ Sys_Error("You must have the registered version to use modified games.\n\n"
 }
 
 
-void COM_InitArgv(s32 argc, s8 **argv)
+void COM_InitArgv(s32 argc, c8 **argv)
 {
 	// reconstitute the command line for the cmdline externally visible cvar
 	s32 n = 0;
@@ -717,18 +716,18 @@ void COM_Init()
 
 // Does a varargs printf into a temp buffer. Cycles between 4 different static
 // buffers. The number of buffers cycled is defined in VA_NUM_BUFFS.
-static s8 *get_va_buffer()
+static c8 *get_va_buffer()
 {
-	static s8 va_buffers[VA_NUM_BUFFS][VA_BUFFERLEN];
+	static c8 va_buffers[VA_NUM_BUFFS][VA_BUFFERLEN];
 	static s32 buffer_idx = 0;
 	buffer_idx = (buffer_idx + 1) & (VA_NUM_BUFFS - 1);
 	return va_buffers[buffer_idx];
 }
 
-s8 *va(const s8 *format, ...)
+c8 *va(const c8 *format, ...)
 {
 	va_list argptr;
-	s8 *va_buf = get_va_buffer();
+	c8 *va_buf = get_va_buffer();
 	va_start(argptr, format);
 	vsnprintf(va_buf, VA_BUFFERLEN, format, argptr);
 	va_end(argptr);
@@ -746,10 +745,10 @@ static void COM_Path_f()
 }
 
 
-void COM_WriteFile(const s8 *filename, const void *data, s32 len)
+void COM_WriteFile(const c8 *filename, const void *data, s32 len)
 { // The filename will be prefixed by the current game directory
 	s32 handle;
-	s8 name[MAX_OSPATH];
+	c8 name[MAX_OSPATH];
 	Sys_mkdir(com_gamedir); // create if nonexistant gamedir to avoid crash
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, filename);
 	handle = Sys_FileOpenWrite(name);
@@ -774,9 +773,9 @@ s64 COM_filelength(FILE *f)
 //Finds the file in the search path. Sets com_filesize and one of handle or file
 //If neither of file or handle is set, this can be used for detecting a file's
 //presence.
-static s32 COM_FindFileInternal(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
+static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 {
-	s8 netpath[MAX_OSPATH];
+	c8 netpath[MAX_OSPATH];
 	s32 i;
 	if(file && handle) Sys_Error("COM_FindFile: both handle and file set");
 	file_from_pak = 0;
@@ -843,20 +842,20 @@ static s32 COM_FindFileInternal(const s8 *name, s32 *handle, FILE **file, u32 *p
 
 // CyanBun96: a wrapper that tries lowercase and uppercase names for systems
 // with case-sensitive filesystems for mods designed in non-case-sensitive ones
-static s32 COM_FindFile(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
+static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 {
 	s32 result = COM_FindFileInternal(name, handle, file, path_id);
 	if(result >= 0) return result;
-	s8 altname[MAX_OSPATH];
+	c8 altname[MAX_OSPATH];
 	size_t i, len = strlen(name);
 	for(i = 0; i <= len; i++) // lowercase retry
-		altname[i] = (s8)tolower(name[i]);
+		altname[i] = (c8)tolower(name[i]);
 	if(strcmp(altname, name) != 0){
 		result = COM_FindFileInternal(altname, handle, file, path_id);
 		if(result >= 0) return result;
 	}
 	for(i = 0; i <= len; i++) // uppercase retry
-		altname[i] = (s8)toupper(name[i]);
+		altname[i] = (c8)toupper(name[i]);
 	if(strcmp(altname, name) != 0){
 		result = COM_FindFileInternal(altname, handle, file, path_id);
 		if(result >= 0) return result;
@@ -866,11 +865,11 @@ static s32 COM_FindFile(const s8 *name, s32 *handle, FILE **file, u32 *path_id)
 
 // filename never has a leading slash, but may contain directory walks.
 // Returns a handle and a length. It may actually be inside a pak file.
-s32 COM_OpenFile(const s8 *filename, s32 *handle, u32 *path_id)
+s32 COM_OpenFile(const c8 *filename, s32 *handle, u32 *path_id)
 { return COM_FindFile(filename, handle, NULL, path_id); }
 
 // If requested file is inside a pak, a new FILE * will be opened into the file.
-s32 COM_FOpenFile(const s8 *filename, FILE **file, u32 *path_id)
+s32 COM_FOpenFile(const c8 *filename, FILE **file, u32 *path_id)
 { return COM_FindFile(filename, NULL, file, path_id); }
 
 void COM_CloseFile(s32 h)
@@ -881,11 +880,11 @@ void COM_CloseFile(s32 h)
 	Sys_FileClose(h);
 }
 
-u8 *COM_LoadFile(const s8 *path, s32 usehunk, u32 *path_id)
+u8 *COM_LoadFile(const c8 *path, s32 usehunk, u32 *path_id)
 { // Filename are reletive to the quake directory. Allways appends a 0.
 	s32 h;
 	u8 *buf = NULL;
-	s8 base[32];
+	c8 base[32];
 	s32 len = COM_OpenFile(path, &h, path_id); //look in filesystem or packs
 	if(h == -1) return NULL;
 	// extract the filename base name for hunk tag
@@ -909,23 +908,23 @@ u8 *COM_LoadFile(const s8 *path, s32 usehunk, u32 *path_id)
 	return buf;
 }
 
-u8 *COM_LoadHunkFile(const s8 *path, u32 *path_id)
+u8 *COM_LoadHunkFile(const c8 *path, u32 *path_id)
 { return COM_LoadFile(path, LOADFILE_HUNK, path_id); }
 
-u8 *COM_LoadZoneFile(const s8 *path, u32 *path_id)
+u8 *COM_LoadZoneFile(const c8 *path, u32 *path_id)
 { return COM_LoadFile(path, LOADFILE_ZONE, path_id); }
 
-u8 *COM_LoadTempFile(const s8 *path, u32 *path_id)
+u8 *COM_LoadTempFile(const c8 *path, u32 *path_id)
 { return COM_LoadFile(path, LOADFILE_TEMPHUNK, path_id); }
 
-void COM_LoadCacheFile(const s8 *path, struct cache_user_s *cu, u32 *path_id)
+void COM_LoadCacheFile(const c8 *path, struct cache_user_s *cu, u32 *path_id)
 {
 	loadcache = cu;
 	COM_LoadFile(path, LOADFILE_CACHE, path_id);
 }
 
 
-u8 *COM_LoadStackFile(const s8 *path, void *buffer, s32 bufsize, u32 *path_id)
+u8 *COM_LoadStackFile(const c8 *path, void *buffer, s32 bufsize, u32 *path_id)
 { // uses temp hunk if larger than bufsize
 	loadbuf = (u8 *)buffer;
 	loadsize = bufsize;
@@ -934,24 +933,24 @@ u8 *COM_LoadStackFile(const s8 *path, void *buffer, s32 bufsize, u32 *path_id)
 }
 
 
-u8 *COM_LoadMallocFile(const s8 *path, u32 *path_id) // returns malloc'd memory
+u8 *COM_LoadMallocFile(const c8 *path, u32 *path_id) // returns malloc'd memory
 { return COM_LoadFile(path, LOADFILE_MALLOC, path_id); }
 
-const s8 *COM_ParseIntNewline(const s8 *buffer, s32 *value)
+const c8 *COM_ParseIntNewline(const c8 *buffer, s32 *value)
 {
 	s32 consumed = 0;
 	sscanf(buffer, "%i\n%n", value, &consumed);
 	return buffer + consumed;
 }
 
-const s8 *COM_ParseFloatNewline(const s8 *buffer, f32 *value)
+const c8 *COM_ParseFloatNewline(const c8 *buffer, f32 *value)
 {
 	s32 consumed = 0;
 	sscanf(buffer, "%f\n%n", value, &consumed);
 	return buffer + consumed;
 }
 
-const s8 *COM_ParseStringNewline(const s8 *buffer)
+const c8 *COM_ParseStringNewline(const c8 *buffer)
 {
 	s32 consumed = 0;
 	com_token[0] = '\0';
@@ -962,7 +961,7 @@ const s8 *COM_ParseStringNewline(const s8 *buffer)
 // Takes an explicit(not game tree related) path to a pak file.
 // Loads the header and directory, adding the files at the beginning
 // of the list so they override previous pack files.
-static pack_t *COM_LoadPackFile(const s8 *packfile)
+static pack_t *COM_LoadPackFile(const c8 *packfile)
 {
 	dpackfile_t info[MAX_FILES_IN_PACK];
 	s32 packhandle;
@@ -1009,9 +1008,9 @@ static pack_t *COM_LoadPackFile(const s8 *packfile)
 	return pack;
 }
 
-static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
+static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 {
-	s8 pakfile[MAX_OSPATH+32];
+	c8 pakfile[MAX_OSPATH+32];
 	bool been_here = 0;
 	SDL_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
 	u32 path_id = com_searchpaths ? com_searchpaths->path_id << 1 : 1U;
@@ -1051,10 +1050,10 @@ static void COM_AddGameDirectory(const s8 *base, const s8 *dir)
 	}
 }
 
-void SetWorldPal(s8 *path, s8 *cmappath)
+void SetWorldPal(c8 *path, c8 *cmappath)
 {
 	u8 worldpalbuf[768];
-	s8 ppath[MAX_OSPATH] = "gfx/";
+	c8 ppath[MAX_OSPATH] = "gfx/";
 	SDL_strlcat(ppath, path, MAX_OSPATH);
 	SDL_strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
@@ -1064,7 +1063,7 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 		{Con_Printf("Failed reading %s\n", ppath); fclose(f); return;}
 	fclose(f);
 	u8 worldcmapbuf[256*64];
-	s8 cmpath[MAX_OSPATH] = "gfx/";
+	c8 cmpath[MAX_OSPATH] = "gfx/";
 	SDL_strlcat(cmpath, cmappath, MAX_OSPATH);
 	SDL_strlcat(cmpath, ".lmp", MAX_OSPATH);
 	COM_FOpenFile(cmpath, &f, NULL);
@@ -1082,10 +1081,10 @@ void SetWorldPal(s8 *path, s8 *cmappath)
 	fog_lut_built = lit_lut_initialized = 0;
 }
 
-void SetUiPal(s8 *path)
+void SetUiPal(c8 *path)
 {
 	u8 uipalbuf[768];
-	s8 ppath[MAX_OSPATH] = "gfx/";
+	c8 ppath[MAX_OSPATH] = "gfx/";
 	SDL_strlcat(ppath, path, MAX_OSPATH);
 	SDL_strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
@@ -1127,8 +1126,8 @@ static void COM_Game_f()
 		Con_Printf("\"game\" is \"%s\"\n", COM_SkipPath(com_gamedir));
 		return;
 	}
-	const s8 *p = Cmd_Argv(1);
-	const s8 *p2 = Cmd_Argv(2);
+	const c8 *p = Cmd_Argv(1);
+	const c8 *p2 = Cmd_Argv(2);
 	searchpath_t *search;
 	if(!registered.value){ // disable shareware quake
 Con_Printf("You must have the registered version to use modified games\n");
@@ -1217,7 +1216,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	else { // just update com_gamedir
 		snprintf(com_gamedir, sizeof(com_gamedir), "%s/%s",
 				(host_parms.userdir != host_parms.basedir)?
-				(s8 *)host_parms.userdir : com_basedir,
+				(c8 *)host_parms.userdir : com_basedir,
 				GAMENAME);
 	}
 	Cache_Flush();
@@ -1263,7 +1262,7 @@ void COM_InitFilesystem()
 		COM_AddGameDirectory(com_basedir, "quoth");
 	i = COM_CheckParm("-game");
 	if(i && i < com_argc-1){
-		const s8 *p = com_argv[i + 1];
+		const c8 *p = com_argv[i + 1];
 		if(!*p || !strcmp(p, ".") || strstr(p, "..") || strstr(p, "/")
 				|| strstr(p, "\\") || strstr(p, ":"))
 	Sys_Error("gamedir should be a single directory name, not a path\n");
@@ -1347,17 +1346,17 @@ s32 FS_feof(fshandle_t *fh)
 	return 0;
 }
 
-s8 *FS_fgets(s8 *s, s32 size, fshandle_t *fh)
+c8 *FS_fgets(c8 *s, s32 size, fshandle_t *fh)
 {
 	if(FS_feof(fh)) return NULL;
 	if(size > (fh->length - fh->pos) + 1)
 		size = (fh->length - fh->pos) + 1;
-	s8 *ret = fgets(s, size, fh->file);
+	c8 *ret = fgets(s, size, fh->file);
 	fh->pos = ftell(fh->file) - fh->start;
 	return ret;
 }
 
-u32 COM_HashString(const s8 *str)
+u32 COM_HashString(const c8 *str)
 { // Computes the FNV-1a hash of string str
 	u32 hash = 0x811c9dc5u;
 	while(*str){ hash ^= *str++; hash *= 0x01000193u; }
@@ -1372,18 +1371,18 @@ bool LOC_Init()
 	}
 	localization.numentries = 0;
 	localization.numindices = 0;
-	localization.text = (s8*)COM_LoadMallocFile("localization/loc_english.txt", 0);
+	localization.text = (c8*)COM_LoadMallocFile("localization/loc_english.txt", 0);
 	if(!localization.text){
 		Con_DPrintf("Couldn't load localization/loc_english.txt\n");
 		return 0;
 	}
-	s8 *cursor = localization.text;
+	c8 *cursor = localization.text;
 	if((u8)(cursor[0])==0xEF&&(u8)(cursor[1])==0xBB&&(u8)(cursor[2])==0xBF)
 		cursor += 3; // skip BOM
 	s32 warnings = 0;
 	s32 lineno = 0;
 	while(*cursor){
-		s8 *line, *equals;
+		c8 *line, *equals;
 		lineno++;
 		while(isblank(*cursor)) ++cursor; // skip leading whitespace
 		line = cursor;
@@ -1401,13 +1400,13 @@ bool LOC_Init()
 	Con_DPrintf("LOC_LoadFile: malformed comment on line %d\n", lineno);
 		}
 		else if(equals){
-			s8 *key_end = equals;
+			c8 *key_end = equals;
 			bool leading_quote;
 			bool trailing_quote;
 			locentry_t *entry;
-			s8 *value_src;
-			s8 *value_dst;
-			s8 *value;
+			c8 *value_src;
+			c8 *value_dst;
+			c8 *value;
 			// trim whitespace before equals sign
 			while(key_end != line && isspace(key_end[-1]))
 				key_end--;
@@ -1424,7 +1423,7 @@ bool LOC_Init()
 			value_dst = value;
 			while(value_src != cursor){
 				if(*value_src=='\\' && value_src+1!=cursor){
-					s8 c = value_src[1];
+					c8 c = value_src[1];
 					value_src += 2;
 					switch(c){
 					case 'n': *value_dst++ = '\n'; break;
@@ -1509,7 +1508,7 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 	return 1;
 }
 
-const s8* LOC_GetRawString(const s8 *key)
+const c8* LOC_GetRawString(const c8 *key)
 { // Returns localized string if available, or NULL otherwise
 	if(!localization.numindices || !key || !*key || *key != '$')return NULL;
 	key++;
@@ -1527,18 +1526,18 @@ const s8* LOC_GetRawString(const s8 *key)
 	return NULL;
 }
 
-const s8* LOC_GetString(const s8 *key)
+const c8* LOC_GetString(const c8 *key)
 { // Returns localized string if available, or input string otherwise
-	const s8* value = LOC_GetRawString(key);
+	const c8* value = LOC_GetRawString(key);
 	return value ? value : key;
 }
 
 // Returns argument index(>= 0) and advances the string if it starts with a
 // placeholder({} or {N}), otherwise returns a negative value and leaves the
 // pointer unchanged
-static s32 LOC_ParseArg(const s8 **pstr)
+static s32 LOC_ParseArg(const c8 **pstr)
 {
-	const s8 *str = *pstr;
+	const c8 *str = *pstr;
 	if(*str != '{') return -1; // opening brace
 	++str;
 	s32 arg = 0; // optional index, defaulting to 0
@@ -1548,7 +1547,7 @@ static s32 LOC_ParseArg(const s8 **pstr)
 	return arg;
 }
 
-bool LOC_HasPlaceholders(const s8 *str)
+bool LOC_HasPlaceholders(const c8 *str)
 {
 	if(!localization.numindices) return 0;
 	while(*str){
@@ -1561,8 +1560,8 @@ bool LOC_HasPlaceholders(const s8 *str)
 // Replaces placeholders(of the form {} or {N}) with the corresponding arguments
 // Returns number of written chars, excluding the NUL terminator
 // If len > 0, output is always NUL-terminated
-size_t LOC_Format(const s8 *format, const s8* (*getarg_fn)
-		(s32 idx, void* userdata), void* userdata, s8* out, size_t len)
+size_t LOC_Format(const c8 *format, const c8* (*getarg_fn)
+		(s32 idx, void* userdata), void* userdata, c8* out, size_t len)
 {
 	size_t written = 0;
 	s32 numargs = 0;
@@ -1572,7 +1571,7 @@ size_t LOC_Format(const s8 *format, const s8* (*getarg_fn)
 	}
 	--len; // reserve space for the terminator
 	while(*format && written < len){
-		const s8* insert;
+		const c8* insert;
 		size_t space_left;
 		size_t insert_len;
 		s32 argindex = LOC_ParseArg(&format);

@@ -46,13 +46,13 @@ static MIX_Mixer *mixer = NULL;
 static MIX_Audio *current_music = NULL;
 static MIX_Track *track = NULL;
 static SDL_PropertiesID trackprops = 0;
-static s8 current_name[MAX_OSPATH];
+static c8 current_name[MAX_OSPATH];
 static u8 *loaded_file = NULL;
 static float last_volume = -1;
 
-void BGM_Play(s8 *musicname, SDL_UNUSED bool looping)
+void BGM_Play(c8 *musicname, SDL_UNUSED bool looping)
 {
-	s8 filename[MAX_OSPATH];
+	c8 filename[MAX_OSPATH];
 	u8 *file = NULL;
 	SDL_IOStream *io = NULL;
 	MIX_Audio *music = NULL;
@@ -119,7 +119,7 @@ static void BGM_Play_f()
 
 void CDAudio_Play(u8 track, bool looping)
 {
-	s8 name[16];
+	c8 name[16];
 	snprintf(name, sizeof(name), "track%02d", (s32)track);
 	BGM_Play(name, looping);
 }

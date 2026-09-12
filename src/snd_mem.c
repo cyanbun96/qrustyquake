@@ -9,7 +9,7 @@ static u8 *iff_end;
 static u8 *last_chunk;
 static u8 *iff_data;
 static s32 iff_chunk_len;
-wavinfo_t GetWavinfo(const s8 *name, u8 *wav, s32 wavlength);
+wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength);
 
 static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 {
@@ -20,14 +20,14 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 	sc->length = outcount;
 	if(sc->loopstart != -1) sc->loopstart = sc->loopstart / stepscale;
 	sc->speed = shm->speed;
-	if(loadas8bit.value) sc->width = 1;
+	if(loadac8bit.value) sc->width = 1;
 	else sc->width = inwidth;
 	sc->stereo = 0;
 	// resample / decimate to the current source rate
 	if(stepscale == 1 && inwidth == 1 && sc->width == 1) {
 		// fast special case
 		for(s32 i = 0; i < outcount; i++)
-			((s8 *)sc->data)[i] = (s32)((u8)(data[i]) - 128);
+			((c8 *)sc->data)[i] = (s32)((u8)(data[i]) - 128);
 	} else {
 		// general case
 		// samplefrac can overflow 2**31 with very big sounds, see below
@@ -40,14 +40,14 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 				LittleShort(((s16 *)data)[srcsample]):
 				(s32)((u8)(data[srcsample]) - 128) << 8;
 			if(sc->width == 2) ((s16 *)sc->data)[i] = sample;
-			else ((s8 *)sc->data)[i] = sample >> 8;
+			else ((c8 *)sc->data)[i] = sample >> 8;
 		}
 	}
 }
 
 sfxcache_t *S_LoadSound(sfx_t *s)
 {
-	s8 namebuffer[256];
+	c8 namebuffer[256];
 	u8 stackbuf[1*1024]; // avoid dirtying the cache heap
 	sfxcache_t *sc = (sfxcache_t *) Cache_Check(&s->cache);
 	if(sc) return sc; // see if still in memory
@@ -103,7 +103,7 @@ static s32 GetLittleLong()
 	return val;
 }
 
-static void FindNextChunk(const s8 *name)
+static void FindNextChunk(const c8 *name)
 {
 	while(1) {
 		if(last_chunk + 8 >= iff_end) {
@@ -118,17 +118,17 @@ static void FindNextChunk(const s8 *name)
 		}
 		last_chunk = data_p + ((iff_chunk_len + 1) & ~1);
 		data_p -= 8;
-		if(!strncmp((s8 *)data_p, name, 4)) return;
+		if(!strncmp((c8 *)data_p, name, 4)) return;
 	}
 }
 
-static void FindChunk(const s8 *name)
+static void FindChunk(const c8 *name)
 {
 	last_chunk = iff_data;
 	FindNextChunk(name);
 }
 
-wavinfo_t GetWavinfo(const s8 *name, u8 *wav, s32 wavlength)
+wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 {
 	wavinfo_t info;
 	memset(&info, 0, sizeof(info));
@@ -136,7 +136,7 @@ wavinfo_t GetWavinfo(const s8 *name, u8 *wav, s32 wavlength)
 	iff_data = wav;
 	iff_end = wav + wavlength;
 	FindChunk("RIFF");
-	if(!(data_p && !strncmp((s8 *)data_p + 8, "WAVE", 4))) {
+	if(!(data_p && !strncmp((c8 *)data_p + 8, "WAVE", 4))) {
 		Con_Printf("%s missing RIFF/WAVE chunks\n", name);
 		return info;
 	}
@@ -165,7 +165,7 @@ wavinfo_t GetWavinfo(const s8 *name, u8 *wav, s32 wavlength)
 		//if the next chunk is a LIST chunk look for a cue length marker
 		FindNextChunk("LIST");
 		if(data_p) {
-			if(!strncmp((s8 *)data_p + 28, "mark", 4)) {
+			if(!strncmp((c8 *)data_p + 28, "mark", 4)) {
 				data_p += 24;
 				i = GetLittleLong(); // samples in loop
 				info.samples = info.loopstart + i;

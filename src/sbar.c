@@ -143,7 +143,7 @@ static qpic_t plasma8x8 = { 8, 8, {
 	0xff,0x23,0x26,0x29,0x26,0x23,0xff,0xff,
 	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
 }};
-static s8 lvnamebuf[21];
+static c8 lvnamebuf[21];
 static s32 oldhudstyle;
 static qpic_t *sb_nums[2][11];
 static qpic_t *sb_colon, *sb_slash;
@@ -296,9 +296,9 @@ void Sbar_Init()
 	Cvar_RegisterVariable(&scr_sidescore);
 }
 
-s32 Sbar_itoa(s32 num, s8 *buf)
+s32 Sbar_itoa(s32 num, c8 *buf)
 {
-	s8 *str = buf;
+	c8 *str = buf;
 	if (num < 0) {
 		*str++ = '-';
 		num = -num;
@@ -317,15 +317,15 @@ s32 Sbar_itoa(s32 num, s8 *buf)
 
 void Sbar_DrawNum(s32 x, s32 y, s32 num, s32 digits, s32 color)
 {
-	s8 str[12];
+	c8 str[12];
 	s32 l = Sbar_itoa(num, str);
-	s8 *ptr = str;
+	c8 *ptr = str;
 	if (l > digits)
 		ptr += (l - digits);
 	if (l < digits)
 		x += (digits - l) * 24*SCL;
 	while (*ptr) {
-		s32 frame = *ptr == '-' ? 10 : *ptr - '0'; // 10 = '-' s8
+		s32 frame = *ptr == '-' ? 10 : *ptr - '0'; // 10 = '-' c8
 		Draw_TransPicScaled(x, y, sb_nums[color][frame], SCL);
 		x += 24*SCL;
 		ptr++;
@@ -334,7 +334,7 @@ void Sbar_DrawNum(s32 x, s32 y, s32 num, s32 digits, s32 color)
 
 void Sbar_DrawNumSmall(s32 x, s32 y, s32 num, s32 color)
 {
-	s8 buf[6];
+	c8 buf[6];
 	sprintf(buf, "%3i", num);
 	if      (color == 0) color = 48;
 	else if (color == 1) color = 18;
@@ -368,10 +368,10 @@ void Sbar_SortFrags()
 
 void Sbar_UpdateLevelNameBuf()
 {
-	s8 *src = cl.levelname;
+	c8 *src = cl.levelname;
 	s32 len = strlen(src);
-	static s8 last_levelname[128];
-	static s8 scrollbuf[128];
+	static c8 last_levelname[128];
+	static c8 scrollbuf[128];
 	if (strcmp(last_levelname, src) != 0) {
 		strncpy(last_levelname, src, sizeof(last_levelname) - 1);
 		last_levelname[sizeof(last_levelname) - 1] = '\0';
@@ -392,7 +392,7 @@ void Sbar_UpdateLevelNameBuf()
 void Sbar_SoloScoreboard()
 {
 	s32 xx = (oldhudstyle == 4 && WW/SCL >= 640)*-160*SCL;
-	s8 str[80];
+	c8 str[80];
 	sprintf(str, "Monsters:%3i /%3i", cl.stats[STAT_MONSTERS],
 			cl.stats[STAT_TOTALMONSTERS]);
 	Draw_StringScaled(WW/2-152*SCL+xx, HH-20*SCL, str, SCL);

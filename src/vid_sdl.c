@@ -22,13 +22,13 @@ void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_AllocBuffers();
 void VID_VidFullscreenCommand_f();
 
-s32 VID_GetConfigCvar(const s8 *cvname)
+s32 VID_GetConfigCvar(const c8 *cvname)
 {
 	// CyanBun96: _vid_default_mode_win gets read from config.cfg only after
 	// video is initialized. To avoid creating a window and textures just to
 	// destroy them right away and only then replace them with valid ones,
 	// this function reads the default mode independently of the cvar status
-	s8 line[256], path[MAX_OSPATH];
+	c8 line[256], path[MAX_OSPATH];
 	snprintf(path, sizeof(path), "%s/config.cfg", com_gamedir);
 	s32 ret = -1;
 	FILE *file = fopen(path, "r");
@@ -37,11 +37,11 @@ s32 VID_GetConfigCvar(const s8 *cvname)
 		return -2;
 	}
 	while(fgets(line, sizeof(line), file)){
-		s8 *found = strstr(line, cvname);
+		c8 *found = strstr(line, cvname);
 		if(found){
-			s8 *start = strchr(found, '"');
+			c8 *start = strchr(found, '"');
 			if(start){
-				s8 *end = strchr(start + 1, '"');
+				c8 *end = strchr(start + 1, '"');
 				if(end){
 					*end = '\0';
 					ret = atoi(start + 1);
@@ -133,7 +133,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	s32 pnum;
 	s32 winmode;
 	s32 defmode = -1;
-	s8 caption[50];
+	c8 caption[50];
 	Cvar_RegisterVariable(&_windowed_mouse);
 	Cvar_RegisterVariable(&_vid_default_mode_win);
 	Cvar_RegisterVariable(&vid_mode);
@@ -248,7 +248,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	SDL_SetTextureScaleMode(texture, scalemode);
 	windowSurface = SDL_GetWindowSurface(window);
 	sprintf(caption, "QrustyQuake - Version %4.2f", VERSION);
-	SDL_SetWindowTitle(window, (const s8 *)&caption);
+	SDL_SetWindowTitle(window, (const c8 *)&caption);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	vid.numpages = 1;
 	vid.colormap = host_colormap;
@@ -367,9 +367,9 @@ void VID_Update()
 	memset(screenui->pixels, 255, vid.width*vid.height);
 }
 
-s8 *VID_GetModeDescription(s32 mode)
+c8 *VID_GetModeDescription(s32 mode)
 {
-	static s8 pinfo[40];
+	static c8 pinfo[40];
 	if((mode < 0) || (mode >= NUM_OLDMODES))
 		sprintf(pinfo, "Custom fullscreen");
 	else if(mode >= 3)

@@ -45,7 +45,7 @@ edgetable edgetables[12] = {
 	{ 0, 1, r_p0, r_p2, NULL, 1, r_p0, r_p1, NULL },
 };
 
-void D_PolysetDrawSpans8(spanpackage_t * pspanpackage);
+void D_PolysetDrawSpanc8(spanpackage_t * pspanpackage);
 void D_PolysetCalcGradients(s32 skinwidth);
 void D_DrawSubdiv();
 void D_DrawNonSubdiv();
@@ -424,7 +424,7 @@ void D_PolysetCalcGradients(s32 skinwidth)
 	a_ststepxwhole = skinwidth * (r_tstepx >> 16) + (r_sstepx >> 16);
 }
 
-void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
+void D_PolysetDrawSpanc8(spanpackage_t *pspanpackage)
 {
 	do {
 		s32 lcount = d_aspancount - pspanpackage->count;
@@ -443,7 +443,7 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 			if (lpdest < d_viewbuffer || lpdest + lcount > dest_end ||
 				lpz < d_pzbuffer || lpz + lcount > z_end) {
 				#ifdef DEBUG
-				Con_DPrintf("D_PolysetDrawSpans8: Invalid span\n");
+				Con_DPrintf("D_PolysetDrawSpanc8: Invalid span\n");
 				#endif
 				pspanpackage++;
 				continue;
@@ -494,7 +494,7 @@ void D_PolysetDrawSpans8(spanpackage_t *pspanpackage)
 	} while (pspanpackage->count != -999999);
 }
 
-void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
+void D_PolysetDrawSpanc8Dithered(spanpackage_t *pspanpackage)
 {
 	do {
 		s32 lcount = d_aspancount - pspanpackage->count;
@@ -513,7 +513,7 @@ void D_PolysetDrawSpans8Dithered(spanpackage_t *pspanpackage)
 			if (lpdest < d_viewbuffer || lpdest + lcount > dest_end ||
 				lpz < d_pzbuffer || lpz + lcount > z_end) {
 				#ifdef DEBUG
-				Con_DPrintf("D_PolysetDrawSpans8Dithered: Invalid span\n");
+				Con_DPrintf("D_PolysetDrawSpanc8Dithered: Invalid span\n");
 				#endif
 				pspanpackage++;
 				continue;
@@ -732,8 +732,8 @@ void D_RasterizeAliasPolySmooth()
 	d_countextrastep = ubasestep + 1;
 	originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of the spanpackages
-	if (r_dithertex.value) D_PolysetDrawSpans8Dithered(a_spans);
-	else D_PolysetDrawSpans8(a_spans);
+	if (r_dithertex.value) D_PolysetDrawSpanc8Dithered(a_spans);
+	else D_PolysetDrawSpanc8(a_spans);
 	// scan out the bottom part of the right edge, if it exists
 	if (pedgetable->numrightedges == 2) {
 		spanpackage_t *pstart;
@@ -747,8 +747,8 @@ void D_RasterizeAliasPolySmooth()
 				prightbottom[0], prightbottom[1]);
 		d_countextrastep = ubasestep + 1;
 		a_spans[initialrightheight + height].count = -999999;
-		if (r_dithertex.value) D_PolysetDrawSpans8Dithered(pstart);
-		else D_PolysetDrawSpans8(pstart);//mark end of the spanpackages
+		if (r_dithertex.value) D_PolysetDrawSpanc8Dithered(pstart);
+		else D_PolysetDrawSpanc8(pstart);//mark end of the spanpackages
 	}
 }
 

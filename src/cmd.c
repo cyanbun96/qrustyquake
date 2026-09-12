@@ -6,9 +6,9 @@
 #include "quakedef.h"
 
 static s32 cmd_argc;
-static s8 *cmd_argv[MAX_ARGS];
-static s8 *cmd_null_string = "";
-static s8 *cmd_args = NULL;
+static c8 *cmd_argv[MAX_ARGS];
+static c8 *cmd_null_string = "";
+static c8 *cmd_args = NULL;
 static cmdalias_t *cmd_alias; 
 static bool cmd_wait;
 static sizebuf_t cmd_text;
@@ -21,10 +21,10 @@ void Cmd_Wait_f(){ cmd_wait = 1; }
 void Cbuf_Init(){ SZ_Alloc(&cmd_text, 1<<18); }
 void Cbuf_Waited(){ cmd_wait = 0; } // Spike: for renderer/server isolation
 s32 Cmd_Argc(){ return cmd_argc; }
-s8 *Cmd_Args(){ return cmd_args; }
-s8 *Cmd_Argv(s32 arg){ return arg>=cmd_argc ? cmd_null_string : cmd_argv[arg]; }
+c8 *Cmd_Args(){ return cmd_args; }
+c8 *Cmd_Argv(s32 arg){ return arg>=cmd_argc ? cmd_null_string : cmd_argv[arg]; }
 
-void Cbuf_AddText(const s8 *text)
+void Cbuf_AddText(const c8 *text)
 { // Adds command text at the end of the buffer
 	s32 l = strlen(text);
 	if(cmd_text.cursize + l >= cmd_text.maxsize){
@@ -43,9 +43,9 @@ void Cbuf_AddTextLen(const char *text, int l)
 	SZ_Write(&cmd_text, text, l);
 }
 
-void Cbuf_InsertText(s8 *text)
+void Cbuf_InsertText(c8 *text)
 { // Adds command text immediately after the current command, adds a \n to text
-	s8 *temp = NULL; // copy off any commands still remaining
+	c8 *temp = NULL; // copy off any commands still remaining
 	s32 templen = cmd_text.cursize; // in the exec buffer
 	if(templen){
 		temp = Z_Malloc(templen);
@@ -61,9 +61,9 @@ void Cbuf_InsertText(s8 *text)
 
 void Cbuf_Execute()
 { // Spike: reworked 'wait' for renderer/server rate independance
-	s8 line[1024];
+	c8 line[1024];
 	while(cmd_text.cursize && !cmd_wait){ // find a \n or ; line break
-		s8 *text = (s8 *)cmd_text.data;
+		c8 *text = (c8 *)cmd_text.data;
 		s32 quotes = 0, comment = 0;
 		s32 i = 0;
 		for(; i < cmd_text.cursize; i++){
@@ -99,7 +99,7 @@ void Cbuf_Execute()
 // quake -nosound +cmd amlev1
 void Cmd_StuffCmds_f() // Script Commands
 {
-	s8 cmds[CMDLINE_LENGTH];
+	c8 cmds[CMDLINE_LENGTH];
 	s32 plus = 0; // On Unix, argv[0] is command name
 	s32 j = 0;
 	for(s32 i = 0; cmdline.string[i]; i++){
@@ -125,7 +125,7 @@ void Cmd_Exec_f()
 		return;
 	}
 	s32 mark = Hunk_LowMark();
-	s8 *f = (s8 *)COM_LoadHunkFile(Cmd_Argv(1), NULL);
+	c8 *f = (c8 *)COM_LoadHunkFile(Cmd_Argv(1), NULL);
 	if(!f){
 		Con_Printf("couldn't exec %s\n", Cmd_Argv(1));
 		return;
@@ -142,9 +142,9 @@ void Cmd_Echo_f()
 	Con_Printf("\n");
 }
 
-s8 *CopyString(s8 *in)
+c8 *CopyString(c8 *in)
 {
-	s8 *out = Z_Malloc(strlen(in) + 1);
+	c8 *out = Z_Malloc(strlen(in) + 1);
 	strcpy(out, in);
 	return out;
 }
@@ -152,8 +152,8 @@ s8 *CopyString(s8 *in)
 void Cmd_Alias_f() // johnfitz -- rewritten
 { // Creates a new command that executes a command string(possibly ; seperated)
 	cmdalias_t *a;
-	s8 cmd[1024];
-	s8 *s;
+	c8 cmd[1024];
+	c8 *s;
 	s32 i;
 	switch(Cmd_Argc()){
 	case 1: // list all aliases
@@ -243,7 +243,7 @@ void Cmd_Unaliasall_f() // -- johnfitz
 
 void Cmd_List_f() // Command Execution // -- johnfitz
 {
-	s8 *partial = NULL;
+	c8 *partial = NULL;
 	s32 len = 0;
 	if(Cmd_Argc() > 1){
 		partial = Cmd_Argv(1);
@@ -273,7 +273,7 @@ void Cmd_Init()
 	Cmd_AddCommand("wait", Cmd_Wait_f);
 }
 
-void Cmd_TokenizeString(const s8 *text)
+void Cmd_TokenizeString(const c8 *text)
 { // Parses the given string into command line tokens.
 	for(s32 i = 0; i < cmd_argc; i++)
 		Z_Free(cmd_argv[i]); // clear the args from the last string
@@ -287,7 +287,7 @@ void Cmd_TokenizeString(const s8 *text)
 			break;
 		}
 		if(!*text) return;
-		if(cmd_argc == 1) cmd_args = (s8 *)text;
+		if(cmd_argc == 1) cmd_args = (c8 *)text;
 		text = COM_Parse(text);
 		if(!text) return;
 		if(cmd_argc < MAX_ARGS){
@@ -298,7 +298,7 @@ void Cmd_TokenizeString(const s8 *text)
 	}
 }
 
-cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
+cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
 				cmd_source_t srctype, bool qcinterceptable)
 {
 	cmd_function_t *cmd;
@@ -320,11 +320,11 @@ cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
 		cmd = (cmd_function_t *)malloc(sizeof(*cmd)+strlen(cmd_name)+1);
 		if(!cmd)
 		    Sys_Error("Cmd_AddCommand2: out of memory(%s)", cmd_name);
-		cmd->name = strcpy((s8*)(cmd + 1), cmd_name);
+		cmd->name = strcpy((c8*)(cmd + 1), cmd_name);
 		cmd->dynamic = true;
 	} else {
 		cmd = (cmd_function_t *) Hunk_Alloc(sizeof(*cmd));
-		cmd->name = (s8*)cmd_name;
+		cmd->name = (c8*)cmd_name;
 		cmd->dynamic = false;
 	}
 	cmd->function = function;
@@ -347,7 +347,7 @@ cmd_function_t *Cmd_AddCommand2(const s8 *cmd_name, xcommand_t function,
 	return cmd;
 }
 
-s32 Cmd_ListCompletions(const s8 *text)
+s32 Cmd_ListCompletions(const c8 *text)
 {
 	s32 len = strlen(text);
 	s32 tot = 0;
@@ -368,14 +368,14 @@ s32 Cmd_ListCompletions(const s8 *text)
 	return tot;
 }
 
-bool Cmd_Exists(const s8 *cmd_name)
+bool Cmd_Exists(const c8 *cmd_name)
 {
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
 		if(!strcmp(cmd_name, cmd->name)) return 1;
 	return 0;
 }
 
-s8 *Cmd_CompleteCommand(s8 *partial)
+c8 *Cmd_CompleteCommand(c8 *partial)
 {
 	s32 len = strlen(partial);
 	if(!len) return NULL;
@@ -385,7 +385,7 @@ s8 *Cmd_CompleteCommand(s8 *partial)
 	return NULL;
 }
 
-bool Cmd_ExecuteString(const s8 *text, cmd_source_t src)
+bool Cmd_ExecuteString(const c8 *text, cmd_source_t src)
 { // A complete command line has been parsed, so try to execute it
 	cmd_source = src;
 	Cmd_TokenizeString(text);

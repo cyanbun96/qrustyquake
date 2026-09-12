@@ -96,7 +96,7 @@ void CL_Disconnect_f()
 	if(sv.active) Host_ShutdownServer(0);
 }
 
-void CL_EstablishConnection(s8 *host)
+void CL_EstablishConnection(c8 *host)
 { // Host should be either "local" or a net address to be passed on
 	if(cls.state == ca_dedicated || cls.demoplayback) return;
 	CL_Disconnect();
@@ -110,7 +110,7 @@ void CL_EstablishConnection(s8 *host)
 
 void CL_SignonReply()
 { // An svc_signonnum has been received, perform a client side setup
-	s8 str[8192];
+	c8 str[8192];
 	Con_DPrintf("CL_SignonReply: %i\n", cls.signon);
 	switch(cls.signon){
 	case 1:
@@ -141,7 +141,7 @@ void CL_SignonReply()
 
 void CL_NextDemo()
 { // Called to play the next demo in the demo loop
-	s8 str[1024];
+	c8 str[1024];
 	if(cls.demonum == -1) return; // don't play demos
 	SCR_BeginLoadingPlaque();
 	if(!cls.demos[cls.demonum][0] || cls.demonum == MAX_DEMOS){

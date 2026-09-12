@@ -122,7 +122,7 @@ void CL_Record_f()
 		track = atoi(Cmd_Argv(3));
 		Con_Printf("Forcing CD track to %i\n", cls.forcetrack);
 	}
-	s8 name[MAX_OSPATH+2];
+	c8 name[MAX_OSPATH+2];
 	sprintf(name, "%s/%s", com_gamedir, Cmd_Argv(1));
 	if(c > 2) // start the map up
 		Cmd_ExecuteString(va("map %s", Cmd_Argv(2)), src_command);
@@ -148,7 +148,7 @@ void CL_PlayDemo_f()
 	}
 	if(key_dest == key_console) key_dest = key_game; //withdraw console/menu
 	CL_Disconnect(); // disconnect from server
-	s8 name[256];
+	c8 name[256];
 	strcpy(name, Cmd_Argv(1)); // open the demo file
 	COM_AddExtension (name, ".dem", sizeof(name));
 	Con_Printf("Playing demo from %s.\n", name);

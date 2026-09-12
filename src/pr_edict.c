@@ -18,11 +18,11 @@ const s32 type_size[NUM_TYPE_SIZES] = {
 static ddef_t *ED_FieldAtOfs(s32 ofs);
 static bool ED_ParseEpair(void *base, ddef_t *key, const char *s, bool zoned);
 
-static void PR_HashInit(prhashtable_t *table, s32 capacity, const s8 *name)
+static void PR_HashInit(prhashtable_t *table, s32 capacity, const c8 *name)
 {
 	capacity *= 2; // 50% load factor
 	table->capacity = capacity;
-	table->strings = (const s8**) Hunk_AllocName(sizeof(*table->strings)
+	table->strings = (const c8**) Hunk_AllocName(sizeof(*table->strings)
 							* capacity, name);
 	table->indices = (s32*) Hunk_AllocName(sizeof(*table->indices)
 							* capacity, name);
@@ -52,11 +52,11 @@ void PR_PopQCVM(qcvm_t *oldvm)
 	PR_SwitchQCVM(oldvm);
 }
 
-static s32 PR_HashGet(prhashtable_t *table, const s8 *key)
+static s32 PR_HashGet(prhashtable_t *table, const c8 *key)
 {
 	s32 pos = COM_HashString(key) % table->capacity, end = pos;
 	do {
-		const s8 *s = table->strings[pos];
+		const c8 *s = table->strings[pos];
 		if(!s)
 			return -1;
 		if(0 == strcmp(s, key))
@@ -73,7 +73,7 @@ void PR_ClearEngineString(s32 num)
 {
 	if(num < 0 && num >= -qcvm->numknownstrings){
 		num = -1 - num;
-		qcvm->knownstrings[num] = (const s8*)qcvm->firstfreeknownstring;
+		qcvm->knownstrings[num] = (const c8*)qcvm->firstfreeknownstring;
 		qcvm->firstfreeknownstring = &qcvm->knownstrings[num];
 	}
 }
@@ -81,9 +81,9 @@ void PR_ClearEngineString(s32 num)
 // (etype_t type, eval_t *val)
 // Returns a string describing *data in a type specific manner
 // Easier to parse than PR_ValueString
-static const s8 *PR_UglyValueString(s32 type, eval_t *val)
+static const c8 *PR_UglyValueString(s32 type, eval_t *val)
 {
-    static s8 line[1024];
+    static c8 line[1024];
     ddef_t *def;
     dfunction_t *f;
     type &= ~DEF_SAVEGLOBAL;
@@ -120,7 +120,7 @@ static const s8 *PR_UglyValueString(s32 type, eval_t *val)
     return line;
 }
 
-static ddef_t *ED_FindGlobal(const s8 *name)
+static ddef_t *ED_FindGlobal(const c8 *name)
 {
 	if(qcvm->ht_globals.capacity > 0){
 		s32 index = PR_HashGet(&qcvm->ht_globals, name);
@@ -136,7 +136,7 @@ static ddef_t *ED_FindGlobal(const s8 *name)
 	return NULL;
 }
 
-static dfunction_t *ED_FindFunction(const s8 *fn_name)
+static dfunction_t *ED_FindFunction(const c8 *fn_name)
 {
 	if(qcvm->ht_functions.capacity > 0){
 		s32 index = PR_HashGet(&qcvm->ht_functions, fn_name);
@@ -152,7 +152,7 @@ static dfunction_t *ED_FindFunction(const s8 *fn_name)
 	return NULL;
 }
 
-static func_t PR_FindExtFunction(const s8 *entryname)
+static func_t PR_FindExtFunction(const c8 *entryname)
 { //depends on 0 being an invalid function,
 	dfunction_t *func = ED_FindFunction(entryname);
 	if(func)
@@ -160,7 +160,7 @@ static func_t PR_FindExtFunction(const s8 *entryname)
 	return 0;
 }
 
-static void *PR_FindExtGlobal(s32 type, const s8 *name)
+static void *PR_FindExtGlobal(s32 type, const c8 *name)
 {
 	ddef_t *def = ED_FindGlobal(name);
 	if(def && (def->type&~DEF_SAVEGLOBAL) == type && 
@@ -319,7 +319,7 @@ void ED_Free(edict_t *ed)
 	ed->freetime = qcvm->time;
 }
 
-static ddef_t *ED_FindField(const s8 *name)
+static ddef_t *ED_FindField(const c8 *name)
 {
 	if(qcvm->ht_fields.capacity > 0) {
 		s32 index = PR_HashGet(&qcvm->ht_fields, name);
@@ -355,7 +355,7 @@ static ddef_t *ED_FieldAtOfs(s32 ofs)
 	return &qcvm->fielddefs[ofs];
 }
 
-s32 ED_FindFieldOffset(const s8 *name)
+s32 ED_FindFieldOffset(const c8 *name)
 {
 	ddef_t *def = ED_FindField(name);
 	if(!def)
@@ -367,20 +367,20 @@ eval_t *GetEdictFieldValue(edict_t *ed, s32 fldofs)
 {
 	if(fldofs < 0)
 		return NULL;
-	return(eval_t *)((s8 *)&ed->v + fldofs*4);
+	return(eval_t *)((c8 *)&ed->v + fldofs*4);
 }
 
-eval_t *GetEdictFieldValueByName(edict_t *ed, const s8 *name)
+eval_t *GetEdictFieldValueByName(edict_t *ed, const c8 *name)
 { return GetEdictFieldValue(ed, ED_FindFieldOffset(name)); }
 
-static const s8 *PR_FloatFormat(f32 f)
+static const c8 *PR_FloatFormat(f32 f)
 { return fabs(f - round(f)) < 0.05f ? "% 5.0f  " : "% 7.1f"; }
 
-static const s8 *PR_ValueString(s32 type, eval_t *val)
+static const c8 *PR_ValueString(s32 type, eval_t *val)
 { // Returns a string describing *data in a type specific manner
-	static s8 line[512];
-	s8 fmt[64];
-	const s8 *str;
+	static c8 line[512];
+	c8 fmt[64];
+	const c8 *str;
 	ddef_t *def;
 	dfunction_t *f;
 	edict_t *ed;
@@ -429,16 +429,16 @@ static const s8 *PR_ValueString(s32 type, eval_t *val)
 	return line;
 }
 
-const s8 *PR_GlobalString(s32 ofs) // Returns a string with a description and
+const c8 *PR_GlobalString(s32 ofs) // Returns a string with a description and
 { // the contents of a global, padded to 20 field width
-	static s8 line[512];
+	static c8 line[512];
 	static const s32 lastchari = Q_COUNTOF(line) - 2;
 	void *val = (void *)&qcvm->globals[ofs];
 	ddef_t *def = ED_GlobalAtOfs(ofs);
 	if(!def)
 		snprintf(line, sizeof(line), "%i(?)", ofs);
 	else {
-		const s8 *s = PR_ValueString(def->type, (eval_t *)val);
+		const c8 *s = PR_ValueString(def->type, (eval_t *)val);
 		snprintf(line, sizeof(line), "%i(%s)%s", ofs,
 				PR_GetString(def->s_name), s);
 	}
@@ -452,9 +452,9 @@ const s8 *PR_GlobalString(s32 ofs) // Returns a string with a description and
 	return line;
 }
 
-const s8 *PR_GlobalStringNoContents(s32 ofs)
+const c8 *PR_GlobalStringNoContents(s32 ofs)
 {
-	static s8 line[512];
+	static c8 line[512];
 	static const s32 lastchari = Q_COUNTOF(line) - 2;
 	ddef_t *def = ED_GlobalAtOfs(ofs);
 	if(!def)
@@ -472,18 +472,18 @@ const s8 *PR_GlobalStringNoContents(s32 ofs)
 	return line;
 }
 
-static void ED_AppendFlagString(s8 *dst, size_t dstsize, const s8 *desc)
+static void ED_AppendFlagString(c8 *dst, size_t dstsize, const c8 *desc)
 {
 	if(*dst)
 		SDL_strlcat(dst, " | ", dstsize);
 	SDL_strlcat(dst, desc, dstsize);
 }
 
-const s8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
+const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 {
-	static s8 str[1024];
+	static c8 str[1024];
 	s32 ofs = d->ofs*4;
-	eval_t *val = (eval_t *)((s8 *)&ed->v + ofs);
+	eval_t *val = (eval_t *)((c8 *)&ed->v + ofs);
 	// .movetype
 	if(ofs==offsetof(entvars_t,movetype)&&val->_float==(s32)val->_float){
 		switch((s32)val->_float){
@@ -592,7 +592,7 @@ const s8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 
 bool ED_IsRelevantField(edict_t *ed, ddef_t *d)
 {
-	const s8 *name = PR_GetString(d->s_name);
+	const c8 *name = PR_GetString(d->s_name);
 	size_t l = strlen(name);
 	if(l > 1 && name[l - 2] == '_')
 		return false; // skip _x, _y, _z vars
@@ -600,7 +600,7 @@ bool ED_IsRelevantField(edict_t *ed, ddef_t *d)
 	if(type >= NUM_TYPE_SIZES)
 		return false;
 	// if the value is still all 0, skip the field
-	s32 *v = (s32 *)((s8 *)&ed->v + d->ofs*4);
+	s32 *v = (s32 *)((c8 *)&ed->v + d->ofs*4);
 	for(s32 i = 0; i < type_size[type]; i++)
 		if(v[i]) return true;
 	return false;
@@ -608,7 +608,7 @@ bool ED_IsRelevantField(edict_t *ed, ddef_t *d)
 
 void ED_Print(edict_t *ed)
 { // For debugging
-	s8 field[4096], buf[4096], *p;
+	c8 field[4096], buf[4096], *p;
 	if(ed->free) {
 		Con_SafePrintf("FREE\n");
 		return;
@@ -639,11 +639,11 @@ void ED_Write(FILE *f, edict_t *ed)
 	if(ed->free){ fprintf(f, "}\n"); return; }
 	for(s32 i = 1; i < qcvm->progs->numfielddefs; i++){
 		ddef_t *d = &qcvm->fielddefs[i];
-		const s8 *name = PR_GetString(d->s_name);
+		const c8 *name = PR_GetString(d->s_name);
 		s32 j = strlen(name);
 		if(j > 1 && name[j - 2] == '_')
 			continue; // skip _x, _y, _z vars
-		s32 *v = (s32 *)((s8 *)&ed->v + d->ofs*4);
+		s32 *v = (s32 *)((c8 *)&ed->v + d->ofs*4);
 		// if the value is still all 0, skip the field
 		s32 type = d->type & ~DEF_SAVEGLOBAL;
 		if(type >= NUM_TYPE_SIZES) continue;
@@ -713,7 +713,7 @@ void ED_WriteGlobals(FILE *f)
 		type &= ~DEF_SAVEGLOBAL;
 		if(type != ev_string && type != ev_float && type != ev_entity)
 			continue;
-		const s8 *name = PR_GetString(def->s_name);
+		const c8 *name = PR_GetString(def->s_name);
 		fprintf(f, "\"%s\" ", name);
 		fprintf(f, "\"%s\"\n", PR_UglyValueString(type,
 					(eval_t *)&qcvm->globals[def->ofs]));
@@ -721,9 +721,9 @@ void ED_WriteGlobals(FILE *f)
 	fprintf(f, "}\n");
 }
 
-const s8 *ED_ParseGlobals(const s8 *data)
+const c8 *ED_ParseGlobals(const c8 *data)
 {
-	s8 keyname[64];
+	c8 keyname[64];
 	while(1) {
 		data = COM_Parse(data); // parse key
 		if(com_token[0] == '}')
@@ -747,10 +747,10 @@ const s8 *ED_ParseGlobals(const s8 *data)
 	return data;
 }
 
-static string_t ED_NewString(const s8 *string)
+static string_t ED_NewString(const c8 *string)
 {
 	s32 l = strlen(string) + 1;
-	s8 *new_p;
+	c8 *new_p;
 	string_t num = PR_AllocString(l, &new_p);
 	for(s32 i = 0; i < l; i++){
 		if(string[i] == '\\' && i < l-1){
@@ -763,9 +763,9 @@ static string_t ED_NewString(const s8 *string)
 	return num;
 }
 
-static void ED_RezoneString(string_t *ref, const s8 *str)
+static void ED_RezoneString(string_t *ref, const c8 *str)
 {
-	s8 *buf;
+	c8 *buf;
 	size_t len = strlen(str)+1;
 	size_t id;
 	if(*ref){//if the reference is already a zoned string then free it first
@@ -792,12 +792,12 @@ static void ED_RezoneString(string_t *ref, const s8 *str)
 
 // Can parse either fields or globals
 // returns false if error
-static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s, bool zoned)
+static bool ED_ParseEpair(void *base, ddef_t *key, const c8 *s, bool zoned)
 {
-	s8 string[128];
+	c8 string[128];
 	ddef_t *def;
-	s8 *v, *w;
-	s8 *end;
+	c8 *v, *w;
+	c8 *end;
 	void *d;
 	dfunction_t *func;
 	d = (void *)((s32 *)base + key->ofs);
@@ -813,7 +813,7 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s, bool zoned)
 		break;
 	case ev_vector:
 		SDL_strlcpy(string, s, sizeof(string));
-		end = (s8*)string + strlen(string);
+		end = (c8*)string + strlen(string);
 		v = string;
 		w = string;
 		s32 i = 0;
@@ -865,10 +865,10 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const s8 *s, bool zoned)
 // Parses an edict out of the given string, returning the new position
 // ed should be a properly initialized empty edict.
 // Used for initial level load and for savegames.
-const s8 *ED_ParseEdict(const s8 *data, edict_t *ent)
+const c8 *ED_ParseEdict(const c8 *data, edict_t *ent)
 {
 	ddef_t *key;
-	s8 keyname[256];
+	c8 keyname[256];
 	bool anglehack, init;
 	init = false;
 	// clear it
@@ -927,7 +927,7 @@ const s8 *ED_ParseEdict(const s8 *data, edict_t *ent)
 			continue;
 		}
 		if(anglehack){
-			s8 temp[32];
+			c8 temp[32];
 			strcpy(temp, com_token);
 			sprintf(com_token, "0 %s 0", temp);
 		}
@@ -943,7 +943,7 @@ const s8 *ED_ParseEdict(const s8 *data, edict_t *ent)
 static bool ED_IsSkillSelector(const edict_t *ent)
 {
 	s32 skill;
-	const s8 *classname = PR_GetString(ent->v.classname);
+	const c8 *classname = PR_GetString(ent->v.classname);
 	if(strcmp(classname, "trigger_setskill") == 0 ||
 		strcmp(classname, "target_setskill") == 0)
 		return true;
@@ -960,9 +960,9 @@ static bool ED_IsSkillSelector(const edict_t *ent)
 // parsing textual entity definitions out of an ent file.
 // Used for both fresh maps and savegame loads. A fresh map would also need
 // to call ED_CallSpawnFunctions() to let the objects initialize themselves.
-void ED_LoadFromFile(const s8 *data)
+void ED_LoadFromFile(const c8 *data)
 {
-	const s8 *classname;
+	const c8 *classname;
 	dfunction_t *func;
 	edict_t *ent = NULL;
 	s32 inhibit = 0;
@@ -1053,7 +1053,7 @@ void ED_LoadFromFile(const s8 *data)
 	Con_DPrintf("%i entities inhibited\n", inhibit);
 }
 
-static bool PR_HasGlobal(const s8 *name, f32 value)
+static bool PR_HasGlobal(const c8 *name, f32 value)
 {
 	ddef_t *g = ED_FindGlobal(name);
 	return g &&(g->type&~DEF_SAVEGLOBAL)==ev_float &&G_FLOAT(g->ofs)==value;
@@ -1134,7 +1134,7 @@ void PR_UnzoneAll()
 static void PR_MergeEngineFieldDefs()
 {
 	struct {
-		const s8 *fname;
+		const c8 *fname;
 		etype_t type;
 		s32 newidx;
 	} extrafields[] =
@@ -1230,7 +1230,7 @@ void PR_ClearProgs(qcvm_t *vm)
 
 static void PR_HashAdd(prhashtable_t *table, s32 skey, s32 value)
 {
-	const s8 *name = PR_GetString(skey);
+	const c8 *name = PR_GetString(skey);
 	s32 pos = COM_HashString(name) % table->capacity, end = pos;
 	do{
 		if(!table->strings[pos]){
@@ -1279,7 +1279,7 @@ static void PR_InitBuiltins()
 		dfunction_t *func = &qcvm->functions[i];
 		if(func->first_statement || func->parm_start || func->locals)
 			continue;
-		const s8 *name = PR_GetString(func->s_name);
+		const c8 *name = PR_GetString(func->s_name);
 		for(s32 j = 0; j < pr_numbuiltindefs; j++){
 			builtindef_t *def = &pr_builtindefs[j];
 			if(!strcmp(name, def->name)){
@@ -1294,7 +1294,7 @@ static void PR_FindSavegameFields()
 { // Determines which fields should be stored in savefiles
 	for(s32 i = 1; i < qcvm->progs->numfielddefs; i++){
 		ddef_t *field = &qcvm->fielddefs[i];
-		const s8 *name = PR_GetString(field->s_name);
+		const c8 *name = PR_GetString(field->s_name);
 		size_t len = strlen(name);
 		if(len < 2 || name[len - 2] != '_') // skip _x, _y, _z vars
 			field->type |= DEF_SAVEGLOBAL;
@@ -1364,7 +1364,7 @@ static void PR_FillOffsetTables()
 		s32 *maxofs;
 		s32 numdefs;
 		ddef_t *defs;
-		const s8 *allocname;
+		const c8 *allocname;
 	}
 	passes[] = {
 	{ &qcvm->ofstofield, &qcvm->maxfieldofs, qcvm->progs->numfielddefs, 
@@ -1390,7 +1390,7 @@ static void PR_FillOffsetTables()
 	}
 }
 
-bool PR_LoadProgs(const s8 *filename, bool fatal)
+bool PR_LoadProgs(const c8 *filename, bool fatal)
 {
 	PR_ClearProgs(qcvm);//just in case.
 	qcvm->progs = (dprograms_t *)COM_LoadHunkFile(filename, NULL);
@@ -1446,7 +1446,7 @@ bool PR_LoadProgs(const s8 *filename, bool fatal)
 		}
 	}
 	qcvm->functions = (dfunction_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_functions);
-	qcvm->strings = (s8 *)qcvm->progs + qcvm->progs->ofs_strings;
+	qcvm->strings = (c8 *)qcvm->progs + qcvm->progs->ofs_strings;
 	if(qcvm->progs->ofs_strings + qcvm->progs->numstrings >= com_filesize)
 		Host_Error("progs.dat strings go past end of file\n");
 	qcvm->numknownstrings = 0; // initialize the strings
@@ -1556,7 +1556,7 @@ s32 NUM_FOR_EDICT(edict_t *e)
 	return b;
 }
 
-const s8 *PR_GetString(s32 num)
+const c8 *PR_GetString(s32 num)
 {
 	if(num >= 0 && num < qcvm->stringssize)
 		return qcvm->strings + num;
@@ -1579,19 +1579,19 @@ static s32 PR_AllocStringSlot()
 		i = qcvm->firstfreeknownstring - qcvm->knownstrings;
 		if(i < 0 || i >= qcvm->maxknownstrings)
 			Sys_Error("PR_AllocStringSlot failed: invalid free list index %" SDL_PRIs64 "/%i\n", (s64)i, qcvm->maxknownstrings);
-		qcvm->firstfreeknownstring = (const s8 **) *qcvm->firstfreeknownstring;
+		qcvm->firstfreeknownstring = (const c8 **) *qcvm->firstfreeknownstring;
 	}else{
 		i = qcvm->numknownstrings++;
 		if(i >= qcvm->maxknownstrings){
 			qcvm->maxknownstrings += PR_STRING_ALLOCSLOTS;
 			Con_DPrintf("PR_AllocStringSlot: realloc'ing for %d slots\n", qcvm->maxknownstrings);
-			qcvm->knownstrings = (const s8 **) Z_Realloc((void *)qcvm->knownstrings, qcvm->maxknownstrings * sizeof(s8 *));
+			qcvm->knownstrings = (const c8 **) Z_Realloc((void *)qcvm->knownstrings, qcvm->maxknownstrings * sizeof(c8 *));
 		}
 	}
 	return (s32)i;
 }
 
-s32 PR_SetEngineString(const s8 *s)
+s32 PR_SetEngineString(const c8 *s)
 {
 	if(!s)
 		return 0;
@@ -1607,13 +1607,13 @@ s32 PR_SetEngineString(const s8 *s)
 	return -1 - i;
 }
 
-s32 PR_AllocString(s32 size, s8 **ptr)
+s32 PR_AllocString(s32 size, c8 **ptr)
 {
 	if(!size)
 		return 0;
 	s32 i = PR_AllocStringSlot();
-	qcvm->knownstrings[i] = (s8*)Hunk_AllocName(size, "string");
+	qcvm->knownstrings[i] = (c8*)Hunk_AllocName(size, "string");
 	if(ptr)
-		*ptr = (s8*) qcvm->knownstrings[i];
+		*ptr = (c8*) qcvm->knownstrings[i];
 	return -1 - i;
 }

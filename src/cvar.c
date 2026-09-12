@@ -5,13 +5,13 @@
 // cvar.c -- dynamic variable tracking
 #include "quakedef.h"
 
-static s8 cvar_null_string[] = "";
+static c8 cvar_null_string[] = "";
 
 void Cvar_List_f()
 {
 	cvar_t *cvar;
 	s32 len = 0, count = 0;
-	const s8 *partial = NULL;
+	const c8 *partial = NULL;
 	if(Cmd_Argc() > 1){
 		partial = Cmd_Argv(1);
 		len = strlen(partial);
@@ -89,7 +89,7 @@ Con_Printf("cycle <cvar> <value list>: cycle cvar through a list of values\n");
 		Cvar_Set(Cmd_Argv(1), Cmd_Argv(i+1)); // matched earlier in list
 }
 
-void Cvar_Reset(const s8 *name)
+void Cvar_Reset(const c8 *name)
 {
 	cvar_t *var = Cvar_FindVar(name);
 	if(!var) Con_Printf("variable \"%s\" not found\n", name);
@@ -124,7 +124,7 @@ void Cvar_Init()
 	Cmd_AddCommand("resetcfg", Cvar_ResetCfg_f);
 }
 
-cvar_t *Cvar_FindVar(const s8 *var_name)
+cvar_t *Cvar_FindVar(const c8 *var_name)
 {
 	for(cvar_t *var = cvar_vars ; var ; var = var->next)
 		if(!strcmp(var_name, var->name))
@@ -132,7 +132,7 @@ cvar_t *Cvar_FindVar(const s8 *var_name)
 	return NULL;
 }
 
-cvar_t *Cvar_FindVarAfter(const s8 *prev_name, u32 with_flags)
+cvar_t *Cvar_FindVarAfter(const c8 *prev_name, u32 with_flags)
 {
 	cvar_t *var = cvar_vars;
 	if(*prev_name){
@@ -148,13 +148,13 @@ cvar_t *Cvar_FindVarAfter(const s8 *prev_name, u32 with_flags)
 	return var;
 }
 
-void Cvar_UnlockVar(const s8 *var_name)
+void Cvar_UnlockVar(const c8 *var_name)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
 	if(var) var->flags &= ~CVAR_LOCKED;
 }
 
-f32 Cvar_VariableValue(const s8 *var_name)
+f32 Cvar_VariableValue(const c8 *var_name)
 {
 	cvar_t *var;
 	var = Cvar_FindVar(var_name);
@@ -162,14 +162,14 @@ f32 Cvar_VariableValue(const s8 *var_name)
 	return atof(var->string);
 }
 
-const s8 *Cvar_VariableString(const s8 *var_name)
+const c8 *Cvar_VariableString(const c8 *var_name)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
 	if(!var) return cvar_null_string;
 	return var->string;
 }
 
-const s8 *Cvar_CompleteVariable(const s8 *partial)
+const c8 *Cvar_CompleteVariable(const c8 *partial)
 {
 	s32 len = strlen(partial);
 	if(!len) return NULL;
@@ -179,7 +179,7 @@ const s8 *Cvar_CompleteVariable(const s8 *partial)
 	return NULL;
 }
 
-void Cvar_SetQuick(cvar_t *var, const s8 *value)
+void Cvar_SetQuick(cvar_t *var, const c8 *value)
 {
 	if(var->flags & (CVAR_ROM|CVAR_LOCKED)) return;
 	if(!(var->flags & CVAR_REGISTERED)) return;
@@ -190,9 +190,9 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 		s32 len = strlen(value);
 		if((u64)len != strlen(var->string)){
 			Z_Free((void *)var->string);
-			var->string = (s8 *) Z_Malloc(len + 1);
+			var->string = (c8 *) Z_Malloc(len + 1);
 		}
-		memcpy((s8 *)var->string, value, len + 1);
+		memcpy((c8 *)var->string, value, len + 1);
 	}
 	var->value = atof(var->string);
 	//johnfitz -- save initial value for "reset" command
@@ -210,7 +210,7 @@ void Cvar_SetQuick(cvar_t *var, const s8 *value)
 
 void Cvar_SetValueQuick(cvar_t *var, const f32 value)
 {
-	s8 val[32], *ptr = val;
+	c8 val[32], *ptr = val;
 	if(value == (f32)((s32)value))
 		snprintf(val, sizeof(val), "%i", (s32)value);
 	else {
@@ -221,7 +221,7 @@ void Cvar_SetValueQuick(cvar_t *var, const f32 value)
 	Cvar_SetQuick(var, val);
 }
 
-void Cvar_Set(const s8 *var_name, const s8 *value)
+void Cvar_Set(const c8 *var_name, const c8 *value)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
 	if(!var){ // there is an error in C code if this happens
@@ -231,9 +231,9 @@ void Cvar_Set(const s8 *var_name, const s8 *value)
 	Cvar_SetQuick(var, value);
 }
 
-void Cvar_SetValue(const s8 *var_name, const f32 value)
+void Cvar_SetValue(const c8 *var_name, const f32 value)
 {
-	s8 val[32], *ptr = val;
+	c8 val[32], *ptr = val;
 	if(value == (f32)((s32)value))
 		snprintf(val, sizeof(val), "%i", (s32)value);
 	else {
@@ -244,7 +244,7 @@ void Cvar_SetValue(const s8 *var_name, const f32 value)
 	Cvar_Set(var_name, val);
 }
 
-void Cvar_SetROM(const s8 *var_name, const s8 *value)
+void Cvar_SetROM(const c8 *var_name, const c8 *value)
 {
 	cvar_t *var = Cvar_FindVar(var_name);
 	if(var){
@@ -256,7 +256,7 @@ void Cvar_SetROM(const s8 *var_name, const s8 *value)
 
 void Cvar_RegisterVariable(cvar_t *variable)
 { // Adds a freestanding variable to the variable list.
-	s8 value[512];
+	c8 value[512];
 	if(Cvar_FindVar(variable->name)){ // first check if already defined
     Con_Printf("Can't register variable %s, already defined\n", variable->name);
 		return; }
@@ -322,7 +322,7 @@ void Cvar_WriteVariables(FILE *f) // Write lines containing "set variable value"
 // Creates a cvar if it does not already exist, otherwise does nothing.
 // Must not be used until after all other cvars are registered.
 // Cvar will be persistent. -- spike
-cvar_t *Cvar_Create(const s8 *name, const s8 *value)
+cvar_t *Cvar_Create(const c8 *name, const c8 *value)
 {
 	cvar_t *newvar;
 	newvar = Cvar_FindVar(name);
@@ -331,8 +331,8 @@ cvar_t *Cvar_Create(const s8 *name, const s8 *value)
 	if(Cmd_Exists(name))
 		return NULL; //error! panic! oh noes!
 	newvar = Z_Malloc(sizeof(cvar_t) + strlen(name)+1);
-	newvar->name = (s8*)(newvar+1);
-	strcpy((s8*)(newvar+1), name);
+	newvar->name = (c8*)(newvar+1);
+	strcpy((c8*)(newvar+1), name);
 	newvar->flags = CVAR_USERDEFINED;
 	newvar->string = value;
 	Cvar_RegisterVariable(newvar);

@@ -15,7 +15,7 @@ void SwapPic(qpic_t *pic);
 // Used so lumpname lookups can proceed rapidly by comparing 4 chars at a time
 // Space padding is so names can be printed nicely in tables.
 // Can safely be performed in place.
-void W_CleanupName(const s8 *in, s8 *out)
+void W_CleanupName(const c8 *in, c8 *out)
 {
 	s32 i = 0;
 	for(; i < 16; i++) {
@@ -30,7 +30,7 @@ void W_CleanupName(const s8 *in, s8 *out)
 
 void W_LoadWadFile()
 { //johnfitz -- filename is now hard-coded for honesty
-	const s8 *filename = WADFILENAME;
+	const c8 *filename = WADFILENAME;
 	if(wad_base) free(wad_base);
 	wad_base = COM_LoadMallocFile(filename, NULL);
 	if(!wad_base)
@@ -56,9 +56,9 @@ void W_LoadWadFile()
 	}
 }
 
-static lumpinfo_t *W_GetLumpinfo(lumpinfo_t *lumps, s32 numlumps,const s8 *name)
+static lumpinfo_t *W_GetLumpinfo(lumpinfo_t *lumps, s32 numlumps,const c8 *name)
 {
-	s8 clean[16];
+	c8 clean[16];
 	W_CleanupName(name, clean);
 	lumpinfo_t *lump_p = lumps;
 	for(s32 i = 0; i < numlumps; i++, lump_p++) {
@@ -69,7 +69,7 @@ static lumpinfo_t *W_GetLumpinfo(lumpinfo_t *lumps, s32 numlumps,const s8 *name)
 	return NULL;
 }
 
-void *W_GetLumpName(const s8 *name)
+void *W_GetLumpName(const c8 *name)
 {
 	lumpinfo_t *lump = W_GetLumpinfo(wad_lumps, wad_numlumps, name);
 	if(!lump) return NULL; //johnfitz
@@ -84,7 +84,7 @@ void *W_GetLumpNum(s32 num)
 	return(void *)(wad_base + lump->filepos);
 }
 
-static bool W_OpenWadFile(const s8 *filename, fshandle_t *fh)
+static bool W_OpenWadFile(const c8 *filename, fshandle_t *fh)
 {
 	FILE *f;
 	s64 length = (s64)COM_FOpenFile(filename, &f, NULL);
@@ -97,7 +97,7 @@ static bool W_OpenWadFile(const s8 *filename, fshandle_t *fh)
 	return 1;
 }
 
-static wad_t *W_AddWadFile(const s8 *name, fshandle_t *fh)
+static wad_t *W_AddWadFile(const c8 *name, fshandle_t *fh)
 {
 	wadinfo_t header;
 	FS_fread((void *)&header, 1, sizeof(header), fh);
@@ -161,13 +161,13 @@ printf( "WAD file %s lump \"%.16s\" extends %i bytes beyond end of WAD(lump size
 	return wad;
 }
 
-wad_t *W_LoadWadList(const s8 *names)
+wad_t *W_LoadWadList(const c8 *names)
 {
-	s8 *newnames = strdup(names);
+	c8 *newnames = strdup(names);
 	wad_t *wad, *wads = NULL;
-	s8 filename[MAX_QPATH];
-	for(s8 *name = newnames; name && *name;) {
-		s8 *e = strchr(name, ';');
+	c8 filename[MAX_QPATH];
+	for(c8 *name = newnames; name && *name;) {
+		c8 *e = strchr(name, ';');
 		if(e) *e++ = 0;
 		// remove all of the leading garbage left by the map editor
 		COM_FileBase(name, filename, sizeof(filename));
@@ -193,7 +193,7 @@ wad_t *W_LoadWadList(const s8 *names)
 	return wads;
 }
 
-lumpinfo_t *W_GetLumpinfoList(wad_t *wads, const s8 *name, wad_t **out_wad)
+lumpinfo_t *W_GetLumpinfoList(wad_t *wads, const c8 *name, wad_t **out_wad)
 {
 	while(wads) {
 		lumpinfo_t *info=W_GetLumpinfo(wads->lumps,wads->numlumps,name);

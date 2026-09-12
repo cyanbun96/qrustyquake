@@ -17,7 +17,7 @@ static mvertex_t *r_skyverts;
 static medge_t *r_skyedges;
 static s32 *r_skysurfedges;
 static texture_t r_skytextures[6];
-static s8 last_skybox_name[1024];
+static c8 last_skybox_name[1024];
 static u8 rgb_lut[RGB_LUT_SIZE];
 static s32 rgb_lut_built = 0;
 static s32 skybox_planes[12] = {2,-128, 0,-128, 2,128, 1,128, 0,128, 1,-128};
@@ -37,9 +37,9 @@ static vec3_t box_bigbigvecs[6][2] = {{{0,-4,0},{-4,0,0} },{{0,4,0}, {0,0,-4}},
 static f32 box_verts[8][3] = { {-1,-1,-1}, {-1,1,-1}, {1,1,-1}, {1,-1,-1},
 				{-1,-1,1}, {-1,1,1}, {1,-1,1}, {1,1,1} };
 
-s32 R_LoadSkybox (const s8 *name);
+s32 R_LoadSkybox (const c8 *name);
 
-void Sky_LoadSkyBox (const s8 *name)
+void Sky_LoadSkyBox (const c8 *name)
 {
 	if (r_enableskybox.value == 0) return;
 	if (strcmp (skybox_name, name) == 0)
@@ -110,7 +110,7 @@ u8 *Resize_Nearest(const u8 *src, s32 sw, s32 sh, s32 dw, s32 dh)
 	return dst;
 }
 
-s32 R_LoadSkybox (const s8 *name)
+s32 R_LoadSkybox (const c8 *name)
 {
 	if (!name || !name[0]) {
 		skybox_name[0] = 0;
@@ -121,8 +121,8 @@ s32 R_LoadSkybox (const s8 *name)
 	SDL_strlcpy (skybox_name, name, sizeof(skybox_name));
 	s32 mark = Hunk_LowMark ();
 	for (s32 i = 0 ; i < 6 ; i++) {
-		s8 pathname[1024];
-		s8 *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
+		c8 pathname[1024];
+		c8 *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 		s32 r_skysideimage[6] = {5, 2, 4, 1, 0, 3};
 		snprintf (pathname, sizeof(pathname), "gfx/env/%s%s", name, suf[r_skysideimage[i]]);
 		s32 width, height;
@@ -304,8 +304,8 @@ void R_EmitSkyBox ()
 
 void Sky_NewMap()
 { // read worldspawn (this is so ugly, and shouldn't it be done on the server?)
-	s8 key[128], value[4096];
-	const s8 *data = cl.worldmodel->entities;
+	c8 key[128], value[4096];
+	const c8 *data = cl.worldmodel->entities;
 	data = COM_Parse(data);
 	if (!data || com_token[0] != '{') // should never happen
 		return; // error

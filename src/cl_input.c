@@ -23,7 +23,7 @@ static kbutton_t in_up, in_down;
 
 void KeyDown (kbutton_t *b)
 {
-	const s8 *c = Cmd_Argv(1); // typed manually in console
+	const c8 *c = Cmd_Argv(1); // typed manually in console
 	s32 k = c[0] ? atoi(c) : -1; // for continuous down
 	if(k == b->down[0] || k == b->down[1]) return; // repeating key
 	if(!b->down[0]) b->down[0] = k;
@@ -38,7 +38,7 @@ void KeyDown (kbutton_t *b)
 
 void KeyUp (kbutton_t *b)
 {
-	const s8 *c = Cmd_Argv(1);
+	const c8 *c = Cmd_Argv(1);
 	if(!c[0]){ //typed manually in console, assume for unsticking, clear all
 		b->down[0] = b->down[1] = 0;
 		b->state = 4; // impulse up

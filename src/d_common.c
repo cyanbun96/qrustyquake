@@ -80,9 +80,9 @@ void D_ViewChanged()
 	}
 }
 
-qpic_t *Draw_PicFromWad(s8 *name) { return W_GetLumpName(name); }
+qpic_t *Draw_PicFromWad(c8 *name) { return W_GetLumpName(name); }
 
-qpic_t *Draw_CachePic(s8 *path)
+qpic_t *Draw_CachePic(c8 *path)
 {
 	cachepic_t *pic = menu_cachepics;
 	s32 i = 0;
@@ -106,7 +106,7 @@ qpic_t *Draw_CachePic(s8 *path)
 	return dat;
 }
 
-qpic_t *Draw_TryCachePic(s8 *path)
+qpic_t *Draw_TryCachePic(c8 *path)
 {
 	qpic_t *dat = (qpic_t*)COM_LoadMallocFile(path, NULL);
 	if(!dat){
@@ -254,7 +254,7 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 	}
 }
 
-void Draw_StringScaled(s32 x, s32 y, s8 *str, s32 scale)
+void Draw_StringScaled(s32 x, s32 y, c8 *str, s32 scale)
 {
 	while(*str){
 		Draw_CharacterScaled(x, y, *str, scale, 0);
@@ -451,7 +451,7 @@ void Draw_CharToConbackScaled(s32 num, u8 *dest, s32 scale, s32 width)
 
 void Draw_ConsoleBackground(s32 lines)
 {
-	s8 ver[100];
+	c8 ver[100];
 	qpic_t *conback = Draw_CachePic("gfx/conback.lmp");
 	// hack the version number directly into the pic
 	sprintf(ver, "(QrustyQuake) %4.2f", (f32)VERSION);
