@@ -150,9 +150,15 @@ void Sys_SendKeyEvents()
 			case SDLK_KP_ENTER: sym = SDLK_RETURN; break;
 			case SDLK_KP_EQUALS: sym = SDLK_EQUALS; break;
 			}
+			// key reserved for the console, independent of location on keyboard
+			// Located in the top left corner (on both ANSI and ISO keyboards).
+			if(event.key.scancode == SDL_SCANCODE_GRAVE){
+				Key_Event('`', state);
+				break;
+			}
 			// If we're not directly handled and still above 255
 			// just force it to 0
-			if (sym > 255) sym = 0;
+			if(sym > 255) sym = 0;
 			if(event.key.repeat){
 				Key_Event(sym, !state);
 				Key_Event(sym, state);
