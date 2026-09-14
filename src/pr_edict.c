@@ -1567,9 +1567,8 @@ const c8 *PR_GetString(s32 num)
 		}
 		return qcvm->knownstrings[-1 - num];
 	}else{
+		Con_DPrintf("PR_GetString: Invalid string offset %d\n", num);
 		return qcvm->strings; // from QSS and vkquake           
-		//Host_Error("PR_GetString: invalid string offset %d\n", num);
-		//return "";
 	}
 }
 
