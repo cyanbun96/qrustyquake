@@ -12,7 +12,7 @@ s32 D_SurfaceCacheForRes(s32 width, s32 height)
 		size = atoi(com_argv[COM_CheckParm("-surfcachesize")+1])*1024;
 		return size;
 	}
-	size = SURFCACHE_SIZE_AT_320X200;
+	size = 600*1024; // surfcache size at 320x200
 	s32 pix = width * height;
 	if (pix > 64000)
 		size += (pix - 64000) * 3;

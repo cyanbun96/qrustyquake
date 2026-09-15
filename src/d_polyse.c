@@ -70,8 +70,8 @@ void D_PolysetDraw()
 {
 	if (r_alphastyle.value == 0 && cur_ent_alpha != 1 && !fog_lut_built)
 		R_BuildColorMixLUT(0);
-	spanpackage_t spans[DPS_MAXSPANS + 1 +
-		((CACHE_SIZE - 1) / sizeof(spanpackage_t)) + 1];
+	spanpackage_t spans[(MAXHEIGHT+1) /* +1 for spanpackage marking end */
+		+ 1 + ((CACHE_SIZE - 1) / sizeof(spanpackage_t)) + 1];
 	a_spans = (spanpackage_t *)
 		(((uintptr_t) & spans[0] + CACHE_SIZE - 1) & ~(CACHE_SIZE - 1));
 	if (r_affinetridesc.drawtype)

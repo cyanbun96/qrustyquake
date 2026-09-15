@@ -132,7 +132,7 @@ void Mod_ClearAll()
 	s32 i = 0;
 	model_t *mod = mod_known;
 	for(; i < mod_numknown; i++, mod++){
-		mod->needload = NL_UNREFERENCED;
+		mod->needload = 2;
 		if(mod->type == mod_sprite) mod->cache.data = NULL;
 	}
 }
@@ -193,8 +193,10 @@ static model_t *Mod_LoadModel(model_t *mod, bool crash)
 	mod->needload = 0; // fill it in, call the apropriate loader
 	s32 mod_type = (buf[0] | (buf[1]<<8) | (buf[2]<<16) | (buf[3]<<24));
 	switch(mod_type){
-		case IDPOLYHEADER: Mod_LoadAliasModel(mod, buf); break;
-		case IDSPRITEHEADER: Mod_LoadSpriteModel(mod, buf); break;
+		case (('O'<<24)+('P'<<16)+('D'<<8)+'I'):
+			Mod_LoadAliasModel(mod, buf); break;
+		case (('P'<<24)+('S'<<16)+('D'<<8)+'I'):
+			Mod_LoadSpriteModel(mod, buf); break;
 		default: Mod_LoadBrushModel(mod, buf); break;
 	}
 	return mod;
@@ -869,7 +871,7 @@ bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 	}
 	for (i = 1; i < (s32) (sizeof(header) / sizeof(s32)); i++)
 		((s32*)&header)[i] = LittleLong ( ((s32*)&header)[i]);
-	entlump = &header.lumps[LUMP_ENTITIES];
+	entlump = &header.lumps[0];
 	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
 			entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize) {
 		fclose (f);
@@ -963,7 +965,7 @@ s32 Mod_CountSecrets(const c8 *map)
 	}
 	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
 		((s32 *)&header)[i] = LittleLong (((s32 *)&header)[i]);
-	entlump = &header.lumps[LUMP_ENTITIES];
+	entlump = &header.lumps[0];
 	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
 		fclose (f);
@@ -1054,7 +1056,7 @@ s32 Mod_CountMonsters(const c8 *map)
 	}
 	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
 		((s32 *)&header)[i] = LittleLong (((s32 *)&header)[i]);
-	entlump = &header.lumps[LUMP_ENTITIES];
+	entlump = &header.lumps[0];
 	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
 		fclose (f);
@@ -1696,16 +1698,16 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 	mod_base = (u8 *)header; // swap all the lumps
 	for(s32 i = 0; i < (s32)sizeof(dheader_t) / 4; i++)
 		((s32 *)header)[i] = LittleLong( ((s32 *)header)[i]);
-	Mod_LoadVertexes(&header->lumps[LUMP_VERTEXES]); // load into heap
-	Mod_LoadEdges(&header->lumps[LUMP_EDGES], bsp2);
-	Mod_LoadSurfedges(&header->lumps[LUMP_SURFEDGES]);
-	Mod_LoadEntities(&header->lumps[LUMP_ENTITIES]);
-	Mod_LoadTextures(&header->lumps[LUMP_TEXTURES]);
-	Mod_LoadLighting(&header->lumps[LUMP_LIGHTING]);
-	Mod_LoadPlanes(&header->lumps[LUMP_PLANES]);
-	Mod_LoadTexinfo(&header->lumps[LUMP_TEXINFO]);
-	Mod_LoadFaces(&header->lumps[LUMP_FACES], bsp2);
-	Mod_LoadMarksurfaces(&header->lumps[LUMP_MARKSURFACES], bsp2);
+	Mod_LoadVertexes(&header->lumps[3]); // load into heap
+	Mod_LoadEdges(&header->lumps[12], bsp2);
+	Mod_LoadSurfedges(&header->lumps[13]);
+	Mod_LoadEntities(&header->lumps[0]);
+	Mod_LoadTextures(&header->lumps[2]);
+	Mod_LoadLighting(&header->lumps[8]);
+	Mod_LoadPlanes(&header->lumps[1]);
+	Mod_LoadTexinfo(&header->lumps[6]);
+	Mod_LoadFaces(&header->lumps[7], bsp2);
+	Mod_LoadMarksurfaces(&header->lumps[11], bsp2);
 	if(mod->bspversion == BSPVERSION && external_vis.value &&
 			sv.modelname[0] && !SDL_strcasecmp(loadname, sv.name)){
 		Con_DPrintf("trying to open external vis file\n");
@@ -1726,12 +1728,12 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 		 Con_DPrintf("External VIS data failed, using standard vis.\n");
 		}
 	}
-	Mod_LoadVisibility(&header->lumps[LUMP_VISIBILITY]);
-	Mod_LoadLeafs(&header->lumps[LUMP_LEAFS], bsp2);
+	Mod_LoadVisibility(&header->lumps[4]);
+	Mod_LoadLeafs(&header->lumps[10], bsp2);
 visdone:
-	Mod_LoadNodes(&header->lumps[LUMP_NODES], bsp2);
-	Mod_LoadClipnodes(&header->lumps[LUMP_CLIPNODES], bsp2);
-	Mod_LoadSubmodels(&header->lumps[LUMP_MODELS]);
+	Mod_LoadNodes(&header->lumps[5], bsp2);
+	Mod_LoadClipnodes(&header->lumps[9], bsp2);
+	Mod_LoadSubmodels(&header->lumps[14]);
 	Mod_MakeHull0();
 	mod->numframes = 2; // regular and alternate animation
 	Mod_CheckWaterVis();

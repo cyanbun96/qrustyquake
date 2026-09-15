@@ -277,9 +277,10 @@ void R_InitTextures()
 
 void R_InitTurb()
 {
+	s32 amp = 8*0x10000;
 	for(s32 i = 0; i < (SIN_BUFFER_SIZE); i++){
-		sintable[i] = AMP + sin(i * 3.14159 * 2 / CYCLE) * AMP;
-		intsintable[i] = AMP2 + sin(i * 3.14159 * 2 / CYCLE) * AMP2;
+		sintable[i] = amp + sin(i * 3.14159 * 2 / TURB_CYCLE) * amp;
+		intsintable[i] = TURB_AMP2 + sin(i * 3.14159 * 2 / TURB_CYCLE) * TURB_AMP2;
 	}
 	r_warpbuffer = warpbuffer;
 }

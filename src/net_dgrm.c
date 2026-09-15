@@ -154,12 +154,8 @@ s32 Datagram_GetMessage(qsocket_t *sock)
 		if ((net_time - sock->lastSendTime) > 1.0)
 			ReSendMessage(sock);
 	while (1) {
-		length =
-		    (u32)sfunc.Read(sock->socket,
-					     (u8 *) & packetBuffer,
-					     NET_DATAGRAMSIZE, &readaddr);
-		//      if ((rand() & 255) > 220)
-		//              continue;
+		length = (u32)sfunc.Read(sock->socket, (u8 *) & packetBuffer,
+				     MAX_DATAGRAM+NET_HEADERSIZE, &readaddr);
 		if (length == 0)
 			break;
 		if (length == (u32)-1) {
@@ -312,11 +308,9 @@ static void NET_Stats_f()
 	}
 }
 
-// recognize ip:port (based on ProQuake)
 static const c8 *Strip_Port(const c8 *host)
-{
-	static c8 noport[MAX_QPATH];
-	/* array size as in Host_Connect_f() */
+{ // recognize ip:port (based on ProQuake)
+	static c8 noport[MAX_QPATH]; // array size as in Host_Connect_f()
 	c8 *p;
 	s32 port;
 	if (!host || !*host)

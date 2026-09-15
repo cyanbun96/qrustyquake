@@ -15,10 +15,10 @@ void R_InitParticles()
 	s32 i = COM_CheckParm("-particles");
 	if (i) {
 		r_numparticles = (s32)(atoi(com_argv[i + 1]));
-		if (r_numparticles < ABSOLUTE_MIN_PARTICLES)
-			r_numparticles = ABSOLUTE_MIN_PARTICLES;
+		if (r_numparticles < 512)
+			r_numparticles = 512;
 	} else
-		r_numparticles = MAX_PARTICLES;
+		r_numparticles = 2048;
 	particles = (particle_t *)
 		Hunk_AllocName(r_numparticles*sizeof(particle_t), "particles");
 }

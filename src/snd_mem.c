@@ -148,7 +148,7 @@ wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 	}
 	data_p += 8;
 	s32 format = GetLittleShort();
-	if(format != WAV_FORMAT_PCM) {
+	if(format != 1) { // wav_format_pcm
 		Con_Printf("%s is not Microsoft PCM format\n", name);
 		return info;
 	}

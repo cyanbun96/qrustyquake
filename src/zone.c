@@ -72,7 +72,7 @@ static void *Z_TagMalloc(s32 size, s32 tag)
 	} while(base->tag || base->size < size);
 	// found a block big enough
 	s32 extra = base->size - size;
-	if(extra > MINFRAGMENT)
+	if(extra > 64/*minfragment*/)
 	{ // there will be a free fragment after the allocated block
 		newblock = (memblock_t *) ((u8 *)base + size );
 		newblock->size = extra;
@@ -509,7 +509,7 @@ static void Memory_InitZone(memzone_t *zone, s32 size)
 
 void Memory_Init(void *buf, s32 size)
 {
-	s32 zonesize = DYNAMIC_SIZE;
+	s32 zonesize = 4*1024*1024;
 	hunk_base = (u8 *) buf;
 	hunk_size = size;
 	hunk_low_used = 0;

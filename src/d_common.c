@@ -177,7 +177,7 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 				s32 charcolor = defcolor ? *source :
 				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
 				s32 c2;
-				if(*dest != TRANSPARENT_COLOR)
+				if(*dest != 0xFF)
 					c2 = *dest;
 				else
 					c2 = fb0[dest - fb];
@@ -323,7 +323,7 @@ void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 		for(s32 k = 0; k < scale; k++){
 			for(u32 u = 0; u < (u32)pic->width; u++){
 				u8 tbyte = source[u];
-				if(tbyte == TRANSPARENT_COLOR)
+				if(tbyte == 0xFF)
 					continue;
 				for(s32 i = 0; i < scale; i++)
 					if(u * scale + i + x < vid.width)
@@ -345,7 +345,7 @@ void Draw_TransPicTranslateScaled(s32 x, s32 y, qpic_t *p, u8 *tl, s32 scale)
 		for(s32 k = 0; k < scale; k++){
 			for(s32 u = 0; u < p->width; u++){
 				u8 tbyte = source[u];
-				if(tbyte == TRANSPARENT_COLOR)
+				if(tbyte == 0xFF)
 					continue;
 				for(s32 i = 0; i < scale; i++)
 					if(u * scale + i + x < (s32)vid.width)
@@ -403,11 +403,11 @@ void Draw_Pic_Ex(f32 *pos, f32 *sz, qpic_t *pic, f32 *srcpos, f32 *srcsz,
 			if(x < 0) x = 0;
 			if(x >= pic_w) x = pic_w - 1;
 			u8 *source = pic->data + y * pic_w + x;
-			if(*source != TRANSPARENT_COLOR){
+			if(*source != 0xFF){
 				s32 charcolor = defcolor ? *source :
 				    color_mix_lut[*source][c][FOG_LUT_LEVELS/2];
 				s32 c2;
-				if(*dest != TRANSPARENT_COLOR)
+				if(*dest != 0xFF)
 					c2 = *dest;
 				else
 					c2 = fb0[dest - fb];
@@ -564,7 +564,7 @@ void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha)
 		u8 *dest = fb + dy * vid.width + startx;
 		for(s32 dx = startx; dx < endx; dx++){
 			s32 c2;
-			if(*dest != TRANSPARENT_COLOR)
+			if(*dest != 0xFF)
 				c2 = *dest;
 			else
 				c2 = fb0[dest - fb];

@@ -30,7 +30,7 @@ void W_CleanupName(const c8 *in, c8 *out)
 
 void W_LoadWadFile()
 { //johnfitz -- filename is now hard-coded for honesty
-	const c8 *filename = WADFILENAME;
+	const c8 *filename = "gfx.wad";
 	if(wad_base) free(wad_base);
 	wad_base = COM_LoadMallocFile(filename, NULL);
 	if(!wad_base)
@@ -51,7 +51,7 @@ void W_LoadWadFile()
 		lump_p->filepos = LittleLong(lump_p->filepos);
 		lump_p->size = LittleLong(lump_p->size);
 		W_CleanupName(lump_p->name, lump_p->name);
-		if(lump_p->type == TYP_QPIC)
+		if(lump_p->type == 66) // typ_qpic
 			SwapPic((qpic_t *)(wad_base + lump_p->filepos));
 	}
 }
@@ -103,7 +103,8 @@ static wad_t *W_AddWadFile(const c8 *name, fshandle_t *fh)
 	FS_fread((void *)&header, 1, sizeof(header), fh);
 	s32 id=LittleLong(header.identification[0]|(header.identification[1]<<8)
 		|(header.identification[2]<<16)|(header.identification[3]<<24));
-	if(id != WADID && id != WADID_VALVE) {
+	if(id != ('W'|('A'<<8)|('D'<<16)|('2'<<24)) // wad_id
+		&& id != ('W'|('A'<<8)|('D'<<16)|('3'<<24))) { // wad_id_valve
 		printf("%s is not a valid WAD\n", name);
 		return NULL;
 	}

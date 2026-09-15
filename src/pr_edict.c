@@ -1411,7 +1411,7 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 			return false;
 		}
 	}
-	if(qcvm->progs->crc != PROGHEADER_CRC){
+	if(qcvm->progs->crc != 5927){ // default progheader crc
 		if(fatal)
 			Host_Error("%s system vars have been modified, progdefs.h is out of date", filename);
 		else{
@@ -1436,7 +1436,6 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 			case 14046: //hexen2 demo
 				Con_Printf("%s - hexen2 gamecode is not supported\n", filename);
 				break;
-				//case 5927: //nq PROGHEADER_CRC as above. shouldn't happen, obviously.
 			default:
 				Con_Printf("%s system vars are not supported\n", filename);
 				break;
@@ -1583,7 +1582,7 @@ static s32 PR_AllocStringSlot()
 	}else{
 		i = qcvm->numknownstrings++;
 		if(i >= qcvm->maxknownstrings){
-			qcvm->maxknownstrings += PR_STRING_ALLOCSLOTS;
+			qcvm->maxknownstrings += 256;
 			Con_DPrintf("PR_AllocStringSlot: realloc'ing for %d slots\n", qcvm->maxknownstrings);
 			qcvm->knownstrings = (const c8 **) Z_Realloc((void *)qcvm->knownstrings, qcvm->maxknownstrings * sizeof(c8 *));
 		}

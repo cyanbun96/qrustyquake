@@ -242,7 +242,7 @@ void SV_SendServerinfo(client_t *client)
 	c8 message[2048];
 	MSG_WriteByte(&client->message, svc_print);
 	sprintf(message, "%c\nFITZQUAKE %1.2f SERVER(%i CRC)\n",
-			2, FITZQUAKE_VERSION, qcvm->crc);
+			2, 0.85, qcvm->crc);
 	MSG_WriteString(&client->message,message);
 	MSG_WriteByte(&client->message, svc_serverinfo);
 	MSG_WriteLong(&client->message, sv.protocol);
@@ -586,7 +586,7 @@ bool SV_SendClientDatagram(client_t *client)
 	msg.cursize = 0;
 // if client is nonlocal, use smaller max size so packets aren't fragmented
 	if(strcmp(client->netconnection->address, "LOCAL") != 0) //johnfitz
-		msg.maxsize = DATAGRAM_MTU;
+		msg.maxsize = 1400;
 	MSG_WriteByte(&msg, svc_time);
 	MSG_WriteFloat(&msg, qcvm->time);
 	// add the client specific data to the datagram
@@ -622,7 +622,7 @@ void SV_WriteStats(client_t *client)
 				MSG_WriteByte(&client->message, svc_stufftext);
 				MSG_WriteString(&client->message, va("//st %i %g\n", i, statsf[i]));
 			}else{
-				if(i < MAX_CL_BASE_STATS){
+				if(i < 32){ // max_cl_base_stats
 					MSG_WriteByte(&client->message, svc_updatestat);
 					MSG_WriteByte(&client->message, i);
 					MSG_WriteLong(&client->message, statsi[i]);

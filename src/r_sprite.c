@@ -165,7 +165,7 @@ void R_DrawSprite()
 	r_spritedesc.pspriteframe = R_GetSpriteframe(psprite);
 	sprite_width = r_spritedesc.pspriteframe->width;
 	sprite_height = r_spritedesc.pspriteframe->height;
-	if (psprite->type == SPR_FACING_UPRIGHT) {
+	if (psprite->type == 1) { // facing upright
 		// generate the sprite's axes, with vup straight up in worldspace, and
 		// r_spritedesc.vright perpendicular to modelorg.
 		// This will not work if the view direction is very close to straight up or
@@ -193,9 +193,7 @@ void R_DrawSprite()
 		r_spritedesc.vpn[0] = -r_spritedesc.vright[1];
 		r_spritedesc.vpn[1] = r_spritedesc.vright[0];
 		r_spritedesc.vpn[2] = 0;
-		// CrossProduct (r_spritedesc.vright, r_spritedesc.vup,
-		//  r_spritedesc.vpn)
-	} else if (psprite->type == SPR_VP_PARALLEL) {
+	} else if (psprite->type == 2) { // parallel
 		// generate the sprite's axes, completely parallel to the viewplane. There
 		// are no problem situations, because the sprite is always in the same
 		// position relative to the viewer
@@ -204,7 +202,7 @@ void R_DrawSprite()
 			r_spritedesc.vright[i] = vright[i];
 			r_spritedesc.vpn[i] = vpn[i];
 		}
-	} else if (psprite->type == SPR_VP_PARALLEL_UPRIGHT) {
+	} else if (psprite->type == 0) { // parallel upright
 		f32 dot = vpn[2];
 		if ((dot > 0.999848) || (dot < -0.999848))
 			return;
@@ -218,11 +216,11 @@ void R_DrawSprite()
 		r_spritedesc.vpn[0] = -r_spritedesc.vright[1];
 		r_spritedesc.vpn[1] = r_spritedesc.vright[0];
 		r_spritedesc.vpn[2] = 0;
-	} else if (psprite->type == SPR_ORIENTED) {
+	} else if (psprite->type == 3) { // oriented
 		// generate the sprite's axes, according to the sprite's world orientation
 		AngleVectors(currententity->angles, r_spritedesc.vpn,
 			     r_spritedesc.vright, r_spritedesc.vup);
-	} else if (psprite->type == SPR_VP_PARALLEL_ORIENTED) {
+	} else if (psprite->type == 4) { // parallel oriented
 		// generate the sprite's axes, parallel to the viewplane, but rotated in
 		// that plane around the center according to the sprite entity's roll
 		// angle. So vpn stays the same, but vright and vup rotate

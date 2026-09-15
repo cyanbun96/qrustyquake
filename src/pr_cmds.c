@@ -1187,15 +1187,15 @@ static sizebuf_t *WriteDest()
 	edict_t *ent;
 	s32 dest = G_FLOAT(OFS_PARM0);
 	switch(dest){
-		case MSG_BROADCAST: return &sv.datagram;
-		case MSG_ONE:
+		case 0/*msg_broadcast*/: return &sv.datagram;
+		case 1/*msg_one*/:
 			ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
 			entnum = NUM_FOR_EDICT(ent);
 			if(entnum < 1 || entnum > svs.maxclients)
 				PR_RunError("WriteDest: not a client");
 			return &svs.clients[entnum-1].message;
-		case MSG_ALL: return &sv.reliable_datagram;
-		case MSG_INIT: return sv.signon;
+		case 2/*msg_all*/: return &sv.reliable_datagram;
+		case 3/*msg_init*/: return sv.signon;
 		default: PR_RunError("WriteDest: bad destination"); break;
 	}
 	return NULL;

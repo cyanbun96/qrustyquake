@@ -89,7 +89,7 @@ typedef struct {
 } dmodel_t;
 typedef struct {
 	s32 version;
-	lump_t lumps[HEADER_LUMPS];
+	lump_t lumps[15];
 } dheader_t;
 typedef struct {
 	s32 nummiptex;
@@ -637,7 +637,7 @@ typedef struct {
 	s32 poseverts;
 	s32 posedata; // numposes*poseverts trivert_t
 	s32 commands; // gl command list with embedded s/t
-	s32 texels[MAX_SKINS]; // only for player skins
+	s32 texels[32]; // only for player skins
 	s32 model;
 	s32 stverts;
 	s32 skindesc;
@@ -1308,7 +1308,7 @@ typedef struct {                                                     // screen.c
 	u8 data; // unbounded
 } pcx_t;
 
-typedef struct{ddef_t *pcache;c8 field[MAX_FIELD_LEN];}gefv_cache; // pr_edict.c
+typedef struct{ddef_t *pcache;c8 field[64];}gefv_cache; // pr_edict.c
 struct pr_extfuncs_s
 {
 /*ssqc*/

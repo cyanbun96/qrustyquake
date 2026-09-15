@@ -88,15 +88,14 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 	s32 h = r_refdef.vrect.height;
 	f32 wratio = w / (f32)scr_vrect.width;
 	f32 hratio = h / (f32)scr_vrect.height;
-	u8 *rowptr[MAXHEIGHT + (AMP2 * 2)];
-	s32 column[MAXWIDTH + (AMP2 * 2)];
-	for (s32 v = 0; v < scr_vrect.height + AMP2 * 2; v++)
+	u8 *rowptr[MAXHEIGHT + (TURB_AMP2 * 2)];
+	s32 column[MAXWIDTH + (TURB_AMP2 * 2)];
+	for (s32 v = 0; v < scr_vrect.height + TURB_AMP2 * 2; v++)
 		rowptr[v] = d_viewbuffer + (r_refdef.vrect.y * screenwidth) +
-		    screenwidth * (s32)((f32)v * hratio * h / (h + AMP2 * 2));
-	for (s32 u = 0; u < scr_vrect.width + AMP2 * 2; u++)
-		column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w /
-						     (w + AMP2 * 2));
-	s32 *turb = intsintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
+		    screenwidth * (s32)((f32)v * hratio * h / (h + TURB_AMP2 * 2));
+	for (s32 u = 0; u < scr_vrect.width + TURB_AMP2 * 2; u++)
+		column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w / (w + TURB_AMP2 * 2));
+	s32 *turb = intsintable + ((s32)(cl.time * TURB_SPEED) & (TURB_CYCLE - 1));
 	u8 *dest = vid.buffer + scr_vrect.y * vid.width + scr_vrect.x;
 	for (s32 v = 0; v < scr_vrect.height; v++, dest += vid.width) {
 		s32 *col = &column[turb[v]];
@@ -221,8 +220,8 @@ static inline u8 D_TurbMixLit(u8 pix, u8 lit)
 static void D_DrawTurbulentSpan()
 {
 	do {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
 		s32 pix = *(r_turb_pbase + (t << 6) + s);
 		*r_turb_pdest++ = pix;
 		r_turb_s += r_turb_sstep;
@@ -233,8 +232,8 @@ static void D_DrawTurbulentSpan()
 static void D_DrawTurbulentSpanLit()
 {
 	do {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
 		s32 pix = *(r_turb_pbase + (t << 6) + s);
 		s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 		*r_turb_pdest++ = D_TurbMixLit(pix, lit);
@@ -249,8 +248,8 @@ static void D_DrawTurbulentSpanFiltered()
 		s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
 		s32 s_d = r_turb_s + dither_s[dither_idx];
 		s32 t_d = r_turb_t + dither_t[dither_idx];
-		s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
-		s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
+		s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
 		s32 pix = *(r_turb_pbase + (t << 6) + s);
 		*r_turb_pdest++ = pix;
 		r_turb_s += r_turb_sstep;
@@ -265,8 +264,8 @@ static void D_DrawTurbulentSpanLitFiltered()
 		s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
 		s32 s_d = r_turb_s + dither_s[dither_idx];
 		s32 t_d = r_turb_t + dither_t[dither_idx];
-		s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
-		s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
+		s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
 		s32 pix = *(r_turb_pbase + (t << 6) + s);
 		s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 		*r_turb_pdest++ = D_TurbMixLit(pix, lit);
@@ -280,8 +279,8 @@ static void D_DrawTurbulentSpanMixed()
 {
 	do {
 		if (*pz <= (izi >> 16)) {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
 			*r_turb_pdest = color_mix_lut[*(r_turb_pbase+(t<<6)+s)]
 			    [*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
@@ -297,8 +296,8 @@ static void D_DrawTurbulentSpanLitMixed()
 {
 	do {
 		if (*pz <= (izi >> 16)) {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
 			s32 pix = *(r_turb_pbase + (t << 6) + s);
 			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 			pix = D_TurbMixLit(pix, lit);
@@ -320,8 +319,8 @@ static void D_DrawTurbulentSpanFilteredMixed()
 			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
+			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
+			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
 			*r_turb_pdest = color_mix_lut[*(r_turb_pbase+(t<<6)+s)]
 			[*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
 		}
@@ -341,8 +340,8 @@ static void D_DrawTurbulentSpanLitFilteredMixed()
 			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
+			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
+			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
 			s32 pix = *(r_turb_pbase + (t << 6) + s);
 			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 			pix = D_TurbMixLit(pix, lit);
@@ -362,8 +361,8 @@ static void D_DrawTurbulentSpanDithered()
 {
 	do {
 		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
 				*r_turb_pdest = *(r_turb_pbase + (t << 6) + s);
 		}
 		r_turb_pdest++;
@@ -378,8 +377,8 @@ static void D_DrawTurbulentSpanLitDithered()
 {
 	do {
 		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
+		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
 			s32 pix = *(r_turb_pbase + (t << 6) + s);
 			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 			*r_turb_pdest = D_TurbMixLit(pix, lit);
@@ -399,8 +398,8 @@ static void D_DrawTurbulentSpanFilteredDithered()
 			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
+			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
+			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
 				*r_turb_pdest = *(r_turb_pbase + (t << 6) + s);
 		}
 		r_turb_pdest++;
@@ -419,8 +418,8 @@ static void D_DrawTurbulentSpanLitFilteredDithered()
 			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
 			s32 s_d = r_turb_s + dither_s[dither_idx];
 			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(CYCLE-1)])>>16)&63;
+			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
+			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
 			s32 pix = *(r_turb_pbase + (t << 6) + s);
 			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
 			*r_turb_pdest = D_TurbMixLit(pix, lit);
@@ -709,7 +708,7 @@ void Turbulent(espan_t *pspan, f32 opacity)
 	if(lmonly) R_BuildLitLUT();
 	if(r_alphastyle.value==0 && opacity!=1 && opacity)R_BuildColorMixLUT(0);
 	void (*pturbdrawfunc)() = turbdrawfunc[turb_func_n];
-	r_turb_turb = sintable + ((s32)(cl.time * SPEED) & (CYCLE - 1));
+	r_turb_turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
 	r_turb_sstep = 0; // keep compiler happy
 	r_turb_tstep = 0; // ditto
 	r_turb_pbase = (u8 *)cacheblock;
@@ -793,8 +792,8 @@ void Turbulent(espan_t *pspan, f32 opacity)
 					r_turb_tstep = (tnext - r_turb_t) / (r_turb_spancount - 1);
 				}
 			}
-			r_turb_s = r_turb_s & ((CYCLE << 16) - 1);
-			r_turb_t = r_turb_t & ((CYCLE << 16) - 1);
+			r_turb_s = r_turb_s & ((TURB_CYCLE << 16) - 1);
+			r_turb_t = r_turb_t & ((TURB_CYCLE << 16) - 1);
 			if(r_dithertex.value) {
 				s32 pixel_index = (s32)(r_turb_pdest -
 							(u8*)screen->pixels);

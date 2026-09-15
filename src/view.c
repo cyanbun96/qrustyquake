@@ -534,7 +534,7 @@ void V_CalcRefdef()
 void V_AllocLedges()
 {
 	r_ledges_size *= 1.2;
-	r_ledges_size += NUMSTACKEDGES;
+	r_ledges_size += 2400; // numstackedges
 	Con_DPrintf("Reallocing ledges %d\n", r_ledges_size);
 	s32 alloc_sz = (r_ledges_size+((CACHE_SIZE-1)/sizeof(edge_t))+1)
 				* sizeof(edge_t);
@@ -545,7 +545,7 @@ void V_AllocLedges()
 void V_AllocLsurfs()
 {
 	r_lsurfs_size *= 1.2;
-	r_lsurfs_size += NUMSTACKSURFACES;
+	r_lsurfs_size += 800; // numstacksurfaces
 	Con_DPrintf("Reallocing lsurfs %d\n", r_lsurfs_size);
 	s32 alloc_sz = (r_lsurfs_size+((CACHE_SIZE-1)/sizeof(surf_t))+1)
 				* sizeof(surf_t);

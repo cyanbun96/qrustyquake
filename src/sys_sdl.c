@@ -155,7 +155,7 @@ s32 Sys_FileType(const c8* path)
 		default: break;
 		}
 	}
-	return FS_ENT_NONE;
+	return 0;
 }
 
 void Sys_mkdir(const c8* path) {
@@ -183,7 +183,7 @@ int main(int c, char **v)
 	host_parms.argc = c;
 	host_parms.argv = (c8**)v;
 	COM_InitArgv(host_parms.argc, (c8**)host_parms.argv);
-	host_parms.memsize = DEFAULT_MEMORY;
+	host_parms.memsize = 384*1024*1024; // same as Ironwail
 	if(COM_CheckParm("-heapsize")){
 		s32 t = COM_CheckParm("-heapsize") + 1;
 		if(t < c) host_parms.memsize = atoi(v[t]) * 1024;

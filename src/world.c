@@ -11,7 +11,7 @@
 static hull_t box_hull;
 static mclipnode_t box_clipnodes[6]; //johnfitz -- was dclipnode_t
 static mplane_t box_planes[6];
-static areanode_t sv_areanodes[AREA_NODES];
+static areanode_t sv_areanodes[32];
 static s32 sv_numareanodes;
 
 s32 SV_HullPointContents(hull_t *hull, s32 num, vec3_t p);
@@ -95,7 +95,7 @@ areanode_t *SV_CreateAreaNode(s32 depth, vec3_t mins, vec3_t maxs)
 	sv_numareanodes++;
 	ClearLink(&anode->trigger_edicts);
 	ClearLink(&anode->solid_edicts);
-	if(depth == AREA_DEPTH) {
+	if(depth == 4) {
 		anode->axis = -1;
 		anode->children[0] = anode->children[1] = NULL;
 		return anode;

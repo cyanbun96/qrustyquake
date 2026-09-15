@@ -47,7 +47,7 @@ static void SND_Callback_snd_filterquality(SDL_UNUSED cvar_t *cvar)
 	if(snd_filterquality.value < 1 || snd_filterquality.value > 5)
 	{
 		Con_Printf("snd_filterquality must be between 1 and 5\n");
-		Cvar_SetQuick(&snd_filterquality, SND_FILTERQUALITY_DEFAULT);
+		Cvar_SetQuick(&snd_filterquality, "1");
 	}
 }
 
@@ -104,8 +104,8 @@ void S_Init()
 	snd_initialized = 1;
 	S_Startup();
 	if(sound_started == 0) return;
-	ambient_sfx[AMBIENT_WATER] = S_PrecacheSound("ambience/water1.wav");
-	ambient_sfx[AMBIENT_SKY] = S_PrecacheSound("ambience/wind2.wav");
+	ambient_sfx[0] = S_PrecacheSound("ambience/water1.wav");
+	ambient_sfx[1] = S_PrecacheSound("ambience/wind2.wav");
 	S_StopAllSounds(1);
 }
 

@@ -983,7 +983,7 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 	}
 	if(numpackfiles > MAX_FILES_IN_PACK)
 		Sys_Error("%s has %i files", packfile, numpackfiles);
-	if(numpackfiles != PAK0_COUNT)
+	if(numpackfiles != 339) // pak0_count
 		com_modified = 1; // not the original file
 	packfile_t *newf=(packfile_t*)Z_Malloc(numpackfiles*sizeof(packfile_t));
 	Sys_FileSeek(packhandle, header.dirofs);
@@ -993,7 +993,7 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 	CRC_Init(&crc); // crc the directory to check for modifications
 	for(s32 i = 0; i < header.dirlen; i++)
 		CRC_ProcessByte(&crc, ((u8 *)info)[i]);
-	if(crc != PAK0_CRC_V106 && crc != PAK0_CRC_V101 && crc != PAK0_CRC_V100)
+	if(crc!=13900/*v1.00*/ && crc!=62751/*v1.01*/ && crc!=32981/*v1.06*/)
 		com_modified = 1;
 	for(s32 i = 0; i < numpackfiles; i++){ // parse the directory
 		SDL_strlcpy(newf[i].name,info[i].name,sizeof(newf[i].name));
