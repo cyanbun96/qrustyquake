@@ -1,6 +1,5 @@
 #ifndef GLOBDEFINES_
 #define GLOBDEFINES_
-
 #define q_min(a, b) (((a) < (b)) ? (a) : (b)) // common.h
 #define q_max(a, b) (((a) > (b)) ? (a) : (b))
 #define CLAMP(_minval, x, _maxval) \
@@ -26,10 +25,6 @@
 #define G_EDICTNUM(o) NUM_FOR_EDICT(G_EDICT(o))
 #define G_VECTOR(o) (&qcvm->globals[o])
 #define G_STRING(o) (PR_GetString(*(string_t *)&qcvm->globals[o]))
-#define G_FUNCTION(o) (*(func_t *)&qcvm->globals[o])
-#define E_FLOAT(e,o) (((f32*)&e->v)[o])
-#define E_INT(e,o) (*(s32*)&((f32*)&e->v)[o])
-#define E_VECTOR(e,o) (&((f32*)&e->v)[o])
 #define E_STRING(e,o) (PR_GetString(*(string_t*)&((f32*)&e->v)[o]))
 #define G_VECTORSET(r,x,y,z) do{G_FLOAT((r)+0) = x; G_FLOAT((r)+1) = y;G_FLOAT((r)+2) = z;}while(0)
 #define PROGHEADER_CRC 5927
@@ -42,7 +37,6 @@
 #define NETFLAG_LENGTH_MASK 0x0000ffff // Must fit NET_MAXMESSAGE
 #define NETFLAG_DATA 0x00010000
 #define NETFLAG_ACK 0x00020000
-#define NETFLAG_NAK 0x00040000
 #define NETFLAG_EOM 0x00080000
 #define NETFLAG_UNRELIABLE 0x00100000
 #define NETFLAG_CTL 0x80000000
@@ -56,7 +50,6 @@
 #define CCREP_SERVER_INFO 0x83
 #define CCREP_PLAYER_INFO 0x84
 #define CCREP_RULE_INFO 0x85
-#define MAX_NET_DRIVERS 8
 #define HOSTCACHESIZE 8
 #define IS_LOOP_DRIVER(p) ((p) == 0) // Loop driver must always be registered the first
 #define PROTOCOL_NETQUAKE 15 //johnfitz -- standard quake protocol // protocol.h
@@ -67,9 +60,7 @@
 #define PRFL_24BITCOORD (1 << 3)
 #define PRFL_FLOATCOORD (1 << 4)
 #define PRFL_EDICTSCALE (1 << 5)
-#define PRFL_ALPHASANITY (1 << 6) // cleanup insanity with alpha
 #define PRFL_INT32COORD (1 << 7)
-#define PRFL_MOREFLAGS (1 << 31) // not supported
 #define U_MOREBITS (1<<0)
 #define U_ORIGIN1 (1<<1)
 #define U_ORIGIN2 (1<<2)
@@ -91,19 +82,12 @@
 #define U_MODEL2 (1<<18) // 1 u8, this is .modelindex & 0xFF00 (second u8)
 #define U_LERPFINISH (1<<19) // 1 u8, 0.0-1.0 maps to 0-255, not sent if exactly 0.1, this is ent->v.nextthink - sv.time, used for lerping
 #define U_SCALE (1<<20) // 1 u8, for PROTOCOL_RMQ PRFL_EDICTSCALE
-#define U_UNUSED21 (1<<21)
-#define U_UNUSED22 (1<<22)
 #define U_EXTEND2 (1<<23) // another u8 to follow, future expansion
 #define U_TRANS (1<<15)
 #define SU_VIEWHEIGHT (1<<0)
 #define SU_IDEALPITCH (1<<1)
 #define SU_PUNCH1 (1<<2)
-#define SU_PUNCH2 (1<<3)
-#define SU_PUNCH3 (1<<4)
 #define SU_VELOCITY1 (1<<5)
-#define SU_VELOCITY2 (1<<6)
-#define SU_VELOCITY3 (1<<7)
-#define SU_UNUSED8 (1<<8) // AVAILABLE BIT
 #define SU_ITEMS (1<<9)
 #define SU_ONGROUND (1<<10) // no data follows, the bit is it
 #define SU_INWATER (1<<11) // no data follows, the bit is it
@@ -121,15 +105,8 @@
 #define SU_EXTEND2 (1<<23) // another u8 to follow
 #define SU_WEAPONFRAME2 (1<<24) // 1 u8, this is .weaponframe & 0xFF00 (second u8)
 #define SU_WEAPONALPHA (1<<25) // 1 u8, this is alpha for weaponmodel, uses ENTALPHA_ENCODE, not sent if ENTALPHA_DEFAULT
-#define SU_UNUSED26 (1<<26)
-#define SU_UNUSED27 (1<<27)
-#define SU_UNUSED28 (1<<28)
-#define SU_UNUSED29 (1<<29)
-#define SU_UNUSED30 (1<<30)
-#define SU_EXTEND3 (1<<31) // another u8 to follow, future expansion
 #define SND_VOLUME (1<<0) // a u8 // a sound with no channel is a local only sound
 #define SND_ATTENUATION (1<<1) // a u8
-#define SND_LOOPING (1<<2) // a s64
 #define DEFAULT_SOUND_PACKET_VOLUME 255
 #define DEFAULT_SOUND_PACKET_ATTENUATION 1.0
 #define SND_LARGEENTITY (1<<3) // a s16 + u8 (instead of just a s16)
@@ -140,7 +117,6 @@
 #define B_SCALE (1<<3)
 #define ENTALPHA_DEFAULT 0 //entity's alpha is "default" (i.e. water obeys r_wateralpha) -- must be zero so zeroed out memory works
 #define ENTALPHA_ZERO 1 //entity is invisible (lowest possible alpha)
-#define ENTALPHA_ONE 255 //entity is fully opaque (highest possible alpha)
 #define ENTSCALE_DEFAULT 16 // Equivalent to f32 1.0f due to u8 packing.
 #define DEFAULT_VIEWHEIGHT 22 // defaults for clientinfo messages
 #define GAME_COOP 0 // game types sent by serverinfo
@@ -191,20 +167,8 @@
 #define svc_spawnbaseline2 42 // support for large modelindex, large framenum, alpha, using flags
 #define svc_spawnstatic2 43 // support for large modelindex, large framenum, alpha, using flags
 #define svc_spawnstaticsound2 44 // [coord3] [s16] samp [u8] vol [u8] aten
-#define svc_botchat 38 // 2021 re-release server messages - see:
-#define svc_setviews 45 // https://steamcommunity.com/sharedfiles/filedetails/?id=2679459726
-#define svc_updateping 46
-#define svc_updatesocial 47
-#define svc_updateplinfo 48
-#define svc_rawprint 49
-#define svc_servervars 50
-#define svc_seq 51
 #define svc_achievement 52 // [string] id // Note: svc_achievement has same value as svcdp_effect!
-#define svc_chat 53
-#define svc_levelcompleted 54
-#define svc_backtolobby 55
 #define svc_localsound 56
-#define clc_bad 0 // client to server
 #define clc_nop 1
 #define clc_disconnect 2
 #define clc_move 3 // [usercmd_t]
@@ -224,15 +188,11 @@
 #define TE_EXPLOSION2 12
 #define TE_BEAM 13
 #define ENTALPHA_ENCODE(a) (((a)==0)?ENTALPHA_DEFAULT:Q_rint(CLAMP(1.0f,(a)*254.0f+1,255.0f))) // server convert to u8 to send to client
-#define ENTALPHA_DECODE(a) (((a)==ENTALPHA_DEFAULT)?1.0f:((f32)(a)-1)/(254)) // client convert to f32 for rendering
 #define ENTALPHA_TOSAVE(a) (((a)==ENTALPHA_DEFAULT)?0.0f:(((a)==ENTALPHA_ZERO)?-1.0f:((f32)(a)-1)/(254))) // server convert to f32 for savegame
 #define ENTSCALE_ENCODE(a) ((a) ? ((a) * ENTSCALE_DEFAULT) : ENTSCALE_DEFAULT) // Convert to u8
-#define ENTSCALE_DECODE(a) ((f32)(a) / ENTSCALE_DEFAULT) // Convert to f32 for rendering
-#define CVAR_NONE 0 // cvar.h
-#define CVAR_ARCHIVE (1U << 0) // if set, causes it to be saved to config
+#define CVAR_ARCHIVE (1U << 0) // if set, causes it to be saved to config // cvar.h
 #define CVAR_NOTIFY (1U << 1) // changes will be broadcasted to all players (q1)
 #define CVAR_SERVERINFO (1U << 2) // added to serverinfo will be sent to clients (q1/net_dgrm.c and qwsv)
-#define CVAR_USERINFO (1U << 3) // added to userinfo, will be sent to server (qwcl)
 #define CVAR_CHANGED (1U << 4)
 #define CVAR_ROM (1U << 6)
 #define CVAR_LOCKED (1U << 8) // locked temporarily
@@ -249,7 +209,6 @@
 #define SURFCACHE_SIZE_AT_320X200 600*1024
 #define FOG_LUT_LEVELS 32
 #define MAX_ALIAS_NAME 32 // cmd.h
-#define Cmd_AddCommand_ClientCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_client,false)   //command is meant to be safe for anyone to execute.
 #define Cmd_AddCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_command,false)                //regular console commands
 #define Cmd_AddCommand_ServerCommand(cmdname,func) Cmd_AddCommand2(cmdname,func,src_server,false)   //command came from a server
 #define MAX_ARGS 80
@@ -301,8 +260,7 @@
 #define SPAWNFLAG_NOT_MEDIUM 512
 #define SPAWNFLAG_NOT_HARD 1024
 #define SPAWNFLAG_NOT_DEATHMATCH 2048
-#define OFS_NULL 0 // pr_comp.h
-#define OFS_RETURN 1
+#define OFS_RETURN 1 // pr_comp.h
 #define OFS_PARM0 4 // leave 3 ofs for each parm to hold vectors
 #define OFS_PARM1 7
 #define OFS_PARM2 10
@@ -311,14 +269,12 @@
 #define OFS_PARM5 19
 #define OFS_PARM6 22
 #define OFS_PARM7 25
-#define RESERVED_OFS 28
 #define DEF_SAVEGLOBAL (1<<15)
 #define MAX_PARMS 8
 #define PROG_VERSION 6
 #define NUM_OLDMODES 9 // vid_sdl.h
 #define VID_GRADES (1 << VID_CBITS)
 #define VID_CBITS 6
-#define MAX_MODE_LIST 30
 #define VID_ROW_SIZE 3
 #define MAX_COLUMN_SIZE 5
 #define MODE_AREA_HEIGHT (MAX_COLUMN_SIZE + 6)
@@ -331,7 +287,6 @@
 #define CSHIFT_BONUS 2
 #define CSHIFT_POWERUP 3
 #define NUM_CSHIFTS 4
-#define NAME_LENGTH 64
 #define SIGNONS 4 // signon messages to receive before connected
 #define MAX_DLIGHTS 64
 #define MAX_BEAMS 32
@@ -416,13 +371,10 @@
 #define K_MWHEELDOWN 240
 #define K_MOUSE4 241
 #define K_MOUSE5 242
-#define MAXCLIPPLANES 11 // render.h
-#define TOP_RANGE 16 // soldier uniform colors
+#define TOP_RANGE 16 // soldier uniform colors // render.h
 #define BOTTOM_RANGE 96
 #define LERP_FINISH (1<<4) //use lerpfinish time from server update instead of assuming interval of 0.1
-#undef HAVE_SA_LEN // net_sys.h
-#define SA_FAM_OFFSET 0
-#ifdef _WIN32
+#ifdef _WIN32 // net_sys.h
 #define MAXHOSTNAMELEN 1024
 #define selectsocket select
 #define SOCKETERRNO WSAGetLastError()
@@ -442,9 +394,7 @@
 #endif
 #define ALIAS_BASE_SIZE_RATIO (1.0 / 11.0) // r_local.h // normalizing factor so player model works out to about 1 pixel per triangle
 #define BMODEL_FULLY_CLIPPED 0x10 // value returned by R_BmodelCheckBBox () if bbox is trivially rejected
-#define CLIP_EPSILON 0.001
 #define BACKFACE_EPSILON 0.01
-#define DIST_NOT_SET 98765
 #define NEAR_CLIP 0.01
 #define ALIAS_Z_CLIP_PLANE 0.1 // CyanBun96: was 5, lowered for high FOV guns
 #define MAX_BTOFPOLYS 5000
@@ -453,17 +403,7 @@
 #define SPEED 20
 #define LIT_LUT_RES 64
 #define QUANT(x) (((x) * (LIT_LUT_RES - 1)) / 255)
-#define CMP_NONE 0 // wad.h
-#define CMP_LZSS 1
-#define TYP_NONE 0
-#define TYP_LABEL 1
-#define TYP_LUMPY 64 // 64 + grab command number
-#define TYP_PALETTE 64
-#define TYP_QTEX 65
 #define TYP_QPIC 66
-#define TYP_SOUND 67
-#define TYP_MIPTEX_PALETTE 67
-#define TYP_MIPTEX 68
 #define WADID ('W' | ('A' << 8) | ('D' << 16) | ('2' << 24))
 #define WADID_VALVE ('W' | ('A' << 8) | ('D' << 16) | ('3' << 24))
 #define WADFILENAME "gfx.wad" //johnfitz -- filename is now hard-coded for honesty
@@ -510,71 +450,46 @@
 #define STAT_MONSTERS 14 // bumped by svc_killedmonster
 #define STAT_ITEMS 15 // replaces clc_clientdata info
 #define IT_SHOTGUN 1 // stock defines
-#define IT_SUPER_SHOTGUN 2
-#define IT_NAILGUN 4
-#define IT_SUPER_NAILGUN 8
 #define IT_GRENADE_LAUNCHER 16
-#define IT_ROCKET_LAUNCHER 32
 #define IT_LIGHTNING 64
-#define IT_SUPER_LIGHTNING 128
 #define IT_SHELLS 256
 #define IT_NAILS 512
 #define IT_ROCKETS 1024
 #define IT_CELLS 2048
-#define IT_AXE 4096
 #define IT_ARMOR1 8192
 #define IT_ARMOR2 16384
 #define IT_ARMOR3 32768
-#define IT_SUPERHEALTH 65536
-#define IT_KEY1 131072
-#define IT_KEY2 262144
 #define IT_INVISIBILITY 524288
 #define IT_INVULNERABILITY 1048576
 #define IT_SUIT 2097152
 #define IT_QUAD 4194304
-#define IT_SIGIL1 (1<<28)
-#define IT_SIGIL2 (1<<29)
-#define IT_SIGIL3 (1<<30)
-#define IT_SIGIL4 (1<<31)
 #define RIT_SHELLS 128 // rogue changed and added defines
 #define RIT_NAILS 256
 #define RIT_ROCKETS 512
 #define RIT_CELLS 1024
-#define RIT_AXE 2048
 #define RIT_LAVA_NAILGUN 4096
-#define RIT_LAVA_SUPER_NAILGUN 8192
-#define RIT_MULTI_GRENADE 16384
 #define RIT_MULTI_ROCKET 32768
-#define RIT_PLASMA_GUN 65536
 #define RIT_ARMOR1 8388608
 #define RIT_ARMOR2 16777216
 #define RIT_ARMOR3 33554432
 #define RIT_LAVA_NAILS 67108864
 #define RIT_PLASMA_AMMO 134217728
 #define RIT_MULTI_ROCKETS 268435456
-#define RIT_SHIELD 536870912
-#define RIT_ANTIGRAV 1073741824
-#define RIT_SUPERHEALTH 2147483648
 #define HIT_PROXIMITY_GUN_BIT 16 // MED 01/04/97 added hipnotic defines
 #define HIT_MJOLNIR_BIT 7 // hipnotic added defines
 #define HIT_LASER_CANNON_BIT 23
 #define HIT_PROXIMITY_GUN (1<<HIT_PROXIMITY_GUN_BIT)
 #define HIT_MJOLNIR (1<<HIT_MJOLNIR_BIT)
 #define HIT_LASER_CANNON (1<<HIT_LASER_CANNON_BIT)
-#define HIT_WETSUIT (1<<(23+2))
-#define HIT_EMPATHY_SHIELDS (1<<(23+3))
 #define MAX_SCOREBOARD 16
 #define MAX_SCOREBOARDNAME 32
-#define SOUND_CHANNELS 8
 #define DATAGRAM_MTU 1400 // johnfitz -- actual limit for unreliable messages to nonlocal clients
 #define DIST_EPSILON (0.03125) // 1/32 epsilon to keep floating point happy (moved from world.c)
 #define WARP_WIDTH MAXWIDTH // d_iface.h
 #define WARP_HEIGHT MAXHEIGHT
 #define MAX_LBM_HEIGHT 480
 #define PARTICLE_Z_CLIP 8.0
-#define DR_SOLID 0 // transparency types for D_DrawRect()
-#define DR_TRANSPARENT 1
-#define TRANSPARENT_COLOR 0xFF
+#define TRANSPARENT_COLOR 0xFF // transparency types for D_DrawRect()S
 #define TILE_SIZE 128 // size of textures generated by R_GenTiledSurf
 #define SKYSHIFT 7
 #define MAXSKIES 8
@@ -598,7 +513,6 @@
 #endif
 #define MAXDIMENSION ((MAXHEIGHT > MAXWIDTH) ? MAXHEIGHT : MAXWIDTH)
 #define SIN_BUFFER_SIZE (MAXDIMENSION+CYCLE)
-#define INFINITE_DISTANCE 0x10000 // distance that's always guaranteed to be farther away than anything in the scene
 #define NUMSTACKEDGES 2400 // CyanBun96: gets realloced dynamically
 #define NUMSTACKSURFACES 800 // CyanBun96: gets realloced dynamically
 #define MAXSPANS 32768 // CyanBun96: expanding limits
@@ -611,18 +525,12 @@
 #define TEX_SPECIAL 1 // sky or slime, no lightmap or 256 subd // bspfile.h
 #define TEX_MISSING 2 // johnfitz -- this texinfo does not have a texture
 #define MAX_MAP_HULLS 4 // upper design bounds
-#define MAX_KEY 32 // key / value pair sizes
-#define MAX_VALUE 1024
 #define BSPVERSION 29
-#ifdef BSP29_VALVE
-#define BSPVERSION_VALVE 30
-#endif
 // RMQ support (2PSB). 32bits instead of shorts for all but bbox sizes (which still use shorts)
 #define BSP2VERSION_2PSB (('B' << 24) | ('S' << 16) | ('P' << 8) | '2')
 // BSP2 support. 32bits instead of shorts for everything (bboxes use floats)
 #define BSP2VERSION_BSP2 (('B' << 0) | ('S' << 8) | ('P' << 16) | ('2'<<24))
 #define BSPVERSION_QUAKE64 (('Q' << 24) | ('6' << 16) | ('4' << 8) | ' ')
-#define TOOLVERSION 2
 #define LUMP_ENTITIES 0
 #define LUMP_PLANES 1
 #define LUMP_TEXTURES 2
@@ -643,29 +551,18 @@
 #define PLANE_X 0 // 0-2 are axial planes
 #define PLANE_Y 1
 #define PLANE_Z 2
-#define PLANE_ANYX 3 // 3-5 are non-axial planes snapped to the nearest
-#define PLANE_ANYY 4
-#define PLANE_ANYZ 5
+#define PLANE_ANYZ 5 // 3-5 are non-axial planes snapped to the nearest
 #define CONTENTS_EMPTY -1
 #define CONTENTS_SOLID -2
 #define CONTENTS_WATER -3
 #define CONTENTS_SLIME -4
 #define CONTENTS_LAVA -5
-#define CONTENTS_SKY -6
-#define CONTENTS_ORIGIN -7 // removed at csg time
-#define CONTENTS_CLIP -8 // changed to contents_solid
 #define CONTENTS_CURRENT_0 -9
-#define CONTENTS_CURRENT_90 -10
-#define CONTENTS_CURRENT_180 -11
-#define CONTENTS_CURRENT_270 -12
-#define CONTENTS_CURRENT_UP -13
 #define CONTENTS_CURRENT_DOWN -14
 #define TEX_SPECIAL 1 // sky or slime, no lightmap or 256 subdivision
 #define MAXLIGHTMAPS 4
 #define AMBIENT_WATER 0
 #define AMBIENT_SKY 1
-#define AMBIENT_SLIME 2
-#define AMBIENT_LAVA 3
 #define NUM_AMBIENTS 4 // automatic ambient sounds
 #define SPRITE_VERSION 1 // spritegn.h
 #define SPR_VP_PARALLEL_UPRIGHT 0
@@ -676,14 +573,9 @@
 #define IDSPRITEHEADER (('P'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian IDSP
 #define ALIAS_VERSION 6 // modelgen.h
 #define ALIAS_ONSEAM 0x0020
-#define DT_FACES_FRONT 0x0010
 #define IDPOLYHEADER (('O'<<24)+('P'<<16)+('D'<<8)+'I') // little-endian "IDPO"
-#define SIDE_FRONT 0 // model.h
-#define SIDE_BACK 1
-#define SIDE_ON 2
-#define SURF_PLANEBACK 2
+#define SURF_PLANEBACK 2 // model.h
 #define SURF_DRAWSKY 4
-#define SURF_DRAWSPRITE 8
 #define SURF_DRAWTURB 0x10
 #define SURF_DRAWTILED 0x20
 #define SURF_DRAWBACKGROUND 0x40
@@ -710,7 +602,6 @@
 #define EF_QEX_QUADLIGHT 16 // 2021 rerelease
 #define EF_QEX_PENTALIGHT 32 // 2021 rerelease
 #define EF_QEX_CANDLELIGHT 64 // 2021 rerelease
-#define VERTEXSIZE 7
 #define MAX_SKINS 32
 #define MAXALIASVERTS 3984 //Baker: 1024 is GLQuake original limit. 2000 is WinQuake original limit. Baker 2000->3984
 #define MAXALIASFRAMES 1024 //spike -- was 256
@@ -723,75 +614,35 @@
 #define EF_ZOMGIB 32 // small blood trail
 #define EF_TRACER2 64 // orange split trail + rotate
 #define EF_TRACER3 128 // purple trail
-#define TEXPREF_NONE 0x0000
-#define TEXPREF_MIPMAP 0x0001 // generate mipmaps
- // TEXPREF_NEAREST and TEXPREF_LINEAR aren't supposed to be ORed with TEX_MIPMAP
-#define TEXPREF_LINEAR 0x0002 // force linear
-#define TEXPREF_NEAREST 0x0004 // force nearest
-#define TEXPREF_ALPHA 0x0008 // allow alpha
-#define TEXPREF_PAD 0x0010 // allow padding
-#define TEXPREF_PERSIST 0x0020 // never free
-#define TEXPREF_OVERWRITE 0x0040 // overwrite existing same-name texture
-#define TEXPREF_NOPICMIP 0x0080 // always load full-sized
-#define TEXPREF_FULLBRIGHT 0x0100 // use fullbright mask palette
-#define TEXPREF_NOBRIGHT 0x0200 // use nobright mask palette
-#define TEXPREF_CONCHARS 0x0400 // use conchars palette
-#define TEXPREF_ARRAY 0x0800 // array texture
-#define TEXPREF_CUBEMAP 0x1000 // cubemap texture
-#define TEXPREF_BINDLESS 0x2000 // enable bindless usage
-#define TEXPREF_ALPHABRIGHT 0x4000 // use palette with lighting mask in alpha channel (0=fullbright, 1=lit)
-#define TEXPREF_CLAMP 0x8000 // clamp UVs
-#define TEXPREF_ALPHAPIXELS 0x10000 // has demonstratable alpha pixels, mostly used for md3
-#define TEXPREF_UNCOMPRESSED 0x20000 // disable compression
-#define TEXPREF_HASALPHA (TEXPREF_ALPHA|TEXPREF_ALPHABRIGHT) // texture has alpha channel
 #define PICFLAG_AUTO 0 //value used when no flags known
-#define PICFLAG_WAD (1u<<0) //name matches that of a wad lump
-//#define PICFLAG_TEMP (1u<<1)
-#define PICFLAG_WRAP (1u<<2) //make sure npot stuff doesn't break wrapping.
-#define PICFLAG_MIPMAP (1u<<3) //disable use of scrap...
-//#define PICFLAG_DOWNLOAD (1u<<8) //request to download it from the gameserver if its not stored locally.
 #define PICFLAG_BLOCK (1u<<9) //wait until the texture is fully loaded.
 #define PICFLAG_NOLOAD (1u<<31)
-
 #define MAX_CACHED_PICS 1024 // was 128 // draw.c
-
-#define MAXLEFTCLIPEDGES 100 // r_draw.c
-#define FULLY_CLIPPED_CACHED 0x80000000
+#define FULLY_CLIPPED_CACHED 0x80000000 // r_draw.c
 #define FRAMECOUNT_MASK 0x7FFFFFFF
 #define COARSE_OCCLUSION_TILE_SIZE 8
 #define COARSE_OCCLUSION_MAX_VERTS 128
 #define COARSE_OCCLUSION_EPSILON 0.001f
-
 #define BLINK_HZ ((1000 / 70) * 16) // vgatext.c
-
 #define MAX_BMODEL_VERTS 5000 // CyanBun96: was 500 // r_bsp.c
 #define MAX_BMODEL_EDGES 10000 // was 1000
-
 #define NUMVERTEXNORMALS 162 // r_alias.c
 #define LIGHT_MIN 5
-
 #define GUARDSIZE 4 // d_surf.c
-
 #define ANIM_CYCLE 2 // model.c
 #define MAX_MOD_KNOWN 4096 // johnfitz -- was 512
 #define NL_PRESENT 0 // values for model_t's needload
-#define NL_NEEDS_LOADED 1
 #define NL_UNREFERENCED 2
 #define VISPATCH_HEADER_LEN 36
-
 #define CON_TEXTSIZE 65536 // console.c
 #define NUM_CON_TIMES 4
 #define MAXCMDLINE 256
 #define MAXGAMEDIRLEN 1000
 #define MAXPRINTMSG 4096
-
 #define MAX_STACK_DEPTH 1024 // pr_exec.c
 #define LOCALSTACK_SIZE 16384
 #define MAX_BUILTINS 1280
-
 #define CRC_INIT_VALUE 0xffff // crc.c
-#define CRC_XOR_VALUE 0x0000
-
 #define MAIN_ITEMS 5 // menu.c
 #define SINGLEPLAYER_ITEMS 3
 #define MAX_SAVEGAMES 12
@@ -801,31 +652,21 @@
 #define NUMCOMMANDS (s32)(sizeof(bindnames)/sizeof(bindnames[0]))
 #define StartingGame (m_multiplayer_cursor == 1)
 #define JoiningGame (m_multiplayer_cursor == 0)
-#define SerialConfig (m_net_cursor == 0)
-#define DirectConfig (m_net_cursor == 1)
-#define IPXConfig (m_net_cursor == 2)
 #define TCPIPConfig (m_net_cursor == 3)
 #define NUM_HELP_PAGES 6
 #define NUM_LANCONFIG_CMDS 3
 #define NUM_GAMEOPTIONS 9
-
-#define MOVE_EPSILON 0.01 // sv_phys.c
-#define STOP_EPSILON 0.1
+#define STOP_EPSILON 0.1 // sv_phys.c
 #define MAX_CLIP_PLANES 5
 #define STEPSIZE 18
-
 #define SKY_SPAN_SHIFT 5 // d_sky.c
 #define SKY_SPAN_MAX (1 << SKY_SPAN_SHIFT)
-
 #define MAX_FORWARD 6 // sv_user.c
-
 #define PAK0_COUNT 339 // id1/pak0.pak - v1.0x // common.c
 #define PAK0_CRC_V100 13900 // id1/pak0.pak - v1.00
 #define PAK0_CRC_V101 62751 // id1/pak0.pak - v1.01
 #define PAK0_CRC_V106 32981 // id1/pak0.pak - v1.06
 #define PAK0_CRC (PAK0_CRC_V106)
-#define PAK0_COUNT_V091 308 // id1/pak0.pak - v0.91/0.92, not supported
-#define PAK0_CRC_V091 28804 // id1/pak0.pak - v0.91/0.92, not supported
 #define VA_NUM_BUFFS 4
 #define VA_BUFFERLEN 1024
 #define MAX_FILES_IN_PACK 2048
@@ -835,13 +676,10 @@
 #define LOADFILE_CACHE 3
 #define LOADFILE_STACK 4
 #define LOADFILE_MALLOC 5
-
 #define MAX_FIELD_LEN 64 // pr_edict.c
 #define PR_STRING_ALLOCSLOTS 256
-
 #define STEPSIZE 18 // sv_move.c
 #define DI_NODIR -1
-
 #define STRINGTEMP_BUFFERS 1024 // pr_cmds.c
 #define STRINGTEMP_LENGTH 1024
 #define RETURN_EDICT(e) (((s32 *)qcvm->globals)[OFS_RETURN] = EDICT_TO_PROG(e))
@@ -849,22 +687,11 @@
 #define MSG_ONE 1 // reliable to one (msg_entity)
 #define MSG_ALL 2 // reliable to all
 #define MSG_INIT 3 // write to the init string
-#define MAX_CHECK 16
-
-#ifdef _WIN32 // platform dependant (v)snprintf function names: // common.c
-#define snprintf_func _snprintf
-#define vsnprintf_func _vsnprintf
-#else
-#define snprintf_func snprintf
-#define vsnprintf_func vsnprintf
-#endif
-
 #define NUMVERTEXNORMALS 162 // r_part.c
 #define MAX_PARTICLES 2048
 #define ABSOLUTE_MIN_PARTICLES 512
 #define DPS_MAXSPANS MAXHEIGHT+1 // +1 for spanpackage marking end // d_polyse.c
 #define SIGNON_SIZE 31500 // sv_main.c
-#define MAX_TIMINGS 100 // r_misc.c
 #define DYNAMIC_SIZE (4 * 1024 * 1024) // ericw -- was 512KB // zone.c
 #define ZONEID 0x1d4a11
 #define MINFRAGMENT 64
