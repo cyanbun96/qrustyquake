@@ -13,6 +13,7 @@ typedef struct cachepic_s {
 	c8 name[MAX_QPATH];
 	cache_user_t cache;
 } cachepic_t;
+static s32 d_y_aspect_shift;
 static s32 cliprectx0 = -1;
 static s32 cliprectx1 = -1;
 static s32 cliprecty0 = -1;

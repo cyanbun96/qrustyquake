@@ -13,6 +13,7 @@ typedef struct {
 	s32 parity; // 0-3
 	f32 f_c; // cutoff frequency, [0..1], fraction of sample rate
 } filter_t;
+static portable_samplepair_t s_rawsamples[MAX_RAW_SAMPLES];
 static portable_samplepair_t paintbuffer[PAINTBUFFER_SIZE];
 static s32 snd_scaletable[32][256];
 static s32 *snd_p, snd_linear_count;

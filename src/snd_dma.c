@@ -114,7 +114,6 @@ void S_Shutdown()
 	if(!sound_started) return;
 	sound_started = 0;
 	snd_blocked = 0;
-	SNDDMA_Shutdown();
 	shm = NULL;
 }
 
@@ -266,13 +265,11 @@ static void S_StopAllSoundsC() { S_StopAllSounds(1); }
 void S_ClearBuffer()
 {
 	if(!sound_started || !shm) return;
-	SNDDMA_LockBuffer();
 	if(! shm->buffer) return;
 	s_rawend = 0;
 	s32 clear = 0;
 	if(shm->samplebits == 8 && !shm->signed8) clear = 0x80;
 	memset(shm->buffer, clear, shm->samples * shm->samplebits / 8);
-	SNDDMA_Submit();
 }
 
 void S_StaticSound(sfx_t *sfx, vec3_t origin, f32 vol, f32 attenuation)
@@ -403,7 +400,6 @@ static void S_Update_()
 	s32 samps;
 	if(!sound_started || (snd_blocked > 0))
 		return;
-	SNDDMA_LockBuffer();
 	if(! shm->buffer)
 		return;
 	// Updates DMA time
@@ -419,7 +415,6 @@ static void S_Update_()
 	samps = shm->samples >> (shm->channels - 1);
 	endtime = q_min(endtime, (u32)(soundtime + samps));
 	S_PaintChannels(endtime);
-	SNDDMA_Submit();
 }
 
 static void S_Play()

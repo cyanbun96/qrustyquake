@@ -425,8 +425,7 @@ void R_MakeSky(texture_t *mt)
 void R_SetSkyFrame ()
 {
 	skyspeed = iskyspeed;
-	skyspeed2 = iskyspeed2;
-	s32 g = GreatestCommonDivisor (iskyspeed, iskyspeed2);
+	s32 g = GreatestCommonDivisor(iskyspeed, iskyspeed2);
 	s32 s1 = iskyspeed / g;
 	s32 s2 = iskyspeed2 / g;
 	f32 temp = SKYSIZE * s1 * s2;

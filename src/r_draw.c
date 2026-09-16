@@ -2,6 +2,7 @@
 #include "quakedef.h"
 
 typedef struct { f32 x; f32 y; } coarse_occ_vertex_t;
+static f32 winquake_surface_liquid_alpha;
 static u8 *r_coarse_occlusion_bits;
 static s32 r_coarse_occlusion_width;
 static s32 r_coarse_occlusion_height;

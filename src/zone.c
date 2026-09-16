@@ -43,6 +43,7 @@ void Cache_FreeLow(s32 new_low_hunk);
 void Cache_FreeHigh(s32 new_high_hunk);
 cache_system_t *Cache_TryAlloc(s32 size, bool nobottom);
 void Cache_Free(cache_user_t *c, bool freetextures);
+void Hunk_FreeToHighMark(s32 mark);
 
 void Z_Free(void *ptr)
 {

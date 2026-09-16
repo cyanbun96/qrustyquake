@@ -130,7 +130,7 @@ surfcache_t *d_initial_rover;                                        // d_init.c
 bool d_roverwrapped;
 s32 d_minmip;
 f32 d_scalemip[NUM_MIPS - 1];
-s32 d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;           // d_modech.c
+s32 d_pix_min, d_pix_max, d_pix_shift;                             // d_modech.c
 s32 d_vrectx, d_vrecty;
 s32 d_scantable[MAXHEIGHT];
 s16 *zspantable[MAXHEIGHT];
@@ -163,8 +163,7 @@ s32 key_count; // incremented every key event
 c8 *keybindings[256];
 c8 chat_buffer[32];
 bool team_message = 0;
-s32 lwmark = 0;                                                      // d_scan.c
-u8 *litwater_base;
+u8 *litwater_base;                                                   // d_scan.c
 bool insubmodel; // current entity info                               // r_bsp.c
 entity_t *currententity;
 vec3_t modelorg, base_modelorg; // viewpoint reletive to currently rendering ent
@@ -174,7 +173,6 @@ s32 c_faceclip; // number of faces clipped                           // r_draw.c
 clipplane_t view_clipplanes[4];
 s32 sintable[SIN_BUFFER_SIZE];
 s32 intsintable[SIN_BUFFER_SIZE];
-f32 winquake_surface_liquid_alpha;
 edge_t *last_pcheck[MAXHEIGHT]; // indexed by scanline v
 edge_t *ledges;                                                      // r_edge.c
 surf_t *lsurfs;
@@ -199,14 +197,13 @@ channel_t snd_channels[MAX_CHANNELS];
 s32 total_channels;
 s32 paintedtime; // sample PAIRS
 s32 s_rawend;
-portable_samplepair_t s_rawsamples[MAX_RAW_SAMPLES];
 server_t sv;                                                        // sv_main.c
 server_static_t svs;
 globalvars_t *pr_global_struct;                                    // pr_edict.c
 qcvm_t *qcvm;
 u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                   // r_sky.c
 s32 r_skyframe[MAXSKIES];
-f32 skyspeed, skyspeed2;
+f32 skyspeed;
 f32 skytime;
 u8 r_skysource[MAXSKIES][128*256];
 s32 r_skymade[MAXSKIES];
@@ -220,7 +217,6 @@ u8 uipal[768];
 c8 worldpalname[MAX_OSPATH];
 c8 worldcmapname[MAX_OSPATH];
 c8 uipalname[MAX_OSPATH];
-searchpath_t *com_base_searchpaths;
 searchpath_t *com_searchpaths;
 filelist_item_t *extralevels;
 filelist_item_t *extralevels_mod;
@@ -248,7 +244,6 @@ const s32 dither_t[4] = {
 	(s32)(-0.50 * 65536.0f),
 	(s32)(-0.25 * 65536.0f)
 };
-
 mtriangle_t *ptriangles;                                            // r_alias.c
 affinetridesc_t r_affinetridesc;
 void *acolormap;

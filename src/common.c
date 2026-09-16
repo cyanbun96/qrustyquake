@@ -47,6 +47,7 @@ typedef struct {
 	locentry_t *entries;
 	c8 *text;
 } localization_t;
+static searchpath_t *com_base_searchpaths;
 static bool com_modified; // set 1 if using non-id files
 static c8 *largv[MAX_NUM_ARGVS + 1];
 static c8 argvdummy[] = " ";

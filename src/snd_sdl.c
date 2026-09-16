@@ -104,7 +104,6 @@ void SNDDMA_Shutdown()
 {
 	if(shm) {
 		Con_Printf("Shutting down SDL sound\n");
-		//SDL_CloseAudio();
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		if(shm->buffer) free(shm->buffer);
 		shm->buffer = NULL;
@@ -113,8 +112,3 @@ void SNDDMA_Shutdown()
 }
 
 s32 SNDDMA_GetDMAPos() { return shm->samplepos; }
-void SNDDMA_LockBuffer() { /*SDL_LockAudio();*/ }
-void SNDDMA_Submit() { /*SDL_UnlockAudio();*/ }
-void SNDDMA_BlockSound() { /*SDL_PauseAudio(1);*/ }
-void SNDDMA_UnblockSound(){ /*SDL_PauseAudio(0);*/ }
-
