@@ -5,6 +5,11 @@
 // sv_edict.c -- entity dictionary
 #include "quakedef.h"
 
+typedef struct {
+	const c8 *name;
+	s32 first_statement;
+	s32 patch_statement;
+} exbuiltin_t;
 const s32 type_size[NUM_TYPE_SIZES] = {
 	1, // ev_void
 	1, // sizeof(string_t) / 4 // ev_string

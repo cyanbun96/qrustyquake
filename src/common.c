@@ -26,6 +26,27 @@ especially over ISDN / T1 lines. If there is a cache directory specified, when
 a file is found by the normal search path, it will be mirrored into the cache
 directory, then opened there. */
 
+typedef struct { // on-disk pakfile
+	c8 name[56];
+	s32 filepos, filelen;
+} dpackfile_t;
+typedef struct {
+	c8 id[4];
+	s32 dirofs;
+	s32 dirlen;
+} dpackheader_t;
+typedef struct {
+	c8 *key;
+	c8 *value;
+} locentry_t;
+typedef struct {
+	s32 numentries;
+	s32 maxnumentries;
+	s32 numindices;
+	u32 *indices;
+	locentry_t *entries;
+	c8 *text;
+} localization_t;
 static bool com_modified; // set 1 if using non-id files
 static c8 *largv[MAX_NUM_ARGVS + 1];
 static c8 argvdummy[] = " ";

@@ -5,6 +5,156 @@
 // on the same machine.
 #include "quakedef.h"
 
+typedef struct {
+	s32 fileofs, filelen;
+} lump_t;
+typedef struct {
+	s32 version;
+	lump_t lumps[15];
+} dheader_t;
+typedef struct {
+	s32 nummiptex;
+	s32 dataofs[4]; // [nummiptex]
+} dmiptexlump_t;
+typedef struct miptex_s {
+	c8 name[16];
+	unsigned width, height;
+	unsigned offsets[MIPLEVELS]; // four mip maps stored
+} miptex_t;
+typedef struct {
+	f32 point[3];
+} dvertex_t;
+typedef struct {
+	f32 normal[3];
+	f32 dist;
+	s32 type; // PLANE_X - PLANE_ANYZ ?remove? trivial to regenerate
+} dplane_t;
+typedef struct {
+	s32 planenum;
+	s16 children[2]; // negative numbers are -(leafs+1), not nodes
+	s16 mins[3]; // for sphere culling
+	s16 maxs[3];
+	u16 firstface;
+	u16 numfaces; // counting both sides
+} dnode_t;
+typedef struct {
+	s32 planenum;
+	s32 children[2]; // negative numbers are -(leafs+1), not nodes
+	s16 mins[3]; // for sphere culling
+	s16 maxs[3];
+	u32 firstface;
+	u32 numfaces; // counting both sides
+} dl1node_t;
+typedef struct {
+	s32 planenum;
+	s32 children[2]; // negative numbers are -(leafs+1), not nodes
+	f32 mins[3]; // for sphere culling
+	f32 maxs[3];
+	u32 firstface;
+	u32 numfaces; // counting both sides
+} dl2node_t;
+typedef struct { // note that edge 0 is never used, because negative edge nums
+		 // are used for counterclockwise use of the edge in a face
+	u16 v[2]; // vertex numbers
+} dedge_t;
+typedef struct {
+	u32 v[2]; // vertex numbers
+} dledge_t;
+typedef struct {
+	s16 planenum;
+	s16 side;
+	s32 firstedge; // we must support > 64k edges
+	s16 numedges;
+	s16 texinfo;
+	u8 styles[MAXLIGHTMAPS]; // lighting info
+	s32 lightofs; // start of [numstyles*surfsize] samples
+} dface_t;
+typedef struct {
+	s32 planenum;
+	s32 side;
+	s32 firstedge; // we must support > 64k edges
+	s32 numedges;
+	s32 texinfo;
+	u8 styles[MAXLIGHTMAPS]; // lighting info
+	s32 lightofs; // start of [numstyles*surfsize] samples
+} dlface_t;
+typedef struct { // leaf 0 is the generic CONTENTS_SOLID leaf, used for all...
+	s32 contents; // ...solid areas, all other leafs need visibility info
+	s32 visofs; // -1 = no visibility info
+	s16 mins[3]; // for frustum culling
+	s16 maxs[3];
+	u16 firstmarksurface;
+	u16 nummarksurfaces;
+	u8 ambient_level[NUM_AMBIENTS];
+} dleaf_t;
+typedef struct {
+	s32 contents;
+	s32 visofs; // -1 = no visibility info
+	s16 mins[3]; // for frustum culling
+	s16 maxs[3];
+	u32 firstmarksurface;
+	u32 nummarksurfaces;
+	u8 ambient_level[NUM_AMBIENTS];
+} dl1leaf_t;
+typedef struct {
+	s32 contents;
+	s32 visofs; // -1 = no visibility info
+	f32 mins[3]; // for frustum culling
+	f32 maxs[3];
+	u32 firstmarksurface;
+	u32 nummarksurfaces;
+	u8 ambient_level[NUM_AMBIENTS];
+} dl2leaf_t;
+typedef struct dtriangle_s {
+	s32 facesfront;
+	s32 vertindex[3];
+} dtriangle_t;
+typedef struct {
+	trivertx_t bboxmin; // lightnormal isn't used
+	trivertx_t bboxmax; // lightnormal isn't used
+	c8 name[16]; // frame name from grabbing
+} daliasframe_t;
+typedef struct {
+	s32 numframes;
+	trivertx_t bboxmin; // lightnormal isn't used
+	trivertx_t bboxmax; // lightnormal isn't used
+} daliasgroup_t;
+typedef struct { s32 numskins; } daliasskingroup_t;
+typedef struct { f32 interval; } daliasinterval_t;
+typedef struct { f32 interval; } daliasskininterval_t;
+typedef struct { aliasframetype_t type; } daliasframetype_t;
+typedef struct { aliasskintype_t type; } daliasskintype_t;
+typedef struct {
+	s32 ident;
+	s32 version;
+	s32 type;
+	f32 boundingradius;
+	s32 width;
+	s32 height;
+	s32 numframes;
+	f32 beamlength;
+	synctype_t synctype;
+} dsprite_t;
+typedef struct {
+	s32 origin[2];
+	s32 width;
+	s32 height;
+} dspriteframe_t;
+typedef struct {
+	s32 planenum;
+	s16 children[2]; // negative numbers are contents
+} dsclipnode_t;
+typedef struct {
+	s32 planenum;
+	s32 children[2]; // negative numbers are contents
+} dlclipnode_t;
+typedef struct { s32 numframes; } dspritegroup_t;
+typedef struct { f32 interval; } dspriteinterval_t;
+typedef struct { spriteframetype_t type; } dspriteframetype_t;
+typedef struct vispatch_s { // External VIS file support
+	c8 mapname[32];
+	s32 filelen; // length of data after header (VIS+Leafs)
+} vispatch_t;
 static aliashdr_t *pheader;
 // pose is a single set of vertexes. frame may be an animating sequence of poses
 static trivertx_t *poseverts[MAXALIASFRAMES];

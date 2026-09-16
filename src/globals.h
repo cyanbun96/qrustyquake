@@ -66,8 +66,6 @@ EX s32 r_wholepolycount;
 EX s32 modcount;
 EX texture_t *r_notexture_mip;
 EX s32 colored_aliaslight;
-EX debugline_t *r_debuglines;
-EX debugpoint_t *r_debugpoints;
 EX s32 r_numdebuglines;
 EX s32 r_numdebugpoints;
 EX bool coccl_enable;
@@ -229,8 +227,6 @@ s32 UDP_GetSocketPort(struct qsockaddr *addr);
 s32 UDP_SetSocketPort(struct qsockaddr *addr, s32 port);
 void W_LoadWadFile();                                                   // wad.h
 void *W_GetLumpName(const c8 *name);
-wad_t *W_LoadWadList(const c8 *names);
-lumpinfo_t *W_GetLumpinfoList(wad_t *wads, const c8 *name, wad_t **out_wad);
 void SwapPic(qpic_t *pic);
 EX vec3_t r_origin, vpn, vright, vup;                                // render.h
 void R_Init();

@@ -4,6 +4,28 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+typedef struct {
+	c8 identification[4]; // should be WAD2 or 2DAW
+	s32 numlumps;
+	s32 infotableofs;
+} wadinfo_t;
+typedef struct {
+	s32 filepos;
+	s32 disksize;
+	s32 size; // uncompressed
+	c8 type;
+	c8 compression;
+	c8 pad1, pad2;
+	c8 name[16]; // must be null terminated
+} lumpinfo_t;
+typedef struct wad_s {
+	c8 name[MAX_QPATH];
+	s32 id;
+	fshandle_t fh;
+	s32 numlumps;
+	lumpinfo_t *lumps;
+	struct wad_s *next;
+} wad_t;
 static s32 wad_numlumps;
 static lumpinfo_t *wad_lumps;
 static u8 *wad_base = NULL;

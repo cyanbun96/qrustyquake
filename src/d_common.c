@@ -2,6 +2,17 @@
 // this is the only file outside the refresh that touches the vid buffer
 #include "quakedef.h"
 
+typedef struct {
+	vrect_t rect;
+	s32 width;
+	s32 height;
+	u8 *ptexbytes;
+	s32 rowbytes;
+} rectdesc_t;
+typedef struct cachepic_s {
+	c8 name[MAX_QPATH];
+	cache_user_t cache;
+} cachepic_t;
 static s32 cliprectx0 = -1;
 static s32 cliprectx1 = -1;
 static s32 cliprecty0 = -1;

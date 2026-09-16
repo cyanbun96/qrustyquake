@@ -6,6 +6,26 @@
 // world.c -- world query functions
 #include "quakedef.h"
 
+typedef struct {
+	vec3_t boxmins, boxmaxs; // enclose the test object along entire move
+	f32 *mins, *maxs; // size of the moving object
+	vec3_t mins2, maxs2; // size when clipping against mosnters
+	f32 *start, *end;
+	trace_t trace;
+	s32 type;
+	edict_t *passedict;
+} moveclip_t;
+typedef struct areanode_s {
+	s32 axis; // -1 = leaf node
+	f32 dist;
+	struct areanode_s *children[2];
+	link_t trigger_edicts;
+	link_t solid_edicts;
+} areanode_t;
+typedef struct {
+	s32 planenum;
+	s16 children[2]; // negative numbers are contents
+} dclipnode_t;
 // entities never clip against themselves, or their owner
 // line of sight checks trace->crosscontent, but bullets don't
 static hull_t box_hull;

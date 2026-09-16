@@ -4,6 +4,19 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+typedef struct stdio_buffer_s {
+	FILE *f;
+	u8 buffer[1024];
+	s32 size;
+	s32 pos;
+} stdio_buffer_t;
+typedef struct targaheader_s {
+	u8 id_length, colormap_type, image_type;
+	u16 colormap_index, colormap_length;
+	u8 colormap_size;
+	u16 x_origin, y_origin, width, height;
+	u8 pixel_size, attributes;
+} targaheader_t;
 static c8 loadfilename[MAX_OSPATH];
 
 static stdio_buffer_t *Buf_Alloc(FILE *f)

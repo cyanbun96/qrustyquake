@@ -1,6 +1,10 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+typedef struct btofpoly_s {
+	s32 clipflags;
+	msurface_t *psurf;
+} btofpoly_t;
 static mvertex_t *pbverts;
 static bedge_t *pbedges;
 static s32 numbverts, numbedges;

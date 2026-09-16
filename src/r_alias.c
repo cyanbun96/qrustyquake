@@ -2,16 +2,11 @@
 // r_alias.c: routines for setting up to draw alias models
 #include "quakedef.h"
 
-mtriangle_t *ptriangles;
-affinetridesc_t r_affinetridesc;
-void *acolormap;
-mdl_t *pmdl;
-aliashdr_t *paliashdr;
-finalvert_t *pfinalverts;
-auxvert_t *pauxverts;
-s32 r_amodels_drawn;
-s32 a_skinwidth;
+typedef struct { s32 index0; s32 index1; } aedge_t;
 
+static mdl_t *pmdl;
+static aliashdr_t *paliashdr;
+static s32 a_skinwidth;
 static trivertx_t *r_apverts;
 static vec3_t r_plightvec;
 static s32 r_ambientlight;

@@ -11,6 +11,25 @@
 // The zone calls are pretty much only used for small strings and structures,
 // all big things are allocated on the hunk.
 
+typedef struct cache_system_s {
+	s32 size; // including this header
+	cache_user_t *user;
+	c8 name[CACHENAME_LEN];
+	struct cache_system_s *prev, *next;
+	struct cache_system_s *lru_prev, *lru_next; // for LRU flushing
+} cache_system_t;
+typedef struct memblock_s {
+	s32 size; // including the header and possibly tiny fragments
+	s32 tag; // a tag of 0 is a free block
+	s32 id; // should be ZONEID
+	s32 pad; // pad to 64 bit boundary
+	struct memblock_s *next, *prev;
+} memblock_t;
+typedef struct {
+	s32 size; // total bytes malloced, including header
+	memblock_t blocklist; // start / end cap for linked list
+	memblock_t *rover;
+} memzone_t;
 static memzone_t *mainzone;
 static u8 *hunk_base;
 static s32 hunk_size;

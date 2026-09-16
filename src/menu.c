@@ -1,7 +1,8 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
-
 #include "quakedef.h"
 
+typedef struct { c8 *name; c8 *description; } level_t;
+typedef struct { c8 *description; s32 firstLevel; s32 levels; } episode_t;
 static s32 vid_line;
 static s32 drawmousemenu = 0;
 static s32 m_save_demonum;

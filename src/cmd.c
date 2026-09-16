@@ -5,6 +5,11 @@
 // cmd.c -- Quake script command processing module
 #include "quakedef.h"
 
+typedef struct cmdalias_s {
+	struct cmdalias_s *next;
+	c8 name[MAX_ALIAS_NAME];
+	c8 *value;
+} cmdalias_t;
 static s32 cmd_argc;
 static c8 *cmd_argv[MAX_ARGS];
 static c8 *cmd_null_string = "";

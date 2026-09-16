@@ -66,9 +66,7 @@ f32 r_aliastransition, r_resfudge;
 s32 d_lightstylevalue[256]; // 8.8 fraction of base light value
 f64 d_times[15];
 s32 colored_aliaslight;
-debugline_t *r_debuglines = 0; // r_showtris
-debugpoint_t *r_debugpoints = 0;
-s32 r_numdebuglines = 0;
+s32 r_numdebuglines = 0; // r_showtris
 s32 r_numdebugpoints = 0;
 bool coccl_enable = 0;
 f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
@@ -250,7 +248,14 @@ const s32 dither_t[4] = {
 	(s32)(-0.50 * 65536.0f),
 	(s32)(-0.25 * 65536.0f)
 };
-f32 r_avertexnormals[NUMVERTEXNORMALS][3] = {                       // r_alias.c
+
+mtriangle_t *ptriangles;                                            // r_alias.c
+affinetridesc_t r_affinetridesc;
+void *acolormap;
+finalvert_t *pfinalverts;
+auxvert_t *pauxverts;
+s32 r_amodels_drawn;
+f32 r_avertexnormals[NUMVERTEXNORMALS][3] = {
 {-0.525731,0.0,0.850651},{-0.442863,0.238856,0.864188},
 {-0.295242,0.0,0.955423},{-0.309017,0.5,0.809017},
 {-0.162460,0.262866,0.951056},{0.0,0.0,1.0},

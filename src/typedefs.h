@@ -1,5 +1,8 @@
 #ifndef QTYPEDEFS_
 #define QTYPEDEFS_
+// This file stores typedefs that are used in more than a single file
+// d*_t structures are on-disk representations
+// m*_t structures are in-memory
 typedef char     c8; // char differs in signedness depending on platform
 typedef uint8_t  u8;
 typedef int8_t   s8;
@@ -41,10 +44,6 @@ typedef enum {
 typedef struct link_s {
 	struct link_s *prev, *next;
 } link_t;
-typedef struct vec_header_t {
-	size_t capacity;
-	size_t size;
-} vec_header_t;
 typedef struct {
 	c8 name[MAX_QPATH];
 	s32 filepos, filelen;
@@ -77,124 +76,11 @@ typedef struct filelist_item_s {
 	struct filelist_item_s *next;
 } filelist_item_t;
 
-typedef struct {                                                    // bspfile.h
-	s32 fileofs, filelen;
-} lump_t;
-typedef struct {
-	f32 mins[3], maxs[3];
-	f32 origin[3];
-	s32 headnode[MAX_MAP_HULLS];
-	s32 visleafs; // not including the solid leaf 0
-	s32 firstface, numfaces;
-} dmodel_t;
-typedef struct {
-	s32 version;
-	lump_t lumps[15];
-} dheader_t;
-typedef struct {
-	s32 nummiptex;
-	s32 dataofs[4]; // [nummiptex]
-} dmiptexlump_t;
-typedef struct miptex_s {
-	c8 name[16];
-	unsigned width, height;
-	unsigned offsets[MIPLEVELS]; // four mip maps stored
-} miptex_t;
-typedef struct {
-	f32 point[3];
-} dvertex_t;
-typedef struct {
-	f32 normal[3];
-	f32 dist;
-	s32 type; // PLANE_X - PLANE_ANYZ ?remove? trivial to regenerate
-} dplane_t;
-typedef struct {
-	s32 planenum;
-	s16 children[2]; // negative numbers are -(leafs+1), not nodes
-	s16 mins[3]; // for sphere culling
-	s16 maxs[3];
-	u16 firstface;
-	u16 numfaces; // counting both sides
-} dnode_t;
-typedef struct {
-	s32 planenum;
-	s32 children[2]; // negative numbers are -(leafs+1), not nodes
-	s16 mins[3]; // for sphere culling
-	s16 maxs[3];
-	u32 firstface;
-	u32 numfaces; // counting both sides
-} dl1node_t;
-typedef struct {
-	s32 planenum;
-	s32 children[2]; // negative numbers are -(leafs+1), not nodes
-	f32 mins[3]; // for sphere culling
-	f32 maxs[3];
-	u32 firstface;
-	u32 numfaces; // counting both sides
-} dl2node_t;
-typedef struct {
-	s32 planenum;
-	s16 children[2]; // negative numbers are contents
-} dclipnode_t;
-typedef struct texinfo_s {
+typedef struct texinfo_s {                                          // bspfile.h
 	f32 vecs[2][4]; // [s/t][xyz offset]
 	s32 miptex;
 	s32 flags;
 } texinfo_t;
-typedef struct { // note that edge 0 is never used, because negative edge nums
-		 // are used for counterclockwise use of the edge in a face
-	u16 v[2]; // vertex numbers
-} dedge_t;
-typedef struct {
-	u32 v[2]; // vertex numbers
-} dledge_t;
-typedef struct {
-	s16 planenum;
-	s16 side;
-	s32 firstedge; // we must support > 64k edges
-	s16 numedges;
-	s16 texinfo;
-	u8 styles[MAXLIGHTMAPS]; // lighting info
-	s32 lightofs; // start of [numstyles*surfsize] samples
-} dface_t;
-typedef struct {
-	s32 planenum;
-	s32 side;
-	s32 firstedge; // we must support > 64k edges
-	s32 numedges;
-	s32 texinfo;
-	// lighting info
-	u8 styles[MAXLIGHTMAPS];
-	s32 lightofs; // start of [numstyles*surfsize] samples
-} dlface_t;
-typedef struct { // leaf 0 is the generic CONTENTS_SOLID leaf, used for all
-		 // solid areas, all other leafs need visibility info
-	s32 contents;
-	s32 visofs; // -1 = no visibility info
-	s16 mins[3]; // for frustum culling
-	s16 maxs[3];
-	u16 firstmarksurface;
-	u16 nummarksurfaces;
-	u8 ambient_level[NUM_AMBIENTS];
-} dleaf_t;
-typedef struct {
-	s32 contents;
-	s32 visofs; // -1 = no visibility info
-	s16 mins[3]; // for frustum culling
-	s16 maxs[3];
-	u32 firstmarksurface;
-	u32 nummarksurfaces;
-	u8 ambient_level[NUM_AMBIENTS];
-} dl1leaf_t;
-typedef struct {
-	s32 contents;
-	s32 visofs; // -1 = no visibility info
-	f32 mins[3]; // for frustum culling
-	f32 maxs[3];
-	u32 firstmarksurface;
-	u32 nummarksurfaces;
-	u8 ambient_level[NUM_AMBIENTS];
-} dl2leaf_t;
 
 typedef struct cvar_s cvar_t;                                          // cvar.h
 typedef void (*cvarcallback_t)(cvar_t *);
@@ -205,13 +91,8 @@ struct cvar_s {
 	f32  value;
 	const c8 *default_string; // remember defaults for reset function
 	cvarcallback_t callback;
-	cvar_t  *next;
+	cvar_t *next;
 };
-
-// d*_t structures are on-disk representations
-// m*_t structures are in-memory
-
-typedef struct { f32 l, a, b; } lab_t;                               // rgbtoi.h
 
 typedef struct vrect_s {                                                // vid.h
 	s32 x,y,width,height; struct vrect_s *pnext;
@@ -299,23 +180,6 @@ typedef struct clipplane_s {
 	u8 rightedge;
 	u8 reserved[2];
 } clipplane_t;
-typedef struct btofpoly_s {
-	s32 clipflags;
-	msurface_t *psurf;
-} btofpoly_t;
-typedef enum {
-	TEXTYPE_DEFAULT,
-	TEXTYPE_CUTOUT,
-	TEXTYPE_SKY,
-	TEXTYPE_LAVA,
-	TEXTYPE_SLIME,
-	TEXTYPE_TELE,
-	TEXTYPE_WATER,
-	TEXTYPE_COUNT,
-	TEXTYPE_FIRSTLIQUID = TEXTYPE_LAVA,
-	TEXTYPE_LASTLIQUID = TEXTYPE_WATER,
-	TEXTYPE_NUMLIQUIDS = TEXTYPE_LASTLIQUID + 1 - TEXTYPE_FIRSTLIQUID,
-} textype_t;
 
 typedef enum { ST_SYNC=0, ST_RAND } synctype_t;                    // modelgen.h
 typedef enum { ALIAS_SINGLE=0, ALIAS_GROUP } aliasframetype_t;
@@ -342,65 +206,14 @@ typedef struct {
 	s32 s;
 	s32 t;
 } stvert_t;
-typedef struct dtriangle_s {
-	s32 facesfront;
-	s32 vertindex[3];
-} dtriangle_t;
 typedef struct {
 	u8 v[3];
 	u8 lightnormalindex;
 } trivertx_t;
-typedef struct {
-	trivertx_t bboxmin; // lightnormal isn't used
-	trivertx_t bboxmax; // lightnormal isn't used
-	c8 name[16]; // frame name from grabbing
-} daliasframe_t;
-typedef struct {
-	s32 numframes;
-	trivertx_t bboxmin; // lightnormal isn't used
-	trivertx_t bboxmax; // lightnormal isn't used
-} daliasgroup_t;
-typedef struct {
-	s32 numskins;
-} daliasskingroup_t;
-typedef struct {
-	f32 interval;
-} daliasinterval_t;
-typedef struct {
-	f32 interval;
-} daliasskininterval_t;
-typedef struct {
-	aliasframetype_t type;
-} daliasframetype_t;
-typedef struct {
-	aliasskintype_t type;
-} daliasskintype_t;
 
 typedef enum {SPR_SINGLE=0,SPR_GROUP,SPR_ANGLED}spriteframetype_t; // spritegn.h
-typedef struct {
-	s32 ident;
-	s32 version;
-	s32 type;
-	f32 boundingradius;
-	s32 width;
-	s32 height;
-	s32 numframes;
-	f32 beamlength;
-	synctype_t synctype;
-} dsprite_t;
-typedef struct {
-	s32 origin[2];
-	s32 width;
-	s32 height;
-} dspriteframe_t;
-typedef struct { s32 numframes; } dspritegroup_t;
-typedef struct { f32 interval; } dspriteinterval_t;
-typedef struct { spriteframetype_t type; } dspriteframetype_t;
 
-typedef struct cache_user_s                                            // zone.h
-{
-	void *data;
-} cache_user_t;
+typedef struct cache_user_s { void *data; } cache_user_t;              // zone.h
 
 typedef struct {                                                   // protocol.h
 	vec3_t  origin;
@@ -411,7 +224,7 @@ typedef struct {                                                   // protocol.h
 	u8 skin;  //johnfitz -- was s32
 	u8 alpha;  //johnfitz -- added
 	u8 scale;  //Quakespasm: for model scale support.
-	s32  effects;
+	s32 effects;
 } entity_state_t;
 typedef struct {
 	vec3_t viewangles;
@@ -484,7 +297,6 @@ typedef struct {
 				   // 2.0 = 90 degrees
 	f32 xOrigin; // should probably allways be 0.5
 	f32 yOrigin; // between be around 0.3 to 0.5
-
 	vec3_t vieworg;
 	vec3_t viewangles;
 	f32 fov_x, fov_y;
@@ -501,10 +313,6 @@ typedef struct {
 	s32 intervals;
 	maliasskindesc_t skindescs[1];
 } maliasskingroup_t;
-typedef enum { // ericw -- each texture has two chains, so we can clear the
-	chain_world = 0, // model chains without affecting the world
-	chain_model = 1
-} texchain_t;
 typedef struct {
 	u32 v[2];
 	u32 cachededgeoffset;
@@ -535,14 +343,6 @@ typedef struct mclipnode_s { //johnfitz -- for clipnodes>32k
 	s32 planenum;
 	s32 children[2]; // negative numbers are contents
 } mclipnode_t;
-typedef struct {
-	s32 planenum;
-	s16 children[2]; // negative numbers are contents
-} dsclipnode_t;
-typedef struct {
-	s32 planenum;
-	s32 children[2]; // negative numbers are contents
-} dlclipnode_t;
 typedef struct {
 	mclipnode_t *clipnodes; //johnfitz -- was dclipnode_t
 	mplane_t *planes;
@@ -575,18 +375,6 @@ typedef struct {
 	void *cachespot;
 	mspriteframedesc_t frames[1];
 } msprite_t;
-// Alias models are position independent, so the cache manager can move them.
-typedef struct aliasmesh_s{//from RMQEngine, split out to keep vertex sizes down
-	f32 st[2];
-	u16 vertindex;
-} aliasmesh_t;
-typedef struct meshxyz_s {
-	u8 xyz[4];
-	c8 normal[4];
-} meshxyz_t;
-typedef struct meshst_s {
-	f32 st[2];
-} meshst_t; // RMQEngine end
 typedef struct {
 	aliasframetype_t type;
 	s32 firstpose;
@@ -645,6 +433,13 @@ typedef struct {
 	maliasframedesc_t frames[1]; // variable sized
 } aliashdr_t;
 typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
+typedef struct {
+	f32 mins[3], maxs[3];
+	f32 origin[3];
+	s32 headnode[MAX_MAP_HULLS];
+	s32 visleafs; // not including the solid leaf 0
+	s32 firstface, numfaces;
+} dmodel_t;
 typedef struct model_s {
 	f32 radius;
 	c8 name[MAX_QPATH];
@@ -731,8 +526,6 @@ typedef struct edge_s {
 	f32 nearzi;
 	medge_t *owner;
 } edge_t;
-typedef struct { s32 x0, y0, x1, y1; } debugline_t;
-typedef struct { vec3_t origin; } debugpoint_t;
 
 typedef struct {                                                    // d_iface.h
 	f32 u, v;
@@ -754,15 +547,6 @@ typedef struct particle_s {
 	f32 die;
 	ptype_t type;
 } particle_t;
-typedef struct polyvert_s {
-	f32 u, v, zi, s, t;
-} polyvert_t;
-typedef struct polydesc_s {
-	s32 numverts;
-	f32 nearzi;
-	msurface_t *pcurrentface;
-	polyvert_t *pverts;
-} polydesc_t;
 typedef struct finalvert_s {
 	s32 v[6]; // u, v, s, t, l, 1/z
 	s32 flags;
@@ -780,20 +564,12 @@ typedef struct {
 	s32 seamfixupX16;
 } affinetridesc_t;
 typedef struct {
-	f32 u, v, zi, color;
-} screenpart_t;
-typedef struct {
 	s32 nump;
 	emitpoint_t *pverts; // there's room for an extra element at [nump], if the driver wants to duplicate element [0] at element [nump] to avoid dealing with wrapping
 	mspriteframe_t *pspriteframe;
 	vec3_t vup, vright, vpn; // in worldspace
 	f32 nearzi;
 } spritedesc_t;
-typedef struct {
-	s32 u, v;
-	f32 zi;
-	s32 color;
-} zpointdesc_t;
 typedef struct {
 	u8 *surfdat; // destination for generated surface
 	s32 rowbytes; // destination logical width in bytes
@@ -806,7 +582,7 @@ typedef struct {
 	s32 surfheight; // in mipmapped texels
 } drawsurf_t;
 
-typedef enum {key_game, key_console, key_message, key_menu}keydest_t;  // keys.h
+typedef enum {key_game, key_console, key_message, key_menu} keydest_t; // keys.h
 typedef struct { c8 *name; s32 keynum; } keyname_t;
 
 #ifndef _WIN32                                                      // net_sys.h
@@ -912,28 +688,6 @@ typedef struct {                                                        // wad.h
 	s32 width, height;
 	u8 data[]; // variably sized
 } qpic_t;
-typedef struct {
-	c8 identification[4]; // should be WAD2 or 2DAW
-	s32 numlumps;
-	s32 infotableofs;
-} wadinfo_t;
-typedef struct {
-	s32 filepos;
-	s32 disksize;
-	s32 size; // uncompressed
-	c8 type;
-	c8 compression;
-	c8 pad1, pad2;
-	c8 name[16]; // must be null terminated
-} lumpinfo_t;
-typedef struct wad_s {
-	c8 name[MAX_QPATH];
-	s32 id;
-	fshandle_t fh;
-	s32 numlumps;
-	lumpinfo_t *lumps;
-	struct wad_s *next;
-} wad_t;
 
 typedef struct surfcache_s {                                        // d_local.h
 	struct surfcache_s *next;
@@ -1174,11 +928,6 @@ typedef struct edict_s {
 	f32 freetime;
 	entvars_t v;
 } edict_t;
-typedef struct {
-	const c8 *name;
-	s32 first_statement;
-	s32 patch_statement;
-} exbuiltin_t;
 typedef void (*builtin_t) ();
 
 typedef struct {                                                      // world.h
@@ -1196,11 +945,6 @@ typedef struct {
 } trace_t;
 
 typedef void (*xcommand_t) ();                                          // cmd.h
-typedef struct cmdalias_s {
-	struct cmdalias_s *next;
-	c8 name[MAX_ALIAS_NAME];
-	c8 *value;
-} cmdalias_t;
 typedef enum
 {
 	src_client,     // came in over a net connection as a clc_stringcmd
@@ -1208,7 +952,6 @@ typedef enum
 	src_command,    // from the command buffer
 	src_server      // from a svc_stufftext
 } cmd_source_t;
-extern  cmd_source_t    cmd_source;
 typedef struct cmd_function_s {
 	struct cmd_function_s *next;
 	c8 *name;
@@ -1251,66 +994,8 @@ typedef struct {
 	vec_t dist_mult; /* distance multiplier (attenuation/clipK) */
 	s32 master_vol; /* 0-255 master volume */
 } channel_t;
-typedef struct {
-	s32 rate;
-	s32 width;
-	s32 channels;
-	s32 loopstart;
-	s32 samples;
-	s32 dataofs; /* chunk starts this many bytes from file start */
-} wavinfo_t;
 
-typedef struct {                                                       // draw.c
-	vrect_t rect;
-	s32 width;
-	s32 height;
-	u8 *ptexbytes;
-	s32 rowbytes;
-} rectdesc_t;
-typedef struct cachepic_s {
-	c8 name[MAX_QPATH];
-	cache_user_t cache;
-} cachepic_t;
-
-typedef struct {                                                     // r_draw.c
-	f32 u, v;
-	s32 ceilv;
-} evert_t;
-typedef struct { f32 x; f32 y; } coarse_occ_vertex_t;
-
-typedef enum { touchessolid, drawnode, nodrawnode } solidstate_t;     // r_bsp.c
-
-typedef struct { s32 index0; s32 index1; } aedge_t;                 // r_alias.c
-
-typedef struct vispatch_s { // External VIS file support              // model.c
-	c8 mapname[32];
-	s32 filelen; // length of data after header (VIS+Leafs)
-} vispatch_t;
-
-typedef struct { s32 s; dfunction_t *f; } prstack_t;                // pr_exec.c
-
-typedef struct { c8 *name; c8 *description; } level_t;                 // menu.c
-typedef struct { c8 *description; s32 firstLevel; s32 levels; } episode_t;
-
-typedef struct {                                                     // screen.c
-	c8 manufacturer;
-	c8 version;
-	c8 encoding;
-	c8 bits_per_pixel;
-	u16 xmin, ymin, xmax, ymax;
-	u16 hres, vres;
-	u8 palette[48];
-	c8 reserved;
-	c8 color_planes;
-	u16 bytes_per_line;
-	u16 palette_type;
-	c8 filler[58];
-	u8 data; // unbounded
-} pcx_t;
-
-typedef struct{ddef_t *pcache;c8 field[64];}gefv_cache; // pr_edict.c
-struct pr_extfuncs_s
-{
+struct pr_extfuncs_s {                                             // pr_edict.c
 /*ssqc*/
 #define QCEXTFUNCS_SV \
 	QCEXTFUNC(SV_ParseClientCommand, "void(string cmd)") \
@@ -1326,8 +1011,7 @@ struct pr_extfuncs_s
 		QCEXTFUNCS_CS
 #undef QCEXTFUNC
 };
-struct pr_extglobals_s
-{
+struct pr_extglobals_s {
 #define QCEXTGLOBALS_CSQC \
 	QCEXTGLOBAL_FLOAT(cltime)\
 	QCEXTGLOBAL_FLOAT(clframetime)\
@@ -1348,8 +1032,7 @@ struct pr_extglobals_s
 #undef QCEXTGLOBAL_INT
 #undef QCEXTGLOBAL_VECTOR
 };
-struct pr_extfields_s
-{ //various fields that might be wanted by the engine. -1 == invalid
+struct pr_extfields_s { //various fields that might be wanted by the engine. -1 == invalid
 #define QCEXTFIELDS_ALL \
 	/*renderscene means we need a number of fields here*/ \
 	QCEXTFIELD(alpha, ".float") \
@@ -1403,8 +1086,7 @@ struct pr_extfields_s
 	QCEXTENSION(DP_QC_STRFTIME) \
 	QCEXTENSION(KRIMZON_SV_PARSECLIENTCOMMAND) \
 
-typedef enum
-{
+typedef enum {
 	STD_QC,
 #define QCEXTENSION(name) name,
 	QCEXTENSIONS_ALL
@@ -1412,13 +1094,13 @@ typedef enum
 	QCEXT_COUNT,
 } qcextension_t;
 
-typedef struct prhashtable_s
-{
+typedef struct prhashtable_s {
 	s32 capacity;
 	const c8 **strings;
 	s32 *indices;
 } prhashtable_t;
 
+typedef struct { s32 s; dfunction_t *f; } prstack_t;                // pr_exec.c
 typedef struct qcvm_s
 {
 	dprograms_t *progs;
@@ -1534,7 +1216,6 @@ typedef struct {
 	sizebuf_t message; // writing buffer to send to server
 	s32 sellscreen;
 } client_static_t;
-extern client_static_t cls;
 typedef struct {
 	s32 movemessages;
 	usercmd_t cmd; // last command sent to the server
@@ -1596,8 +1277,7 @@ typedef struct {
 	s32 down[2]; // key nums holding it down
 	s32 state; // low bit is down state
 } kbutton_t;
-typedef struct builtindef_s
-{
+typedef struct builtindef_s {
 	const c8 *name;
 	builtin_t ssqcfunc;
 	builtin_t csqcfunc;
@@ -1701,113 +1381,9 @@ typedef struct client_s {
 	c8 *oldstats_s[MAX_CL_STATS]; //reflag resendstats.
 } client_t;
 
-typedef struct {                                                   // d_polyse.c
-	s32 quotient;
-	s32 remainder;
-} adivtab_t;
-typedef struct {
-	void *pdest;
-	s16 *pz;
-	s32 count;
-	u8 *ptex;
-	s32 sfrac, tfrac, light, zi;
-} spanpackage_t;
-typedef struct {
-	s32 isflattop;
-	s32 numleftedges;
-	s32 *pleftedgevert0;
-	s32 *pleftedgevert1;
-	s32 *pleftedgevert2;
-	s32 numrightedges;
-	s32 *prightedgevert0;
-	s32 *prightedgevert1;
-	s32 *prightedgevert2;
-} edgetable;
-
-typedef struct cache_system_s {                                        // zone.c
-	s32 size; // including this header
-	cache_user_t *user;
-	c8 name[CACHENAME_LEN];
-	struct cache_system_s *prev, *next;
-	struct cache_system_s *lru_prev, *lru_next; // for LRU flushing
-} cache_system_t;
-typedef struct memblock_s {
-	s32 size; // including the header and possibly tiny fragments
-	s32 tag; // a tag of 0 is a free block
-	s32 id; // should be ZONEID
-	s32 pad; // pad to 64 bit boundary
-	struct memblock_s *next, *prev;
-} memblock_t;
-typedef struct {
-	s32 size; // total bytes malloced, including header
-	memblock_t blocklist; // start / end cap for linked list
-	memblock_t *rover;
-} memzone_t;
-typedef struct {
+typedef struct {                                                       // zone.c
 	s32 sentinel;
 	s32 size; // including sizeof(hunk_t), -1 = not allocated
 	c8 name[HUNKNAME_LEN];
 } hunk_t;
-
-typedef struct { // on-disk pakfile                                  // common.c
-	c8 name[56];
-	s32 filepos, filelen;
-} dpackfile_t;
-typedef struct {
-	c8 id[4];
-	s32 dirofs;
-	s32 dirlen;
-} dpackheader_t;
-typedef struct {
-	c8 *key;
-	c8 *value;
-} locentry_t;
-typedef struct {
-	s32 numentries;
-	s32 maxnumentries;
-	s32 numindices;
-	u32 *indices;
-	locentry_t *entries;
-	c8 *text;
-} localization_t;
-
-typedef struct stdio_buffer_s {                                       // image.c
-	FILE *f;
-	u8 buffer[1024];
-	s32 size;
-	s32 pos;
-} stdio_buffer_t;
-typedef struct targaheader_s {
-	u8 id_length, colormap_type, image_type;
-	u16 colormap_index, colormap_length;
-	u8 colormap_size;
-	u16 x_origin, y_origin, width, height;
-	u8 pixel_size, attributes;
-} targaheader_t;
-
-typedef struct {                                                      // world.c
-	vec3_t boxmins, boxmaxs; // enclose the test object along entire move
-	f32 *mins, *maxs; // size of the moving object
-	vec3_t mins2, maxs2; // size when clipping against mosnters
-	f32 *start, *end;
-	trace_t trace;
-	s32 type;
-	edict_t *passedict;
-} moveclip_t;
-typedef struct areanode_s {
-	s32 axis; // -1 = leaf node
-	f32 dist;
-	struct areanode_s *children[2];
-	link_t trigger_edicts;
-	link_t solid_edicts;
-} areanode_t;
-
-typedef struct {                                                    // snd_mix.c
-	f32 *memory; // kernelsize floats
-	f32 *kernel; // kernelsize floats
-	s32 kernelsize; // M+1, rounded up to be a multiple of 16
-	s32 M; // M value used to make kernel, even
-	s32 parity; // 0-3
-	f32 f_c; // cutoff frequency, [0..1], fraction of sample rate
-} filter_t;
 #endif

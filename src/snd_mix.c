@@ -5,6 +5,14 @@
 // snd_mix.c -- portable code to mix sounds for snd_dma.c
 #include "quakedef.h"
 
+typedef struct {
+	f32 *memory; // kernelsize floats
+	f32 *kernel; // kernelsize floats
+	s32 kernelsize; // M+1, rounded up to be a multiple of 16
+	s32 M; // M value used to make kernel, even
+	s32 parity; // 0-3
+	f32 f_c; // cutoff frequency, [0..1], fraction of sample rate
+} filter_t;
 static portable_samplepair_t paintbuffer[PAINTBUFFER_SIZE];
 static s32 snd_scaletable[32][256];
 static s32 *snd_p, snd_linear_count;

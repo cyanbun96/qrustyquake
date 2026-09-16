@@ -4,6 +4,14 @@
 // snd_mem.c: sound caching
 #include "quakedef.h"
 
+typedef struct {
+	s32 rate;
+	s32 width;
+	s32 channels;
+	s32 loopstart;
+	s32 samples;
+	s32 dataofs; /* chunk starts this many bytes from file start */
+} wavinfo_t;
 static u8 *data_p;
 static u8 *iff_end;
 static u8 *last_chunk;

@@ -1,6 +1,10 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+typedef struct { s32 x0, y0, x1, y1; } debugline_t;
+typedef struct { vec3_t origin; } debugpoint_t;
+static debugline_t *r_debuglines = 0;
+static debugpoint_t *r_debugpoints = 0;
 static vec3_t viewlightvec;
 static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 verticalFieldOfView;
@@ -9,15 +13,15 @@ static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 { // Helper to project a 3D point (Used by point entities)
-    vec3_t local, transformed;
-    VectorSubtract(world, r_origin, local);
-    TransformVector(local, transformed);
-    // Revert the hack: strictly cull points behind the camera
-    if (transformed[2] < NEAR_CLIP) return false;
-    float lzi = 1.0 / transformed[2];
-    *screenX = (int)(xcenter + (xscale * lzi) * transformed[0]);
-    *screenY = (int)(ycenter - (yscale * lzi) * transformed[1]);
-    return true;
+	vec3_t local, transformed;
+	VectorSubtract(world, r_origin, local);
+	TransformVector(local, transformed);
+	// Revert the hack: strictly cull points behind the camera
+	if (transformed[2] < NEAR_CLIP) return false;
+	float lzi = 1.0 / transformed[2];
+	*screenX = (int)(xcenter + (xscale * lzi) * transformed[0]);
+	*screenY = (int)(ycenter - (yscale * lzi) * transformed[1]);
+	return true;
 }
 
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)

@@ -1,10 +1,26 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
-
-// d_polyset.c: routines for drawing sets of polygons sharing the same
-// texture (used for Alias models)
-
+// d_polyset.c: routines for drawing sets of polygons sharing the same texture
+// (used for Alias models)
 #include "quakedef.h"
 
+typedef struct {
+	void *pdest;
+	s16 *pz;
+	s32 count;
+	u8 *ptex;
+	s32 sfrac, tfrac, light, zi;
+} spanpackage_t;
+typedef struct {
+	s32 isflattop;
+	s32 numleftedges;
+	s32 *pleftedgevert0;
+	s32 *pleftedgevert1;
+	s32 *pleftedgevert2;
+	s32 numrightedges;
+	s32 *prightedgevert0;
+	s32 *prightedgevert1;
+	s32 *prightedgevert2;
+} edgetable;
 static s32 r_p0[6], r_p1[6], r_p2[6];
 static u8 *d_pcolormap;
 static s32 d_xdenom;

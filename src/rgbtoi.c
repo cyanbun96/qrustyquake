@@ -1,5 +1,6 @@
 #include "quakedef.h"
 
+typedef struct { f32 l, a, b; } lab_t;
 static f32 gamma_lut[256];
 static s32 color_conv_initialized = 0;
 static lab_t lab_palette[256];

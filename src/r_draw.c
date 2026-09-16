@@ -1,6 +1,7 @@
 // Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+typedef struct { f32 x; f32 y; } coarse_occ_vertex_t;
 static u8 *r_coarse_occlusion_bits;
 static s32 r_coarse_occlusion_width;
 static s32 r_coarse_occlusion_height;
