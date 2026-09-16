@@ -585,7 +585,7 @@ typedef struct {
 typedef enum {key_game, key_console, key_message, key_menu} keydest_t; // keys.h
 typedef struct { c8 *name; s32 keynum; } keyname_t;
 
-#ifndef _WIN32                                                      // net_sys.h
+#ifndef SDL_PLATFORM_WINDOWS                                                      // net_sys.h
 typedef s32 sys_socket_t;
 #else
 typedef u_long in_addr_t;

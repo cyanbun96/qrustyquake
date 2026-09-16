@@ -111,16 +111,24 @@ void PR_Profile_f()
 	PR_SwitchQCVM(NULL);
 }
 
-void PR_RunError(const c8 *error, ...)
-{ // Aborts the currently executing function
+void PR_PrintErrorWithStackTrace(const c8 *error, ...)
+{ // Print on console the current statement and backtrace
 	va_list argptr;
 	c8 string[1024];
 	va_start(argptr, error);
 	vsnprintf(string, sizeof(string), error, argptr);
 	va_end(argptr);
+	Con_Printf("%s:\n", string);
 	PR_PrintStatement(qcvm->statements + qcvm->xstatement);
 	PR_StackTrace();
-	Con_Printf("%s\n", string);
+
+}
+
+void PR_RunError(const c8 *error, ...)
+{ // Aborts the currently executing function
+	va_list argptr;
+	va_start(argptr, error);
+        PR_PrintErrorWithStackTrace(error, argptr);
 	qcvm->depth = 0; // dump the stack so host_error can shutdown functions
 	Host_Error("Program error");
 }

@@ -5,7 +5,7 @@
 
 #include "quakedef.h"
 
-#ifdef _WIN32
+#ifdef SDL_PLATFORM_WINDOWS
 const char *__WSAE_StrError(int errcode)
 {
 	static char buffer[256];
@@ -33,7 +33,7 @@ static in_addr_t myAddr;
 
 sys_socket_t UDP_Init()
 {
-#ifdef _WIN32
+#ifdef SDL_PLATFORM_WINDOWS
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 	{
@@ -55,7 +55,7 @@ sys_socket_t UDP_Init()
 	} else {
 		buff[MAXHOSTNAMELEN - 1] = 0;
 		if (!(local = gethostbyname(buff))) {
-#ifdef _WIN32
+#ifdef SDL_PLATFORM_WINDOWS
 			const c8 herrmsg[1024];
 			FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
 				FORMAT_MESSAGE_FROM_SYSTEM |

@@ -368,7 +368,7 @@
 #define TOP_RANGE 16 // soldier uniform colors // render.h
 #define BOTTOM_RANGE 96
 #define LERP_FINISH (1<<4) //use lerpfinish time from server update instead of assuming interval of 0.1
-#ifdef _WIN32 // net_sys.h
+#ifdef SDL_PLATFORM_WINDOWS // net_sys.h
 #define MAXHOSTNAMELEN 1024
 #define selectsocket select
 #define SOCKETERRNO WSAGetLastError()
@@ -403,7 +403,11 @@
 #define YAW 1 // left / right
 #define ROLL 2 // fall over
 #define MAX_QPATH 64 // max length of a quake game pathname
-#define MAX_OSPATH 128 // max length of a filesystem pathname
+#ifdef SDL_PLATFORM_WINDOWS // max length of a filesystem pathname
+#define MAX_OSPATH 260 // MAX_PATH value, normally defined in windows.h
+#else
+#define MAX_OSPATH PATH_MAX // PATH_MAX from limits.h
+#endif
 #define ON_EPSILON 0.1 // point on plane side epsilon
 #define MAX_MSGLEN 65536 // max length of a reliable message, from Mark V
 #define MAX_DATAGRAM 65527 // max length of unreliable message, from Mark V
@@ -577,7 +581,6 @@
 #define CON_TEXTSIZE 65536 // console.c
 #define NUM_CON_TIMES 4
 #define MAXCMDLINE 256
-#define MAXGAMEDIRLEN 1000
 #define MAXPRINTMSG 4096
 #define MAX_STACK_DEPTH 1024 // pr_exec.c
 #define LOCALSTACK_SIZE 16384

@@ -4,7 +4,7 @@
 // Copyright(C) 2010-2014 QuakeSpasm developers
 #include "quakedef.h"
 
-#ifdef _WIN32
+#ifdef SDL_PLATFORM_WINDOWS
     #ifndef S_ISREG
         // MinGW usually uses standard names, while MSVC uses underscored names
         #if defined(S_IFMT) && defined(S_IFREG)
