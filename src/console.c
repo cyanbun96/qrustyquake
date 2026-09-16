@@ -68,14 +68,12 @@ void Con_CheckResize()
 
 void Con_Init()
 {
-	c8 temp[MAXGAMEDIRLEN + 1];
-	c8 *t2 = "/qconsole.log";
+	c8 temp[MAX_OSPATH];
+	c8 *t2 = "qconsole.log";
 	con_debuglog = COM_CheckParm("-condebug");
 	if(con_debuglog){
-		if(strlen(com_gamedir) < (MAXGAMEDIRLEN - strlen(t2))){
-			sprintf(temp, "%s%s", com_gamedir, t2);
-			SDL_RemovePath(temp);
-		}
+            snprintf(temp, sizeof(temp), "%s/%s", com_gamedir, t2);
+            SDL_RemovePath(temp);
 	}
 	con_text = Hunk_AllocName(CON_TEXTSIZE, "context");
 	memset(con_text, ' ', CON_TEXTSIZE);

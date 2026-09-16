@@ -1,6 +1,6 @@
 PKGCONFIG ?= pkg-config
 CC = gcc
-CFLAGS := -c -Wall -Wextra -D_DEFAULT_SOURCE $(shell $(PKGCONFIG) --cflags sdl3) $(CFLAGS)
+CFLAGS := -c -Wall -Wextra -D_DEFAULT_SOURCE $(shell $(PKGCONFIG) --cflags sdl3) -MD $(CFLAGS)
 LDFLAGS := -lm $(shell $(PKGCONFIG) --libs sdl3) $(LDFLAGS)
 SDL3_MIXER_CFLAGS := $(shell $(PKGCONFIG) --cflags sdl3-mixer 2>/dev/null)
 SDL3_MIXER_LIBS := $(shell $(PKGCONFIG) --libs sdl3-mixer 2>/dev/null)
@@ -21,7 +21,10 @@ SRCS = cdaudio.c chase.c cl_demo.c cl_input.c cl_main.c cl_parse.c \
 	sys_sdl.c vid_sdl.c view.c wad.c world.c \
 	zone.c rgbtoi.c vgatext.c image.c
 
-OBJS = $(SRCS:.c=.o)
+OBJS := $(SRCS:.c=.o)
+
+# works in conjunction with -MD cflag
+OBJS_DEPS := $(OBJS:.o=.d)
 
 BUILD_TYPE ?= release
 
@@ -62,10 +65,7 @@ endif
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(OBJS) $(LDFLAGS) -o $(TARGET)
-
-%.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $^ $(LDFLAGS) -o $@
 
 debug:
 	$(MAKE) BUILD_TYPE=debug
@@ -80,7 +80,7 @@ release:
 	$(MAKE) BUILD_TYPE=release
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(OBJS_DEPS) $(TARGET)
 
 appimage:
 	(cd ../AppImage && ./build.sh)
@@ -90,3 +90,5 @@ appimage-aarch64:
 
 appimage-clean:
 	(cd ../AppImage && ./build.sh clean)
+
+-include $(OBJS_DEPS)
