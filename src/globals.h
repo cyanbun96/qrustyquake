@@ -767,7 +767,7 @@ void PR_ReloadPics(bool purge);
 void PF_Fixme();
 EX s32 pr_numbuiltindefs;
 EX builtindef_t pr_builtindefs[];
-void CDAudio_Play(u8 track, bool looping);                          // cdaudio.c
+void CDAudio_Play(u8 track);                          // cdaudio.c
 void CDAudio_Stop();
 void CDAudio_Pause();
 void CDAudio_Resume();

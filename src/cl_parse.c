@@ -716,9 +716,9 @@ void CL_ParseServerMessage()
 		cl.cdtrack = MSG_ReadByte();
 		cl.looptrack = MSG_ReadByte();
 		if((cls.demoplayback||cls.demorecording)&&(cls.forcetrack!=-1))
-			CDAudio_Play((u8)cls.forcetrack, true);
+			CDAudio_Play((u8)cls.forcetrack);
 		else
-			CDAudio_Play((u8)cl.cdtrack, true);
+			CDAudio_Play((u8)cl.cdtrack);
 		break;
 	case svc_intermission:
 		cl.intermission = 1;

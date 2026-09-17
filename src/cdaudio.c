@@ -5,14 +5,14 @@
 #include "quakedef.h"
 
 #ifndef AVAIL_SDL3MIXER
-static void CDAudio_NotImplemented_f(void)
+static void CDAudio_NotImplemented_f()
 { Con_Printf("Not implemented in this build, sorry!\n"); }
-void CDAudio_Play(SDL_UNUSED u8 track, SDL_UNUSED bool looping) { }
-void CDAudio_Stop() { }
-void CDAudio_Pause() { }
-void CDAudio_Resume() { }
-void CDAudio_Update() { }
-void CDAudio_Shutdown() { }
+void CDAudio_Play(SDL_UNUSED u8 track) { }
+void CDAudio_Stop(){}
+void CDAudio_Pause(){}
+void CDAudio_Resume(){}
+void CDAudio_Update(){}
+void CDAudio_Shutdown(){}
 bool CDAudio_Init()
 {
 	Con_Printf("Music unavailable\n");
@@ -20,7 +20,7 @@ bool CDAudio_Init()
 	Cmd_AddCommand("music_stop", CDAudio_NotImplemented_f);
 	Cmd_AddCommand("music_pause", CDAudio_NotImplemented_f);
 	Cmd_AddCommand("music_resume", CDAudio_NotImplemented_f);
-	return false;
+	return 0;
 }
 #else
 
@@ -28,54 +28,50 @@ bool CDAudio_Init()
 // they're iterated in CDAudio_Play() the most common formats for Quake mod
 // music will come up first
 static struct music_format {
-	const char *name;
-	size_t num_extensions;
-	const char **extensions;
-	bool required;
+	const c8 *name;
+	s32 num_extensions;
+	const c8 **extensions;
 } music_formats[] = {
-	{"OGG", 1, (const char *[]){".ogg"}, true},
-	{"OPUS", 2, (const char *[]){".ogg", ".opus"}, true},
-	{"MP3", 1, (const char *[]){".mp3"}, true},
-	{"FLAC", 1, (const char *[]){".flac"}, false},
-	{"MID", 2, (const char *[]){".mid", ".midi"}, false},
-	{"MOD", 1, (const char *[]){".mod"}, false},
-	{"WAVPACK", 2, (const char *[]){".wav", ".wv"}, false}
+	{"OGG", 1, (const char *[]){".ogg"}},
+	{"OPUS", 2, (const char *[]){".ogg", ".opus"}},
+	{"MP3", 1, (const char *[]){".mp3"}},
+	{"FLAC", 1, (const char *[]){".flac"}},
+	{"MID", 2, (const char *[]){".mid", ".midi"}},
+	{"MOD", 1, (const char *[]){".mod"}},
+	{"WAVPACK", 2, (const char *[]){".wav", ".wv"}}
 };
-
-static MIX_Mixer *mixer = NULL;
-static MIX_Audio *current_music = NULL;
-static MIX_Track *track = NULL;
+static MIX_Mixer *mixer = 0;
+static MIX_Audio *current_music = 0;
+static MIX_Track *track = 0;
 static SDL_PropertiesID trackprops = 0;
 static c8 current_name[MAX_OSPATH];
-static u8 *loaded_file = NULL;
+static u8 *loaded_file = 0;
 static float last_volume = -1;
 
-void BGM_Play(c8 *musicname, SDL_UNUSED bool looping)
+void BGM_Play(c8 *musicname)
 {
-	c8 filename[MAX_OSPATH];
-	u8 *file = NULL;
-	SDL_IOStream *io = NULL;
-	MIX_Audio *music = NULL;
-	if (!mixer) return;
-	if(!musicname || !*musicname) {
+	if(!mixer)return;
+	if(!musicname || !*musicname){
 		Con_DPrintf("null music file name\n");
 		return;
 	}
 	if(keepmusic.value && current_music && !strcmp(current_name, musicname))
 		return;
 	CDAudio_Stop();
+	u8 *file = 0;
+	c8 filename[MAX_OSPATH];
 	for(s32 path_id = com_searchpaths->path_id; path_id >= 0; path_id--) { // look in mod folders first
 		for(u32 i = 0; i < Q_COUNTOF(music_formats); i++) {
-			for(u32 j = 0; j < music_formats[i].num_extensions; j++) {
+			for(s32 j = 0; j < music_formats[i].num_extensions; j++) {
 				snprintf(filename, sizeof(filename), "music/%s%s",
 						musicname, music_formats[i].extensions[j]);
 				u32 path_id2 = path_id;
 				file = COM_LoadMallocFile(filename, &path_id2);
 				if(file && path_id2 != (u32)path_id){
 					free(file);
-					file = NULL;
+					file = 0;
 				}
-				if(file) goto found;
+				if(file)goto found;
 			}
 		}
 	}
@@ -85,20 +81,20 @@ void BGM_Play(c8 *musicname, SDL_UNUSED bool looping)
 	}
 found:
 	loaded_file = file;
-	io = SDL_IOFromConstMem(file, com_filesize);
-	if(!io) {
+	SDL_IOStream *io = SDL_IOFromConstMem(file, com_filesize);
+	if(!io){
 		Con_Printf("failed to create IOStream for %s: %s\n", filename, SDL_GetError());
 		return;
 	}
-	music = MIX_LoadAudio_IO(mixer, io, false, true);
-	if (!music) {
+	MIX_Audio *music = MIX_LoadAudio_IO(mixer, io, 0, 1);
+	if(!music){
 		Con_Printf("failed to load %s: %s\n", filename, SDL_GetError());
 		return;
 	}
 	CDAudio_Stop();
 	current_music = music;
 	MIX_SetTrackAudio(track, current_music);
-	if (!MIX_PlayTrack(track, trackprops)) {
+	if(!MIX_PlayTrack(track, trackprops)){
 		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
 		return;
 	}
@@ -107,32 +103,32 @@ found:
 
 static void BGM_Play_f()
 {
-	if (!mixer) return;
+	if(!mixer)return;
 	if(Cmd_Argc() == 2)
-		BGM_Play(Cmd_Argv(1), 1);
-	else {
-		if(current_music) {
+		BGM_Play(Cmd_Argv(1));
+	else{
+		if(current_music){
 			Con_Printf("Playing %s, use 'music <musicfile>' to change\n", current_name);
-		} else Con_Printf("music <musicfile>\n");
+		}else Con_Printf("music <musicfile>\n");
 	}
 }
 
-void CDAudio_Play(u8 track, bool looping)
+void CDAudio_Play(u8 track)
 {
 	c8 name[16];
 	snprintf(name, sizeof(name), "track%02d", (s32)track);
-	BGM_Play(name, looping);
+	BGM_Play(name);
 }
 
 void CDAudio_Stop()
 {
-	if (!mixer) return;
+	if(!mixer)return;
 	MIX_StopAllTracks(mixer, 0);
-	if (current_music) {
+	if(current_music){
 		MIX_DestroyAudio(current_music);
 		current_music = 0;
 	}
-	if (loaded_file) {
+	if(loaded_file){
 		free(loaded_file);
 		loaded_file = 0;
 	}
@@ -141,10 +137,10 @@ void CDAudio_Stop()
 
 void CDAudio_Update()
 {
-	if (!mixer) return;
-	if (bgmvolume.value < 0) Cvar_SetQuick(&bgmvolume, "0");
-	if (bgmvolume.value > 1) Cvar_SetQuick(&bgmvolume, "1");
-	if (last_volume != bgmvolume.value) {
+	if(!mixer)return;
+	if(bgmvolume.value < 0) Cvar_SetQuick(&bgmvolume, "0");
+	if(bgmvolume.value > 1) Cvar_SetQuick(&bgmvolume, "1");
+	if(last_volume != bgmvolume.value) {
 		last_volume = bgmvolume.value;
 		MIX_SetMixerGain(mixer, bgmvolume.value);
 	}
@@ -152,23 +148,23 @@ void CDAudio_Update()
 
 bool CDAudio_Init()
 {
-	if (safemode || COM_CheckParm("-nosound") || COM_CheckParm("-nomusic"))
-		return false;
-	if (!MIX_Init()) {
+	if(safemode || COM_CheckParm("-nosound") || COM_CheckParm("-nomusic"))
+		return 0;
+	if(!MIX_Init()){
 		Con_Printf("SDL Mixer initialization failed: %s\n", SDL_GetError());
-		return false;
+		return 0;
 	}
 	mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, 0);
-	if (!mixer) {
+	if(!mixer){
 		MIX_Quit();
 		Con_Printf("SDL Mixer device creation failed: %s\n", SDL_GetError());
-		return false;
+		return 0;
 	}
 	track = MIX_CreateTrack(mixer);
-	if (!track) {
+	if(!track){
 		MIX_Quit();
 		Con_Printf("SDL Track creation failed: %s\n", SDL_GetError());
-		return false;
+		return 0;
 	}
 	trackprops = SDL_CreateProperties();
 	SDL_SetNumberProperty(trackprops, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
@@ -177,21 +173,11 @@ bool CDAudio_Init()
 	Cmd_AddCommand("music_stop", CDAudio_Stop);
 	Cmd_AddCommand("music_pause", CDAudio_Pause);
 	Cmd_AddCommand("music_resume", CDAudio_Resume);
-	return true;
+	return 1;
 }
 
-void CDAudio_Pause()
-{ if(mixer) MIX_PauseAllTracks(mixer); }
-
-void CDAudio_Resume()
-{ if(mixer) MIX_ResumeAllTracks(mixer); }
-
-void CDAudio_Shutdown()
-{
-	if (mixer) {
-		MIX_Quit();
-		mixer = NULL;
-	}
-}
+void CDAudio_Pause() {if(mixer)MIX_PauseAllTracks(mixer);}
+void CDAudio_Resume() {if(mixer)MIX_ResumeAllTracks(mixer);}
+void CDAudio_Shutdown() {if(mixer){MIX_Quit();mixer = 0;}}
 
 #endif // AVAIL_SDL3MIXER
