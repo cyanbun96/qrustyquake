@@ -2381,7 +2381,7 @@ void M_Display_Draw()
 	sprintf(temp, "%d\n", (s32)scr_fov.value);
 	M_Print(xoffset + 204, 104, temp);
 	if (r_fovmode.value && display_cursor == 9) {
-		float asp = r_fovmode.value==1 ?
+		f32 asp = r_fovmode.value==1 ?
 			((f32)vid.width / (f32)vid.height * 0.75) :
 			yaspectscale.value;
 		f32 fov_modern = 2.0f * atan(tanf(scr_fov.value * (M_PI/360.0f))

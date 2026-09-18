@@ -617,7 +617,7 @@ void SV_WriteStats(client_t *client)
 		if(i >= STAT_NONCLIENT && (statsi[i] != client->oldstats_i[i] || statsf[i] != client->oldstats_f[i])){
 			client->oldstats_i[i] = statsi[i];
 			client->oldstats_f[i] = statsf[i];
-			if((double)statsi[i] != statsf[i] && statsf[i]){
+			if((f64)statsi[i] != statsf[i] && statsf[i]){
 				//didn't round nicely, so send as a float
 				MSG_WriteByte(&client->message, svc_stufftext);
 				MSG_WriteString(&client->message, va("//st %i %g\n", i, statsf[i]));
@@ -633,8 +633,8 @@ void SV_WriteStats(client_t *client)
 			}
 		}
 		if(statss[i] || client->oldstats_s[i]){
-			const char *os = client->oldstats_s[i];
-			const char *ns = statss[i];
+			const c8 *os = client->oldstats_s[i];
+			const c8 *ns = statss[i];
 			if(!ns) ns="";
 			if(!os) os="";
 			if(strcmp(os,ns)){

@@ -92,7 +92,7 @@ void Con_Init()
 
 //johnfitz-returns a bar of the desired length, but never wider than the console
 //includes a newline, unless len >= con_linewidth.
-const char *Con_Quakebar(s32 len)
+const c8 *Con_Quakebar(s32 len)
 {
 	static c8 bar[42];
 	len = q_min(len, (int)sizeof(bar) - 2);

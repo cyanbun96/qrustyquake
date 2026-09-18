@@ -6,9 +6,9 @@
 #include "quakedef.h"
 
 #ifdef SDL_PLATFORM_WINDOWS
-const char *__WSAE_StrError(int errcode)
+const c8 *__WSAE_StrError(s32 errcode)
 {
-	static char buffer[256];
+	static c8 buffer[256];
 	DWORD len = FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM |
 			FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -24,7 +24,7 @@ const char *__WSAE_StrError(int errcode)
 }
 #endif
 
-extern const char* __WSAE_StrError(int errcode);
+extern const c8* __WSAE_StrError(s32 errcode);
 static sys_socket_t net_acceptsocket = INVALID_SOCKET;	// socket for fielding new connections
 static sys_socket_t net_controlsocket;
 static sys_socket_t net_broadcastsocket = 0;

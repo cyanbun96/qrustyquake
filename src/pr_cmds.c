@@ -1088,7 +1088,7 @@ static void PF_nextent()
 
 static void PF_checkcommand()
 {
-	const char *name = G_STRING(OFS_PARM0);
+	const c8 *name = G_STRING(OFS_PARM0);
 	if(Cmd_Exists(name))
 		G_FLOAT(OFS_RETURN) = 1;
 	else if(Cmd_AliasExists(name))
@@ -1601,7 +1601,6 @@ static void PF_cl_drawcharacter()
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
-	// int flags = G_FLOAT(OFS_PARM5);
 	if(charcode == 32)
 		return; //don't waste time on spaces
 	f32 pos_s[2];
@@ -1767,8 +1766,8 @@ static void PF_cl_getstat_float()
 	if(stnum < 0 || stnum >= (s32)(Q_COUNTOF(cl.stats)))
 		G_FLOAT(OFS_RETURN) = 0;
 	else if(qcvm->argc > 1) {
-		int firstbit = G_FLOAT(OFS_PARM1);
-		int bitcount = G_FLOAT(OFS_PARM2);
+		s32 firstbit = G_FLOAT(OFS_PARM1);
+		s32 bitcount = G_FLOAT(OFS_PARM2);
 		G_FLOAT(OFS_RETURN) = (cl.stats[stnum]>>firstbit)
 					& ((1<<bitcount)-1);
 	} else

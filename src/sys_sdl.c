@@ -140,9 +140,9 @@ s32 Sys_FileOpenWrite(const c8 *path)
 
 f64 Sys_DoubleTime()
 {
-	static Uint64 starttime = 0;
+	static u64 starttime = 0;
 	if (!starttime) starttime = SDL_GetTicksNS();
-	return ((double)(SDL_GetTicksNS() - starttime)) / 1000000000;
+	return ((f64)(SDL_GetTicksNS() - starttime)) / 1000000000;
 }
 
 s32 Sys_FileType(const c8* path)

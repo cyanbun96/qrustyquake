@@ -17,8 +17,8 @@ bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 	VectorSubtract(world, r_origin, local);
 	TransformVector(local, transformed);
 	// Revert the hack: strictly cull points behind the camera
-	if (transformed[2] < NEAR_CLIP) return false;
-	float lzi = 1.0 / transformed[2];
+	if(transformed[2] < NEAR_CLIP)return false;
+	f32 lzi = 1.0 / transformed[2];
 	*screenX = (int)(xcenter + (xscale * lzi) * transformed[0]);
 	*screenY = (int)(ycenter - (yscale * lzi) * transformed[1]);
 	return true;
@@ -27,67 +27,54 @@ bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 {
 	vec3_t t1, t2, local1, local2;
-	
 	VectorSubtract(p1, modelorg, local1);
 	TransformVector(local1, t1);
 	VectorSubtract(p2, modelorg, local2);
 	TransformVector(local2, t2);
-
-	// 1. Near Plane Clipping
-	if (t1[2] < NEAR_CLIP && t2[2] < NEAR_CLIP) return;
-	if (t1[2] < NEAR_CLIP) {
-		float frac = (NEAR_CLIP - t1[2]) / (t2[2] - t1[2]);
+	if(t1[2] < NEAR_CLIP && t2[2] < NEAR_CLIP)return; // Near Plane Clipping
+	if(t1[2] < NEAR_CLIP){
+		f32 frac = (NEAR_CLIP - t1[2]) / (t2[2] - t1[2]);
 		t1[0] += frac * (t2[0] - t1[0]);
 		t1[1] += frac * (t2[1] - t1[1]);
 		t1[2] = NEAR_CLIP;
-	} else if (t2[2] < NEAR_CLIP) {
-		float frac = (NEAR_CLIP - t2[2]) / (t1[2] - t2[2]);
+	}else if(t2[2] < NEAR_CLIP){
+		f32 frac = (NEAR_CLIP - t2[2]) / (t1[2] - t2[2]);
 		t2[0] += frac * (t1[0] - t2[0]);
 		t2[1] += frac * (t1[1] - t2[1]);
 		t2[2] = NEAR_CLIP;
 	}
-
-	// 2. 3D Frustum Boundary Clipping Math
+	// 3D Frustum Boundary Clipping Math
 	// We dynamically derive the 4 frustum planes from the projection matrix.
 	// A point is inside the screen if its calculated distance is >= 0.
-	float w = vid.width;
-	float h = vid.height;
-	
+	f32 w = vid.width;
+	f32 h = vid.height;
 	#define DIST_LEFT(t)   ( xscale * t[0] + xcenter * t[2])
 	#define DIST_RIGHT(t)  (-xscale * t[0] + (w - xcenter) * t[2])
 	#define DIST_TOP(t)    (-yscale * t[1] + ycenter * t[2])
 	#define DIST_BOTTOM(t) ( yscale * t[1] + (h - ycenter) * t[2])
-
-	float d1[4] = { DIST_LEFT(t1), DIST_RIGHT(t1), DIST_TOP(t1), DIST_BOTTOM(t1) };
-	float d2[4] = { DIST_LEFT(t2), DIST_RIGHT(t2), DIST_TOP(t2), DIST_BOTTOM(t2) };
-
-	for (int i = 0; i < 4; i++) {
-		if (d1[i] < 0 && d2[i] < 0) return; // Completely outside this frustum plane
-		
-		if (d1[i] < 0) {
-			float frac = d1[i] / (d1[i] - d2[i]);
+	f32 d1[4] = {DIST_LEFT(t1),DIST_RIGHT(t1),DIST_TOP(t1),DIST_BOTTOM(t1)};
+	f32 d2[4] = {DIST_LEFT(t2),DIST_RIGHT(t2),DIST_TOP(t2),DIST_BOTTOM(t2)};
+	for(s32 i = 0; i < 4; i++){
+		if(d1[i] < 0 && d2[i] < 0)return; // Completely outside this frustum plane
+		if(d1[i] < 0){
+			f32 frac = d1[i] / (d1[i] - d2[i]);
 			t1[0] += frac * (t2[0] - t1[0]);
 			t1[1] += frac * (t2[1] - t1[1]);
 			t1[2] += frac * (t2[2] - t1[2]);
-			
 			d1[0] = DIST_LEFT(t1); d1[1] = DIST_RIGHT(t1);
 			d1[2] = DIST_TOP(t1);  d1[3] = DIST_BOTTOM(t1);
-		} else if (d2[i] < 0) {
-			float frac = d2[i] / (d2[i] - d1[i]);
+		}else if(d2[i] < 0){
+			f32 frac = d2[i] / (d2[i] - d1[i]);
 			t2[0] += frac * (t1[0] - t2[0]);
 			t2[1] += frac * (t1[1] - t2[1]);
 			t2[2] += frac * (t1[2] - t2[2]);
-			
 			d2[0] = DIST_LEFT(t2); d2[1] = DIST_RIGHT(t2);
 			d2[2] = DIST_TOP(t2);  d2[3] = DIST_BOTTOM(t2);
 		}
 	}
-
-	// 3. 2D Projection
-	f32 lzi1 = 1.0 / t1[2];
+	f32 lzi1 = 1.0 / t1[2]; // 2D Projection
 	f32 lzi2 = 1.0 / t2[2];
-	
-	if (r_numdebuglines < MAX_DEBUG_LINES) {
+	if(r_numdebuglines < MAX_DEBUG_LINES){
 		r_debuglines[r_numdebuglines].x0 = (s32)(xcenter + (xscale * lzi1) * t1[0]);
 		r_debuglines[r_numdebuglines].y0 = (s32)(ycenter - (yscale * lzi1) * t1[1]);
 		r_debuglines[r_numdebuglines].x1 = (s32)(xcenter + (xscale * lzi2) * t2[0]);
@@ -98,39 +85,37 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 
 void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
-	vec3_t old_modelorg;
-
-	// save current state, force modelorg to global spaces
+	vec3_t old_modelorg; // save current state, force modelorg to global spaces
 	VectorCopy(modelorg, old_modelorg);
 	VectorCopy(r_origin, modelorg);
-
 	vec3_t corners[8];
-	for (s32 i = 0; i < 8; i++) {
+	for(s32 i = 0; i < 8; i++){
 		corners[i][0] = origin[0] + ((i & 1) ? maxs[0] : mins[0]);
 		corners[i][1] = origin[1] + ((i & 2) ? maxs[1] : mins[1]);
 		corners[i][2] = origin[2] + ((i & 4) ? maxs[2] : mins[2]);
 	}
-
-	// bottom face
-	R_DrawDebugLine3D(corners[0], corners[1]); R_DrawDebugLine3D(corners[1], corners[3]);
-	R_DrawDebugLine3D(corners[3], corners[2]); R_DrawDebugLine3D(corners[2], corners[0]);
-	// top face
-	R_DrawDebugLine3D(corners[4], corners[5]); R_DrawDebugLine3D(corners[5], corners[7]);
-	R_DrawDebugLine3D(corners[7], corners[6]); R_DrawDebugLine3D(corners[6], corners[4]);
-	// vertical edges connecting top & bottom
-	R_DrawDebugLine3D(corners[0], corners[4]); R_DrawDebugLine3D(corners[1], corners[5]);
-	R_DrawDebugLine3D(corners[2], corners[6]); R_DrawDebugLine3D(corners[3], corners[7]);
-
-	// restore prev modelorg state
-	VectorCopy(old_modelorg, modelorg);
+	R_DrawDebugLine3D(corners[0], corners[1]); // bottom face
+	R_DrawDebugLine3D(corners[1], corners[3]);
+	R_DrawDebugLine3D(corners[3], corners[2]);
+	R_DrawDebugLine3D(corners[2], corners[0]);
+	R_DrawDebugLine3D(corners[4], corners[5]); // top face
+	R_DrawDebugLine3D(corners[5], corners[7]);
+	R_DrawDebugLine3D(corners[7], corners[6]);
+	R_DrawDebugLine3D(corners[6], corners[4]);
+	R_DrawDebugLine3D(corners[0], corners[4]); // vertical edges connecting top & bottom
+	R_DrawDebugLine3D(corners[1], corners[5]);
+	R_DrawDebugLine3D(corners[2], corners[6]);
+	R_DrawDebugLine3D(corners[3], corners[7]);
+	VectorCopy(old_modelorg, modelorg); // restore prev modelorg state
 }
 
-static s32 ComputeOutCode(s32 x, s32 y, s32 w, s32 h) {
+static s32 ComputeOutCode(s32 x, s32 y, s32 w, s32 h)
+{
 	s32 code = 0;
-	if (x < 0) code |= CLIP_LEFT;
+	if(x < 0)code |= CLIP_LEFT;
 	else if (x >= w) code |= CLIP_RIGHT;
-	if (y < 0) code |= CLIP_TOP;
-	else if (y >= h) code |= CLIP_BOTTOM;
+	if(y < 0)code |= CLIP_TOP;
+	else if(y >= h)code |= CLIP_BOTTOM;
 	return code;
 }
 
@@ -141,67 +126,67 @@ void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 	s32 outcode0 = ComputeOutCode(x0, y0, w, h); // clipping
 	s32 outcode1 = ComputeOutCode(x1, y1, w, h);
 	bool accept = false;
-	while (1) {
-		if (!(outcode0 | outcode1)) { // completely inside bounds
+	while(1){
+		if(!(outcode0 | outcode1)){ // completely inside bounds
 			accept = true;
 			break;
-		} else if (outcode0 & outcode1) { // completely outside bounds
+		}else if(outcode0 & outcode1){ // completely outside bounds
 			break;
-		} else {
+		}else{
 			// partially inside, calculate the intersection point
 			s32 x = 0, y = 0;
 			s32 outcodeOut = outcode0 ? outcode0 : outcode1;
-
-			if (outcodeOut & CLIP_BOTTOM) {
-				x = x0 + (s32)((((s64)x1 - x0) * (h - 1 - y0)) / ((s64)y1 - y0));
+			if(outcodeOut & CLIP_BOTTOM){
+				x=x0+(s32)((((s64)x1-x0)*(h-1-y0))/((s64)y1-y0));
 				y = h - 1;
-			} else if (outcodeOut & CLIP_TOP) {
-				x = x0 + (s32)((((s64)x1 - x0) * (0 - y0)) / ((s64)y1 - y0));
+			}else if(outcodeOut & CLIP_TOP){
+				x=x0+(s32)((((s64)x1-x0)*(0-y0))/((s64)y1-y0));
 				y = 0;
-			} else if (outcodeOut & CLIP_RIGHT) {
-				y = y0 + (s32)((((s64)y1 - y0) * (w - 1 - x0)) / ((s64)x1 - x0));
+			}else if(outcodeOut & CLIP_RIGHT){
+				y=y0+(s32)((((s64)y1-y0)*(w-1-x0))/((s64)x1-x0));
 				x = w - 1;
-			} else if (outcodeOut & CLIP_LEFT) {
-				y = y0 + (s32)((((s64)y1 - y0) * (0 - x0)) / ((s64)x1 - x0));
+			}else if(outcodeOut & CLIP_LEFT){
+				y=y0+(s32)((((s64)y1-y0)*(0-x0))/((s64)x1-x0));
 				x = 0;
 			}
 			// move the outside point to the intersection point
-			if (outcodeOut == outcode0) {
+			if(outcodeOut == outcode0){
 				x0 = x; y0 = y;
 				outcode0 = ComputeOutCode(x0, y0, w, h);
-			} else {
+			}else{
 				x1 = x; y1 = y;
 				outcode1 = ComputeOutCode(x1, y1, w, h);
 			}
 		}
 	}
-	if (!accept) return; // completely off-screen
+	if(!accept)return; // completely off-screen
 	s32 dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1; // rasterization
 	s32 dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
 	s32 err = dx + dy, e2;
-	for (;;) {
+	for(;;){
 		// keep a minor bounds check here strictly as a failsafe against
 		// integer division rounding errors from the clipping math above
-		if (x0 >= 0 && x0 < w && y0 >= 0 && y0 < h) {
+		if(x0 >= 0 && x0 < w && y0 >= 0 && y0 < h)
 			vid.buffer[y0 * w + x0] = color;
-		}
-		if (x0 == x1 && y0 == y1) break;
+		if(x0 == x1 && y0 == y1)break;
 		e2 = 2 * err;
-		if (e2 >= dy) { err += dy; x0 += sx; }
-		if (e2 <= dx) { err += dx; y0 += sy; }
+		if(e2 >= dy){err += dy; x0 += sx;}
+		if(e2 <= dx){err += dx; y0 += sy;}
 	}
 }
 
-void R_AllocShowTris() {
-	if (!r_debuglines) r_debuglines =
+void R_AllocShowTris()
+{
+	if(!r_debuglines)r_debuglines =
 		malloc(MAX_DEBUG_LINES * sizeof(debugline_t));
-	if (!r_debugpoints) r_debugpoints =
+	if(!r_debugpoints)r_debugpoints =
 		malloc(MAX_DEBUG_POINTS * sizeof(debugpoint_t));
-	if (!r_debuglines || !r_debugpoints)
+	if(!r_debuglines || !r_debugpoints)
 		Sys_Error("Failed to allocate memory for r_showtris");
 }
 
-void R_ParseDebugEntities() {
+void R_ParseDebugEntities()
+{
 	R_AllocShowTris();
 	r_numdebugpoints = 0;
 	if (!cl.worldmodel || !cl.worldmodel->entities) return;
@@ -209,39 +194,38 @@ void R_ParseDebugEntities() {
 	c8 key[128], value[4096];
 	while (1) {
 		data = COM_Parse(data);
-		if (!data) break;
-		if (com_token[0] != '{') continue;
+		if(!data)break;
+		if(com_token[0] != '{')continue;
 		bool is_point = true;
 		vec3_t parsed_origin = {0, 0, 0};
-		while (1) {
+		while (1){
 			data = COM_Parse(data);
-			if (!data || com_token[0] == '}') break;
+			if(!data || com_token[0] == '}')break;
 
 			strcpy(key, com_token);
 			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-			if (!data) break;
+			if(!data)break;
 			strcpy(value, com_token);
 
-			if (!strcmp(key, "origin")) {
+			if(!strcmp(key, "origin"))
 				sscanf(value, "%f %f %f", &parsed_origin[0],
 					&parsed_origin[1], &parsed_origin[2]);
-			} else if (!strcmp(key, "model")) {
+			else if (!strcmp(key, "model"))
 				is_point = false; // Has a brush model, not a point entity
-			}
 		}
-		if (is_point && (parsed_origin[0] != 0 || parsed_origin[1] != 0 || parsed_origin[2] != 0)) {
-			if (r_numdebugpoints < MAX_DEBUG_POINTS) {
-				VectorCopy(parsed_origin, r_debugpoints[r_numdebugpoints].origin);
-				r_numdebugpoints++;
-			}
+		if((is_point && (parsed_origin[0] != 0 || parsed_origin[1] != 0
+			|| parsed_origin[2] != 0)) && r_numdebugpoints < MAX_DEBUG_POINTS){
+			VectorCopy(parsed_origin, r_debugpoints[r_numdebugpoints].origin);
+			r_numdebugpoints++;
 		}
 	}
 }
 
-void R_DebugDrawPoint(vec3_t origin) {
+void R_DebugDrawPoint(vec3_t origin)
+{
 	s32 sx, sy;
-	if (R_ProjectPointToScreen(origin, &sx, &sy)) {
-		if (r_numdebuglines < MAX_DEBUG_LINES - 2) {
+	if(R_ProjectPointToScreen(origin, &sx, &sy)){
+		if(r_numdebuglines < MAX_DEBUG_LINES - 2){
 			s32 size = 4;
 			r_debuglines[r_numdebuglines].x0 = sx - size;
 			r_debuglines[r_numdebuglines].y0 = sy;
@@ -289,7 +273,7 @@ void R_InitTurb()
 	r_warpbuffer = warpbuffer;
 }
 
-void R_ViewChangedCallback(SDL_UNUSED cvar_t*cvar)
+void R_ViewChangedCallback(SDL_UNUSED cvar_t *cvar)
 { R_ViewChanged(&r_refdef.vrect, sb_lines, pixelAspect); }
 
 void R_Init()
@@ -529,12 +513,12 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	xscaleshrink = (r_refdef.vrect.width-6)/r_refdef.horizontalFieldOfView;
 	yscaleshrink = xscaleshrink * pixelAspect;
 	screenedge[0].normal[0] = // left side clip
-	    -1.0 / (xOrigin * r_refdef.horizontalFieldOfView);
+		-1.0 / (xOrigin * r_refdef.horizontalFieldOfView);
 	screenedge[0].normal[1] = 0;
 	screenedge[0].normal[2] = 1;
 	screenedge[0].type = PLANE_ANYZ;
 	screenedge[1].normal[0] = // right side clip
-	    1.0 / ((1.0 - xOrigin) * r_refdef.horizontalFieldOfView);
+		1.0 / ((1.0 - xOrigin) * r_refdef.horizontalFieldOfView);
 	screenedge[1].normal[1] = 0;
 	screenedge[1].normal[2] = 1;
 	screenedge[1].type = PLANE_ANYZ;
@@ -549,7 +533,7 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	for(s32 i = 0; i < 4; i++)
 		VectorNormalize(screenedge[i].normal);
 	f32 res_scale = sqrt((f64)(r_refdef.vrect.width * r_refdef.vrect.height)
-		/ (320.0 * 152.0)) * (2.0 / r_refdef.horizontalFieldOfView);
+			/ (320.0*152.0)) * (2.0/r_refdef.horizontalFieldOfView);
 	r_aliastransition = r_aliastransbase.value * res_scale;
 	r_resfudge = r_aliastransadj.value * res_scale;
 	D_ViewChanged();
@@ -877,7 +861,7 @@ void R_RenderView()
 	if(fog_density < 1) R_DrawFog();
 	if(r_dspeeds.value || r_speeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
-	if (r_showtris.value) {
+	if(r_showtris.value){
 		for (s32 i = 0; i < r_numdebugpoints; i++)
 			R_DebugDrawPoint(r_debugpoints[i].origin);
 		for (s32 i = 0; i < r_numdebuglines; i++) {

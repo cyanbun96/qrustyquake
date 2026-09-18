@@ -778,7 +778,7 @@ static void ED_RezoneString(string_t *ref, const c8 *str)
 		if(id < qcvm->knownzonesize &&
 			(qcvm->knownzone[id>>3] & (1u<<(id&7)))){//it was zoned
 			qcvm->knownzone[id>>3] &= ~(1u<<(id&7));
-			buf = (char*)PR_GetString(*ref);
+			buf = (c8*)PR_GetString(*ref);
 			PR_ClearEngineString(*ref);
 			Z_Free(buf);
 		}
@@ -1123,8 +1123,8 @@ void PR_UnzoneAll()
 		size_t id = qcvm->knownzonesize;
 		if(qcvm->knownzone[id>>3] & (1u<<(id&7)))
 		{
-			string_t s = -1-(int)id;
-			char *ptr = (char*)PR_GetString(s);
+			string_t s = -1-(s32)id;
+			char *ptr = (c8*)PR_GetString(s);
 			PR_ClearEngineString(s);
 			Z_Free(ptr);
 		}
@@ -1464,7 +1464,7 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 	qcvm->globaldefs = (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_globaldefs);
 	qcvm->fielddefs = (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_fielddefs);
 	qcvm->statements = (dstatement_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_statements);
-	qcvm->globals = (float *)((u8 *)qcvm->progs + qcvm->progs->ofs_globals);
+	qcvm->globals = (f32 *)((u8 *)qcvm->progs + qcvm->progs->ofs_globals);
 	pr_global_struct = (globalvars_t*)qcvm->globals;
 	// byte swap the lumps
 	for(s32 i = 0; i < qcvm->progs->numstatements; i++){

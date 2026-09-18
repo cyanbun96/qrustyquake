@@ -146,7 +146,7 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 	const f32 *kernel = filter->kernel;
 	s32 mark = Hunk_LowMark ();
 	size_t inputsize = sizeof(f32) * (filter->kernelsize + count);
-	float *input = (f32*) Hunk_AllocNoFill (inputsize);
+	f32 *input = (f32*) Hunk_AllocNoFill (inputsize);
 	// set up the input buffer
 	// memory holds the previous filter->kernelsize samples of input.
 	memcpy(input, filter->memory, filter->kernelsize * sizeof(f32));

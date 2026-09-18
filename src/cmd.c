@@ -39,7 +39,7 @@ void Cbuf_AddText(const c8 *text)
 	SZ_Write(&cmd_text, text, strlen(text));
 }
 
-void Cbuf_AddTextLen(const char *text, int l)
+void Cbuf_AddTextLen(const c8 *text, s32 l)
 {
 	if(cmd_text.cursize + l >= cmd_text.maxsize) {
 		Con_Printf("Cbuf_AddText: overflow\n");
@@ -227,7 +227,7 @@ void Cmd_Unalias_f() // -- johnfitz
 	}
 }
 
-bool Cmd_AliasExists(const char *aliasname)
+bool Cmd_AliasExists(const c8 *aliasname)
 {
 	for(cmdalias_t *a = cmd_alias; a; a = a->next){
 		if(!SDL_strcasecmp(aliasname, a->name))

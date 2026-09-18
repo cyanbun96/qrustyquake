@@ -32,13 +32,13 @@ static struct music_format {
 	s32 num_extensions;
 	const c8 **extensions;
 } music_formats[] = {
-	{"OGG", 1, (const char *[]){".ogg"}},
-	{"OPUS", 2, (const char *[]){".ogg", ".opus"}},
-	{"MP3", 1, (const char *[]){".mp3"}},
-	{"FLAC", 1, (const char *[]){".flac"}},
-	{"MID", 2, (const char *[]){".mid", ".midi"}},
-	{"MOD", 1, (const char *[]){".mod"}},
-	{"WAVPACK", 2, (const char *[]){".wav", ".wv"}}
+	{"OGG", 1, (const c8 *[]){".ogg"}},
+	{"OPUS", 2, (const c8 *[]){".ogg", ".opus"}},
+	{"MP3", 1, (const c8 *[]){".mp3"}},
+	{"FLAC", 1, (const c8 *[]){".flac"}},
+	{"MID", 2, (const c8 *[]){".mid", ".midi"}},
+	{"MOD", 1, (const c8 *[]){".mod"}},
+	{"WAVPACK", 2, (const c8 *[]){".wav", ".wv"}}
 };
 static MIX_Mixer *mixer = 0;
 static MIX_Audio *current_music = 0;
@@ -46,7 +46,7 @@ static MIX_Track *track = 0;
 static SDL_PropertiesID trackprops = 0;
 static c8 current_name[MAX_OSPATH];
 static u8 *loaded_file = 0;
-static float last_volume = -1;
+static f32 last_volume = -1;
 
 void BGM_Play(c8 *musicname)
 {

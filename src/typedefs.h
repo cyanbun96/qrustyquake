@@ -1124,7 +1124,7 @@ typedef struct qcvm_s
 	u32 warned_builtin[2][(MAX_BUILTINS + 31) / 32];
 	u32 checked_ext[(QCEXT_COUNT + 31) / 32];
 	u32 advertised_ext[(QCEXT_COUNT + 31) / 32];
-	char *strings; //was static inside pr_edict
+	c8 *strings; //was static inside pr_edict
 	s32 stringssize;
 	const c8 **knownstrings;
 	s32 maxknownstrings;
@@ -1341,7 +1341,7 @@ typedef struct {
 	struct {
 		bool active;
 		s32 numwarnings;
-		const char *changelevel;
+		const c8 *changelevel;
 		s32 trigger_changelevel;
 		s32 valid_changelevel;
 		s32 intermission;

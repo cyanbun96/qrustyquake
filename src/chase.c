@@ -6,10 +6,10 @@
 
 void Chase_Init()
 {
-	Cvar_RegisterVariable((struct cvar_s *)&chase_back);
-	Cvar_RegisterVariable((struct cvar_s *)&chase_up);
-	Cvar_RegisterVariable((struct cvar_s *)&chase_right);
-	Cvar_RegisterVariable((struct cvar_s *)&chase_active);
+	Cvar_RegisterVariable(&chase_back);
+	Cvar_RegisterVariable(&chase_up);
+	Cvar_RegisterVariable(&chase_right);
+	Cvar_RegisterVariable(&chase_active);
 }
 
 void TraceLine(vec3_t start, vec3_t end, vec3_t impact)

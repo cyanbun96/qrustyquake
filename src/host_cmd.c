@@ -17,7 +17,7 @@
 
 static s32 maxlevelnamelen = 0;
 static s32 maxmodnamelen = 0;
-static const char* const knownmods[][2] = {
+static const c8* const knownmods[][2] = {
 	{"id1",         "Quake"},
 	{"hipnotic",    "Scourge of Armagon"},
 	{"rogue",       "Dissolution of Eternity"},
@@ -281,7 +281,7 @@ void Host_Connect_f()
 	Host_Reconnect_f();
 }
 
-static void Host_InvalidateSave (const char *relname)
+static void Host_InvalidateSave(const c8 *relname)
 {
 	if (!strcmp (sv.lastsave, relname))
 		sv.lastsave[0] = '\0';
@@ -1059,7 +1059,7 @@ time_t Mod_GetMapDate(const c8 *map)
 	return seconds;
 }
 
-void FileList_Add(const char *name, const char *desc, filelist_item_t **list)
+void FileList_Add(const c8 *name, const c8 *desc, filelist_item_t **list)
 {
 	filelist_item_t *item,*cursor,*prev;
 	for(item = *list; item; item = item->next) // ignore duplicate
@@ -1083,7 +1083,7 @@ void FileList_Add(const char *name, const char *desc, filelist_item_t **list)
 	}
 }
 
-void FileList_AddMap(const char *name, const char *desc, filelist_item_t **list)
+void FileList_AddMap(const c8 *name, const c8 *desc, filelist_item_t **list)
 {
 	filelist_item_t *item,*cursor,*prev;
 	for(item = *list; item; item = item->next) // ignore duplicate
@@ -1126,16 +1126,14 @@ static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 {
 	c8 maps_dir[MAX_OSPATH];
 	c8 mapname[32];
-
 	snprintf(maps_dir, sizeof(maps_dir), "%s/maps", search->filename);
-
 	SDL_Storage* storage = SDL_OpenFileStorage(maps_dir);
-	if (storage) {
-		int count = 0;
-		char** matches = SDL_GlobStorageDirectory(storage, NULL, "*.bsp", SDL_GLOB_CASEINSENSITIVE, &count);
-
-		if (matches) {
-			for (int i = 0; i < count; i++) {
+	if(storage){
+		s32 count = 0;
+		c8** matches = SDL_GlobStorageDirectory(storage, NULL, "*.bsp",
+				SDL_GLOB_CASEINSENSITIVE, &count);
+		if(matches){
+			for(s32 i = 0; i < count; i++){
 				COM_StripExtension(matches[i], mapname, sizeof(mapname));
 				if (maxlevelnamelen < (s32)strlen(mapname))
 					maxlevelnamelen = (s32)strlen(mapname);
@@ -1143,7 +1141,6 @@ static void ExtraMaps_Init_SearchDir(searchpath_t* search)
 			}
 			SDL_free(matches);
 		}
-
 		SDL_CloseStorage(storage);
 	}
 }
@@ -1244,11 +1241,11 @@ host_maps_f_fin:
 	else Con_Printf("no maps found\n");
 }
 
-void Modlist_Add(const char *name, const char *desc){
+void Modlist_Add(const c8 *name, const c8 *desc){
 	FileList_Add(name, desc, &modlist);
 }
 
-static const char *Modlist_KnownDescription(const char *modname)
+static const c8 *Modlist_KnownDescription(const c8 *modname)
 {
 	for(u32 i = 0; i < SDL_arraysize(knownmods); i++){
 		if(!SDL_strcasecmp(modname, knownmods[i][0]))
@@ -1257,7 +1254,7 @@ static const char *Modlist_KnownDescription(const char *modname)
 	return NULL;
 }
 
-char *Modlist_ReadDescription(const char *mod_path)
+c8 *Modlist_ReadDescription(const c8 *mod_path)
 {
 	static c8 desc[128];
 	FILE *f;
@@ -1279,7 +1276,7 @@ char *Modlist_ReadDescription(const char *mod_path)
 	return desc;
 }
 
-static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const char* dirname, const char* fname)
+static SDL_EnumerationResult Modlist_Init_CB(SDL_UNUSED void* userdata, const c8* dirname, const c8* fname)
 {
 	SDL_PathInfo info;
 	c8 fullpath[MAX_OSPATH];
