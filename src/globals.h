@@ -46,6 +46,7 @@ EX cvar_t newoptions;
 EX cvar_t sensitivityyscale;
 EX s32 fadescreen;
 EX u64 d_pzbuffer_size;
+EX c8 scrshot_name[MAX_OSPATH*2];
 c8 *VID_GetModeDescription(s32 mode);
 void VID_SetPalette(u8 *palette, SDL_Surface *dest);
 void VID_Init(u8 *palette);

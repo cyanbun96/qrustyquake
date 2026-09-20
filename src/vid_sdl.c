@@ -265,12 +265,10 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	SDLWindowFlags = SDL_GetWindowFlags(window);
 	realwidth.value = 0;
 	VID_CalcScreenDimensions(0);
+	memset(scrshot_name, 0, sizeof(scrshot_name));
 }
 
-void VID_Shutdown()
-{
-	SDL_QuitSubSystem(SDL_INIT_VIDEO);
-}
+void VID_Shutdown() { SDL_QuitSubSystem(SDL_INIT_VIDEO); }
 
 void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 {
@@ -349,6 +347,14 @@ void VID_Update()
 			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer, &dst, scalemode);
 		SDL_UnlockTexture(texture);
 	} else { printf("Couldn't lock texture %s\n", SDL_GetError()); }
+	if(scrshot_name[0]){
+		if(!SDL_SaveBMP(argbbuffer, scrshot_name))
+			Con_Printf("Screenshot: couldn't save %s: %s\n",
+					scrshot_name, SDL_GetError());
+		else
+			Con_Printf("Wrote %s\n", scrshot_name);
+		memset(scrshot_name, 0, sizeof(scrshot_name));
+	}
 	SDL_RenderClear(renderer);
 	SDL_RenderTexture(renderer, texture, NULL, &destRect);
 	SDL_RenderPresent(renderer);
