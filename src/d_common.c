@@ -472,7 +472,7 @@ void Draw_ConsoleBackground(s32 lines)
 		+ conback->width - 11*scale - 8*scale * strlen(ver);
 	for(u64 x = 0; x < strlen(ver); x++)
 		Draw_CharToConbackScaled(ver[x], dest + x * 8 * scale, scale, conback->width);
-	dest = vid.buffer; // draw the pic
+	dest = (u8*)scrbuffs[drawlayer]->pixels; // draw the pic
 	for(s32 y = 0; y < lines; y++, dest += vid.width){
 		s32 v = (vid.height-lines+y)*conback->height/vid.height;
 		u8 *src = conback->data + v * conback->width;
