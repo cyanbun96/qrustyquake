@@ -1119,6 +1119,7 @@ void SetUiPal(c8 *path)
 	memcpy(uipal, uipalbuf, 768);
 	SDL_strlcpy(uipalname, path, MAX_OSPATH);
 	VID_SetPalette(uipal, screenui);
+	VID_SetPalette(uipal, screensbar);
 }
 
 static void COM_WorldPal_f()

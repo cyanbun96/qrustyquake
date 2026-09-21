@@ -2972,7 +2972,7 @@ void M_Graphics_Draw()
 		M_Print(16, 158, "0: custom world palette, not scaled");
 		M_Print(16, 166, "1: default palette, not scaled");
 		M_Print(16, 174, "2: custom ui palette, scaled");
-		M_Print(16, 182, "3: custom world palette, scaled");
+		M_Print(16, 182, "3: custom ui palette, scaled");
 	} else if (graphics_cursor == 8 || graphics_cursor/100 == 8) {
 		x2 += 24;
 		M_Print(xoffset, 32, "Mipmap Distance:");

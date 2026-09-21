@@ -15,6 +15,7 @@ static SDL_PixelFormat window_format;
 static SDL_Palette *sdlworldpal;
 static SDL_Palette *sdltoppal;
 static SDL_Palette *sdluipal;
+static SDL_Palette *sdlsbarpal;
 static s32 renderscale;
 static s32 scalemode;
 
@@ -81,6 +82,7 @@ void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 	SDL_Palette *pal = sdlworldpal;
 	if(dest == screentop) pal = sdltoppal;
 	else if(dest == screenui) pal = sdluipal;
+	else if(dest == screensbar) pal = sdlsbarpal;
 	SDL_SetPaletteColors(pal, colors, 0, 256);
 	SDL_SetSurfacePalette(dest, pal);
 }
@@ -216,6 +218,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	screen = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlworldpal = SDL_CreateSurfacePalette(screen);
 	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+		sdlsbarpal = SDL_CreateSurfacePalette(screensbar);
 	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdluipal = SDL_CreateSurfacePalette(screenui);
 	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
@@ -429,6 +432,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 
 	screen = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlworldpal = SDL_CreateSurfacePalette(screen);
 	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+		sdlsbarpal = SDL_CreateSurfacePalette(screensbar);
 	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdluipal = SDL_CreateSurfacePalette(screenui);
 	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
