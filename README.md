@@ -104,7 +104,13 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - 2026 rerelease/DotM support, requires the "id1" folder from the KEX version to support mg3 properly
 
-- Custom palette support (put the files at gfx/custompalette.lmp and gfx/palette.lmp)
+- Custom palette support
+
+  - "World" palette can be loaded with the console command "worldpal [palette] [colormap]"
+ 
+       - Also gets loaded from "gfx/custompalette.lmp" and "gfx/customcolormap.lmp" automatically
+ 
+  - UI palette can be loaded separately with the "uipal [palette]" console command
   
   - Also settable through worldspawn flags in custom maps
 
