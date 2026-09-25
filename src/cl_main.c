@@ -311,6 +311,13 @@ void CL_RelinkEntities()
 			dl->radius = 200 + (rand() & 31);
 			dl->minlight = 32;
 			dl->die = cl.time + 0.1;
+			//johnfitz -- assume muzzle flash accompanied by muzzle flare, which looks bad when lerped
+			if (r_lerpmodels.value != 2) {
+				if (ent == &cl_entities[cl.viewentity])
+					cl.viewent.lerpflags |= LERP_RESETANIM|LERP_RESETANIM2; //no lerping for two frames
+				else
+					ent->lerpflags |= LERP_RESETANIM|LERP_RESETANIM2; //no lerping for two frames
+			}
 		}
 		if(ent->effects & EF_BRIGHTLIGHT){
 			dl = CL_AllocDlight(i);
