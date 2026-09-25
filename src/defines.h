@@ -367,6 +367,10 @@
 #define K_MOUSE5 242
 #define TOP_RANGE 16 // soldier uniform colors // render.h
 #define BOTTOM_RANGE 96
+#define LERP_MOVESTEP (1<<0) //this is a MOVETYPE_STEP entity, enable movement lerp
+#define LERP_RESETANIM (1<<1) //disable anim lerping until next anim frame
+#define LERP_RESETANIM2 (1<<2) //set this and previous flag to disable anim lerping for two anim frames
+#define LERP_RESETMOVE (1<<3) //disable movement lerping until next origin/angles change
 #define LERP_FINISH (1<<4) //use lerpfinish time from server update instead of assuming interval of 0.1
 #ifdef SDL_PLATFORM_WINDOWS // net_sys.h
 #define MAXHOSTNAMELEN 1024

@@ -117,6 +117,7 @@ entity_t *CL_EntityNum(s32 num)
 			cl_entities[cl.num_entities].colormap = CURWORLDCMAP;
 			cl_entities[cl.num_entities].baseline.scale =
 				ENTSCALE_DEFAULT;
+			cl_entities[cl.num_entities].lerpflags |= LERP_RESETMOVE|LERP_RESETANIM; //johnfitz
 			cl.num_entities++;
 		}
 	}
@@ -340,6 +341,15 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		 MSG_ReadCoord(cl.protocolflags) : ent->baseline.origin[2];
 	ent->msg_angles[0][2] = bits & U_ANGLE3 ?
 		 MSG_ReadAngle(cl.protocolflags) : ent->baseline.angles[2];
+	//johnfitz -- lerping for movetype_step entities
+	if ( bits & U_STEP )
+	{
+		ent->lerpflags |= LERP_MOVESTEP;
+		ent->forcelink = true;
+	}
+	else ent->lerpflags &= ~LERP_MOVESTEP;
+	//johnfitz
+
 	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ){
 		ent->alpha = bits&U_ALPHA ? MSG_ReadByte():ent->baseline.alpha;
 		ent->scale = bits&U_SCALE ? MSG_ReadByte():ent->baseline.scale;
@@ -348,7 +358,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		if(bits & U_MODEL2)
 			modnum = (modnum & 0x00FF) | (MSG_ReadByte() << 8);
 		if(bits & U_LERPFINISH){
-			ent->lerpfinish=ent->msgtime+(f32)(MSG_ReadByte())/255;
+			ent->lerpfinish=ent->msgtime+((f32)(MSG_ReadByte())/255);
 			ent->lerpflags |= LERP_FINISH;
 		} else ent->lerpflags &= ~LERP_FINISH;
 	}
@@ -376,6 +386,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		VectorCopy(ent->msg_angles[0], ent->msg_angles[1]);
 		VectorCopy(ent->msg_angles[0], ent->angles);
 		ent->forcelink = 1;
+		ent->lerpflags |= LERP_RESETANIM; //johnfitz -- don't lerp animation across model changes
 	}
 }
 
@@ -503,6 +514,7 @@ void CL_ParseStatic(s32 version) //johnfitz -- added a parameter
 	cl.num_statics++;
 	CL_ParseBaseline(ent, version); //johnfitz -- added second parameter
 	ent->model = cl.model_precache[ent->baseline.modelindex];
+	ent->lerpflags |= LERP_RESETANIM | LERP_RESETMOVE; //johnfitz -- lerping  Baker: Added LERP_RESETMOVE to list
 	ent->frame = ent->baseline.frame;
 	ent->colormap = CURWORLDCMAP;
 	ent->skinnum = ent->baseline.skin;

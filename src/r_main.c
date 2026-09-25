@@ -358,6 +358,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_showtris_color);
 	Cvar_RegisterVariable(&r_coarseocclusion);
 	Cvar_RegisterVariable(&r_lerpmodels);
+	Cvar_RegisterVariable(&r_lerpmove);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
@@ -565,6 +566,76 @@ void R_MarkLeaves()
 	}
 }
 
+/*
+=================
+R_SetupEntityTransform -- johnfitz -- set up transform part of lerpdata
+=================
+*/
+void R_SetupEntityTransform (entity_t *e, lerpdata_t *lerpdata)
+{
+        float blend;
+        vec3_t d;
+        int i;
+// We aren't really sharing using the lerpdata input structure pointer externally
+        lerpdata_t _lerpdata;
+        lerpdata = &_lerpdata;
+
+        // if LERP_RESETMOVE, kill any lerps in progress
+        if (e->lerpflags & LERP_RESETMOVE)
+        {
+                e->movelerpstart = 0;
+                VectorCopy (e->origin, e->previousorigin);
+                VectorCopy (e->origin, e->currentorigin);
+                VectorCopy (e->angles, e->previousangles);
+                VectorCopy (e->angles, e->currentangles);
+                e->lerpflags -= LERP_RESETMOVE;
+        }
+        else if (!VectorCompare (e->origin, e->currentorigin) || !VectorCompare (e->angles, e->currentangles)) // origin/angles changed, start new lerp
+        {
+                e->movelerpstart = cl.time;
+                VectorCopy (e->currentorigin, e->previousorigin);
+                VectorCopy (e->origin,  e->currentorigin);
+                VectorCopy (e->currentangles, e->previousangles);
+                VectorCopy (e->angles,  e->currentangles);
+        }
+
+        //set up values
+        if (r_lerpmove.value && e != &cl.viewent)
+        {
+		float s = 1;//(cls.demoplayback && cls.demospeed < 0.f) ? -1.f : 1.f;
+		if (e->lerpflags & LERP_FINISH)
+			blend = CLAMP (0.0f, (float)(cl.time - e->movelerpstart) / (e->lerpfinish - e->movelerpstart), 1.0f);
+		else
+			blend = CLAMP (0.0f, (float)(cl.time - e->movelerpstart) / 0.1f * s, 1.0f);
+
+		//printf("%s %f %f %f %f\n", e->model->name, blend, cl.time, e->movelerpstart, e->lerpfinish);
+                //translation
+                VectorSubtract (e->currentorigin, e->previousorigin, d);
+                lerpdata->origin[0] = e->previousorigin[0] + d[0] * blend;
+                lerpdata->origin[1] = e->previousorigin[1] + d[1] * blend;
+                lerpdata->origin[2] = e->previousorigin[2] + d[2] * blend;
+
+                //rotation
+                VectorSubtract (e->currentangles, e->previousangles, d);
+                for (i = 0; i < 3; i++)
+                {
+                        if (d[i] > 180)  d[i] -= 360;
+                        if (d[i] < -180) d[i] += 360;
+                }
+                lerpdata->angles[0] = e->previousangles[0] + d[0] * blend;
+                lerpdata->angles[1] = e->previousangles[1] + d[1] * blend;
+                lerpdata->angles[2] = e->previousangles[2] + d[2] * blend;
+        }
+        else //don't lerp
+        {
+                VectorCopy (e->origin, lerpdata->origin);
+                VectorCopy (e->angles, lerpdata->angles);
+        }
+// Baker: Software uses these fields in too many places
+        VectorCopy (lerpdata->origin, e->origin);
+        VectorCopy (lerpdata->angles, e->angles);
+}
+
 void R_DrawEntitiesOnList()
 {
 	f32 lightvec[3] = { -1, 0, 0 };
@@ -585,6 +656,8 @@ void R_DrawEntitiesOnList()
 			R_DrawSprite();
 			break;
 		case mod_alias:
+			if (r_lerpmove.value && !(cls.demoplayback && cl.paused & 2))
+				R_SetupEntityTransform (currententity, 0); // move lerp
 			VectorCopy(currententity->origin, r_entorigin);
 			VectorSubtract(r_origin, r_entorigin, modelorg);
 			// see if the bounding box lets us trivially reject, also sets

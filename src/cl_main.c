@@ -260,6 +260,7 @@ void CL_RelinkEntities()
 		} // if the object wasn't included in the last packet, remove it
 		if(ent->msgtime != cl.mtime[0]){
 			ent->model = NULL;
+			ent->lerpflags |= LERP_RESETMOVE|LERP_RESETANIM; //johnfitz -- next time this entity slot is reused, the lerp will need to be reset
 			continue;
 		}
 		vec3_t oldorg;
@@ -274,9 +275,14 @@ void CL_RelinkEntities()
 			for(s32 j = 0; j < 3; j++){
 				delta[j] = ent->msg_origins[0][j] -
 					ent->msg_origins[1][j];
-				if(delta[j] > 100 || delta[j] < -100)
+				if(delta[j] > 100 || delta[j] < -100){
 					f = 1;//assume teleportation, not motion
+					ent->lerpflags |= LERP_RESETMOVE; //johnfitz -- don't lerp teleports
+				}
 			}
+			//johnfitz -- don't cl_lerp entities that will be r_lerped
+			if (r_lerpmove.value && (ent->lerpflags & LERP_MOVESTEP))
+				f = 1;
 			// interpolate the origin and angles
 			for(s32 j = 0; j < 3; j++){
 				ent->origin[j] =

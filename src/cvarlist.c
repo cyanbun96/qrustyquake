@@ -253,6 +253,7 @@ cvar_t r_showtris=                                     {"r_showtris", "0",0,ZR};
 cvar_t r_showtris_color=                        {"r_showtris_color", "15",0,ZR};
 cvar_t r_coarseocclusion=                       {"r_coarseocclusion", "2",1,ZR};
 cvar_t r_lerpmodels=                                 {"r_lerpmodels", "0",1,ZR};
+cvar_t r_lerpmove=                                     {"r_lerpmove", "0",1,ZR};
 cvar_t registered=                                      {"registered","1",0,ZR};
 cvar_t cmdline=                                      {"cmdline","",CVAR_ROM,ZR};
 cvar_t vid_mode=                                 {"vid_mode", "0", CVAR_ROM,ZR};

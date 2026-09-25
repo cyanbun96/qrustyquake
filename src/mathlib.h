@@ -9,6 +9,7 @@
 #define SIL static inline __attribute__((always_inline))
 #define RESTRICT __restrict
 #endif
+#define EQUAL_EPSILON 0.001
 static inline bool GetBit (const u32 *arr, u32 i)
 { return (arr[i/32u] & (1u<<(i%32u))) != 0u; }
 
@@ -41,6 +42,13 @@ SIL void VectorScale(vec3_t in, vec_t scale, vec3_t out)
 	{out[0] = in[0]*scale; out[1] = in[1]*scale; out[2] = in[2]*scale;}
 SIL vec_t VectorLength(const vec3_t v)
 	{return sqrt(DotProduct(v,v)); }
+SIL s32 VectorCompare (const vec3_t v1, const vec3_t v2)
+{
+	for(s32 i=0; i<3; i++)
+		if(v1[i] != v2[i])
+			return 0;
+	return 1;
+}
 SIL s32 GreatestCommonDivisor(s32 a, s32 b)
 	{while (b != 0) { s32 t = b; b = a % b; a = t; } return a;}
 

@@ -268,9 +268,17 @@ typedef struct entity_s {                                            // render.h
 	vec3_t previousorigin; //johnfitz -- transform lerping
 	vec3_t currentorigin; //johnfitz -- transform lerping
 	vec3_t previousangles; //johnfitz -- transform lerping
+	vec3_t currentangles;  //johnfitz -- transform lerping
 	f32 traildelay; // time left until next particle trail update
 	vec3_t trailorg; // previous particle trail point
 } entity_t;
+typedef struct {//johnfitz -- struct for passing lerp information to drawing functions
+        s32 pose1;
+        s32 pose2;
+        f32 blend;
+        vec3_t origin;
+        vec3_t angles;
+} lerpdata_t;
 typedef struct efrag_s {
 	struct mleaf_s *leaf;
 	struct efrag_s *leafnext;
