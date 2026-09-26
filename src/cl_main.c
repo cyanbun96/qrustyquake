@@ -437,6 +437,39 @@ void CL_SendCmd()
 	SZ_Clear(&cls.message);
 }
 
+void CL_Viewpos_f (void)
+{
+    char viewpos_str[256];
+    char clip_str[256];
+
+    if (cls.state != ca_connected)
+        return;
+
+    // Buffer the standard Quake console output
+    snprintf(viewpos_str, sizeof(viewpos_str), "Viewpos: (%i %i %i) %i %i %i\n",
+        (int)cl_entities[cl.viewentity].origin[0],
+        (int)cl_entities[cl.viewentity].origin[1],
+        (int)cl_entities[cl.viewentity].origin[2],
+        (int)cl.viewangles[PITCH],
+        (int)cl.viewangles[YAW],
+        (int)cl.viewangles[ROLL]);
+
+    // 1. Output to engine console
+    Con_Printf("%s", viewpos_str);
+    
+    // 2. Output to external sys terminal
+    SDL_Log("%s", viewpos_str);
+
+    // 3. Format a clean string (no prefix/newline) for direct map editor pasting
+    snprintf(clip_str, sizeof(clip_str), "%i %i %i",
+        (int)cl_entities[cl.viewentity].origin[0],
+        (int)cl_entities[cl.viewentity].origin[1],
+        (int)cl_entities[cl.viewentity].origin[2]);
+        
+    // Push directly to OS clipboard
+    SDL_SetClipboardText(clip_str);
+}
+
 void CL_Init()
 {
 	SZ_Alloc(&cls.message, 1024);
@@ -485,6 +518,7 @@ void CL_Init()
 	Cmd_AddCommand("stop", CL_Stop_f);
 	Cmd_AddCommand("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand("timedemo", CL_TimeDemo_f);
+	Cmd_AddCommand("viewpos", CL_Viewpos_f);
 	Cmd_AddCommand_ServerCommand("st", CL_SetStat_f);
 	Cmd_AddCommand_ServerCommand("sts", CL_SetStatString_f);
 }
