@@ -600,7 +600,7 @@ void R_SetupEntityTransform (entity_t *e, lerpdata_t *lerpdata)
         }
 
         //set up values
-        if (r_lerpmove.value && e != &cl.viewent)
+        if (r_lerpmove.value && e != &cl.viewent && e->lerpflags & LERP_MOVESTEP)
         {
 		float s = 1;//(cls.demoplayback && cls.demospeed < 0.f) ? -1.f : 1.f;
 		if (e->lerpflags & LERP_FINISH)
@@ -608,7 +608,6 @@ void R_SetupEntityTransform (entity_t *e, lerpdata_t *lerpdata)
 		else
 			blend = CLAMP (0.0f, (float)(cl.time - e->movelerpstart) / 0.1f * s, 1.0f);
 
-		//printf("%s %f %f %f %f\n", e->model->name, blend, cl.time, e->movelerpstart, e->lerpfinish);
                 //translation
                 VectorSubtract (e->currentorigin, e->previousorigin, d);
                 lerpdata->origin[0] = e->previousorigin[0] + d[0] * blend;
