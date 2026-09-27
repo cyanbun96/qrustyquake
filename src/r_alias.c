@@ -12,8 +12,8 @@ typedef struct aliaslerp_s
         float blend;
 } aliaslerp_t;
 
-aliaslerp_t             *r_aliaslerpverts;
-aliaslerp_t             *lerpverts;
+static aliaslerp_t r_aliaslerpverts[MAXALIASVERTS];
+static aliaslerp_t *lerpverts;
 static mdl_t *pmdl;
 static aliashdr_t *paliashdr;
 static s32 a_skinwidth;
@@ -643,8 +643,6 @@ void R_AliasSetupFrameMH (entity_t *ent)
 
 void R_AliasDrawModel(alight_t *plighting)
 {
-	if(!r_aliaslerpverts)
-		r_aliaslerpverts = (aliaslerp_t *) Hunk_Alloc (MAXALIASVERTS * sizeof (aliaslerp_t));
 	finalvert_t finalverts[MAXALIASVERTS];
 	auxvert_t auxverts[MAXALIASVERTS];
 	r_amodels_drawn++;
