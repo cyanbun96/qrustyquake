@@ -405,6 +405,14 @@ void CL_ParseClientdata()
 		cl.punchangle[i] = bits & (SU_PUNCH1<<i) ? MSG_ReadChar() : 0;
 		cl.mvelocity[0][i] = bits&(SU_VELOCITY1<<i)?MSG_ReadChar()*16:0;
 	}
+	//johnfitz -- update v_punchangles
+	if (v_punchangles[0][0] != cl.punchangle[0] || v_punchangles[0][1] != cl.punchangle[1] || v_punchangles[0][2] != cl.punchangle[2])
+	{
+		VectorCopy (v_punchangles[0], v_punchangles[1]);
+		VectorCopy (cl.punchangle, v_punchangles[0]);
+		cl.punchtime = cl.time;
+	}
+	//johnfitz
 	i = MSG_ReadLong();
 	if(cl.items != i){ // set flash times
 		Sbar_Changed();

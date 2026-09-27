@@ -68,6 +68,7 @@ EX s32 colored_aliaslight;
 EX s32 r_numdebuglines;
 EX s32 r_numdebugpoints;
 EX bool coccl_enable;
+EX vec3_t v_punchangles[2];
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY);
 void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color);

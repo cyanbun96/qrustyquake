@@ -1241,6 +1241,7 @@ typedef struct {
 	vec3_t mvelocity[2];
 	vec3_t velocity; // lerped between mvelocity[0] and [1]
 	vec3_t punchangle; // temporary offset
+	f64 punchtime;
 	f32 idealpitch;
 	f32 pitchvel;
 	bool nodrift;

@@ -70,6 +70,7 @@ s32 colored_aliaslight;
 s32 r_numdebuglines = 0; // r_showtris
 s32 r_numdebugpoints = 0;
 bool coccl_enable = 0;
+vec3_t v_punchangles[2];
 f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
 f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
 f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;

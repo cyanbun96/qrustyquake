@@ -514,9 +514,21 @@ void V_CalcRefdef()
 	view->model = cl.model_precache[cl.stats[STAT_WEAPON]];
 	view->frame = cl.stats[STAT_WEAPONFRAME];
 	view->colormap = CURWORLDCMAP;
-	// set up the refresh position
-	if(v_gunkick.value)
-	    VectorAdd(r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
+	//johnfitz -- v_gunkick
+	if (v_gunkick.value == 1) //original quake kick
+		VectorAdd (r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
+	if (v_gunkick.value == 2) //lerped kick
+	{
+		float punchblend = (cl.time - cl.punchtime) / 0.1f;
+
+		if (punchblend < 0.0f) punchblend = 0.0f;
+		if (punchblend > 1.0f) punchblend = 1.0f;
+
+		r_refdef.viewangles[0] += v_punchangles[1][0] + (v_punchangles[0][0] - v_punchangles[1][0]) * punchblend;
+		r_refdef.viewangles[1] += v_punchangles[1][1] + (v_punchangles[0][1] - v_punchangles[1][1]) * punchblend;
+		r_refdef.viewangles[2] += v_punchangles[1][2] + (v_punchangles[0][2] - v_punchangles[1][2]) * punchblend;
+	}
+	//johnfitz
 	// smooth out stair step ups
 	if(cl.onground && ent->origin[2] - oldz > 0){
 		f32 steptime;
