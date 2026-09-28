@@ -437,37 +437,17 @@ void CL_SendCmd()
 	SZ_Clear(&cls.message);
 }
 
-void CL_Viewpos_f (void)
+void CL_Viewpos_f()
 {
-    char viewpos_str[256];
-    char clip_str[256];
-
-    if (cls.state != ca_connected)
-        return;
-
-    // Buffer the standard Quake console output
-    snprintf(viewpos_str, sizeof(viewpos_str), "Viewpos: (%i %i %i) %i %i %i\n",
-        (int)cl_entities[cl.viewentity].origin[0],
-        (int)cl_entities[cl.viewentity].origin[1],
-        (int)cl_entities[cl.viewentity].origin[2],
-        (int)cl.viewangles[PITCH],
-        (int)cl.viewangles[YAW],
-        (int)cl.viewangles[ROLL]);
-
-    // 1. Output to engine console
-    Con_Printf("%s", viewpos_str);
-    
-    // 2. Output to external sys terminal
-    SDL_Log("%s", viewpos_str);
-
-    // 3. Format a clean string (no prefix/newline) for direct map editor pasting
-    snprintf(clip_str, sizeof(clip_str), "%i %i %i",
-        (int)cl_entities[cl.viewentity].origin[0],
-        (int)cl_entities[cl.viewentity].origin[1],
-        (int)cl_entities[cl.viewentity].origin[2]);
-        
-    // Push directly to OS clipboard
-    SDL_SetClipboardText(clip_str);
+	if (cls.state != ca_connected)
+		return;
+	Con_Printf("Viewpos: (%.0f %.0f %.0f) %.0f %.0f %.0f\n",
+			cl_entities[cl.viewentity].origin[0],
+			cl_entities[cl.viewentity].origin[1],
+			cl_entities[cl.viewentity].origin[2],
+			cl.viewangles[PITCH],
+			cl.viewangles[YAW],
+			cl.viewangles[ROLL]);
 }
 
 void CL_Init()
