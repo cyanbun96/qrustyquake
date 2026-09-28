@@ -472,12 +472,11 @@ void R_AliasDrawModel(alight_t *plighting)
 	finalvert_t finalverts[MAXALIASVERTS];
 	auxvert_t auxverts[MAXALIASVERTS];
 	r_amodels_drawn++;
-	// cache align
-	pfinalverts = (finalvert_t *) (((uintptr_t) & finalverts[0]
+	pfinalverts = (finalvert_t *)(((uintptr_t) & finalverts[0] //cache align
 				+ CACHE_SIZE - 1) & ~(CACHE_SIZE - 1));
 	pauxverts = &auxverts[0];
-	paliashdr = (aliashdr_t *) Mod_Extradata(currententity->model);
-	pmdl = (mdl_t *) ((u8 *) paliashdr + paliashdr->model);
+	paliashdr = (aliashdr_t *)Mod_Extradata(currententity->model);
+	pmdl = (mdl_t *)((u8 *) paliashdr + paliashdr->model);
 	R_AliasSetupSkin();
 	R_AliasSetUpTransform(currententity->trivial_accept);
 	R_AliasSetupLighting(plighting);

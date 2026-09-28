@@ -192,7 +192,7 @@ void R_ParseDebugEntities()
 	if (!cl.worldmodel || !cl.worldmodel->entities) return;
 	const c8 *data = cl.worldmodel->entities;
 	c8 key[128], value[4096];
-	while (1) {
+	while (1){
 		data = COM_Parse(data);
 		if(!data)break;
 		if(com_token[0] != '{')continue;
@@ -201,12 +201,10 @@ void R_ParseDebugEntities()
 		while (1){
 			data = COM_Parse(data);
 			if(!data || com_token[0] == '}')break;
-
 			strcpy(key, com_token);
 			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 			if(!data)break;
 			strcpy(value, com_token);
-
 			if(!strcmp(key, "origin"))
 				sscanf(value, "%f %f %f", &parsed_origin[0],
 					&parsed_origin[1], &parsed_origin[2]);
@@ -214,8 +212,10 @@ void R_ParseDebugEntities()
 				is_point = false; // Has a brush model, not a point entity
 		}
 		if((is_point && (parsed_origin[0] != 0 || parsed_origin[1] != 0
-			|| parsed_origin[2] != 0)) && r_numdebugpoints < MAX_DEBUG_POINTS){
-			VectorCopy(parsed_origin, r_debugpoints[r_numdebugpoints].origin);
+				|| parsed_origin[2] != 0))
+				&& r_numdebugpoints < MAX_DEBUG_POINTS){
+			VectorCopy(parsed_origin,
+					r_debugpoints[r_numdebugpoints].origin);
 			r_numdebugpoints++;
 		}
 	}
@@ -268,7 +268,7 @@ void R_InitTurb()
 	s32 amp = 8*0x10000;
 	for(s32 i = 0; i < (SIN_BUFFER_SIZE); i++){
 		sintable[i] = amp + sin(i * 3.14159 * 2 / TURB_CYCLE) * amp;
-		intsintable[i] = TURB_AMP2 + sin(i * 3.14159 * 2 / TURB_CYCLE) * TURB_AMP2;
+		intsintable[i]=TURB_AMP2+sin(i*3.14159*2/TURB_CYCLE)*TURB_AMP2;
 	}
 	r_warpbuffer = warpbuffer;
 }
@@ -392,7 +392,7 @@ void Pal_ParseWorldspawn ()
 	while(1){
 		if(!data) return; // error
 		if(com_token[0] == '}') break; // end of worldspawn
-		if(com_token[0] == '_')SDL_strlcpy(key, com_token+1, sizeof(key));
+		if(com_token[0] == '_')SDL_strlcpy(key,com_token+1,sizeof(key));
 		else SDL_strlcpy(key, com_token, sizeof(key));
 		while(key[0] && key[strlen(key)-1] == ' ') // no trailing spaces
 			key[strlen(key)-1] = 0;
@@ -566,73 +566,49 @@ void R_MarkLeaves()
 	}
 }
 
-/*
-=================
-R_SetupEntityTransform -- johnfitz -- set up transform part of lerpdata
-=================
-*/
-void R_SetupEntityTransform (entity_t *e, lerpdata_t *lerpdata)
-{
-        float blend;
-        vec3_t d;
-        int i;
-// We aren't really sharing using the lerpdata input structure pointer externally
-        lerpdata_t _lerpdata;
-        lerpdata = &_lerpdata;
-
-        // if LERP_RESETMOVE, kill any lerps in progress
-        if (e->lerpflags & LERP_RESETMOVE)
-        {
+void R_SetupEntityTransform(entity_t *e)
+{ // johnfitz -- set up transform part of lerpdata
+//We aren't really sharing using the lerpdata input structure pointer externally
+        lerpdata_t lerpdata;
+        if(e->lerpflags & LERP_RESETMOVE){ // kill any lerps in progress
                 e->movelerpstart = 0;
-                VectorCopy (e->origin, e->previousorigin);
-                VectorCopy (e->origin, e->currentorigin);
-                VectorCopy (e->angles, e->previousangles);
-                VectorCopy (e->angles, e->currentangles);
+                VectorCopy(e->origin, e->previousorigin);
+                VectorCopy(e->origin, e->currentorigin);
+                VectorCopy(e->angles, e->previousangles);
+                VectorCopy(e->angles, e->currentangles);
                 e->lerpflags -= LERP_RESETMOVE;
-        }
-        else if (!VectorCompare (e->origin, e->currentorigin) || !VectorCompare (e->angles, e->currentangles)) // origin/angles changed, start new lerp
-        {
+        }else if(!VectorCompare(e->origin, e->currentorigin) || 
+		!VectorCompare(e->angles, e->currentangles)){ // origin/angles changed, start new lerp
                 e->movelerpstart = cl.time;
-                VectorCopy (e->currentorigin, e->previousorigin);
-                VectorCopy (e->origin,  e->currentorigin);
-                VectorCopy (e->currentangles, e->previousangles);
-                VectorCopy (e->angles,  e->currentangles);
+                VectorCopy(e->currentorigin, e->previousorigin);
+                VectorCopy(e->origin,  e->currentorigin);
+                VectorCopy(e->currentangles, e->previousangles);
+                VectorCopy(e->angles,  e->currentangles);
         }
-
-        //set up values
-        if (r_lerpmove.value && e != &cl.viewent && e->lerpflags & LERP_MOVESTEP)
-        {
-		float s = 1;//(cls.demoplayback && cls.demospeed < 0.f) ? -1.f : 1.f;
-		if (e->lerpflags & LERP_FINISH)
-			blend = CLAMP (0.0f, (float)(cl.time - e->movelerpstart) / (e->lerpfinish - e->movelerpstart), 1.0f);
-		else
-			blend = CLAMP (0.0f, (float)(cl.time - e->movelerpstart) / 0.1f * s, 1.0f);
-
-                //translation
+        if(r_lerpmove.value && e != &cl.viewent && e->lerpflags&LERP_MOVESTEP){
+		f32 blend = CLAMP(0.f, (cl.time - e->movelerpstart) / 
+				(e->lerpflags & LERP_FINISH ?
+				 e->lerpfinish - e->movelerpstart : 0.1f), 1.f);
+		vec3_t d;
                 VectorSubtract (e->currentorigin, e->previousorigin, d);
-                lerpdata->origin[0] = e->previousorigin[0] + d[0] * blend;
-                lerpdata->origin[1] = e->previousorigin[1] + d[1] * blend;
-                lerpdata->origin[2] = e->previousorigin[2] + d[2] * blend;
-
-                //rotation
+                lerpdata.origin[0] = e->previousorigin[0] + d[0] * blend;
+                lerpdata.origin[1] = e->previousorigin[1] + d[1] * blend;
+                lerpdata.origin[2] = e->previousorigin[2] + d[2] * blend;
                 VectorSubtract (e->currentangles, e->previousangles, d);
-                for (i = 0; i < 3; i++)
-                {
+                for(s32 i = 0; i < 3; i++){
                         if (d[i] > 180)  d[i] -= 360;
                         if (d[i] < -180) d[i] += 360;
                 }
-                lerpdata->angles[0] = e->previousangles[0] + d[0] * blend;
-                lerpdata->angles[1] = e->previousangles[1] + d[1] * blend;
-                lerpdata->angles[2] = e->previousangles[2] + d[2] * blend;
+                lerpdata.angles[0] = e->previousangles[0] + d[0] * blend;
+                lerpdata.angles[1] = e->previousangles[1] + d[1] * blend;
+                lerpdata.angles[2] = e->previousangles[2] + d[2] * blend;
+        }else{//don't lerp
+                VectorCopy (e->origin, lerpdata.origin);
+                VectorCopy (e->angles, lerpdata.angles);
         }
-        else //don't lerp
-        {
-                VectorCopy (e->origin, lerpdata->origin);
-                VectorCopy (e->angles, lerpdata->angles);
-        }
-// Baker: Software uses these fields in too many places
-        VectorCopy (lerpdata->origin, e->origin);
-        VectorCopy (lerpdata->angles, e->angles);
+	// Baker: Software uses these fields in too many places
+        VectorCopy(lerpdata.origin, e->origin);
+        VectorCopy(lerpdata.angles, e->angles);
 }
 
 void R_DrawEntitiesOnList()
@@ -655,12 +631,12 @@ void R_DrawEntitiesOnList()
 			R_DrawSprite();
 			break;
 		case mod_alias:
-			if (r_lerpmove.value && !(cls.demoplayback && cl.paused & 2))
-				R_SetupEntityTransform (currententity, 0); // move lerp
+			if(r_lerpmove.value && !(cls.demoplayback && cl.paused & 2))
+				R_SetupEntityTransform(currententity); // move lerp
 			VectorCopy(currententity->origin, r_entorigin);
 			VectorSubtract(r_origin, r_entorigin, modelorg);
-			// see if the bounding box lets us trivially reject, also sets
-			// trivial accept status
+			// see if the bounding box lets us trivially reject
+			// also sets trivial accept status
 			if(R_AliasCheckBBox()){
 				s32 j = R_LightPoint(currententity->origin, 0.f);
 				if(!j) R_LightPoint(currententity->origin, currententity->model->maxs[2]*0.5f);
