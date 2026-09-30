@@ -6,6 +6,7 @@ static entity_t cl_static_entities[MAX_STATIC_ENTITIES];
 static u8 net_olddata[NET_MAXMESSAGE];
 static c8 model_precache[MAX_MODELS][MAX_QPATH];
 static c8 sound_precache[MAX_SOUNDS][MAX_QPATH];
+static f32 lastmsg;
 
 static c8 *svc_strings[] = {
 	"svc_bad",
@@ -117,7 +118,8 @@ entity_t *CL_EntityNum(s32 num)
 			cl_entities[cl.num_entities].colormap = CURWORLDCMAP;
 			cl_entities[cl.num_entities].baseline.scale =
 				ENTSCALE_DEFAULT;
-			cl_entities[cl.num_entities].lerpflags |= LERP_RESETMOVE|LERP_RESETANIM; //johnfitz
+			cl_entities[cl.num_entities].lerpflags |= 
+				LERP_RESETMOVE|LERP_RESETANIM; //johnfitz
 			cl.num_entities++;
 		}
 	}
@@ -164,7 +166,6 @@ void CL_ParseLocalSound()
 
 void CL_KeepaliveMessage()
 {
-	static f32 lastmsg;
 	if(sv.active) return; // no need if server is local
 	if(cls.demoplayback) return; // read from server, should just be nops
 	u8 *olddata = net_olddata;
@@ -405,14 +406,13 @@ void CL_ParseClientdata()
 		cl.punchangle[i] = bits & (SU_PUNCH1<<i) ? MSG_ReadChar() : 0;
 		cl.mvelocity[0][i] = bits&(SU_VELOCITY1<<i)?MSG_ReadChar()*16:0;
 	}
-	//johnfitz -- update v_punchangles
-	if (v_punchangles[0][0] != cl.punchangle[0] || v_punchangles[0][1] != cl.punchangle[1] || v_punchangles[0][2] != cl.punchangle[2])
-	{
+	if(v_punchangles[0][0]!=cl.punchangle[0]//johnfitz--update v_punchangles
+			|| v_punchangles[0][1] != cl.punchangle[1] 
+			|| v_punchangles[0][2] != cl.punchangle[2]){
 		VectorCopy (v_punchangles[0], v_punchangles[1]);
 		VectorCopy (cl.punchangle, v_punchangles[0]);
 		cl.punchtime = cl.time;
 	}
-	//johnfitz
 	i = MSG_ReadLong();
 	if(cl.items != i){ // set flash times
 		Sbar_Changed();

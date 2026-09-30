@@ -36,9 +36,8 @@ void CL_ParseBeam(model_t *m)
 	end[0] = MSG_ReadCoord(cl.protocolflags);
 	end[1] = MSG_ReadCoord(cl.protocolflags);
 	end[2] = MSG_ReadCoord(cl.protocolflags);
-	s32 i;
-	beam_t *b; // override any beam with the same entity
-	for(i = 0, b = cl_beams; i < MAX_BEAMS; i++, b++)
+	beam_t *b = cl_beams; // override any beam with the same entity
+	for(s32 i = 0; i < MAX_BEAMS; i++, b++)
 		if(b->entity == ent) {
 			b->entity = ent;
 			b->model = m;
@@ -47,7 +46,8 @@ void CL_ParseBeam(model_t *m)
 			VectorCopy(end, b->end);
 			return;
 		}
-	for(i = 0, b = cl_beams; i < MAX_BEAMS; i++, b++) // find a free beam
+	b = cl_beams;
+	for(s32 i = 0; i < MAX_BEAMS; i++, b++) // find a free beam
 		if(!b->model || b->endtime < cl.time) {
 			b->entity = ent;
 			b->model = m;
@@ -192,9 +192,8 @@ void CL_UpdateTEnts()
 {
 	num_temp_entities = 0;
 	srand((s32)(cl.time * 1000)); //johnfitz -- freeze beams when paused
-	s32 i;
-	beam_t *b;
-	for(i = 0, b = cl_beams; i < MAX_BEAMS; i++, b++) { // update lightning
+	beam_t *b = cl_beams;
+	for(s32 i = 0; i < MAX_BEAMS; i++, b++){ // update lightning
 		if(!b->model || b->endtime < cl.time) continue;
 		// if coming from the player, update the start position
 		if(b->entity == cl.viewentity)
@@ -203,10 +202,10 @@ void CL_UpdateTEnts()
 		vec3_t dist, org;
 		VectorSubtract(b->end, b->start, dist);
 		f32 yaw, pitch;
-		if(dist[1] == 0 && dist[0] == 0) {
+		if(dist[1] == 0 && dist[0] == 0){
 			yaw = 0;
 			pitch = dist[2] > 0 ? 90 : 270;
-		} else {
+		}else{
 			yaw = (s32) (atan2(dist[1], dist[0]) * 180 / M_PI);
 			if(yaw < 0) yaw += 360;
 			f32 forward = sqrt(dist[0]*dist[0] + dist[1]*dist[1]);
@@ -215,7 +214,7 @@ void CL_UpdateTEnts()
 		}
 		VectorCopy(b->start, org); // add new entities for the lightning
 		f32 d = VectorNormalize(dist);
-		while(d > 0) {
+		while(d > 0){
 			entity_t *ent = CL_NewTempEntity();
 			if(!ent) return;
 			VectorCopy(org, ent->origin);
