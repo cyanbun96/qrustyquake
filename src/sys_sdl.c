@@ -1,6 +1,9 @@
 #include "quakedef.h"
 static FILE *sys_handles[MAX_HANDLES];
 
+extern int PLM_PlayVideo(const char *filename, SDL_Renderer *renderer, SDL_AudioDeviceID audio_device);
+extern SDL_Renderer *renderer;
+
 void Sys_Printf(const c8 *fmt, ...)
 {
 	va_list argptr;
@@ -200,6 +203,14 @@ int main(int c, char **v)
 	host_parms.basedir = ".";
 	host_parms.userdir = ".";
 	Host_Init();
+
+	FILE *f = fopen("intro.mpg", "rb");
+    if (f) {
+        fclose(f);
+        PLM_PlayVideo("intro.mpg", renderer, SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK);
+        SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+    }
+
 #ifdef __EMSCRIPTEN__
 	emscripten_set_main_loop(main_loop, 0, 1);
 #else
