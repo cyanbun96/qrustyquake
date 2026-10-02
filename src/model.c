@@ -550,7 +550,7 @@ void Mod_LoadTextures(lump_t *l)
 				sizeof(miptex_t);
 		// the pixels immediately follow the structures
 		memcpy(tx + 1, mt + 1, pixels);
-		if(!strncmp(mt->name, "sky", 3))
+		if(!SDL_strncasecmp(mt->name, "sky", 3))
 			R_InitSky(tx);
 		if (!r_rebuildmips.value) continue;
 		u8 *base = (u8 *)tx + LittleLong(tx->offsets[0]);
