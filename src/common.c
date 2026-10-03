@@ -193,39 +193,6 @@ size_t UTF8_FromQuake(c8 *dst, size_t maxbytes, const c8 *src)
 	return j;
 }
 
-s16 ShortSwap(s16 l)
-{
-	u8 b1 = l&255;
-	u8 b2 = (l>>8)&255;
-	return(b1<<8) + b2;
-}
-
-s16 ShortNoSwap(s16 l){ return l; }
-
-s32 LongSwap(s32 l)
-{
-	u8 b1 = l&255;
-	u8 b2 = (l>>8)&255;
-	u8 b3 = (l>>16)&255;
-	u8 b4 = (l>>24)&255;
-	return((s32)b1<<24) + ((s32)b2<<16) + ((s32)b3<<8) + b4;
-}
-
-s32 LongNoSwap(s32 l){ return l; }
-
-f32 FloatSwap(f32 f)
-{
-	union { f32 f; u8 b[4]; } dat1, dat2;
-	dat1.f = f;
-	dat2.b[0] = dat1.b[3];
-	dat2.b[1] = dat1.b[2];
-	dat2.b[2] = dat1.b[1];
-	dat2.b[3] = dat1.b[0];
-	return dat2.f;
-}
-
-f32 FloatNoSwap(f32 f){ return f; }
-
 void MSG_WriteChar(sizebuf_t *sb, s32 c)
 { // Handles u8 ordering and avoids alignment errors
 	u8 *buf = (u8 *) SZ_GetSpace(sb, 1);
@@ -654,6 +621,13 @@ s32 COM_CheckParm(const c8 *parm) // Returns the position(1 to argc-1) in the
 	return 0;
 }
 
+s16 s16swap(s16 l)
+{
+	u8 b1 = l&255;
+	u8 b2 = (l>>8)&255;
+	return(b1<<8) + b2;
+}
+
 // Looks for the pop.txt file and verifies it.
 // Sets the "registered" cvar.
 // Immediately exits out if an alternate game was attempted to be started
@@ -662,7 +636,6 @@ static void COM_CheckRegistered()
 {
 	s32 h;
 	u16 check[128];
-	s32 i;
 	COM_OpenFile("gfx/pop.lmp", &h, NULL);
 	if(h == -1){
 		Cvar_Set("registered", "0");
@@ -675,15 +648,12 @@ Sys_Error("You must have the registered version to use modified games.\n\n"
 		com_basedir);
 		return;
 	}
-	i = Sys_FileRead(h, check, sizeof(check));
+	s32 i = Sys_FileRead(h, check, sizeof(check));
 	COM_CloseFile(h);
-	if(i != (s32) sizeof(check)) goto corrupt;
-	for(i = 0; i < 128; i++){
-		if(pop[i] != (u16)BigShort(check[i]))
-		{ corrupt:
+	if(i != (s32)sizeof(check)) Sys_Error("Corrupted data file.");
+	for(i = 0; i < 128; i++)
+		if(pop[i] != (u16)s16swap(check[i]))
 			Sys_Error("Corrupted data file.");
-		}
-	}
 	for(i = 0; com_cmdline[i]; i++)
 		if(com_cmdline[i]!= ' ')
 			break;
@@ -727,9 +697,6 @@ void COM_InitArgv(s32 argc, c8 **argv)
 
 void COM_Init()
 {
-	BigShort = ShortSwap;
-	BigLong = LongSwap;
-	BigFloat = FloatSwap;
 	fitzmode = COM_CheckParm("-fitz");
 }
 
