@@ -226,7 +226,6 @@ s32 UDP_GetSocketPort(struct qsockaddr *addr);
 s32 UDP_SetSocketPort(struct qsockaddr *addr, s32 port);
 void W_LoadWadFile();                                                   // wad.h
 void *W_GetLumpName(const c8 *name);
-void SwapPic(qpic_t *pic);
 EX vec3_t r_origin, vpn, vright, vup;                                // render.h
 void R_Init();
 void R_InitTextures();

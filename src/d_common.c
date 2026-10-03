@@ -114,7 +114,6 @@ qpic_t *Draw_CachePic(c8 *path)
 	dat = (qpic_t *) pic->cache.data;
 	if(!dat)
 		Sys_Error("Draw_CachePic: failed to load %s", path);
-	SwapPic(dat);
 	return dat;
 }
 
@@ -125,7 +124,6 @@ qpic_t *Draw_TryCachePic(c8 *path)
 		Con_DPrintf("Draw_TryCachePic: failed to load %s\n", path);
 		return NULL;
 	}
-	SwapPic(dat);
 	return dat;
 }
 

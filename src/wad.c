@@ -30,8 +30,6 @@ static s32 wad_numlumps;
 static lumpinfo_t *wad_lumps;
 static u8 *wad_base = NULL;
 
-void SwapPic(qpic_t *pic);
-
 // Lowercases name and pads with spaces and a terminating 0 to the length of
 // lumpinfo_t->name.
 // Used so lumpname lookups can proceed rapidly by comparing 4 chars at a time
@@ -73,8 +71,6 @@ void W_LoadWadFile()
 		lump_p->filepos = (s32)(lump_p->filepos);
 		lump_p->size = (s32)(lump_p->size);
 		W_CleanupName(lump_p->name, lump_p->name);
-		if(lump_p->type == 66) // typ_qpic
-			SwapPic((qpic_t *)(wad_base + lump_p->filepos));
 	}
 }
 
@@ -227,10 +223,4 @@ lumpinfo_t *W_GetLumpinfoList(wad_t *wads, const c8 *name, wad_t **out_wad)
 		wads = wads->next;
 	}
 	return NULL;
-}
-
-void SwapPic(qpic_t *pic)
-{
-	pic->width = (s32)(pic->width);
-	pic->height = (s32)(pic->height);
 }
