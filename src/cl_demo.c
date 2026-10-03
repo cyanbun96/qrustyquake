@@ -30,10 +30,10 @@ void CL_StopPlayback()
 
 void CL_WriteDemoMessage()
 { // Dumps the current net message, prefixed by the length and view angles
-	s32 len = LittleLong(net_message.cursize);
+	s32 len = (s32)(net_message.cursize);
 	fwrite(&len, 4, 1, cls.demofile);
 	for(s32 i = 0; i < 3; i++){
-		f32 f = LittleFloat(cl.viewangles[i]);
+		f32 f = (f32)(cl.viewangles[i]);
 		fwrite(&f, 4, 1, cls.demofile);
 	}
 	fwrite(net_message.data, net_message.cursize, 1, cls.demofile);
@@ -60,9 +60,9 @@ s32 CL_GetMessage()
 		f32 f;
 		for(s32 i = 0; i < 3; i++){
 			fread(&f, 4, 1, cls.demofile);
-			cl.mviewangles[0][i] = LittleFloat(f);
+			cl.mviewangles[0][i] = (f32)(f);
 		}
-		net_message.cursize = LittleLong(net_message.cursize);
+		net_message.cursize = (s32)(net_message.cursize);
 		if(net_message.cursize > MAX_MSGLEN)
 			Sys_Error("Demo message > MAX_MSGLEN");
 		if(fread(net_message.data, net_message.cursize,

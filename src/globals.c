@@ -115,11 +115,8 @@ c8 com_gamedir[MAX_OSPATH];
 c8 com_basedir[MAX_OSPATH];
 s32 file_from_pak;
 s16 (*BigShort) (s16 l);
-s16 (*LittleShort) (s16 l);
 s32 (*BigLong) (s32 l);
-s32 (*LittleLong) (s32 l);
 f32 (*BigFloat) (f32 l);
-f32 (*LittleFloat) (f32 l);
 bool con_forcedup; // because no entities to refresh                // console.c
 s32 con_totallines; // total lines in console scrollback
 s32 con_backscroll; // lines up from bottom to display

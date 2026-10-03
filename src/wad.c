@@ -65,13 +65,13 @@ void W_LoadWadFile()
 	if(header->identification[0]!='W'||header->identification[1]!='A'||
 		header->identification[2]!='D'||header->identification[3]!='2')
 		Sys_Error("Wad file %s doesn't have WAD2 id\n",filename);
-	wad_numlumps = LittleLong(header->numlumps);
-	s32 infotableofs = LittleLong(header->infotableofs);
+	wad_numlumps = (s32)(header->numlumps);
+	s32 infotableofs = (s32)(header->infotableofs);
 	wad_lumps = (lumpinfo_t *)(wad_base + infotableofs);
 	lumpinfo_t *lump_p = wad_lumps;
 	for(s32 i = 0; i < wad_numlumps; i++, lump_p++) {
-		lump_p->filepos = LittleLong(lump_p->filepos);
-		lump_p->size = LittleLong(lump_p->size);
+		lump_p->filepos = (s32)(lump_p->filepos);
+		lump_p->size = (s32)(lump_p->size);
 		W_CleanupName(lump_p->name, lump_p->name);
 		if(lump_p->type == 66) // typ_qpic
 			SwapPic((qpic_t *)(wad_base + lump_p->filepos));
@@ -123,15 +123,15 @@ static wad_t *W_AddWadFile(const c8 *name, fshandle_t *fh)
 {
 	wadinfo_t header;
 	FS_fread((void *)&header, 1, sizeof(header), fh);
-	s32 id=LittleLong(header.identification[0]|(header.identification[1]<<8)
+	s32 id=(s32)(header.identification[0]|(header.identification[1]<<8)
 		|(header.identification[2]<<16)|(header.identification[3]<<24));
 	if(id != ('W'|('A'<<8)|('D'<<16)|('2'<<24)) // wad_id
 		&& id != ('W'|('A'<<8)|('D'<<16)|('3'<<24))) { // wad_id_valve
 		printf("%s is not a valid WAD\n", name);
 		return NULL;
 	}
-	s32 numlumps = LittleLong(header.numlumps);
-	s32 infotableofs = LittleLong(header.infotableofs);
+	s32 numlumps = (s32)(header.numlumps);
+	s32 infotableofs = (s32)(header.infotableofs);
 	if(numlumps < 0 || infotableofs < 0) {
 		printf("%s is not a valid WAD(%i lumps, %i info table offset)\n"
 				, name, numlumps, infotableofs);
@@ -148,9 +148,9 @@ static wad_t *W_AddWadFile(const c8 *name, fshandle_t *fh)
 	lumpinfo_t *info = lumps;
 	for(s32 i = 0; i < numlumps; i++, info++) {
 		W_CleanupName(info->name, info->name);
-		info->filepos = LittleLong(info->filepos);
-		info->size = LittleLong(info->size);
-		s32 disksize = LittleLong(info->disksize);
+		info->filepos = (s32)(info->filepos);
+		info->size = (s32)(info->size);
+		s32 disksize = (s32)(info->disksize);
 
 		if(info->filepos + info->size > fh->length &&
 				!(info->filepos + disksize > fh->length))
@@ -231,6 +231,6 @@ lumpinfo_t *W_GetLumpinfoList(wad_t *wads, const c8 *name, wad_t **out_wad)
 
 void SwapPic(qpic_t *pic)
 {
-	pic->width = LittleLong(pic->width);
-	pic->height = LittleLong(pic->height);
+	pic->width = (s32)(pic->width);
+	pic->height = (s32)(pic->height);
 }

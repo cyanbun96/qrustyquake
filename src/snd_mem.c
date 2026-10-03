@@ -45,7 +45,7 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 			s32 srcsample = (s32)(samplefrac >> 8);
 			samplefrac += fracstep; // int64_t to prevent overflow
 			s32 sample = inwidth == 2 ? 
-				LittleShort(((s16 *)data)[srcsample]):
+				(s16)(((s16 *)data)[srcsample]):
 				(s32)((u8)(data[srcsample]) - 128) << 8;
 			if(sc->width == 2) ((s16 *)sc->data)[i] = sample;
 			else ((c8 *)sc->data)[i] = sample >> 8;
