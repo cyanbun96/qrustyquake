@@ -344,6 +344,7 @@ void R_Init()
 	Cvar_RegisterVariable(&yaspectscale);
 	Cvar_RegisterVariable(&scr_lockuiscale);
 	Cvar_RegisterVariable(&r_mipscale);
+	Cvar_RegisterVariable(&r_cutoutmipscale);
 	Cvar_RegisterVariable(&scr_menubgstyle);
 	Cvar_RegisterVariable(&lyr_main);
 	Cvar_RegisterVariable(&lyr_sbar);
