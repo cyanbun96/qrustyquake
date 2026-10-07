@@ -2596,6 +2596,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("r_mipscale");
 			Cvar_Reset("r_lerpmove");
 			Cvar_Reset("r_lerpmodels");
+			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
 		} else if (graphics_cursor == 1) {
@@ -2614,6 +2615,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("r_mipscale");
 			Cvar_Reset("r_lerpmove");
 			Cvar_Reset("r_lerpmodels");
+			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
 		} else if (graphics_cursor == 2) {
@@ -2632,6 +2634,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("r_mipscale", 3);
 			Cvar_SetValue("r_lerpmove", 1);
 			Cvar_SetValue("r_lerpmodels", 1);
+			Cvar_SetValue("v_gunkick", 2);
 			Cvar_SetValue("r_dithertex", 1);
 			Cvar_SetValue("r_particlestyle", 1);
 		} else if (graphics_cursor < 100) graphics_cursor *= 100;
