@@ -2484,93 +2484,93 @@ void M_Graphics_Key(s32 k)
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		switch (graphics_cursor) {
-		case 200: Cvar_SetValue("r_nofog",
+		case 300: Cvar_SetValue("r_nofog",
 			!r_nofog.value); break;
-		case 201: Cvar_SetValue("r_fognoise",
+		case 301: Cvar_SetValue("r_fognoise",
 			r_fognoise.value - 0.1); break;
-		case 202: Cvar_SetValue("r_fogfactor",
+		case 302: Cvar_SetValue("r_fogfactor",
 			r_fogfactor.value - 0.1); break;
-		case 203: Cvar_SetValue("r_fogscale",
+		case 303: Cvar_SetValue("r_fogscale",
 			r_fogscale.value - 0.1); break;
-		case 204: Cvar_SetValue("r_fogbrightness",
+		case 304: Cvar_SetValue("r_fogbrightness",
 			r_fogbrightness.value - 0.1); break;
-		case 205: Cvar_SetValue("r_fogstyle",
+		case 305: Cvar_SetValue("r_fogstyle",
 			CLAMP(0, r_fogstyle.value - 1, 3)); break;
-		case 206: Cvar_SetValue("r_fogdepthcorrection",
+		case 306: Cvar_SetValue("r_fogdepthcorrection",
 			!r_fogdepthcorrection.value); break;
-		case 207: Cvar_SetValue("r_lockfog",
+		case 307: Cvar_SetValue("r_lockfog",
 			!r_lockfog.value); break;
-		case 208: Cvar_SetValue("r_lockfogd",
+		case 308: Cvar_SetValue("r_lockfogd",
 			CLAMP(0, r_lockfogd.value - 0.05, 1)); break;
-		case 209: Cvar_SetValue("r_lockfogr",
+		case 309: Cvar_SetValue("r_lockfogr",
 			CLAMP(0, r_lockfogr.value - 0.05, 1)); break;
-		case 210: Cvar_SetValue("r_lockfogg",
+		case 310: Cvar_SetValue("r_lockfogg",
 			CLAMP(0, r_lockfogg.value - 0.05, 1)); break;
-		case 211: Cvar_SetValue("r_lockfogb",
+		case 311: Cvar_SetValue("r_lockfogb",
 			CLAMP(0, r_lockfogb.value - 0.05, 1)); break;
-		case 300: Cvar_SetValue("r_enableskybox",
+		case 400: Cvar_SetValue("r_enableskybox",
 			!r_enableskybox.value); break;
-		case 301: Cvar_SetValue("r_skyfog",
+		case 401: Cvar_SetValue("r_skyfog",
 			CLAMP(0, r_skyfog.value - 0.1, 1)); break;
-		case 302: Cvar_SetValue("r_skynoise",
+		case 402: Cvar_SetValue("r_skynoise",
 			CLAMP(0, r_skynoise.value - 0.1, 1)); break;
-		case 400: Cvar_SetValue("r_rgblighting",
+		case 500: Cvar_SetValue("r_rgblighting",
 			!r_rgblighting.value); break;
-		case 401: Cvar_SetValue("r_litwater",
+		case 501: Cvar_SetValue("r_litwater",
 			!r_litwater.value); break;
-		case 402: Cvar_SetValue("r_labmixpal",
+		case 502: Cvar_SetValue("r_labmixpal",
 			!r_labmixpal.value); break;
-		case 500: Cvar_SetValue("r_hlwater",
+		case 600: Cvar_SetValue("r_hlwater",
 			!r_hlwater.value); break;
-		case 501: Cvar_SetValue("r_wateralpha",
+		case 601: Cvar_SetValue("r_wateralpha",
 			CLAMP(0, r_wateralpha.value - 0.1, 1)); break;
-		case 502: Cvar_SetValue("r_slimealpha",
+		case 602: Cvar_SetValue("r_slimealpha",
 			CLAMP(0, r_slimealpha.value - 0.1, 1)); break;
-		case 503: Cvar_SetValue("r_lavaalpha",
+		case 603: Cvar_SetValue("r_lavaalpha",
 			CLAMP(0, r_lavaalpha.value - 0.1, 1)); break;
-		case 504: Cvar_SetValue("r_telealpha",
+		case 604: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value - 0.1, 1)); break;
-		case 505: Cvar_SetValue("r_novis",
+		case 605: Cvar_SetValue("r_novis",
 			!r_novis.value); break;
-		case 506: Cvar_SetValue("r_hlwaterquality",
+		case 606: Cvar_SetValue("r_hlwaterquality",
 			!r_hlwaterquality.value); break;
-		case 507: Cvar_SetValue("r_hlripplescale",
+		case 607: Cvar_SetValue("r_hlripplescale",
 			CLAMP(0, r_hlripplescale.value - 0.1, 5)); break;
-		case 508: Cvar_SetValue("r_hlwavescale",
+		case 608: Cvar_SetValue("r_hlwavescale",
 			CLAMP(0, r_hlwavescale.value - 0.1, 5)); break;
-		case 600: Cvar_SetValue("r_particlescale",
+		case 700: Cvar_SetValue("r_particlescale",
 			CLAMP(0, r_particlescale.value - 0.1, 9)); break;
-		case 601: Cvar_SetValue("r_particlesize",
+		case 701: Cvar_SetValue("r_particlesize",
 			CLAMP(0, r_particlesize.value - 1, 9)); break;
-		case 602: Cvar_SetValue("r_particlestyle",
+		case 702: Cvar_SetValue("r_particlestyle",
 			!r_particlestyle.value); break;
-		case 603: Cvar_SetValue("r_particlealpha",
+		case 703: Cvar_SetValue("r_particlealpha",
 			CLAMP(0, r_particlealpha.value - 0.1, 1)); break;
-		case 701: Cvar_SetValue("lyr_sbar",
+		case 801: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value - 1, 3)); break;
-		case 702: Cvar_SetValue("lyr_menu",
+		case 802: Cvar_SetValue("lyr_menu",
 			CLAMP(0, lyr_menu.value - 1, 3)); break;
-		case 703: Cvar_SetValue("lyr_centerprint",
+		case 803: Cvar_SetValue("lyr_centerprint",
 			CLAMP(0, lyr_centerprint.value - 1, 3)); break;
-		case 704: Cvar_SetValue("lyr_console",
+		case 804: Cvar_SetValue("lyr_console",
 			CLAMP(0, lyr_console.value - 1, 3)); break;
-		case 705: Cvar_SetValue("lyr_notify",
+		case 805: Cvar_SetValue("lyr_notify",
 			CLAMP(0, lyr_notify.value - 1, 3)); break;
-		case 706: Cvar_SetValue("lyr_crosshair",
+		case 806: Cvar_SetValue("lyr_crosshair",
 			CLAMP(0, lyr_crosshair.value - 1, 3)); break;
-		case 800: Cvar_SetValue("r_mipscale",
+		case 900: Cvar_SetValue("r_mipscale",
 			CLAMP(0, r_mipscale.value - 0.1, 9.9)); break;
-		case 801: Cvar_SetValue("scr_menubgstyle",
+		case 901: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
-		case 802: Cvar_SetValue("r_rebuildmips",
+		case 902: Cvar_SetValue("r_rebuildmips",
 			CLAMP(0, r_rebuildmips.value - 1, 2)); break;
-		case 803: Cvar_SetValue("r_dithertex",
+		case 903: Cvar_SetValue("r_dithertex",
 			!r_dithertex.value); break;
-		case 804: Cvar_SetValue("r_alphastyle",
+		case 904: Cvar_SetValue("r_alphastyle",
 			!r_alphastyle.value); break;
-		case 805: Cvar_SetValue("scr_saturntext",
+		case 905: Cvar_SetValue("scr_saturntext",
 			!scr_saturntext.value); break;
-		case 806: Cvar_SetValue("r_coarseocclusion",
+		case 906: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
 		}
 		break;
@@ -2581,19 +2581,23 @@ void M_Graphics_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		if (graphics_cursor == 0) {
-			Cvar_SetValue("r_nofog", 0);
-			Cvar_SetValue("r_entalpha", 1);
-			Cvar_SetValue("r_litwater", 1);
-			Cvar_SetValue("r_rgblighting", 1);
-			Cvar_SetValue("r_enableskybox", 1);
-			Cvar_SetValue("lyr_main", 0);
-			Cvar_SetValue("lyr_sbar", 3);
-			Cvar_SetValue("lyr_menu", 2);
-			Cvar_SetValue("lyr_centerprint", 1);
-			Cvar_SetValue("lyr_console", 2);
-			Cvar_SetValue("lyr_notify", 2);
-			Cvar_SetValue("lyr_crosshair", 3);
-			Cvar_SetValue("r_mipscale", 3);
+			Cvar_Reset("r_nofog");
+			Cvar_Reset("r_entalpha");
+			Cvar_Reset("r_litwater");
+			Cvar_Reset("r_rgblighting");
+			Cvar_Reset("r_enableskybox");
+			Cvar_Reset("lyr_main");
+			Cvar_Reset("lyr_sbar");
+			Cvar_Reset("lyr_menu");
+			Cvar_Reset("lyr_centerprint");
+			Cvar_Reset("lyr_console");
+			Cvar_Reset("lyr_notify");
+			Cvar_Reset("lyr_crosshair");
+			Cvar_Reset("r_mipscale");
+			Cvar_Reset("r_lerpmove");
+			Cvar_Reset("r_lerpmodels");
+			Cvar_Reset("r_dithertex");
+			Cvar_Reset("r_particlestyle");
 		} else if (graphics_cursor == 1) {
 			Cvar_SetValue("r_nofog", 1);
 			Cvar_SetValue("r_entalpha", 0);
@@ -2607,84 +2611,106 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("lyr_console", 0);
 			Cvar_SetValue("lyr_notify", 0);
 			Cvar_SetValue("lyr_crosshair", 0);
-			Cvar_SetValue("r_mipscale", 1);
+			Cvar_Reset("r_mipscale");
+			Cvar_Reset("r_lerpmove");
+			Cvar_Reset("r_lerpmodels");
+			Cvar_Reset("r_dithertex");
+			Cvar_Reset("r_particlestyle");
+		} else if (graphics_cursor == 2) {
+			Cvar_Reset("r_nofog");
+			Cvar_Reset("r_entalpha");
+			Cvar_Reset("r_litwater");
+			Cvar_Reset("r_rgblighting");
+			Cvar_Reset("r_enableskybox");
+			Cvar_Reset("lyr_main");
+			Cvar_Reset("lyr_sbar");
+			Cvar_Reset("lyr_menu");
+			Cvar_Reset("lyr_centerprint");
+			Cvar_Reset("lyr_console");
+			Cvar_Reset("lyr_notify");
+			Cvar_Reset("lyr_crosshair");
+			Cvar_SetValue("r_mipscale", 3);
+			Cvar_SetValue("r_lerpmove", 1);
+			Cvar_SetValue("r_lerpmodels", 1);
+			Cvar_SetValue("r_dithertex", 1);
+			Cvar_SetValue("r_particlestyle", 1);
 		} else if (graphics_cursor < 100) graphics_cursor *= 100;
 		else switch (graphics_cursor) {
-		case 200: Cvar_SetValue("r_nofog",
+		case 300: Cvar_SetValue("r_nofog",
 			!r_nofog.value); break;
-		case 201: Cvar_SetValue("r_fognoise",
+		case 301: Cvar_SetValue("r_fognoise",
 			r_fognoise.value + 0.1); break;
-		case 202: Cvar_SetValue("r_fogfactor",
+		case 302: Cvar_SetValue("r_fogfactor",
 			r_fogfactor.value + 0.1); break;
-		case 203: Cvar_SetValue("r_fogscale",
+		case 303: Cvar_SetValue("r_fogscale",
 			r_fogscale.value + 0.1); break;
-		case 204: Cvar_SetValue("r_fogbrightness",
+		case 304: Cvar_SetValue("r_fogbrightness",
 			r_fogbrightness.value + 0.1); break;
-		case 205: Cvar_SetValue("r_fogstyle",
+		case 305: Cvar_SetValue("r_fogstyle",
 			CLAMP(0, r_fogstyle.value + 1, 3)); break;
-		case 206: Cvar_SetValue("r_fogdepthcorrection",
+		case 306: Cvar_SetValue("r_fogdepthcorrection",
 			!r_fogdepthcorrection.value); break;
-		case 207: Cvar_SetValue("r_lockfog",
+		case 307: Cvar_SetValue("r_lockfog",
 			!r_lockfog.value); break;
-		case 208: Cvar_SetValue("r_lockfogd",
+		case 308: Cvar_SetValue("r_lockfogd",
 			CLAMP(0, r_lockfogd.value + 0.05, 1)); break;
-		case 209: Cvar_SetValue("r_lockfogr",
+		case 309: Cvar_SetValue("r_lockfogr",
 			CLAMP(0, r_lockfogr.value + 0.05, 1)); break;
-		case 210: Cvar_SetValue("r_lockfogg",
+		case 310: Cvar_SetValue("r_lockfogg",
 			CLAMP(0, r_lockfogg.value + 0.05, 1)); break;
-		case 211: Cvar_SetValue("r_lockfogb",
+		case 311: Cvar_SetValue("r_lockfogb",
 			CLAMP(0, r_lockfogb.value + 0.05, 1)); break;
-		case 300: Cvar_SetValue("r_enableskybox",
+		case 400: Cvar_SetValue("r_enableskybox",
 			!r_enableskybox.value); break;
-		case 301: Cvar_SetValue("r_skyfog",
+		case 401: Cvar_SetValue("r_skyfog",
 			CLAMP(0, r_skyfog.value + 0.1, 1)); break;
-		case 302: Cvar_SetValue("r_skynoise",
+		case 402: Cvar_SetValue("r_skynoise",
 			CLAMP(0, r_skynoise.value + 0.1, 1)); break;
-		case 400: Cvar_SetValue("r_rgblighting",
+		case 500: Cvar_SetValue("r_rgblighting",
 			!r_rgblighting.value); break;
-		case 401: Cvar_SetValue("r_litwater",
+		case 501: Cvar_SetValue("r_litwater",
 			!r_litwater.value); break;
-		case 402: Cvar_SetValue("r_labmixpal",
+		case 502: Cvar_SetValue("r_labmixpal",
 			!r_labmixpal.value); break;
-		case 500: Cvar_SetValue("r_hlwater",
+		case 600: Cvar_SetValue("r_hlwater",
 			!r_hlwater.value); break;
-		case 501: Cvar_SetValue("r_wateralpha",
+		case 601: Cvar_SetValue("r_wateralpha",
 			CLAMP(0, r_wateralpha.value + 0.1, 1)); break;
-		case 502: Cvar_SetValue("r_slimealpha",
+		case 602: Cvar_SetValue("r_slimealpha",
 			CLAMP(0, r_slimealpha.value + 0.1, 1)); break;
-		case 503: Cvar_SetValue("r_lavaalpha",
+		case 603: Cvar_SetValue("r_lavaalpha",
 			CLAMP(0, r_lavaalpha.value + 0.1, 1)); break;
-		case 504: Cvar_SetValue("r_telealpha",
+		case 604: Cvar_SetValue("r_telealpha",
 			CLAMP(0, r_telealpha.value + 0.1, 1)); break;
-		case 505: Cvar_SetValue("r_novis",
+		case 605: Cvar_SetValue("r_novis",
 			!r_novis.value); break;
-		case 506: Cvar_SetValue("r_hlwaterquality",
+		case 606: Cvar_SetValue("r_hlwaterquality",
 			!r_hlwaterquality.value); break;
-		case 507: Cvar_SetValue("r_hlripplescale",
+		case 607: Cvar_SetValue("r_hlripplescale",
 			CLAMP(0, r_hlripplescale.value + 0.1, 5)); break;
-		case 508: Cvar_SetValue("r_hlwavescale",
+		case 608: Cvar_SetValue("r_hlwavescale",
 			CLAMP(0, r_hlwavescale.value + 0.1, 5)); break;
-		case 600: Cvar_SetValue("r_particlescale",
+		case 700: Cvar_SetValue("r_particlescale",
 			CLAMP(0, r_particlescale.value + 0.1, 9)); break;
-		case 601: Cvar_SetValue("r_particlesize",
+		case 701: Cvar_SetValue("r_particlesize",
 			CLAMP(0, r_particlesize.value + 1, 9)); break;
-		case 602: Cvar_SetValue("r_particlestyle",
+		case 702: Cvar_SetValue("r_particlestyle",
 			!r_particlestyle.value); break;
-		case 603: Cvar_SetValue("r_particlealpha",
+		case 703: Cvar_SetValue("r_particlealpha",
 			CLAMP(0, r_particlealpha.value + 0.1, 1)); break;
-		case 701: Cvar_SetValue("lyr_sbar",
+		case 801: Cvar_SetValue("lyr_sbar",
 			CLAMP(0, lyr_sbar.value + 1, 3)); break;
-		case 702: Cvar_SetValue("lyr_menu",
+		case 802: Cvar_SetValue("lyr_menu",
 			CLAMP(0, lyr_menu.value + 1, 3)); break;
-		case 703: Cvar_SetValue("lyr_centerprint",
+		case 803: Cvar_SetValue("lyr_centerprint",
 			CLAMP(0, lyr_centerprint.value + 1, 3)); break;
-		case 704: Cvar_SetValue("lyr_console",
+		case 804: Cvar_SetValue("lyr_console",
 			CLAMP(0, lyr_console.value + 1, 3)); break;
-		case 705: Cvar_SetValue("lyr_notify",
+		case 805: Cvar_SetValue("lyr_notify",
 			CLAMP(0, lyr_notify.value + 1, 3)); break;
-		case 706: Cvar_SetValue("lyr_crosshair",
+		case 806: Cvar_SetValue("lyr_crosshair",
 			CLAMP(0, lyr_crosshair.value + 1, 3)); break;
-		case 707:
+		case 807:
 			Cvar_SetValue("lyr_main", 0);
 			Cvar_SetValue("lyr_sbar", 3);
 			Cvar_SetValue("lyr_menu", 2);
@@ -2693,80 +2719,80 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("lyr_notify", 2);
 			Cvar_SetValue("lyr_crosshair", 2);
 			break;
-		case 800: Cvar_SetValue("r_mipscale",
+		case 900: Cvar_SetValue("r_mipscale",
 			CLAMP(0, r_mipscale.value + 0.1, 9.9)); break;
-		case 801: Cvar_SetValue("scr_menubgstyle",
+		case 901: Cvar_SetValue("scr_menubgstyle",
 			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
-		case 802: Cvar_SetValue("r_rebuildmips",
+		case 902: Cvar_SetValue("r_rebuildmips",
 			CLAMP(0, r_rebuildmips.value + 1, 2)); break;
-		case 803: Cvar_SetValue("r_dithertex",
+		case 903: Cvar_SetValue("r_dithertex",
 			!r_dithertex.value); break;
-		case 804: Cvar_SetValue("r_alphastyle",
+		case 904: Cvar_SetValue("r_alphastyle",
 			!r_alphastyle.value); break;
-		case 805: Cvar_SetValue("scr_saturntext",
+		case 905: Cvar_SetValue("scr_saturntext",
 			!scr_saturntext.value); break;
-		case 806: Cvar_SetValue("r_coarseocclusion",
+		case 906: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (graphics_cursor == 0) graphics_cursor = 8;
-		else if (graphics_cursor == 200) {
-			if (r_lockfog.value) graphics_cursor = 211;
-			else graphics_cursor = 207;
-		}else if(graphics_cursor == 300) graphics_cursor = 302;
-		else if (graphics_cursor == 400) graphics_cursor = 402;
-		else if (graphics_cursor == 500) {
-			if (r_hlwater.value) graphics_cursor = 508;
-			else graphics_cursor = 505;
-		}else if (graphics_cursor == 600) graphics_cursor = 603;
-		else if (graphics_cursor == 700) graphics_cursor = 707;
-		else if (graphics_cursor == 800) graphics_cursor = 806;
+		if (graphics_cursor == 0) graphics_cursor = 9;
+		else if (graphics_cursor == 300) {
+			if (r_lockfog.value) graphics_cursor = 311;
+			else graphics_cursor = 307;
+		}else if(graphics_cursor == 400) graphics_cursor = 402;
+		else if (graphics_cursor == 500) graphics_cursor = 502;
+		else if (graphics_cursor == 600) {
+			if (r_hlwater.value) graphics_cursor = 608;
+			else graphics_cursor = 605;
+		}else if (graphics_cursor == 700) graphics_cursor = 703;
+		else if (graphics_cursor == 800) graphics_cursor = 807;
+		else if (graphics_cursor == 900) graphics_cursor = 906;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		if (graphics_cursor < 100) {
-			if (graphics_cursor == 8) graphics_cursor = 0;
+			if (graphics_cursor == 9) graphics_cursor = 0;
 			else graphics_cursor++;
-		} else if (graphics_cursor < 300) {
+		} else if (graphics_cursor < 400) {
 			if (r_lockfog.value) {
-				if (graphics_cursor==211) graphics_cursor = 200;
+				if (graphics_cursor==311) graphics_cursor = 300;
 				else graphics_cursor++;
 			} else {
-				if (graphics_cursor==207) graphics_cursor = 200;
+				if (graphics_cursor==307) graphics_cursor = 300;
 				else graphics_cursor++;
 			}
-		} else if (graphics_cursor < 400) {
-			if (graphics_cursor == 302) graphics_cursor = 300;
-			else graphics_cursor++;
 		} else if (graphics_cursor < 500) {
 			if (graphics_cursor == 402) graphics_cursor = 400;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 600) {
+			if (graphics_cursor == 502) graphics_cursor = 500;
+			else graphics_cursor++;
+		} else if (graphics_cursor < 700) {
 			if (r_hlwater.value) {
-				if (graphics_cursor==508) graphics_cursor = 500;
+				if (graphics_cursor==608) graphics_cursor = 600;
 				else graphics_cursor++;
 			} else {
-				if (graphics_cursor==505) graphics_cursor = 500;
+				if (graphics_cursor==605) graphics_cursor = 600;
 				else graphics_cursor++;
 			}
-		} else if (graphics_cursor < 700) {
-			if (graphics_cursor == 603) graphics_cursor = 600;
-			else graphics_cursor++;
 		} else if (graphics_cursor < 800) {
-			if (graphics_cursor == 707) graphics_cursor = 700;
+			if (graphics_cursor == 703) graphics_cursor = 700;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 900) {
-			if (graphics_cursor == 806) graphics_cursor = 800;
+			if (graphics_cursor == 807) graphics_cursor = 800;
+			else graphics_cursor++;
+		} else if (graphics_cursor < 1000) {
+			if (graphics_cursor == 906) graphics_cursor = 900;
 			else graphics_cursor++;
 		}
 		break;
 	default: break;
 	}
-	if (graphics_cursor >= 207 && graphics_cursor <= 211 && r_lockfog.value)
+	if (graphics_cursor >= 307 && graphics_cursor <= 311 && r_lockfog.value)
 		Fog_Update(0, 0, 0, 0);
 }
 
@@ -2787,32 +2813,44 @@ void M_Graphics_Draw()
 	}
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	M_Print(xoffset, 32, "  Preset: Modern");
+	M_Print(xoffset, 32, "  Preset: Default");
 	M_Print(xoffset, 40, "  Preset: Classic");
-	M_Print(xoffset, 48, "  Fog...");
-	M_Print(xoffset, 56, "  Sky...");
-	M_Print(xoffset, 64, "  Lighting...");
-	M_Print(xoffset, 72, "  Liquids...");
-	M_Print(xoffset, 80, "  Particles...");
-	M_Print(xoffset, 88, "  Layers...");
-	M_Print(xoffset, 96, "  Misc...");
+	M_Print(xoffset, 48, "  Preset: Fancy");
+	M_Print(xoffset, 56, "  Fog...");
+	M_Print(xoffset, 64, "  Sky...");
+	M_Print(xoffset, 72, "  Lighting...");
+	M_Print(xoffset, 80, "  Liquids...");
+	M_Print(xoffset, 88, "  Particles...");
+	M_Print(xoffset, 96, "  Layers...");
+	M_Print(xoffset, 104, "  Misc...");
 	xoffset = 160;
 	s32 x2 = 104;
 	if (graphics_cursor == 0) {
-		M_Print(xoffset, 32, "Enables fog,");
-		M_Print(xoffset, 40, "custom skyboxes,");
-		M_Print(xoffset, 48, "colored lighting,");
-		M_Print(xoffset, 56, "translusency,");
-		M_Print(xoffset, 64, "layered rendering,");
-		M_Print(xoffset, 72, "far mipmaps");
+		M_Print(xoffset, 32, "Enables features");
+		M_Print(xoffset, 40, "used by modern mods:");
+		M_Print(xoffset, 48, " -fog");
+		M_Print(xoffset, 56, " -custom skyboxes");
+		M_Print(xoffset, 64, " -colored lighting");
+		M_Print(xoffset, 72, " -lit water");
+		M_Print(xoffset, 80, " -translusency");
+		M_Print(xoffset, 88, " -layered rendering");
 	} else if (graphics_cursor == 1) {
-		M_Print(xoffset, 32, "Disables fog,");
-		M_Print(xoffset, 40, "custom skyboxes,");
-		M_Print(xoffset, 48, "colored lighting,");
-		M_Print(xoffset, 56, "translusency,");
-		M_Print(xoffset, 64, "layered rendering,");
-		M_Print(xoffset, 72, "far mipmaps");
-	} else if (graphics_cursor == 2 || graphics_cursor/100 == 2) {
+		M_Print(xoffset, 32, "Disables features");
+		M_Print(xoffset, 40, "used by modern mods:");
+		M_Print(xoffset, 48, " -fog");
+		M_Print(xoffset, 56, " -custom skyboxes");
+		M_Print(xoffset, 64, " -colored lighting");
+		M_Print(xoffset, 72, " -lit water");
+		M_Print(xoffset, 80, " -translusency");
+		M_Print(xoffset, 88, " -layered rendering");
+	} else if (graphics_cursor == 2) {
+		M_Print(xoffset, 32, "Default preset with");
+		M_Print(xoffset, 40, "the following added:");
+		M_Print(xoffset, 48, " -dithered textures");
+		M_Print(xoffset, 56, " -animation lerping");
+		M_Print(xoffset, 64, " -rounded particles");
+		M_Print(xoffset, 72, " -far mipmaps");
+	} else if (graphics_cursor == 3 || graphics_cursor/100 == 3) {
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "On" : "Off");
 		M_Print(xoffset, 40, "Noise:");
@@ -2854,7 +2892,7 @@ void M_Graphics_Draw()
 			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogb.value);
 			M_Print(xoffset + x2, 120, temp);
 		}
-	} else if (graphics_cursor == 3 || graphics_cursor/100 == 3) {
+	} else if (graphics_cursor == 4 || graphics_cursor/100 == 4) {
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "Off":"On");
 		M_Print(xoffset, 40, "Sky Fog:");
@@ -2863,43 +2901,43 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Sky Noise:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset + x2, 48, temp);
-		if (graphics_cursor == 302) {
+		if (graphics_cursor == 402) {
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Applies to newly loaded skyboxes");
 		}
-	} else if (graphics_cursor == 4 || graphics_cursor/100 == 4) {
+	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
 		M_Print(xoffset, 32, "Color:");
 		M_Print(xoffset+x2, 32, r_rgblighting.value==1 ? "On" : "Off");
 		M_Print(xoffset, 40, "Lit Water:");
 		M_Print(xoffset + x2, 40, r_litwater.value == 1 ? "On" : "Off");
 		M_Print(xoffset, 48, "Color Space:");
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
-	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
-		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==501&&
+	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==601&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWWATER)
 			&& r_wateralpha.value && r_wateralpha.value < 1) {
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
-		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==502&&
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==602&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWSLIME)
 			&& r_slimealpha.value && r_slimealpha.value < 1) {
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
-		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==503&&
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==603&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWLAVA)
 			&& r_lavaalpha.value && r_lavaalpha.value < 1) {
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
-		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==504&&
+		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==604&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWTELE)
 			&& r_telealpha.value && r_telealpha.value < 1) {
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
-		if(graphics_cursor==505) {
+		if(graphics_cursor==605) {
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(28, 158, " Enables translucent liquids on");
 			M_Print(28, 166, "        unsupported maps");
@@ -2930,7 +2968,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 96, "Wave Scale:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlwavescale.value);
 		M_Print(xoffset + x2, 96, temp);
-	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
+	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
 		x2 -= 32;
 		M_Print(xoffset, 32, "Scale:");
 		snprintf(temp, sizeof(temp), "x%0.1f", r_particlescale.value);
@@ -2944,7 +2982,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 56, "Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f", r_particlealpha.value);
 		M_Print(xoffset + x2, 56, temp);
-	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
+	} else if (graphics_cursor == 8 || graphics_cursor/100 == 8) {
 		x2 += 16;
 		M_Print(xoffset, 32, "World:");
 		snprintf(temp, sizeof(temp), "%d", (s32)lyr_main.value);
@@ -2973,7 +3011,7 @@ void M_Graphics_Draw()
 		M_Print(16, 166, "1: default palette, not scaled");
 		M_Print(16, 174, "2: custom ui palette, scaled");
 		M_Print(16, 182, "3: custom ui palette, scaled");
-	} else if (graphics_cursor == 8 || graphics_cursor/100 == 8) {
+	} else if (graphics_cursor == 9 || graphics_cursor/100 == 9) {
 		x2 += 24;
 		M_Print(xoffset, 32, "Mipmap Distance:");
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
@@ -4432,39 +4470,39 @@ void M_Gamepad_Mouse(s32 x, s32 y)
 void M_Graphics_Mouse(s32 x, s32 y)
 {
 	if(graphics_cursor < 100){
-		if(x >= 24 && x < 136 && y >= 32 && y < 32 + 9*8)
+		if(x >= 24 && x < 136 && y >= 32 && y < 32 + 10*8)
 			M_SetMouseCursor(&graphics_cursor, (y - 32) / 8);
-	}else if(graphics_cursor < 300){
+	}else if(graphics_cursor < 400){
 		if(!r_lockfog.value){
 			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
-				M_SetMouseCursor(&graphics_cursor,200+(y-32)/8);
+				M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
 		}else{
 			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 12*8)
-				M_SetMouseCursor(&graphics_cursor,200+(y-32)/8);
+				M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
 		}
-	}else if(graphics_cursor < 400){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
-			M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
 	}else if(graphics_cursor < 500){
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
 			M_SetMouseCursor(&graphics_cursor,400+(y-32)/8);
 	}else if(graphics_cursor < 600){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+			M_SetMouseCursor(&graphics_cursor,500+(y-32)/8);
+	}else if(graphics_cursor < 700){
 		if(!r_hlwater.value){
 			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 6*8)
-				M_SetMouseCursor(&graphics_cursor,500+(y-32)/8);
+				M_SetMouseCursor(&graphics_cursor,600+(y-32)/8);
 		}else{
 			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 9*8)
-				M_SetMouseCursor(&graphics_cursor,500+(y-32)/8);
+				M_SetMouseCursor(&graphics_cursor,600+(y-32)/8);
 		}
-	}else if(graphics_cursor < 700){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
-			M_SetMouseCursor(&graphics_cursor,600+(y-32)/8);
 	}else if(graphics_cursor < 800){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
 			M_SetMouseCursor(&graphics_cursor,700+(y-32)/8);
 	}else if(graphics_cursor < 900){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 7*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
 			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
+	}else if(graphics_cursor < 1000){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 7*8)
+			M_SetMouseCursor(&graphics_cursor,900+(y-32)/8);
 	}
 }
 
