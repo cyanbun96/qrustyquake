@@ -2572,6 +2572,12 @@ void M_Graphics_Key(s32 k)
 			!scr_saturntext.value); break;
 		case 906: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
+		case 907: Cvar_SetValue("r_lerpmodels",
+			!r_lerpmodels.value); break;
+		case 908: Cvar_SetValue("r_lerpmove",
+			!r_lerpmove.value); break;
+		case 909: Cvar_SetValue("v_gunkick",
+			!(v_gunkick.value-1)+1); break;
 		}
 		break;
 	case K_MOUSE1:
@@ -2736,6 +2742,12 @@ void M_Graphics_Key(s32 k)
 			!scr_saturntext.value); break;
 		case 906: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
+		case 907: Cvar_SetValue("r_lerpmodels",
+			!r_lerpmodels.value); break;
+		case 908: Cvar_SetValue("r_lerpmove",
+			!r_lerpmove.value); break;
+		case 909: Cvar_SetValue("v_gunkick",
+			!(v_gunkick.value-1)+1); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
@@ -2752,7 +2764,7 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor = 605;
 		}else if (graphics_cursor == 700) graphics_cursor = 703;
 		else if (graphics_cursor == 800) graphics_cursor = 807;
-		else if (graphics_cursor == 900) graphics_cursor = 906;
+		else if (graphics_cursor == 900) graphics_cursor = 909;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
@@ -2789,7 +2801,7 @@ void M_Graphics_Key(s32 k)
 			if (graphics_cursor == 807) graphics_cursor = 800;
 			else graphics_cursor++;
 		} else if (graphics_cursor < 1000) {
-			if (graphics_cursor == 906) graphics_cursor = 900;
+			if (graphics_cursor == 909) graphics_cursor = 900;
 			else graphics_cursor++;
 		}
 		break;
@@ -3050,6 +3062,12 @@ void M_Graphics_Draw()
 		case 1: M_Print(xoffset + x2, 80, "  On"); break;
 		case 2: M_Print(xoffset + x2, 80, "Auto"); break;
 		}
+		M_Print(xoffset, 88, "Model lerp:");
+		M_Print(xoffset+x2, 88, r_lerpmodels.value?"  On":" Off");
+		M_Print(xoffset, 96, "Move lerp:");
+		M_Print(xoffset+x2, 96, r_lerpmove.value?"  On":" Off");
+		M_Print(xoffset, 104, "Recoil lerp:");
+		M_Print(xoffset+x2, 104, v_gunkick.value==2?"  On":" Off");
 		if (graphics_cursor == 806) {
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "   An extra step that boosts FPS");
@@ -4504,7 +4522,7 @@ void M_Graphics_Mouse(s32 x, s32 y)
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
 			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
 	}else if(graphics_cursor < 1000){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 7*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 10*8)
 			M_SetMouseCursor(&graphics_cursor,900+(y-32)/8);
 	}
 }
