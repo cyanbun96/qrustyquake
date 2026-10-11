@@ -9,14 +9,13 @@ static c8 cvar_null_string[] = "";
 
 void Cvar_List_f()
 {
-	cvar_t *cvar;
 	s32 len = 0, count = 0;
 	const c8 *partial = NULL;
 	if(Cmd_Argc() > 1){
 		partial = Cmd_Argv(1);
 		len = strlen(partial);
 	}
-	for(cvar = cvar_vars ; cvar ; cvar = cvar->next){
+	for(cvar_t *cvar = cvar_vars ; cvar ; cvar = cvar->next){
 		if(partial && strncmp(partial, cvar->name, len)) continue;
 		Con_SafePrintf("%s%s %s \"%s\"\n",
 				(cvar->flags & CVAR_ARCHIVE) ? "*" : " ",
@@ -132,28 +131,6 @@ cvar_t *Cvar_FindVar(const c8 *var_name)
 	return NULL;
 }
 
-cvar_t *Cvar_FindVarAfter(const c8 *prev_name, u32 with_flags)
-{
-	cvar_t *var = cvar_vars;
-	if(*prev_name){
-		var = Cvar_FindVar(prev_name);
-		if(!var) return NULL;
-		var = var->next;
-	}
-	// search for the next cvar matching the needed flags
-	while(var){
-		if((var->flags & with_flags) || !with_flags) break;
-		var = var->next;
-	}
-	return var;
-}
-
-void Cvar_UnlockVar(const c8 *var_name)
-{
-	cvar_t *var = Cvar_FindVar(var_name);
-	if(var) var->flags &= ~CVAR_LOCKED;
-}
-
 f32 Cvar_VariableValue(const c8 *var_name)
 {
 	cvar_t *var;
@@ -206,19 +183,6 @@ void Cvar_SetQuick(cvar_t *var, const c8 *value)
 	}
 	if(var->callback) var->callback(var);
 	if(var->flags & CVAR_AUTOCVAR) PR_AutoCvarChanged(var);
-}
-
-void Cvar_SetValueQuick(cvar_t *var, const f32 value)
-{
-	c8 val[32], *ptr = val;
-	if(value == (f32)((s32)value))
-		snprintf(val, sizeof(val), "%i", (s32)value);
-	else {
-		snprintf(val, sizeof(val), "%f", value);
-		while(*ptr) ptr++; // kill trailing zeroes
-		while(--ptr > val && *ptr == '0' && ptr[-1] != '.') *ptr = '\0';
-	}
-	Cvar_SetQuick(var, val);
 }
 
 void Cvar_Set(const c8 *var_name, const c8 *value)
