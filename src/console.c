@@ -33,9 +33,8 @@ void Con_MessageMode2_f()
 
 void Con_CheckResize()
 { // If the line width has changed, reformat the buffer.
-	s32 i, j, width, oldwidth, oldtotallines, numlines, numchars;
 	c8 tbuf[CON_TEXTSIZE];
-	width = (vid.width >> 3) - 2;
+	s32 width = vid.width / 8 - 2;
 	if(uiscale) width /= uiscale;
 	if(width == con_linewidth) return;
 	if(width < 1){	// video hasn't been initialized yet
@@ -44,18 +43,18 @@ void Con_CheckResize()
 		con_totallines = CON_TEXTSIZE / con_linewidth;
 		memset(con_text, ' ', CON_TEXTSIZE);
 	} else {
-		oldwidth = con_linewidth;
+		s32 oldwidth = con_linewidth;
 		con_linewidth = width;
-		oldtotallines = con_totallines;
+		s32 oldtotallines = con_totallines;
 		con_totallines = CON_TEXTSIZE / con_linewidth;
-		numlines = oldtotallines;
+		s32 numlines = oldtotallines;
 		if(con_totallines < numlines) numlines = con_totallines;
-		numchars = oldwidth;
+		s32 numchars = oldwidth;
 		if(con_linewidth < numchars) numchars = con_linewidth;
 		memcpy(tbuf, con_text, CON_TEXTSIZE);
 		memset(con_text, ' ', CON_TEXTSIZE);
-		for(i = 0; i < numlines; i++){
-		for(j = 0; j < numchars; j++){
+		for(s32 i = 0; i < numlines; i++){
+		for(s32 j = 0; j < numchars; j++){
 			con_text[(con_totallines - 1 - i) * con_linewidth + j] =
 				tbuf[((con_current - i + oldtotallines) %
 						oldtotallines) * oldwidth + j];
@@ -72,8 +71,8 @@ void Con_Init()
 	c8 *t2 = "qconsole.log";
 	con_debuglog = COM_CheckParm("-condebug");
 	if(con_debuglog){
-            snprintf(temp, sizeof(temp), "%s/%s", com_gamedir, t2);
-            SDL_RemovePath(temp);
+		snprintf(temp, sizeof(temp), "%s/%s", com_gamedir, t2);
+		SDL_RemovePath(temp);
 	}
 	con_text = Hunk_AllocName(CON_TEXTSIZE, "context");
 	memset(con_text, ' ', CON_TEXTSIZE);
@@ -95,7 +94,7 @@ void Con_Init()
 const c8 *Con_Quakebar(s32 len)
 {
 	static c8 bar[42];
-	len = q_min(len, (int)sizeof(bar) - 2);
+	len = q_min(len, (s32)sizeof(bar) - 2);
 	len = q_min(len, con_linewidth);
 	bar[0] = '\35';
 	for(s32 i = 1; i < len - 1; i++)
@@ -128,10 +127,10 @@ void Con_LogCenterPrint(const c8 *str)
 
 void Con_CenterPrintf(s32 linewidth, const c8 *fmt, ...)
 {
-	va_list argptr;
 	c8 msg[MAXPRINTMSG]; //the original message
 	c8 line[MAXPRINTMSG]; //one line from the message
 	c8 spaces[21]; //buffer for spaces
+	va_list argptr;
 	va_start(argptr, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
@@ -236,10 +235,10 @@ void Con_Printf(const c8 *fmt, ...)
 
 void Con_DPrintf(c8 *fmt, ...)
 { // A Con_Printf that only shows up if the "developer" cvar is set
-	va_list argptr;
 	c8 msg[MAXPRINTMSG];
 	if(!developer.value)
 		return; // don't confuse non-developers with techie stuff...
+	va_list argptr;
 	va_start(argptr, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
@@ -294,7 +293,6 @@ s32 spstrlen(c8 *s) // two spaces terminate the string
 
 void Con_DrawNotify()
 { // Draws the last few lines of output transparently over the game top
-	extern c8 chat_buffer[];
 	s32 x = 0, v = 0;
 	drawlayer = lyr_notify.value;
 	for(s32 i = con_current - NUM_CON_TIMES + 1; i <= con_current; i++){
@@ -338,7 +336,6 @@ void Con_DrawNotify()
 
 void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 { // Typing input line at the bottom should only be drawn if typing is allowed
-	c8 *text;
 	if(lines <= 0 || key_dest == key_menu) return;
 	drawlayer = lyr_console.value;
 	Draw_ConsoleBackground(lines); // draw the background
@@ -348,7 +345,7 @@ void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 	for(s32 i = con_current-rows+1; i <= con_current; i++, y += 8*uiscale){
 		s32 j = i - con_backscroll;
 		j = j < 0 ? 0 : j;
-		text = con_text + (j % con_totallines) * con_linewidth;
+		c8 *text = con_text + (j % con_totallines) * con_linewidth;
 		for(s32 x = 0; x < con_linewidth; x++)
 			Draw_CharacterScaled(((x + 1) << 3) * uiscale, y,
 					     text[x], uiscale, 0);
