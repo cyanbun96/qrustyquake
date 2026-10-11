@@ -14,22 +14,22 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 	f32 zi8stepu = d_zistepu * 8;
 	// we count on FP exceptions being turned off to avoid range problems
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do {
-		if (pspan->v < 0 || pspan->v >= (s32)vid.height)
+	do{
+		if(pspan->v < 0 || pspan->v >= (s32)vid.height)
 			goto NextSpan;
-		if (pspan->u < 0 || pspan->u >= (s32)vid.width)
+		if(pspan->u < 0 || pspan->u >= (s32)vid.width)
 			goto NextSpan;
-		if (pspan->count <= 0)
+		if(pspan->count <= 0)
 			goto NextSpan;
-		if (pspan->u + pspan->count > (s32)vid.width)
+		if(pspan->u + pspan->count > (s32)vid.width)
 			pspan->count = vid.width - pspan->u;
 		s32 count = pspan->count;
 		u8 *pdest = d_viewbuffer + (screenwidth*pspan->v) + pspan->u;
 		s16 *pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-		if (pdest < d_viewbuffer
+		if(pdest < d_viewbuffer
 			|| pdest+count > d_viewbuffer+vid.width*vid.height)
 			goto NextSpan;
-		if (pz<d_pzbuffer || pz+count>d_pzbuffer+vid.width*vid.height*2)
+		if(pz<d_pzbuffer || pz+count>d_pzbuffer+vid.width*vid.height*2)
 			goto NextSpan;
 		// calculate the initial s/z, t/z, 1/z, s, and t and clamp
 		f32 du = (f32)pspan->u;
@@ -38,76 +38,77 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 		f32 tdivz = d_tdivzorigin+dv*d_tdivzstepv+du*d_tdivzstepu;
 		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-					       // we count on FP exceptions being off to avoid range problems
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
 		s32 s = (s32)(sdivz * z) + sadjust;
-		if (s > bbextents)
+		if(s > bbextents)
 			s = bbextents;
-		else if (s < 0)
+		else if(s < 0)
 			s = 0;
 		s32 t = (s32)(tdivz * z) + tadjust;
-		if (t > bbextentt)
+		if(t > bbextentt)
 			t = bbextentt;
-		else if (t < 0)
+		else if(t < 0)
 			t = 0;
-		do {
+		do{
 			// calculate s and t at the far end of the span
 			s32 spancount = count >= 8 ? 8 : count;
 			count -= spancount;
 			s32 sstep = 0, tstep = 0, snext = 0, tnext = 0;
-			if (count) {
-				// calculate s/z, t/z, zi->fixed s and t at far end of span,
-				// calculate s and t steps across span by shifting
+			if(count){
+			// calculate s/z, t/z, zi->fixed s and t at far end of
+			// span, calculate s and t steps across span by shifting
 				sdivz += sdivz8stepu;
 				tdivz += tdivz8stepu;
 				zi += zi8stepu;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-
+				z = (f32)0x10000 / zi; // prescale to 16.16
+						       // fixed-point
 				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
+				if(snext > bbextents)
 					snext = bbextents;
-				else if (snext < 8)
+				else if(snext < 8)
 					snext = 8; // prevent round-off error on
-						   // <0 steps from causing overstepping &
-						   // running off the edge of the texture
+				   // <0 steps from causing overstepping and
+				   // running off the edge of the texture
 				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
+				if(tnext > bbextentt)
 					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8; // guard against round-off error on <0 steps
+				else if(tnext < 8)
+					tnext = 8;
+				// guard against round-off error on <0 steps
 				sstep = (snext - s) >> 3;
 				tstep = (tnext - t) >> 3;
-			} else {
-				// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
-				// can't step off polygon), clamp, calculate s and t steps across
-				// span by division, biasing steps low so we don't run off the
-				// texture
+			}else{
+	// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so can't
+	// step off polygon), clamp, calculate s and t steps across span by
+	// division, biasing steps low so we don't run off the texture
 				f32 spancountminus1 = (f32)(spancount - 1);
 				sdivz += d_sdivzstepu * spancountminus1;
 				tdivz += d_tdivzstepu * spancountminus1;
 				zi += d_zistepu * spancountminus1;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
+				z = (f32)0x10000 / zi; // prescale to
+						       // 16.16 fixed-point
 				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
+				if(snext > bbextents)
 					snext = bbextents;
-				else if (snext < 8)
-					snext = 8; // prevent round-off error on <0 steps from
-						   // from causing overstepping & running off the
-						   // edge of the texture
+				else if(snext < 8)
+					snext = 8; // prevent round-off error on
+				// <0 steps from from causing overstepping and
+				// running off the edge of the texture
 				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
+				if(tnext > bbextentt)
 					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8; // guard against round-off error on <0 steps
-				if (spancount > 1) {
+				else if(tnext < 8)
+					tnext = 8;
+				// guard against round-off error on <0 steps
+				if(spancount > 1){
 					sstep = (snext - s) / (spancount - 1);
 					tstep = (tnext - t) / (spancount - 1);
 				}
 			}
-			do {
+			do{
 				u8 btemp = *(pbase + (s >> 16) +
 						(t >> 16) * cachewidth);
-				if (btemp != 255 && *pz <= (izi >> 16)) {
+				if(btemp != 255 && *pz <= (izi >> 16)){
 					*pz = izi >> 16;
 					*pdest = btemp;
 				}
@@ -116,30 +117,30 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 				pz++;
 				s += sstep;
 				t += tstep;
-			} while (--spancount > 0);
+			}while(--spancount > 0);
 			s = snext;
 			t = tnext;
-		} while (count > 0);
+		}while(count > 0);
 NextSpan:
 		pspan++;
-	} while (pspan->count != DS_SPAN_LIST_END);
+	}while(pspan->count != DS_SPAN_LIST_END);
 }
 
 void D_SpriteScanLeftEdge()
 { 
 	sspan_t *pspan = sprite_spans;
 	s32 i = minindex;
-	if (i == 0)
+	if(!i)
 		i = r_spritedesc.nump;
 	s32 lmaxindex = maxindex;
-	if (lmaxindex == 0)
+	if(lmaxindex == 0)
 		lmaxindex = r_spritedesc.nump;
 	f32 vtop = ceil(r_spritedesc.pverts[i].v);
-	do {
+	do{
 		emitpoint_t *pvert = &r_spritedesc.pverts[i];
 		emitpoint_t *pnext = pvert - 1;
 		f32 vbottom = ceil(pnext->v);
-		if (vtop < vbottom) {
+		if(vtop < vbottom){
 			f32 du = pnext->u - pvert->u;
 			f32 dv = pnext->v - pvert->v;
 			f32 slope = du / dv;
@@ -149,7 +150,7 @@ void D_SpriteScanLeftEdge()
 				(vtop - pvert->v))) * 0x10000) + (0x10000 - 1);
 			s32 itop = (s32)vtop;
 			s32 ibottom = (s32)vbottom;
-			for (s32 v = itop; v < ibottom; v++) {
+			for(s32 v = itop; v < ibottom; v++){
 				pspan->u = u >> 16;
 				pspan->v = v;
 				u += u_step;
@@ -158,9 +159,9 @@ void D_SpriteScanLeftEdge()
 		}
 		vtop = vbottom;
 		i--;
-		if (i == 0)
+		if(i == 0)
 			i = r_spritedesc.nump;
-	} while (i != lmaxindex);
+	}while(i != lmaxindex);
 }
 
 void D_SpriteScanRightEdge()
@@ -168,30 +169,30 @@ void D_SpriteScanRightEdge()
 	sspan_t *pspan = sprite_spans;
 	s32 i = minindex;
 	f32 vvert = r_spritedesc.pverts[i].v;
-	if (vvert < r_refdef.fvrecty_adj)
+	if(vvert < r_refdef.fvrecty_adj)
 		vvert = r_refdef.fvrecty_adj;
-	if (vvert > r_refdef.fvrectbottom_adj)
+	if(vvert > r_refdef.fvrectbottom_adj)
 		vvert = r_refdef.fvrectbottom_adj;
 	f32 vtop = ceil(vvert);
-	do {
+	do{
 		emitpoint_t *pvert = &r_spritedesc.pverts[i];
 		emitpoint_t *pnext = pvert + 1;
 		f32 vnext = pnext->v;
-		if (vnext < r_refdef.fvrecty_adj)
+		if(vnext < r_refdef.fvrecty_adj)
 			vnext = r_refdef.fvrecty_adj;
-		if (vnext > r_refdef.fvrectbottom_adj)
+		if(vnext > r_refdef.fvrectbottom_adj)
 			vnext = r_refdef.fvrectbottom_adj;
 		f32 vbottom = ceil(vnext);
-		if (vtop < vbottom) {
+		if(vtop < vbottom){
 			f32 uvert = pvert->u;
-			if (uvert < r_refdef.fvrectx_adj)
+			if(uvert < r_refdef.fvrectx_adj)
 				uvert = r_refdef.fvrectx_adj;
-			if (uvert > r_refdef.fvrectright_adj)
+			if(uvert > r_refdef.fvrectright_adj)
 				uvert = r_refdef.fvrectright_adj;
 			f32 unext = pnext->u;
-			if (unext < r_refdef.fvrectx_adj)
+			if(unext < r_refdef.fvrectx_adj)
 				unext = r_refdef.fvrectx_adj;
-			if (unext > r_refdef.fvrectright_adj)
+			if(unext > r_refdef.fvrectright_adj)
 				unext = r_refdef.fvrectright_adj;
 			f32 du = unext - uvert;
 			f32 dv = vnext - vvert;
@@ -202,7 +203,7 @@ void D_SpriteScanRightEdge()
 					* 0x10000)+ (0x10000 - 1);
 			s32 itop = (s32)vtop;
 			s32 ibottom = (s32)vbottom;
-			for (s32 v = itop; v < ibottom; v++) {
+			for(s32 v = itop; v < ibottom; v++){
 				pspan->count = (u >> 16) - pspan->u;
 				u += u_step;
 				pspan++;
@@ -211,9 +212,9 @@ void D_SpriteScanRightEdge()
 		vtop = vbottom;
 		vvert = vnext;
 		i++;
-		if (i == r_spritedesc.nump)
+		if(i == r_spritedesc.nump)
 			i = 0;
-	} while (i != maxindex);
+	}while(i != maxindex);
 	pspan->count = DS_SPAN_LIST_END; // mark the end of the span list 
 }
 
@@ -250,12 +251,12 @@ void D_DrawSprite()
 	f32 ymin = 999999.9; // find the top and bottom vertices, and make
 	f32 ymax = -999999.9; // sure there's at least one scan to draw
 	emitpoint_t *pverts = r_spritedesc.pverts;
-	for (s32 i = 0; i < r_spritedesc.nump; i++) {
-		if (pverts->v < ymin) {
+	for(s32 i = 0; i < r_spritedesc.nump; i++){
+		if(pverts->v < ymin){
 			ymin = pverts->v;
 			minindex = i;
 		}
-		if (pverts->v > ymax) {
+		if(pverts->v > ymax){
 			ymax = pverts->v;
 			maxindex = i;
 		}
@@ -263,12 +264,12 @@ void D_DrawSprite()
 	}
 	ymin = ceil(ymin);
 	ymax = ceil(ymax);
-	if (ymin >= ymax)
+	if(ymin >= ymax)
 		return; // doesn't cross any scans at all
 	cachewidth = r_spritedesc.pspriteframe->width;
 	sprite_height = r_spritedesc.pspriteframe->height;
 	cacheblock = (u8 *) & r_spritedesc.pspriteframe->pixels[0];
-	s32 nump = r_spritedesc.nump; // copy the first vertex to the last vertex,
+	s32 nump = r_spritedesc.nump;//copy the first vertex to the last vertex,
 	pverts = r_spritedesc.pverts; // so we don't have to deal with wrapping
 	pverts[nump] = pverts[0];
 	D_SpriteCalculateGradients();
