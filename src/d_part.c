@@ -23,7 +23,7 @@ void D_DrawParticle(particle_t *pparticle)
 	s32 pix;
 	if(r_particlesize.value){
 		pix = r_particlesize.value;
-	} else {
+	}else{
 		pix = izi >> d_pix_shift;
 		if(pix < d_pix_min) pix = d_pix_min;
 		else if(pix > d_pix_max) pix = d_pix_max;
@@ -68,7 +68,7 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	} else if(part_alpha == FOG_LUT_LEVELS) { // square
+	}else if(part_alpha == FOG_LUT_LEVELS){ // square
 		for(s32 count = draw_h;
 		    count; count--, pz += d_zwidth, pdest += screenwidth){
 			for(s32 i = 0; i < draw_w; i++){
@@ -79,7 +79,7 @@ void D_DrawParticle(particle_t *pparticle)
 			}
 		}
 	}
-	else if(r_particlestyle.value == 1 && r_alphastyle.value) {
+	else if(r_particlestyle.value == 1 && r_alphastyle.value){
 		s32 cy = cy0; // circle (dither alpha)
 		s32 dy = cy - v;
 		s32 err = dy*dy;
@@ -101,7 +101,7 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	} else if (r_alphastyle.value) { // square (dither alpha)
+	}else if(r_alphastyle.value){ // square (dither alpha)
 		for(s32 count = draw_h;
 		    count; count--, pz += d_zwidth, pdest += screenwidth){
 			for(s32 i = 0; i < draw_w; i++){
@@ -113,7 +113,7 @@ void D_DrawParticle(particle_t *pparticle)
 		}
 	}
 	else if(r_particlestyle.value == 1){ // circle (mix alpha)
-		if (!fog_lut_built)
+		if(!fog_lut_built)
 			R_BuildColorMixLUT(0);
 		s32 cy = cy0;
 		s32 dy = cy - v;
@@ -137,8 +137,8 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	} else { // square (mix alpha)
-		if (!fog_lut_built)
+	}else{ // square (mix alpha)
+		if(!fog_lut_built)
 			R_BuildColorMixLUT(0);
 		for(s32 count = draw_h;
 		    count; count--, pz += d_zwidth, pdest += screenwidth){

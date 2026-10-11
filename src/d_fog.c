@@ -23,7 +23,7 @@ void Fog_SetPalIndex(SDL_UNUSED cvar_t *cvar)
 				   fog_blue *255.0f*r_fogbrightness.value);
 }
 
-void Fog_Update(f32 d, f32 r, f32 g, f32 b) {
+void Fog_Update(f32 d, f32 r, f32 g, f32 b){
 	if(r_lockfog.value){
 		d = r_lockfogd.value;
 		r = r_lockfogr.value;
@@ -129,12 +129,12 @@ static void R_InitDepthCorrection()
 	}}
 }
 
-u32 lfsr_random() {lfsr^=lfsr>>7; lfsr^=lfsr<<9; lfsr^=lfsr>>13; return lfsr;}
+u32 lfsr_random(){lfsr^=lfsr>>7; lfsr^=lfsr<<9; lfsr^=lfsr>>13; return lfsr;}
 
 void R_InitFog(f32 noisebias)
 {
 	if(!randarr)randarr = malloc(RANDARR_SIZE*sizeof(f32));
-	for(s32 i = 0; i < RANDARR_SIZE; ++i) { // fog bias array
+	for(s32 i = 0; i < RANDARR_SIZE; ++i){ // fog bias array
 		randarr[i] = (lfsr_random() & 0xFFFF) / 65535.0f; // == [0,1]
 		randarr[i] *= noisebias;
 	}
@@ -144,13 +144,14 @@ void R_InitFog(f32 noisebias)
 	fog_initialized = 1;
 }
 
-void R_InitFogLUT() {
+void R_InitFogLUT()
+{
 	if(!fog_factor_lut)
 		fog_factor_lut = malloc(FOG_FACTOR_LUT_SIZE*sizeof(f32));
 	f32 fog_scale = 32.0f * r_fogscale.value;
 	f32 fog_scale_inv = 1.0f / fog_scale;
 	f32 fd_sq = (1.0f - fog_density) * (1.0f - fog_density);
-	for (s32 i = 0; i < FOG_FACTOR_LUT_SIZE; ++i) {
+	for(s32 i = 0; i < FOG_FACTOR_LUT_SIZE; ++i){
 		s32 z = (i * FOG_FACTOR_LUT_DOWNSAMPLE) - 32768;
 		s32 z_clamped = (z < fog_scale) ? fog_scale : z;
 		f32 z_norm = z_clamped * fog_scale_inv;
@@ -160,16 +161,18 @@ void R_InitFogLUT() {
 	old_fog_density = fog_density;
 }
 
-static inline f32 compute_fog_lut(s32 z) {
+static inline f32 compute_fog_lut(s32 z)
+{
 	z = z + 32768; // convert signed to unsigned
-	if (z < 0) z = 0;
-	if (z >= 65536) z = 65535;
+	if(z < 0) z = 0;
+	if(z >= 65536) z = 65535;
 	s32 idx = z / FOG_FACTOR_LUT_DOWNSAMPLE;
-	if (idx >= FOG_FACTOR_LUT_SIZE) idx = FOG_FACTOR_LUT_SIZE - 1;
+	if(idx >= FOG_FACTOR_LUT_SIZE) idx = FOG_FACTOR_LUT_SIZE - 1;
 	return fog_factor_lut[idx];
 }
 
-void R_DrawFog(){
+void R_DrawFog()
+{
 	if(!fog_density || r_nofog.value) return;
 	f32 noisebias = 10 * r_fognoise.value;
 	if(!fog_initialized || old_noisebias!=noisebias)R_InitFog(noisebias);
