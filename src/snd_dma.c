@@ -75,11 +75,9 @@ void S_Init()
 	Cvar_RegisterVariable(&keepmusic);
 	Cvar_RegisterVariable(&ambient_level);
 	Cvar_RegisterVariable(&ambient_fade);
-	Cvar_RegisterVariable(&snd_noextraupdate);
 	Cvar_RegisterVariable(&snd_show);
 	Cvar_RegisterVariable(&_snd_mixahead);
 	Cvar_RegisterVariable(&sndspeed);
-	Cvar_RegisterVariable(&snd_mixspeed);
 	Cvar_RegisterVariable(&snd_filterquality);
 	if(safemode || COM_CheckParm("-nosound")) return;
 	Con_Printf("\nSound Initialization\n");
@@ -90,8 +88,6 @@ void S_Init()
 	Cmd_AddCommand("soundinfo", S_SoundInfo_f);
 	i = COM_CheckParm("-sndspeed");
 	if(i && i < com_argc-1) Cvar_SetQuick(&sndspeed, com_argv[i + 1]);
-	i = COM_CheckParm("-mixspeed");
-	if(i && i < com_argc-1) Cvar_SetQuick(&snd_mixspeed, com_argv[i + 1]);
 	if(host_parms.memsize < 0x800000) {
 		Cvar_SetQuick(&loadac8bit, "1");
 		Con_Printf("loading all sounds as 8bit\n");

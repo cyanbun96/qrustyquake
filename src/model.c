@@ -182,7 +182,6 @@ void Mod_Init()
 {
 	Cvar_RegisterVariable(&external_vis);
 	Cvar_RegisterVariable(&external_ents);
-	Cvar_RegisterVariable(&external_textures);
 	Cmd_AddCommand("mcache", Mod_Print);
 	r_notexture_mip = Hunk_AllocName(sizeof(texture_t), "r_notexture_mip");
 	strcpy(r_notexture_mip->name, "notexture");

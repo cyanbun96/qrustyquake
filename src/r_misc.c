@@ -111,26 +111,6 @@ void R_TimeRefresh_f()
 	r_refdef.viewangles[1] = startangle;
 }
 
-void R_LineGraph(s32 x, s32 y, s32 h)
-{ // Only called by R_DisplayTime
-// FIXME: should be disabled on no-buffer adapters, or should be in the driver
-	x += r_refdef.vrect.x;
-	y += r_refdef.vrect.y;
-	u8 *dest = vid.buffer + vid.width * y + x;
-	s32 s = r_graphheight.value;
-	if (h > s)
-		h = s;
-	s32 i = 0;
-	for (; i < h; i++, dest -= vid.width * 2) {
-		dest[0] = 0xff;
-		*(dest - vid.width) = 0x30;
-	}
-	for (; i < s; i++, dest -= vid.width * 2) {
-		dest[0] = 0x30;
-		*(dest - vid.width) = 0x30;
-	}
-}
-
 void R_PrintDSpeeds()
 {
 	f64 t[17] = {0};
@@ -197,10 +177,8 @@ void R_SetupFrame()
 	}
 	if (r_numedges.value) {
 		s32 edgecount = edge_p - r_edges;
-
 		if (edgecount > r_maxedgesseen)
 			r_maxedgesseen = edgecount;
-
 		Con_Printf("Used %d of %d edges; %d max\n", edgecount,
 				r_ledges_size, r_maxedgesseen);
 	}
