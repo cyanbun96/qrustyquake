@@ -8,36 +8,25 @@ s32 D_MipLevelForScale(f32 scale)
 {
 	s32 lmiplevel;
 	scale *= r_mipscale.value;
-	if (scale >= d_scalemip[0]) lmiplevel = 0;
-	else if (scale >= d_scalemip[1]) lmiplevel = 1;
-	else if (scale >= d_scalemip[2]) lmiplevel = 2;
+	if(scale >= d_scalemip[0]) lmiplevel = 0;
+	else if(scale >= d_scalemip[1]) lmiplevel = 1;
+	else if(scale >= d_scalemip[2]) lmiplevel = 2;
 	else lmiplevel = 3;
-	if (lmiplevel < d_minmip) lmiplevel = d_minmip;
+	if(lmiplevel < d_minmip) lmiplevel = d_minmip;
 	return lmiplevel;
 }
 
 void D_DrawSolidSurface(surf_t *surf, s32 color)
-{ // FIXME: clean this up
+{
 	r_drawnpolycount++;
 	s32 pix = (color << 24) | (color << 16) | (color << 8) | color;
-	for (espan_t *span = surf->spans; span; span = span->pnext) {
-		u8 *pdest = (u8 *) d_viewbuffer + screenwidth * span->v;
+	for(espan_t *span = surf->spans; span; span = span->pnext){
+		u8*pdest = d_viewbuffer + screenwidth * span->v;
 		s32 u = span->u;
 		s32 u2 = span->u + span->count - 1;
-		((u8 *) pdest)[u] = pix;
-		if (u2 - u < 8)
-			for (u++; u <= u2; u++)
-				((u8 *) pdest)[u] = pix;
-		else {
-			for (u++; u & 3; u++)
-				((u8 *) pdest)[u] = pix;
-			u2 -= 4;
-			for (; u <= u2; u += 4)
-				*(s32 *)((u8 *) pdest + u) = pix;
-			u2 += 4;
-			for (; u <= u2; u++)
-				((u8 *) pdest)[u] = pix;
-		}
+		pdest[u] = pix;
+		for(u++; u <= u2; u++)
+			pdest[u] = pix;
 	}
 }
 
@@ -60,7 +49,7 @@ void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 	vec3_t p_temp1;
 	VectorScale(transformed_modelorg, mipscale, p_temp1);
 	t = 0x10000 * mipscale;
-	if (!tiledextents) {
+	if(!tiledextents){
 		sadjust = ((s32)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5))-
 				((pface->texturemins[0] << 16) >> miplevel)
 				+ pface->texinfo->vecs[0][3] * t;
@@ -84,8 +73,8 @@ void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 void D_DrawSurfacesFlat()
 {
 	r_drawnpolycount++;
-	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
-		if (!s->spans) continue;
+	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
+		if(!s->spans) continue;
 		d_zistepu = s->d_zistepu;
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
@@ -98,8 +87,8 @@ static void D_DrawSky(surf_t *s, msurface_t *pface)
 {
 	r_drawnpolycount++;
 	s32 skyi = R_SkyIndexForTexture(pface->texinfo->texture);
-	if (!r_skymade[skyi]) R_MakeSky(pface->texinfo->texture);
-	if (fog_density>0){
+	if(!r_skymade[skyi]) R_MakeSky(pface->texinfo->texture);
+	if(fog_density>0){
 		if(r_skyfog.value>=1) D_DrawSkyScansOnlyFog(s->spans);
 		else D_DrawSkyScansFog(s->spans, pface);
 	}
@@ -110,23 +99,22 @@ static void D_DrawSky(surf_t *s, msurface_t *pface)
 static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 { // Manoel Kasimier
 	r_drawnpolycount++;
-	extern u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];
-	cacheblock = (u8 *)(r_skypixels[pface->texinfo->texture->offsets[0]]);
+	cacheblock = (u8*)(r_skypixels[pface->texinfo->texture->offsets[0]]);
 	cachewidth = pface->texinfo->texture->width;
 	cacheheight = pface->texinfo->texture->height;
 	d_zistepu = s->d_zistepu;
 	d_zistepv = s->d_zistepv;
 	d_ziorigin = s->d_ziorigin;
-	D_CalcGradients (pface, 0);
+	D_CalcGradients(pface, 0);
 	if(fog_density > 0 && !fog_lut_built) R_BuildColorMixLUT(0);
-	if (r_dithertex.value && !miplevel)
+	if(r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_SKYBOX, 0);
 	else
 		D_DrawSpans(s->spans, SPAN_SKYBOX, 0);
 	d_zistepu = 0; // set up gradient for background surf that places it
 	d_zistepv = 0; // effectively at infinity distance from the viewpoint
 	d_ziorigin = -0.9;
-	D_DrawZSpans (s->spans);
+	D_DrawZSpans(s->spans);
 }
 
 static void D_DrawBackground(surf_t *s)
@@ -141,14 +129,14 @@ static void D_DrawBackground(surf_t *s)
 static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
-	cacheblock = (u8 *) pcurrentcache->data;
+	cacheblock = (u8*) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
 	f32 opacity = 1 - (f32)s->entity->alpha / 255;
-	if (r_dithertex.value && !miplevel)
+	if(r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_TRANS, opacity);
 	else
 		D_DrawSpans(s->spans, SPAN_TRANS, opacity);
@@ -157,12 +145,13 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
 { // Manoel Kasimier
 	r_drawnpolycount++;
-	cacheblock = (u8 *) ((u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0]);
+	cacheblock = (u8*)((u8*)pface->texinfo->texture
+			+ pface->texinfo->texture->offsets[0]);
 	cachewidth = 64;
 	cacheheight = 64;
 	D_CalcGradients(pface, 1);
 	Turbulent(s->spans, opacity);
-	if (!r_alphapass) D_DrawZSpans(s->spans);
+	if(!r_alphapass) D_DrawZSpans(s->spans);
 }
 
 static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
@@ -171,33 +160,34 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 			* pface->texinfo->mipadjust);
 	lmonly = 1; // this is how we know it's lit water that we're drawing
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
-	cacheblock = (u8 *) pcurrentcache->data;
+	cacheblock = (u8*) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
 	D_DrawSpans(s->spans, SPAN_NORMAL, 0); // draw the lightmap to a separate buffer
 	miplevel = 0;
-	cacheblock = (u8 *) pface->texinfo->texture + pface->texinfo->texture->offsets[0];
+	cacheblock = (u8*)pface->texinfo->texture
+		+ pface->texinfo->texture->offsets[0];
 	cachewidth = 64;
 	cacheheight = 64;
 	D_CalcGradients(pface, 1);
 	Turbulent(s->spans, opacity);
-	if (!r_alphapass) D_DrawZSpans(s->spans);
+	if(!r_alphapass) D_DrawZSpans(s->spans);
 	lmonly = 0;
 }
 
 static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
-	cacheblock = (u8 *) pcurrentcache->data;
+	cacheblock = (u8*) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
-	if (r_dithertex.value && !miplevel)
+	if(r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_CUTOUT, 0);
 	else
 		D_DrawSpans(s->spans, SPAN_CUTOUT, 0);
@@ -207,13 +197,13 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 {
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if (pcurrentcache == NULL) { s->spans = 0; return; }
+	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
-	cacheblock = (u8 *) pcurrentcache->data;
+	cacheblock = (u8*) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
-	if (r_dithertex.value && !miplevel)
+	if(r_dithertex.value && !miplevel)
 		D_DrawSpansDithered(s->spans, SPAN_NORMAL, 0);
 	else
 		D_DrawSpans(s->spans, SPAN_NORMAL, 0);
@@ -246,10 +236,10 @@ void D_DrawSurfaces()
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
 	s32 foundcutouts = 0;
-	if (skybox_name[0] && r_skyframe[0] == r_framecount) {
-		for (surf_t *s = skybox_surf_p; s < surface_p; s++) {
-			if (!s->spans) continue;
-			if (s->flags & SURF_DRAWSKYBOX) {
+	if(skybox_name[0] && r_skyframe[0] == r_framecount){
+		for(surf_t *s = skybox_surf_p; s < surface_p; s++){
+			if(!s->spans) continue;
+			if(s->flags & SURF_DRAWSKYBOX){
 				miplevel = 0;
 				msurface_t *pface = s->data;
 				d_zistepu = s->d_zistepu;
@@ -260,17 +250,17 @@ void D_DrawSurfaces()
 			}
 		}
 	}
-	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
-		if (!s->spans) continue;
+	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
+		if(!s->spans) continue;
 		msurface_t *pface = s->data;
 		miplevel = 0;
-		if (s->flags & SURF_DRAWBACKGROUND) {
-			if (skybox_name[0]) continue;
+		if(s->flags & SURF_DRAWBACKGROUND){
+			if(skybox_name[0]) continue;
 			D_DrawBackground(s);
 			s->spans = NULL;
 			continue;
 		}
-		if (!pface || !pface->extents[0] || !pface->extents[1]) {
+		if(!pface || !pface->extents[0] || !pface->extents[1]){
 			if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
 					pface->extents[0], pface->extents[1]);
 			else Con_DPrintf("Broken surface\n");
@@ -280,47 +270,47 @@ void D_DrawSurfaces()
 		d_zistepu = s->d_zistepu;
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
-		if (s->insubmodel) D_SwitchSubModelOn(s);
-		if (s->flags & SURF_NOTEXTURE) {
+		if(s->insubmodel) D_SwitchSubModelOn(s);
+		if(s->flags & SURF_NOTEXTURE){
 			Con_DPrintf("D_DrawSurfaces: drawing SURF_NOTEXTURE\n");
 			D_DrawSolidSurface(s, 0);
 			D_DrawZSpans(s->spans);
 			s->spans = NULL;
-		} else if (s->flags & SURF_DRAWSKY) {
-			if (!skybox_name[0]) D_DrawSky(s, pface);
+		}else if(s->flags & SURF_DRAWSKY){
+			if(!skybox_name[0]) D_DrawSky(s, pface);
 			else D_DrawZSpans(s->spans);
 			s->spans = NULL;
-		} else if (s->flags & SURF_DRAWTURB) {
+		}else if(s->flags & SURF_DRAWTURB){
 			f32 opacity = 1;
-			if (s->entity && s->entity->alpha && r_entalpha.value)
+			if(s->entity && s->entity->alpha && r_entalpha.value)
 				opacity -= (f32)s->entity->alpha / 255;
-			else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
+			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
-			if (opacity != 1 && opacity) {
+			if(opacity != 1 && opacity){
 				r_foundtranswater = 1;
 				continue;
 			}
-			if (!s->entity->model->haslitwater || !r_litwater.value
+			if(!s->entity->model->haslitwater || !r_litwater.value
 				|| !pface->samples) // lit water has samples
 				D_DrawUnlitWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
 			s->spans = NULL;
-		} else if (s->flags & SURF_DRAWCUTOUT) {
+		}else if(s->flags & SURF_DRAWCUTOUT){
 			foundcutouts = 1;
-		} else {
+		}else {
 			miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
 					* pface->texinfo->mipadjust);
 			D_DrawNormalSurf(s, pface);
 			s->spans = NULL;
 		}
-		if (s->insubmodel) D_SwitchSubModelOff();
+		if(s->insubmodel) D_SwitchSubModelOff();
 	}
-	if (!foundcutouts) return;
-	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
-		if (!s->spans) continue;
+	if(!foundcutouts) return;
+	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
+		if(!s->spans) continue;
 		msurface_t *pface = s->data;
-		if (!pface || !pface->extents[0] || !pface->extents[1]) {
+		if(!pface || !pface->extents[0] || !pface->extents[1]){
 			if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
 					pface->extents[0], pface->extents[1]);
 			else Con_DPrintf("Broken surface\n");
@@ -332,9 +322,9 @@ void D_DrawSurfaces()
 		d_ziorigin = s->d_ziorigin;
 		miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
 			* pface->texinfo->mipadjust * r_cutoutmipscale.value);
-		if (s->insubmodel) D_SwitchSubModelOn(s);
+		if(s->insubmodel) D_SwitchSubModelOn(s);
 		D_DrawCutoutSurf(s, pface);
-		if (s->insubmodel) D_SwitchSubModelOff();
+		if(s->insubmodel) D_SwitchSubModelOff();
 	}
 }
 
@@ -343,31 +333,30 @@ void D_DrawSurfacesAlpha()
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
-	for (surf_t *s = &surfaces[1]; s < surface_p; s++) {
-		if (!s->spans) continue;
+	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
+		if(!s->spans) continue;
 		msurface_t *pface = s->data;
 		u64 is_ent = (u64)s->entity & 0xffff000ull;
 		if(!(s->flags&SURF_DRAWTURB) && !is_ent) continue;
-		if (pface == 0) continue;
+		if(pface == 0) continue;
 		d_zistepu = s->d_zistepu;
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
 		miplevel = 0;
-		if (s->insubmodel) D_SwitchSubModelOn(s);
-		if (s->flags & SURF_DRAWTURB) {
+		if(s->insubmodel) D_SwitchSubModelOn(s);
+		if(s->flags & SURF_DRAWTURB){
 			f32 opacity = 1;
-			if (s->entity && s->entity->alpha && r_entalpha.value)
+			if(s->entity && s->entity->alpha && r_entalpha.value)
 				opacity -= (f32)s->entity->alpha / 255;
-			else if (s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
+			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
-			if (!s->entity->model->haslitwater || !r_litwater.value
+			if(!s->entity->model->haslitwater || !r_litwater.value
 				|| !pface->samples) // lit water has samples
 				D_DrawUnlitWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
-		} else if (is_ent && s->entity->alpha && r_entalpha.value == 1) {
+		}else if(is_ent && s->entity->alpha && r_entalpha.value == 1)
 			D_DrawTransSurf(s, pface);
-		}
-		if (s->insubmodel) D_SwitchSubModelOff();
+		if(s->insubmodel) D_SwitchSubModelOff();
 	}
 }
