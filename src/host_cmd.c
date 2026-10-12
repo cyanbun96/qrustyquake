@@ -4,17 +4,6 @@
 // Copyright(C) 2010-2014 QuakeSpasm developers
 #include "quakedef.h"
 
-#ifdef SDL_PLATFORM_WINDOWS
-    #ifndef S_ISREG
-        // MinGW usually uses standard names, while MSVC uses underscored names
-        #if defined(S_IFMT) && defined(S_IFREG)
-            #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-        #elif defined(_S_IFMT) && defined(_S_IFREG)
-            #define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
-        #endif
-    #endif
-#endif
-
 static s32 maxlevelnamelen = 0;
 static s32 maxmodnamelen = 0;
 static const c8* const knownmods[][2] = {
@@ -540,7 +529,7 @@ void Host_DeleteSave_f()
 		Con_Printf("ERROR: refusing to delete an invalid save file\n");
 		return;
 	}
-	if(remove(name) != 0){
+	if(!SDL_RemovePath(name)){
 		Con_Printf("ERROR: couldn't delete %s\n", name);
 		return;
 	}
