@@ -65,11 +65,11 @@ static s32 startlevel;
 static s32 maxplayers;
 static bool m_serverInfoMessage = 0;
 static f64 m_serverInfoMessageTime;
-static s32 gameoptions_cursor_table[] = { 40, 56, 64, 72, 80, 88, 96, 112, 120, 128, 136 };
+static s32 gameoptions_cursor_table[] = {40,56,64,72,80,88,96,112,120,128,136};
 static s32 gameoptions_cursor;
 static u8 identityTable[256];
 static u8 translationTable[256];
-static s32 fpslimits[] = { 30,60,72,100,120,144,165,180,200,240,300,360,500,999999 };
+static s32 fpslimits[]={30,60,72,100,120,144,165,180,200,240,300,360,500,99999};
 static s32 moden = -1;
 static s32 display_sel_moden = 0;
 static SDL_DisplayMode **modes = 0;
@@ -184,7 +184,6 @@ episode_t rogueepisodes[] = { //PGM 01/07/97 added rogue episodes
 };
 
 c8 *quitMessage[] = {
-//	 .........1.........2....
 	"  Are you gonna quit    ",
 	"  this game just like   ",
 	"   everything else?     ",
@@ -291,7 +290,7 @@ bool searchComplete = 0;
 f64 searchCompleteTime;
 s32 slist_cursor;
 bool slist_sorted;
-bool m_entersound; // play after drawing a frame, so caching won't disrupt the sound
+bool m_entersound; // after drawing a frame so caching won't disrupt the sound
 bool m_recursiveDraw;
 s32 m_return_state;
 bool m_return_onerror;
@@ -314,7 +313,7 @@ void M_DrawCursorLine(s32 x, s32 y)
 
 void M_Print(s32 cx, s32 cy, c8 *str)
 {
-	while (*str) {
+	while(*str){
 		M_DrawCharacter(cx, cy, (*str) + 128);
 		str++;
 		cx += 8;
@@ -323,7 +322,7 @@ void M_Print(s32 cx, s32 cy, c8 *str)
 
 void M_PrintWhite(s32 cx, s32 cy, c8 *str)
 {
-	while (*str) {
+	while(*str){
 		M_DrawCharacter(cx, cy, *str);
 		str++;
 		cx += 8;
@@ -341,20 +340,20 @@ void M_DrawTransPic(s32 x, s32 y, qpic_t *pic)
 
 void M_BuildTranslationTable(s32 top, s32 bottom)
 {
-	for (s32 j = 0; j < 256; j++)
+	for(s32 j = 0; j < 256; j++)
 		identityTable[j] = j;
 	u8 *dest = translationTable;
 	u8 *source = identityTable;
 	memcpy(dest, source, 256);
-	if (top < 128) // the artists made some backwards ranges. sigh.
+	if(top < 128) // the artists made some backwards ranges. sigh.
 		memcpy(dest + TOP_RANGE, source + top, 16);
 	else
-		for (s32 j = 0; j < 16; j++)
+		for(s32 j = 0; j < 16; j++)
 			dest[TOP_RANGE + j] = source[top + 15 - j];
-	if (bottom < 128)
+	if(bottom < 128)
 		memcpy(dest + BOTTOM_RANGE, source + bottom, 16);
 	else
-		for (s32 j = 0; j < 16; j++)
+		for(s32 j = 0; j < 16; j++)
 			dest[BOTTOM_RANGE + j] = source[bottom + 15 - j];
 }
 
@@ -375,21 +374,21 @@ void M_DrawTextBox(s32 x, s32 y, s32 width, s32 lines)
 	qpic_t *p = Draw_CachePic("gfx/box_tl.lmp");
 	M_DrawTransPic(cx, cy, p);
 	p = Draw_CachePic("gfx/box_ml.lmp");
-	for (s32 n = 0; n < lines; n++) {
+	for(s32 n = 0; n < lines; n++){
 		cy += 8;
 		M_DrawTransPic(cx, cy, p);
 	}
 	p = Draw_CachePic("gfx/box_bl.lmp");
 	M_DrawTransPic(cx, cy + 8, p);
 	cx += 8; // draw middle
-	while (width > 0) {
+	while(width > 0){
 		cy = y;
 		p = Draw_CachePic("gfx/box_tm.lmp");
 		M_DrawTransPic(cx, cy, p);
 		p = Draw_CachePic("gfx/box_mm.lmp");
-		for (s32 n = 0; n < lines; n++) {
+		for(s32 n = 0; n < lines; n++){
 			cy += 8;
-			if (n == 1)
+			if(n == 1)
 				p = Draw_CachePic("gfx/box_mm2.lmp");
 			M_DrawTransPic(cx, cy, p);
 		}
@@ -402,7 +401,7 @@ void M_DrawTextBox(s32 x, s32 y, s32 width, s32 lines)
 	p = Draw_CachePic("gfx/box_tr.lmp");
 	M_DrawTransPic(cx, cy, p);
 	p = Draw_CachePic("gfx/box_mr.lmp");
-	for (s32 n = 0; n < lines; n++) {
+	for(s32 n = 0; n < lines; n++){
 		cy += 8;
 		M_DrawTransPic(cx, cy, p);
 	}
@@ -413,8 +412,8 @@ void M_DrawTextBox(s32 x, s32 y, s32 width, s32 lines)
 void M_ToggleMenu_f()
 {
 	m_entersound = 1;
-	if (key_dest == key_menu) {
-		if (m_state != m_main) {
+	if(key_dest == key_menu){
+		if(m_state != m_main){
 			M_Menu_Main_f();
 			return;
 		}
@@ -422,7 +421,7 @@ void M_ToggleMenu_f()
 		m_state = m_none;
 		return;
 	}
-	if (key_dest == key_console)
+	if(key_dest == key_console)
 		Con_ToggleConsole_f();
 	else
 		M_Menu_Main_f();
@@ -430,7 +429,7 @@ void M_ToggleMenu_f()
 
 void M_Menu_Main_f()
 {
-	if (key_dest != key_menu) {
+	if(key_dest != key_menu){
 		m_save_demonum = cls.demonum;
 		cls.demonum = -1;
 	}
@@ -452,7 +451,7 @@ void M_Main_Draw()
 
 void M_Main_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -460,18 +459,18 @@ void M_Main_Key(s32 key)
 		key_dest = key_game;
 		m_state = m_none;
 		cls.demonum = m_save_demonum;
-		if (cls.demonum != -1 && !cls.demoplayback
+		if(cls.demonum != -1 && !cls.demoplayback
 		    && cls.state != ca_connected)
 			CL_NextDemo();
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (++m_main_cursor >= MAIN_ITEMS)
+		if(++m_main_cursor >= MAIN_ITEMS)
 			m_main_cursor = 0;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (--m_main_cursor < 0)
+		if(--m_main_cursor < 0)
 			m_main_cursor = MAIN_ITEMS - 1;
 		break;
 	case K_MOUSE1:
@@ -479,7 +478,7 @@ void M_Main_Key(s32 key)
 		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
-		switch (m_main_cursor) {
+		switch(m_main_cursor){
 		case 0:
 			M_Menu_SinglePlayer_f();
 			break;
@@ -523,7 +522,7 @@ void M_SinglePlayer_Draw()
 
 void M_SinglePlayer_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -532,12 +531,12 @@ void M_SinglePlayer_Key(s32 key)
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (++m_singleplayer_cursor >= SINGLEPLAYER_ITEMS)
+		if(++m_singleplayer_cursor >= SINGLEPLAYER_ITEMS)
 			m_singleplayer_cursor = 0;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (--m_singleplayer_cursor < 0)
+		if(--m_singleplayer_cursor < 0)
 			m_singleplayer_cursor = SINGLEPLAYER_ITEMS - 1;
 		break;
 	case K_MOUSE1:
@@ -545,14 +544,14 @@ void M_SinglePlayer_Key(s32 key)
 		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
-		switch (m_singleplayer_cursor) {
+		switch(m_singleplayer_cursor){
 		case 0:
-			if (sv.active)
-				if (!SCR_ModalMessage
+			if(sv.active)
+				if(!SCR_ModalMessage
 			    ("Are you sure you want to\nstart a new game?\n",0))
 					break;
 			key_dest = key_game;
-			if (sv.active)
+			if(sv.active)
 				Cbuf_AddText("disconnect\n");
 			Cbuf_AddText("maxplayers 1\n");
 			Cbuf_AddText("map start\n");
@@ -569,19 +568,19 @@ void M_SinglePlayer_Key(s32 key)
 
 void M_ScanSaves()
 {
-	for (s32 i = 0; i < MAX_SAVEGAMES; i++) {
+	for(s32 i = 0; i < MAX_SAVEGAMES; i++){
 		strcpy(m_filenames[i], "--- UNUSED SLOT ---");
 		loadable[i] = 0;
 		c8 name[MAX_OSPATH*2];
 		sprintf(name, "%s/s%i.sav", com_gamedir, i);
 		FILE *f = fopen(name, "r");
-		if (!f) continue;
+		if(!f) continue;
 		s32 version;
 		fscanf(f, "%i\n", &version);
 		fscanf(f, "%79s\n", name);
 		strncpy(m_filenames[i], name, sizeof(m_filenames[i]) - 1);
-		for (s32 j = 0; j < SAVEGAME_COMMENT_LENGTH; j++)
-			if (m_filenames[i][j] == '_') // change _ back to space
+		for(s32 j = 0; j < SAVEGAME_COMMENT_LENGTH; j++)
+			if(m_filenames[i][j] == '_') // change _ back to space
 				m_filenames[i][j] = ' ';
 		loadable[i] = 1;
 		fclose(f);
@@ -598,7 +597,7 @@ void M_Menu_Load_f()
 
 void M_Menu_Save_f()
 {
-	if (!sv.active || cl.intermission || svs.maxclients != 1)
+	if(!sv.active || cl.intermission || svs.maxclients != 1)
 		return;
 	m_entersound = 1;
 	m_state = m_save;
@@ -611,7 +610,7 @@ void M_Load_Draw()
 	if(rescan_saves)M_ScanSaves();
 	qpic_t *p = Draw_CachePic("gfx/p_load.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	for (s32 i = 0; i < MAX_SAVEGAMES; i++)
+	for(s32 i = 0; i < MAX_SAVEGAMES; i++)
 		M_Print(16, 32 + 8 * i, m_filenames[i]);
 	M_DrawCursor(8, 32 + load_cursor * 8);
 }
@@ -621,14 +620,14 @@ void M_Save_Draw()
 	if(rescan_saves)M_ScanSaves();
 	qpic_t *p = Draw_CachePic("gfx/p_save.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	for (s32 i = 0; i < MAX_SAVEGAMES; i++)
+	for(s32 i = 0; i < MAX_SAVEGAMES; i++)
 		M_Print(16, 32 + 8 * i, m_filenames[i]);
 	M_DrawCursor(8, 32 + load_cursor * 8);
 }
 
 void M_Load_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -664,14 +663,14 @@ void M_Load_Key(s32 k)
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu1.wav");
 		load_cursor--;
-		if (load_cursor < 0)
+		if(load_cursor < 0)
 			load_cursor = MAX_SAVEGAMES - 1;
 		break;
 	case K_DOWNARROW:
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu1.wav");
 		load_cursor++;
-		if (load_cursor >= MAX_SAVEGAMES)
+		if(load_cursor >= MAX_SAVEGAMES)
 			load_cursor = 0;
 		break;
 	}
@@ -679,7 +678,7 @@ void M_Load_Key(s32 k)
 
 void M_Save_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -708,14 +707,14 @@ void M_Save_Key(s32 k)
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu1.wav");
 		load_cursor--;
-		if (load_cursor < 0)
+		if(load_cursor < 0)
 			load_cursor = MAX_SAVEGAMES - 1;
 		break;
 	case K_DOWNARROW:
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu1.wav");
 		load_cursor++;
-		if (load_cursor >= MAX_SAVEGAMES)
+		if(load_cursor >= MAX_SAVEGAMES)
 			load_cursor = 0;
 		break;
 	}
@@ -737,7 +736,7 @@ void M_MultiPlayer_Draw()
 	s32 f = (s32)(realtime * 10) % 6;
 	M_DrawTransPic(54, 32 + m_multiplayer_cursor * 20,
 		       Draw_CachePic(va("gfx/menudot%i.lmp", f + 1)));
-	if (tcpipAvailable)
+	if(tcpipAvailable)
 		return;
 	M_PrintWhite((320 / 2) - ((27 * 8) / 2), 148,
 		     "No Communications Available");
@@ -745,7 +744,7 @@ void M_MultiPlayer_Draw()
 
 void M_MultiPlayer_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -754,12 +753,12 @@ void M_MultiPlayer_Key(s32 key)
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (++m_multiplayer_cursor >= MULTIPLAYER_ITEMS)
+		if(++m_multiplayer_cursor >= MULTIPLAYER_ITEMS)
 			m_multiplayer_cursor = 0;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (--m_multiplayer_cursor < 0)
+		if(--m_multiplayer_cursor < 0)
 			m_multiplayer_cursor = MULTIPLAYER_ITEMS - 1;
 		break;
 	case K_MOUSE1:
@@ -767,13 +766,13 @@ void M_MultiPlayer_Key(s32 key)
 		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
-		switch (m_multiplayer_cursor) {
+		switch(m_multiplayer_cursor){
 		case 0:
-			if (tcpipAvailable)
+			if(tcpipAvailable)
 				M_Menu_Net_f();
 			break;
 		case 1:
-			if (tcpipAvailable)
+			if(tcpipAvailable)
 				M_Menu_Net_f();
 			break;
 		case 2:
@@ -816,11 +815,11 @@ void M_Setup_Draw()
 	M_DrawTransPicTranslate(172, 72, p);
 	M_DrawCharacter(56, setup_cursor_table[setup_cursor],
 			12 + ((s32)(realtime * 4) & 1));
-	if (setup_cursor == 0)
+	if(setup_cursor == 0)
 		M_DrawCharacter(168 + 8 * strlen(setup_hostname),
 				setup_cursor_table[setup_cursor],
 				10 + ((s32)(realtime * 4) & 1));
-	if (setup_cursor == 1)
+	if(setup_cursor == 1)
 		M_DrawCharacter(168 + 8 * strlen(setup_myname),
 				setup_cursor_table[setup_cursor],
 				10 + ((s32)(realtime * 4) & 1));
@@ -828,7 +827,7 @@ void M_Setup_Draw()
 
 void M_Setup_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -838,94 +837,94 @@ void M_Setup_Key(s32 k)
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		setup_cursor--;
-		if (setup_cursor < 0)
+		if(setup_cursor < 0)
 			setup_cursor = NUM_SETUP_CMDS - 1;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		setup_cursor++;
-		if (setup_cursor >= NUM_SETUP_CMDS)
+		if(setup_cursor >= NUM_SETUP_CMDS)
 			setup_cursor = 0;
 		break;
 	case K_MWHEELDOWN:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_LEFTARROW:
-		if (setup_cursor < 2)
+		if(setup_cursor < 2)
 			return;
 		S_LocalSound("misc/menu3.wav");
-		if (setup_cursor == 2)
+		if(setup_cursor == 2)
 			setup_top = setup_top - 1;
-		if (setup_cursor == 3)
+		if(setup_cursor == 3)
 			setup_bottom = setup_bottom - 1;
 		break;
 	case K_MWHEELUP:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_RIGHTARROW:
-		if (setup_cursor < 2)
+		if(setup_cursor < 2)
 			return;
 forward:
 		S_LocalSound("misc/menu3.wav");
-		if (setup_cursor == 2)
+		if(setup_cursor == 2)
 			setup_top = setup_top + 1;
-		if (setup_cursor == 3)
+		if(setup_cursor == 3)
 			setup_bottom = setup_bottom + 1;
 		break;
 	case K_MOUSE1:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ENTER:
-		if (setup_cursor == 0 || setup_cursor == 1)
+		if(setup_cursor == 0 || setup_cursor == 1)
 			return;
-		if (setup_cursor == 2 || setup_cursor == 3)
+		if(setup_cursor == 2 || setup_cursor == 3)
 			goto forward;
 		// setup_cursor == 4 (OK)
-		if (strcmp(cl_name.string, setup_myname) != 0)
+		if(strcmp(cl_name.string, setup_myname) != 0)
 			Cbuf_AddText(va("name \"%s\"\n", setup_myname));
-		if (strcmp(hostname.string, setup_hostname) != 0)
+		if(strcmp(hostname.string, setup_hostname) != 0)
 			Cvar_Set("hostname", setup_hostname);
-		if (setup_top!=setup_oldtop || setup_bottom!=setup_oldbottom)
+		if(setup_top!=setup_oldtop || setup_bottom!=setup_oldbottom)
 			Cbuf_AddText(va("color%i%i\n",setup_top,setup_bottom));
 		m_entersound = 1;
 		M_Menu_MultiPlayer_f();
 		break;
 	case K_BACKSPACE:
-		if (setup_cursor == 0) {
-			if (strlen(setup_hostname))
+		if(setup_cursor == 0){
+			if(strlen(setup_hostname))
 				setup_hostname[strlen(setup_hostname) - 1] = 0;
 		}
 
-		if (setup_cursor == 1) {
-			if (strlen(setup_myname))
+		if(setup_cursor == 1){
+			if(strlen(setup_myname))
 				setup_myname[strlen(setup_myname) - 1] = 0;
 		}
 		break;
 	default:
-		if (k < 32 || k > 127)
+		if(k < 32 || k > 127)
 			break;
-		if (setup_cursor == 0) {
+		if(setup_cursor == 0){
 			s32 l = strlen(setup_hostname);
-			if (l < 15) {
+			if(l < 15){
 				setup_hostname[l + 1] = 0;
 				setup_hostname[l] = k;
 			}
 		}
-		if (setup_cursor == 1) {
+		if(setup_cursor == 1){
 			s32 l = strlen(setup_myname);
-			if (l < 15) {
+			if(l < 15){
 				setup_myname[l + 1] = 0;
 				setup_myname[l] = k;
 			}
 		}
 	}
-	if (setup_top > 13)
+	if(setup_top > 13)
 		setup_top = 0;
-	if (setup_top < 0)
+	if(setup_top < 0)
 		setup_top = 13;
-	if (setup_bottom > 13)
+	if(setup_bottom > 13)
 		setup_bottom = 0;
-	if (setup_bottom < 0)
+	if(setup_bottom < 0)
 		setup_bottom = 13;
 }
 
@@ -958,7 +957,7 @@ void M_Menu_Net_f()
 	m_state = m_net;
 	m_entersound = 1;
 	m_net_items = 4;
-	if (m_net_cursor >= m_net_items)
+	if(m_net_cursor >= m_net_items)
 		m_net_cursor = 0;
 	m_net_cursor--;
 	M_Net_Key(K_DOWNARROW);
@@ -971,22 +970,22 @@ void M_Net_Draw()
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	s32 f = 32;
 	p = Draw_CachePic("gfx/dim_modm.lmp");
-	if (p)
+	if(p)
 		M_DrawTransPic(72, f, p);
 	f += 19;
 	p = Draw_CachePic("gfx/dim_drct.lmp");
-	if (p)
+	if(p)
 		M_DrawTransPic(72, f, p);
 	f += 19;
 	p = Draw_CachePic("gfx/dim_ipx.lmp");
 	M_DrawTransPic(72, f, p);
 	f += 19;
-	if (tcpipAvailable)
+	if(tcpipAvailable)
 		p = Draw_CachePic("gfx/netmen4.lmp");
 	else
 		p = Draw_CachePic("gfx/dim_tcp.lmp");
 	M_DrawTransPic(72, f, p);
-	if (m_net_items == 5) { // JDC, could just be removed
+	if(m_net_items == 5){ // JDC, could just be removed
 		f += 19;
 		p = Draw_CachePic("gfx/netmen5.lmp");
 		M_DrawTransPic(72, f, p);
@@ -1006,7 +1005,7 @@ void M_Net_Draw()
 void M_Net_Key(s32 k)
 {
 again:
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -1015,12 +1014,12 @@ again:
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (++m_net_cursor >= m_net_items)
+		if(++m_net_cursor >= m_net_items)
 			m_net_cursor = 0;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (--m_net_cursor < 0)
+		if(--m_net_cursor < 0)
 			m_net_cursor = m_net_items - 1;
 		break;
 	case K_MOUSE1:
@@ -1028,7 +1027,7 @@ again:
 		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
-		switch (m_net_cursor) {
+		switch(m_net_cursor){
 		case 0:
 			break;
 
@@ -1047,13 +1046,13 @@ again:
 			break; // multiprotocol
 		}
 	}
-	if (m_net_cursor == 0)
+	if(m_net_cursor == 0)
 		goto again;
-	if (m_net_cursor == 1)
+	if(m_net_cursor == 1)
 		goto again;
-	if (m_net_cursor == 2)
+	if(m_net_cursor == 2)
 		goto again;
-	if (m_net_cursor == 3 && !tcpipAvailable)
+	if(m_net_cursor == 3 && !tcpipAvailable)
 		goto again;
 }
 
@@ -1068,52 +1067,52 @@ void M_Menu_Options_f()
 void M_AdjustSliders(s32 dir)
 {
 	S_LocalSound("misc/menu3.wav");
-	switch (options_cursor) {
+	switch(options_cursor){
 	case 3: // screen size
 		scr_viewsize.value += dir * 10;
-		if (scr_viewsize.value < 30)
+		if(scr_viewsize.value < 30)
 			scr_viewsize.value = 30;
-		if (scr_viewsize.value > 120)
+		if(scr_viewsize.value > 120)
 			scr_viewsize.value = 120;
 		Cvar_SetValue("viewsize", scr_viewsize.value);
 		break;
 	case 4: // gamma
 		v_gamma.value -= dir * 0.05;
-		if (v_gamma.value < 0.5)
+		if(v_gamma.value < 0.5)
 			v_gamma.value = 0.5;
-		if (v_gamma.value > 1)
+		if(v_gamma.value > 1)
 			v_gamma.value = 1;
 		Cvar_SetValue("gamma", v_gamma.value);
 		break;
 	case 5: // mouse speed
 		sensitivity.value += dir * 0.5;
-		if (sensitivity.value < 1)
+		if(sensitivity.value < 1)
 			sensitivity.value = 1;
-		if (sensitivity.value > 11)
+		if(sensitivity.value > 11)
 			sensitivity.value = 11;
 		Cvar_SetValue("sensitivity", sensitivity.value);
 		break;
 	case 6: // music volume
 		bgmvolume.value += dir * 0.1;
-		if (bgmvolume.value < 0)
+		if(bgmvolume.value < 0)
 			bgmvolume.value = 0;
-		if (bgmvolume.value > 1)
+		if(bgmvolume.value > 1)
 			bgmvolume.value = 1;
 		Cvar_SetValue("bgmvolume", bgmvolume.value);
 		break;
 	case 7: // sfx volume
 		sfxvolume.value += dir * 0.1;
-		if (sfxvolume.value < 0)
+		if(sfxvolume.value < 0)
 			sfxvolume.value = 0;
-		if (sfxvolume.value > 1)
+		if(sfxvolume.value > 1)
 			sfxvolume.value = 1;
 		Cvar_SetValue("volume", sfxvolume.value);
 		break;
 	case 8: // allways run
-		if (cl_forwardspeed.value > 200) {
+		if(cl_forwardspeed.value > 200){
 			Cvar_SetValue("cl_forwardspeed", 200);
 			Cvar_SetValue("cl_backspeed", 200);
-		} else {
+		}else{
 			Cvar_SetValue("cl_forwardspeed", 400);
 			Cvar_SetValue("cl_backspeed", 400);
 		}
@@ -1135,13 +1134,13 @@ void M_AdjustSliders(s32 dir)
 
 void M_DrawSlider(s32 x, s32 y, f32 range)
 {
-	if (range < 0)
+	if(range < 0)
 		range = 0;
-	if (range > 1)
+	if(range > 1)
 		range = 1;
 	M_DrawCharacter(x - 8, y, 128);
 	s32 i;
-	for (i = 0; i < SLIDER_RANGE; i++)
+	for(i = 0; i < SLIDER_RANGE; i++)
 		M_DrawCharacter(x + i * 8, y, 129);
 	M_DrawCharacter(x + i * 8, y, 130);
 	M_DrawCharacter(x + (SLIDER_RANGE - 1) * 8 * range, y, 131);
@@ -1187,11 +1186,11 @@ void M_Options_Draw()
 	M_Print(16, 120, "            Lookstrafe");
 	M_DrawCheckbox(220, 120, lookstrafe.value);
 	M_Print(16, 128, "         Video Options");
-	if (drawmousemenu) {
+	if(drawmousemenu){
 		M_Print(16, 136, "             Use Mouse");
 		M_DrawCheckbox(220, 136, _windowed_mouse.value);
 	}
-	if (newoptions.value)
+	if(newoptions.value)
 		M_Print(16, drawmousemenu ? 144:136, "        Modern Options");
 	M_DrawCursor(200, 32 + options_cursor * 8);
 }
@@ -1199,7 +1198,7 @@ void M_Options_Draw()
 void M_Options_Key(s32 k)
 {
 	drawmousemenu = !(SDLWindowFlags & SDL_WINDOW_FULLSCREEN);
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -1211,30 +1210,30 @@ void M_Options_Key(s32 k)
 		// fallthrough
 	case K_ENTER:
 		m_entersound = 1;
-		if (options_cursor == 0) {
+		if(options_cursor == 0){
 			M_Menu_Keys_f();
-		} else if (options_cursor == 1) {
+		}else if(options_cursor == 1){
 			m_state = m_none;
 			Con_ToggleConsole_f();
-		} else if (options_cursor == 2) {
+		}else if(options_cursor == 2){
 			Cbuf_AddText("exec default.cfg\n");
-		} else if (options_cursor == 12) {
+		}else if(options_cursor == 12){
 			M_Menu_Video_f();
-		} else if (options_cursor == 13) {
-			if (drawmousemenu)
+		}else if(options_cursor == 13){
+			if(drawmousemenu)
 				M_AdjustSliders(1);
 			else
 				M_Menu_New_f();
-		} else if (options_cursor == 14) {
+		}else if(options_cursor == 14){
 			M_Menu_New_f();
-		} else {
+		}else{
 			M_AdjustSliders(1);
 		}
 		return;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		options_cursor--;
-		if (options_cursor < 0)
+		if(options_cursor < 0)
 			options_cursor =
 			    12 + (drawmousemenu & 1) +
 			    ((s32)newoptions.value & 1);
@@ -1242,7 +1241,7 @@ void M_Options_Key(s32 k)
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		options_cursor++;
-		if (options_cursor >=
+		if(options_cursor >=
 		    13 + (drawmousemenu & 1) + ((s32)newoptions.value & 1))
 			options_cursor = 0;
 		break;
@@ -1295,14 +1294,14 @@ void M_FindKeysForCommand(c8 *command, s32 *twokeys)
 	twokeys[0] = twokeys[1] = -1;
 	s32 l = strlen(command);
 	s32 count = 0;
-	for (s32 j = 0; j < 256; j++) {
+	for(s32 j = 0; j < 256; j++){
 		c8 *b = keybindings[j];
-		if (!b)
+		if(!b)
 			continue;
-		if (!strncmp(b, command, l)) {
+		if(!strncmp(b, command, l)){
 			twokeys[count] = j;
 			count++;
-			if (count == 2)
+			if(count == 2)
 				break;
 		}
 	}
@@ -1311,11 +1310,11 @@ void M_FindKeysForCommand(c8 *command, s32 *twokeys)
 void M_UnbindCommand(c8 *command)
 {
 	s32 l = strlen(command);
-	for (s32 j = 0; j < 256; j++) {
+	for(s32 j = 0; j < 256; j++){
 		c8 *b = keybindings[j];
-		if (!b)
+		if(!b)
 			continue;
-		if (!strncmp(b, command, l))
+		if(!strncmp(b, command, l))
 			Key_SetBinding(j, "");
 	}
 }
@@ -1324,29 +1323,29 @@ void M_Keys_Draw()
 {
 	qpic_t *p = Draw_CachePic("gfx/ttl_cstm.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	if (bind_grab)
+	if(bind_grab)
 		M_Print(12, 32, "Press a key or button for this action");
 	else
 		M_Print(18, 32, "Enter to change, backspace to clear");
-	for (s32 i = 0; i < NUMCOMMANDS; i++) { // search for known bindings
+	for(s32 i = 0; i < NUMCOMMANDS; i++){ // search for known bindings
 		s32 y = 48 + 8 * i;
 		M_Print(16, y, bindnames[i][1]);
 		s32 keys[2];
 		M_FindKeysForCommand(bindnames[i][0], keys);
-		if (keys[0] == -1) {
+		if(keys[0] == -1){
 			M_Print(140, y, "???");
-		} else {
+		}else{
 			c8 *name = Key_KeynumToString(keys[0]);
 			M_Print(140, y, name);
 			s32 x = strlen(name) * 8;
-			if (keys[1] != -1) {
+			if(keys[1] != -1){
 				M_Print(140 + x + 8, y, "or");
 				M_Print(140 + x + 32, y,
 					Key_KeynumToString(keys[1]));
 			}
 		}
 	}
-	if (bind_grab)
+	if(bind_grab)
 		M_DrawCharacter(130, 48 + keys_cursor * 8, '=');
 	else
 		M_DrawCharacter(130, 48 + keys_cursor * 8,
@@ -1355,11 +1354,11 @@ void M_Keys_Draw()
 
 void M_Keys_Key(s32 k)
 {
-	if (bind_grab) { // defining a key
+	if(bind_grab){ // defining a key
 		S_LocalSound("misc/menu1.wav");
-		if (k == K_ESCAPE) {
+		if(k == K_ESCAPE){
 			bind_grab = 0;
-		} else if (k != '`') {
+		}else if(k != '`'){
 			c8 cmd[80];
 			sprintf(cmd, "bind \"%s\" \"%s\"\n",
 				Key_KeynumToString(k),
@@ -1370,7 +1369,7 @@ void M_Keys_Key(s32 k)
 		return;
 	}
 	s32 keys[2]; // keep here for the OpenBSD compiler
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -1381,14 +1380,14 @@ void M_Keys_Key(s32 k)
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		keys_cursor--;
-		if (keys_cursor < 0)
+		if(keys_cursor < 0)
 			keys_cursor = NUMCOMMANDS - 1;
 		break;
 	case K_DOWNARROW:
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu1.wav");
 		keys_cursor++;
-		if (keys_cursor >= NUMCOMMANDS)
+		if(keys_cursor >= NUMCOMMANDS)
 			keys_cursor = 0;
 		break;
 	case K_MOUSE1:
@@ -1397,7 +1396,7 @@ void M_Keys_Key(s32 k)
 	case K_ENTER: // go into bind mode
 		M_FindKeysForCommand(bindnames[keys_cursor][0], keys);
 		S_LocalSound("misc/menu2.wav");
-		if (keys[1] != -1)
+		if(keys[1] != -1)
 			M_UnbindCommand(bindnames[keys_cursor][0]);
 		bind_grab = 1;
 		break;
@@ -1425,20 +1424,21 @@ void M_Gamepad_Draw()
 	M_Print(xoffs, 32, "Device");
 	s32 count = -1;
 	SDL_JoystickID *joys = SDL_GetJoysticks(&count);
-	if (count <= 0) {
+	if(count <= 0){
 		gamepad_cursor = 0;
 		M_DrawCursor(80, 32);
 		M_Print(xoffs + 72, 32, "None");
 		return;
-	} else if(joysticknum.value <= -1) {
+	}else if(joysticknum.value <= -1){
 		gamepad_cursor = 0;
 		M_DrawCursor(80, 32);
 		M_Print(xoffs + 72, 32, "Disabled");
 		return;
-	} else {
-		if (joysticknum.value > count - 1 || joysticknum.value < -1)
+	}else{
+		if(joysticknum.value > count - 1 || joysticknum.value < -1)
 			joysticknum.value = 0;
-		SDL_strlcpy(temp, SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]), 28);
+		SDL_strlcpy(temp, SDL_GetJoystickNameForID(
+					joys[(s32)joysticknum.value]), 28);
 		M_Print(xoffs + 72, 32, temp);
 	}
 	M_Print(xoffs, 48,  "         Deadzone");
@@ -1474,7 +1474,7 @@ void M_Gamepad_Draw()
 	M_Print(xoffs, 128, temp);
 	sprintf(temp, "%d\n", (s32)jescapebutton.value);
 	M_Print(xoffs, 136, temp);
-	if (!gamepad_cursor) M_DrawCursor(80, 32);
+	if(!gamepad_cursor) M_DrawCursor(80, 32);
 	else M_DrawCursor(168, 40 + gamepad_cursor*8);
 	M_Print(24, 152, "Move");
 	M_DrawTextBox(16, 156, 3, 4);
@@ -1486,26 +1486,26 @@ void M_Gamepad_Draw()
 	movey = (movey / (1<<16)) * 24;
 	lookx = (lookx / (1<<16)) * 24;
 	looky = (looky / (1<<16)) * 24;
-	if ((movex < 0.01 && movex > -0.01 && movey < 0.01 && movey > -0.01) ||
+	if((movex < 0.01 && movex > -0.01 && movey < 0.01 && movey > -0.01) ||
 			movex >= 11.9 || movex <= -11.9 || 
 				movey >= 11.9 || movey <= -11.9)
 		M_PrintWhite(36+movex, 176+movey, "+");
 	else M_Print(36+movex, 176+movey, "+");
-	if ((lookx < 0.01 && lookx > -0.01 && looky < 0.01 && looky > -0.01) ||
+	if((lookx < 0.01 && lookx > -0.01 && looky < 0.01 && looky > -0.01) ||
 			lookx >= 11.9 || lookx <= -11.9 || 
 				looky >= 11.9 || looky <= -11.9)
 		M_PrintWhite(84+lookx, 176+looky, "+");
 	else M_Print(84+lookx, 176+looky, "+");
-	if (jaxis_trig_1 > jtriggerthresh.value)M_PrintWhite(120, 152, "Trig1");
+	if(jaxis_trig_1 > jtriggerthresh.value)M_PrintWhite(120, 152, "Trig1");
 	else M_Print(120, 152, "Trig1");
-	if (jaxis_trig_2 > jtriggerthresh.value)M_PrintWhite(120, 160, "Trig2");
+	if(jaxis_trig_2 > jtriggerthresh.value)M_PrintWhite(120, 160, "Trig2");
 	else M_Print(120, 160, "Trig2");
 	M_DrawSlider(176, 152, ((f32)(jaxis_trig_1+(1<<15))/(1<<16)));
 	M_DrawSlider(176, 160, ((f32)(jaxis_trig_2+(1<<15))/(1<<16)));
 	s32 total = SDL_GetNumJoystickButtons(joystick);
 	SDL_strlcpy(temp, "Held buttons:", 14);
-	for (s32 i = 0; i < total; i++) {
-		if (SDL_GetJoystickButton(joystick, i)) {
+	for(s32 i = 0; i < total; i++){
+		if(SDL_GetJoystickButton(joystick, i)){
 			c8 btn[4];
 			snprintf(btn, 4, " %d", i);
 			SDL_strlcat(temp, btn, 28);
@@ -1520,8 +1520,8 @@ s32 Maps_SortByTime(const void *a, const void *b)
 	filelist_item_t *B = *(filelist_item_t **)b;
 	time_t ta = A->date;
 	time_t tb = B->date;
-	if (tb > ta) return 1; // descending
-	if (tb < ta) return -1;
+	if(tb > ta) return 1; // descending
+	if(tb < ta) return -1;
 	return 0;
 }
 
@@ -1559,43 +1559,50 @@ void M_Maps_List_Update()
 		level = extralevels;
 	else
 		level = extralevels_mod;
-	for (filelist_item_t *l = level; l; l = l->next)
+	for(filelist_item_t *l = level; l; l = l->next)
 		maps_total++;
-	if (maps_total > maps_items_cap) {
+	if(maps_total > maps_items_cap){
 		maps_items_cap = maps_total;
-		maps_items = realloc(maps_items, maps_items_cap * sizeof(*maps_items));
+		maps_items = realloc(maps_items,
+				maps_items_cap * sizeof(*maps_items));
 	}
-	for (s32 i = 0; level; level = level->next)
+	for(s32 i = 0; level; level = level->next)
 		maps_items[i++] = level;
-	if (maps_sortby == 1)
-		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortByMonsters);
-	else if (maps_sortby == 2)
-		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortBySecrets);
-	else if (maps_sortby == 3)
-		qsort(maps_items, maps_total, sizeof(*maps_items), Maps_SortByTime);
-	if (maps_scroll > maps_total - 19)
+	if(maps_sortby == 1)
+		qsort(maps_items, maps_total, sizeof(*maps_items),
+				Maps_SortByMonsters);
+	else if(maps_sortby == 2)
+		qsort(maps_items, maps_total, sizeof(*maps_items),
+				Maps_SortBySecrets);
+	else if(maps_sortby == 3)
+		qsort(maps_items, maps_total, sizeof(*maps_items),
+				Maps_SortByTime);
+	if(maps_scroll > maps_total - 19)
 		maps_scroll = q_max(0, maps_total - 19);
 }
 
 static void Format_DateTime(c8 *buf, size_t size, const SDL_DateTime *date_time)
 {
 	static SDL_DateFormat *date_format = NULL;
-	if(!date_format) {
+	if(!date_format){
 		date_format = malloc(sizeof(SDL_DateFormat));
-		if(!SDL_GetDateTimeLocalePreferences(date_format, NULL)) {
+		if(!SDL_GetDateTimeLocalePreferences(date_format, NULL)){
 			*date_format = SDL_DATE_FORMAT_DDMMYYYY;
 		}
 	}
 
-	switch(*date_format) {
+	switch(*date_format){
 	case SDL_DATE_FORMAT_YYYYMMDD:
-		snprintf(buf, size, "%d/%02d/%02d", date_time->year, date_time->month, date_time->day);
+		snprintf(buf, size, "%d/%02d/%02d", date_time->year,
+				date_time->month, date_time->day);
 		break;
 	case SDL_DATE_FORMAT_DDMMYYYY:
-		snprintf(buf, size, "%02d/%02d/%d", date_time->day, date_time->month, date_time->year);
+		snprintf(buf, size, "%02d/%02d/%d", date_time->day,
+				date_time->month, date_time->year);
 		break;
 	case SDL_DATE_FORMAT_MMDDYYYY:
-		snprintf(buf, size, "%02d/%02d/%d", date_time->month, date_time->day, date_time->year);
+		snprintf(buf, size, "%02d/%02d/%d", date_time->month,
+				date_time->day, date_time->year);
 		break;
 	}
 }
@@ -1605,7 +1612,7 @@ void M_Maps_Draw()
 	c8 temp[32];
 	s32 xoffset = 64;
 	M_Maps_List_Update();
-	if (maps_cursor >= maps_total)
+	if(maps_cursor >= maps_total)
 		maps_cursor = maps_total > 0 ? maps_total - 1 : 0;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
@@ -1613,42 +1620,44 @@ void M_Maps_Draw()
 		M_Print(xoffset + 32, 32, "No custom maps found");
 		return;
 	}
-	if (maps_sortby == 0)
+	if(maps_sortby == 0)
 		M_Print(xoffset + 32, 32, "Sort by <- Name ->");
-	else if (maps_sortby == 1)
+	else if(maps_sortby == 1)
 		M_Print(xoffset + 32, 32, "Sort by <- Monsters ->");
-	else if (maps_sortby == 2)
+	else if(maps_sortby == 2)
 		M_Print(xoffset + 32, 32, "Sort by <- Secrets ->");
-	else if (maps_sortby == 3)
+	else if(maps_sortby == 3)
 		M_Print(xoffset + 32, 32, "Sort by <- Date ->");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	for (s32 i = 0; i < 19; i++) {
+	for(s32 i = 0; i < 19; i++){
 		s32 idx = maps_scroll + i;
-		if (idx >= maps_total)
+		if(idx >= maps_total)
 			break;
 		filelist_item_t *level = maps_items[idx];
 		snprintf(temp, 10, "%s", level->name);
 		M_Print(xoffset, 40+i*8, temp);
-		if (maps_sortby == 0) {
+		if(maps_sortby == 0){
 			snprintf(temp, 22, "%s", level->desc);
 			M_Print(xoffset+10*8, 40+i*8, temp);
-		} else if (maps_sortby == 1) {
+		}else if(maps_sortby == 1){
 			snprintf(temp, 22, "%d", level->data1);
 			M_Print(xoffset+10*8, 40+i*8, temp);
 			snprintf(temp, 17, "%s", level->desc);
 			M_Print(xoffset+15*8, 40+i*8, temp);
-		} else if (maps_sortby == 2) {
+		}else if(maps_sortby == 2){
 			snprintf(temp, 22, "%d", level->data2);
 			M_Print(xoffset+10*8, 40+i*8, temp);
 			snprintf(temp, 18, "%s", level->desc);
 			M_Print(xoffset+14*8, 40+i*8, temp);
-		} else if (maps_sortby == 3) {
+		}else if(maps_sortby == 3){
 			time_t seconds = level->date;
 			strcpy(temp, "Unknown");
 			if(seconds){
 				SDL_DateTime date_time;
-				if (SDL_TimeToDateTime(SDL_SECONDS_TO_NS(seconds), &date_time, false)) {
-					Format_DateTime(temp, sizeof(temp), &date_time);
+				if(SDL_TimeToDateTime(SDL_SECONDS_TO_NS(seconds)
+							, &date_time, false)){
+					Format_DateTime(temp, sizeof(temp),
+							&date_time);
 				}
 			}
 			M_Print(xoffset+10*8, 40+i*8, temp);
@@ -1662,7 +1671,7 @@ void M_Maps_Key(s32 k)
 	c8 temp[40];
 	s32 curr_i = maps_scroll + maps_cursor;
 	s32 idx;
-	switch (k) {
+	switch(k){
 	case K_MWHEELUP:
 		if(!ui_mouse.value)break;
 		if(maps_scroll > 0)
@@ -1682,13 +1691,13 @@ void M_Maps_Key(s32 k)
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
 		maps_sortby--;
-		if (maps_sortby < 0)
+		if(maps_sortby < 0)
 			maps_sortby = 3;
 		break;
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu3.wav");
 		maps_sortby++;
-		if (maps_sortby > 3)
+		if(maps_sortby > 3)
 			maps_sortby = 0;
 		break;
 	case K_MOUSE1:
@@ -1697,7 +1706,7 @@ void M_Maps_Key(s32 k)
 	case K_ENTER:
 		if(!maps_total)break;
 		idx = maps_scroll + maps_cursor;
-		if (idx >= 0 && idx < maps_total) {
+		if(idx >= 0 && idx < maps_total){
 			filelist_item_t *level = maps_items[idx];
 			snprintf(temp, sizeof(temp), "map %s\n", level->name);
 			Cbuf_AddText(temp);
@@ -1756,19 +1765,20 @@ void M_Maps_Key(s32 k)
 
 void M_Mods_List_Update()
 {
-	if (mod_list_built) return;
+	if(mod_list_built) return;
 	mod_list_built = 1;
 	filelist_item_t *mod = modlist;
 	mods_total = 0;
-	for (filelist_item_t *l = mod; l; l = l->next)
+	for(filelist_item_t *l = mod; l; l = l->next)
 		mods_total++;
-	if (mods_total > mods_items_cap) {
+	if(mods_total > mods_items_cap){
 		mods_items_cap = mods_total;
-		mods_items = realloc(mods_items, mods_items_cap * sizeof(*mods_items));
+		mods_items = realloc(mods_items,
+				mods_items_cap * sizeof(*mods_items));
 	}
-	for (s32 i = 0; mod; mod = mod->next)
+	for(s32 i = 0; mod; mod = mod->next)
 		mods_items[i++] = mod;
-	if (mods_scroll > mods_total - 19)
+	if(mods_scroll > mods_total - 19)
 		mods_scroll = q_max(0, mods_total - 19);
 }
 
@@ -1812,7 +1822,7 @@ void M_Palette_Draw()
 
 void M_Palette_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -1824,7 +1834,7 @@ void M_Palette_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		switch(palette_cursor) {
+		switch(palette_cursor){
 		case 0: Cvar_SetValue("v_brightness",
 			CLAMP(-1, v_brightness.value - 0.1, 1)); break;
 		case 1: Cvar_SetValue("gamma",
@@ -1853,7 +1863,7 @@ void M_Palette_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
-		switch(palette_cursor) {
+		switch(palette_cursor){
 		case 0: Cvar_SetValue("v_brightness",
 			CLAMP(-1, v_brightness.value + 0.1, 1)); break;
 		case 1: Cvar_SetValue("gamma",
@@ -1887,12 +1897,12 @@ void M_Palette_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (palette_cursor == 0) palette_cursor = 9;
+		if(palette_cursor == 0) palette_cursor = 9;
 		else palette_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (palette_cursor == 9) palette_cursor = 0;
+		if(palette_cursor == 9) palette_cursor = 0;
 		else palette_cursor++;
 		break;
 	default:
@@ -1925,14 +1935,14 @@ void M_CSQC_Draw()
 	sprintf(temp, "%0.1f\n", scr_qchudscale.value);
 	M_Print(xoffset + 204, 72, temp);
 	M_DrawTextBox(52, 158, 30, 2);
-	if(csqc_cursor == 0) {
+	if(csqc_cursor == 0){
 		M_Print(64, 166, "Defined by mod's");
 		M_PrintWhite(64, 166, "                 csprogs.dat");
 		M_Print(64, 174, "Map reload required to enable");
-	} else if(csqc_cursor == 1 || csqc_cursor == 2) {
+	}else if(csqc_cursor == 1 || csqc_cursor == 2){
 		M_Print(64, 166, "   This setting's behavior");
 		M_Print(64, 174, "    is defined by the mod");
-	} else if(csqc_cursor == 3) {
+	}else if(csqc_cursor == 3){
 		M_Print(64, 166, "   This setting's behavior");
 		M_Print(64, 174, "  is independent of the mod");
 	}
@@ -1940,7 +1950,7 @@ void M_CSQC_Draw()
 
 void M_CSQC_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -1952,7 +1962,7 @@ void M_CSQC_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		switch(csqc_cursor) {
+		switch(csqc_cursor){
 		case 0: Cvar_SetValue("cl_nocsqc", !cl_nocsqc.value); break;
 		case 1: Cvar_SetValue("scr_sbaralpha",
 			CLAMP(0, scr_sbaralpha.value - 0.1, 1)); break;
@@ -1969,7 +1979,7 @@ void M_CSQC_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
-		switch(csqc_cursor) {
+		switch(csqc_cursor){
 		case 0: Cvar_SetValue("cl_nocsqc", !cl_nocsqc.value); break;
 		case 1: Cvar_SetValue("scr_sbaralpha",
 			CLAMP(0, scr_sbaralpha.value + 0.1, 1)); break;
@@ -1981,12 +1991,12 @@ void M_CSQC_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (csqc_cursor == 0) csqc_cursor = 3;
+		if(csqc_cursor == 0) csqc_cursor = 3;
 		else csqc_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (csqc_cursor == 3) csqc_cursor = 0;
+		if(csqc_cursor == 3) csqc_cursor = 0;
 		else csqc_cursor++;
 		break;
 	default:
@@ -1999,14 +2009,14 @@ void M_Mods_Draw()
 	c8 temp[32];
 	s32 xoffset = 64;
 	M_Mods_List_Update();
-	if (mods_cursor >= mods_total)
+	if(mods_cursor >= mods_total)
 		mods_cursor = mods_total > 0 ? mods_total - 1 : 0;
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	for (s32 i = 0; i < 20; i++) {
+	for(s32 i = 0; i < 20; i++){
 		s32 idx = mods_scroll + i;
-		if (idx >= mods_total)
+		if(idx >= mods_total)
 			break;
 		filelist_item_t *mod = mods_items[idx];
 		snprintf(temp, 10, "%s", mod->name);
@@ -2022,7 +2032,7 @@ void M_Mods_Key(s32 k)
 	c8 temp[40];
 	s32 curr_i = mods_scroll + mods_cursor;
 	s32 idx;
-	switch (k) {
+	switch(k){
 	case K_MWHEELUP:
 		if(!ui_mouse.value)break;
 		if(mods_scroll > 0)
@@ -2045,7 +2055,7 @@ void M_Mods_Key(s32 k)
 	case K_ENTER:
 		if(!mods_total)break;
 		idx = mods_scroll + mods_cursor;
-		if (idx >= 0 && idx < mods_total) {
+		if(idx >= 0 && idx < mods_total){
 			filelist_item_t *mod = mods_items[idx];
 			snprintf(temp, sizeof(temp), "game %s\n", mod->name);
 			Cbuf_AddText(temp);
@@ -2104,7 +2114,7 @@ void M_Mods_Key(s32 k)
 
 void M_Display_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -2113,17 +2123,17 @@ void M_Display_Key(s32 k)
 		break;
 	case 'a':
 	case 'A':
-		if (display_cursor == 4)
+		if(display_cursor == 4)
 			Cvar_SetValue("aspectr", 0);
 		break;
 	case 's':
 	case 'S':
-		if (display_cursor == 6)
+		if(display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 0.75);
 		break;
 	case 'd':
 	case 'D':
-		if (display_cursor == 6)
+		if(display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 1);
 		break;
 	case K_MWHEELDOWN:
@@ -2131,56 +2141,56 @@ void M_Display_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		if (display_cursor == 0 && scr_uiscale.value > 1)
+		if(display_cursor == 0 && scr_uiscale.value > 1)
 			Cvar_SetValue("scr_uiscale", scr_uiscale.value - 1);
-		else if (display_cursor == 1) Cvar_SetValue("scr_lockuiscale",
+		else if(display_cursor == 1) Cvar_SetValue("scr_lockuiscale",
 				scr_lockuiscale.value ? 0 : 1);
-		else if (display_cursor == 2) {
-			if (scr_hudstyle.value == 0)
+		else if(display_cursor == 2){
+			if(scr_hudstyle.value == 0)
 				Cvar_SetValue("hudstyle", 9);
 			else
 				Cvar_SetValue("hudstyle", scr_hudstyle.value-1);
-		} else if (display_cursor == 3) {
-			if (crosshair.value == 0) {
+		}else if(display_cursor == 3){
+			if(crosshair.value == 0){
 				Cvar_SetValue("crosshair", 1);
 				Cvar_SetValue("cl_crosschar", 'o');
-			} else if (cl_crosschar.value == 'o')
+			}else if(cl_crosschar.value == 'o')
 				Cvar_SetValue("cl_crosschar", 'x');
-			else if (cl_crosschar.value == 'x')
+			else if(cl_crosschar.value == 'x')
 				Cvar_SetValue("cl_crosschar", '*');
-			else if (cl_crosschar.value == '*')
+			else if(cl_crosschar.value == '*')
 				Cvar_SetValue("cl_crosschar", 5);
-			else if (cl_crosschar.value == 5)
+			else if(cl_crosschar.value == 5)
 				Cvar_SetValue("cl_crosschar", '+');
-			else if (cl_crosschar.value == '+')
+			else if(cl_crosschar.value == '+')
 				Cvar_SetValue("crosshair", 0);
-		} else if (display_cursor == 4)
+		}else if(display_cursor == 4)
 			Cvar_SetValue("aspectr", aspectr.value - 0.01);
-		else if (display_cursor == 5) Cvar_SetValue("aspectr_lock",
+		else if(display_cursor == 5) Cvar_SetValue("aspectr_lock",
 				!aspectr_lock.value);
-		else if (display_cursor == 6)
+		else if(display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 
 					CLAMP(0, scr_uixscale.value-0.01, 1));
-		else if (display_cursor == 7) {
+		else if(display_cursor == 7){
 			s32 i = 0;
-			for (; i < (s32)sizeof(fpslimits) / 4 - 1; ++i)
-				if (fpslimits[i] >= (s32)host_maxfps.value)
+			for(; i < (s32)sizeof(fpslimits) / 4 - 1; ++i)
+				if(fpslimits[i] >= (s32)host_maxfps.value)
 					break;
 			--i;
-			if (i < 0 || i > (s32)sizeof(fpslimits) / 4 - 1)
+			if(i < 0 || i > (s32)sizeof(fpslimits) / 4 - 1)
 				i = sizeof(fpslimits) / 4 - 1;
 			Cvar_SetValue("host_maxfps", fpslimits[i]);
-		} else if (display_cursor == 8) Cvar_SetValue("scr_showfps",
+		}else if(display_cursor == 8) Cvar_SetValue("scr_showfps",
 				scr_showfps.value ? 0 : 1);
-		else if (display_cursor == 9)
+		else if(display_cursor == 9)
 			Cvar_SetValue("fov", scr_fov.value - 1);
-		else if (display_cursor == 10)
+		else if(display_cursor == 10)
 			Cvar_SetValue("r_fovmode",CLAMP(0,r_fovmode.value-1,2));
-		else if (display_cursor == 11) {
-			if (newwinmode == 0) newwinmode = 2;
+		else if(display_cursor == 11){
+			if(newwinmode == 0) newwinmode = 2;
 			else newwinmode--;
-		} else if (display_cursor == 12 && newwinmode == 1) {
-			if (display_sel_moden == moden-1) display_sel_moden = 0;
+		}else if(display_cursor == 12 && newwinmode == 1){
+			if(display_sel_moden == moden-1) display_sel_moden = 0;
 			else display_sel_moden++;
 		}
 		break;
@@ -2191,65 +2201,65 @@ void M_Display_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
-		if (display_cursor == 0 && scr_uiscale.value < (vid.width / 320))
+		if(display_cursor == 0 && scr_uiscale.value < (vid.width / 320))
 			Cvar_SetValue("scr_uiscale", scr_uiscale.value + 1);
-		else if (display_cursor == 1) Cvar_SetValue("scr_lockuiscale",
+		else if(display_cursor == 1) Cvar_SetValue("scr_lockuiscale",
 				scr_lockuiscale.value ? 0 : 1);
-		else if (display_cursor == 2) {
-			if (scr_hudstyle.value == 9)
+		else if(display_cursor == 2){
+			if(scr_hudstyle.value == 9)
 				Cvar_SetValue("hudstyle", 0);
 			else
 				Cvar_SetValue("hudstyle", scr_hudstyle.value+1);
-		} else if (display_cursor == 3) {
-			if (crosshair.value == 0) {
+		}else if(display_cursor == 3){
+			if(crosshair.value == 0){
 				Cvar_SetValue("crosshair", 1);
 				Cvar_SetValue("cl_crosschar", '+');
-			} else if (cl_crosschar.value == '+')
+			}else if(cl_crosschar.value == '+')
 				Cvar_SetValue("cl_crosschar", 5);
-			else if (cl_crosschar.value == 5)
+			else if(cl_crosschar.value == 5)
 				Cvar_SetValue("cl_crosschar", '*');
-			else if (cl_crosschar.value == '*')
+			else if(cl_crosschar.value == '*')
 				Cvar_SetValue("cl_crosschar", 'x');
-			else if (cl_crosschar.value == 'x')
+			else if(cl_crosschar.value == 'x')
 				Cvar_SetValue("cl_crosschar", 'o');
-			else if (cl_crosschar.value == 'o')
+			else if(cl_crosschar.value == 'o')
 				Cvar_SetValue("crosshair", 0);
-		} else if (display_cursor == 4)
+		}else if(display_cursor == 4)
 			Cvar_SetValue("aspectr", aspectr.value + 0.01);
-		else if (display_cursor == 5) Cvar_SetValue("aspectr_lock",
+		else if(display_cursor == 5) Cvar_SetValue("aspectr_lock",
 				!aspectr_lock.value);
-		else if (display_cursor == 6)
+		else if(display_cursor == 6)
 			Cvar_SetValue("scr_uixscale", 
 					CLAMP(0, scr_uixscale.value+0.01, 1));
-		else if (display_cursor == 7) {
+		else if(display_cursor == 7){
 			s32 i = 0;
-			for (; i < (s32)sizeof(fpslimits) / 4 - 1; ++i)
-				if (fpslimits[i] >= (s32)host_maxfps.value)
+			for(; i < (s32)sizeof(fpslimits) / 4 - 1; ++i)
+				if(fpslimits[i] >= (s32)host_maxfps.value)
 					break;
 			++i;
-			if (i < 0 || i > (s32)sizeof(fpslimits) / 4 - 1)
+			if(i < 0 || i > (s32)sizeof(fpslimits) / 4 - 1)
 				i = 0;
 			Cvar_SetValue("host_maxfps", fpslimits[i]);
-		} else if (display_cursor == 8) Cvar_SetValue("scr_showfps",
+		}else if(display_cursor == 8) Cvar_SetValue("scr_showfps",
 				scr_showfps.value ? 0 : 1);
-		else if (display_cursor == 9)
+		else if(display_cursor == 9)
 			Cvar_SetValue("fov", scr_fov.value + 1);
-		else if (display_cursor == 10)
+		else if(display_cursor == 10)
 			Cvar_SetValue("r_fovmode",CLAMP(0,r_fovmode.value+1,2));
-		else if (display_cursor == 11) {
-			if (newwinmode == 2) newwinmode = 0;
+		else if(display_cursor == 11){
+			if(newwinmode == 2) newwinmode = 0;
 			else newwinmode++;
-		} else if (display_cursor == 12 && newwinmode == 1 && moden) {
-			if (display_sel_moden == 0) display_sel_moden = moden-1;
+		}else if(display_cursor == 12 && newwinmode == 1 && moden){
+			if(display_sel_moden == 0) display_sel_moden = moden-1;
 			else display_sel_moden--;
-		} else if (display_cursor == 13 && newwinmode == 1 && moden) {
+		}else if(display_cursor == 13 && newwinmode == 1 && moden){
 			VID_SetMode(0,mode->w, mode->h, newwinmode, vid_curpal);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
-		} else if (display_cursor == 14
+		}else if(display_cursor == 14
 			   && atoi(customwidthstr) >= 320
 			   && atoi(customheightstr) >= 200
 			   && atoi(customwidthstr) <= MAXWIDTH
-			   && atoi(customheightstr) <= MAXHEIGHT) {
+			   && atoi(customheightstr) <= MAXHEIGHT){
 			VID_SetMode(0, atoi(customwidthstr),
 				    atoi(customheightstr), newwinmode,
 				    vid_curpal);
@@ -2258,33 +2268,33 @@ void M_Display_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (display_cursor == 0 && newwinmode == 1) display_cursor = 13;
+		if(display_cursor == 0 && newwinmode == 1) display_cursor = 13;
 		else if(display_cursor==0 && newwinmode!=1) display_cursor = 14;
 		else display_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (display_cursor == 13 && newwinmode == 1) display_cursor = 0;
+		if(display_cursor == 13 && newwinmode == 1) display_cursor = 0;
 		else if(display_cursor==14 && newwinmode!=1) display_cursor = 0;
 		else display_cursor++;
 		break;
 	case K_BACKSPACE:
-		if (display_cursor == 12 && strlen(customwidthstr))
+		if(display_cursor == 12 && strlen(customwidthstr))
 			customwidthstr[strlen(customwidthstr) - 1] = 0;
-		else if (display_cursor == 13 && strlen(customheightstr))
+		else if(display_cursor == 13 && strlen(customheightstr))
 			customheightstr[strlen(customheightstr) - 1] = 0;
 		break;
 	default:
-		if (k < '0' || k > '9') break;
-		if (display_cursor == 12) {
+		if(k < '0' || k > '9') break;
+		if(display_cursor == 12){
 			s32 l = strlen(customwidthstr);
-			if (l < 7) {
+			if(l < 7){
 				customwidthstr[l + 1] = 0;
 				customwidthstr[l] = k;
 			}
-		} else if (display_cursor == 13) {
+		}else if(display_cursor == 13){
 			s32 l = strlen(customheightstr);
-			if (l < 7) {
+			if(l < 7){
 				customheightstr[l + 1] = 0;
 				customheightstr[l] = k;
 			}
@@ -2331,11 +2341,11 @@ void M_Display_Draw()
 {
 	c8 temp[32];
 	s32 xoffset = 0;
-	if (newwinmode != 1) {
-		if (display_cursor < 12) M_DrawCursor(192, 32+display_cursor*8);
-		else if (display_cursor == 12) M_DrawCursor(192, 132);
-		else if (display_cursor == 13) M_DrawCursor(192, 148);
-		else if (display_cursor == 14) M_DrawCursor(192, 160);
+	if(newwinmode != 1){
+		if(display_cursor < 12) M_DrawCursor(192, 32+display_cursor*8);
+		else if(display_cursor == 12) M_DrawCursor(192, 132);
+		else if(display_cursor == 13) M_DrawCursor(192, 148);
+		else if(display_cursor == 14) M_DrawCursor(192, 160);
 	}
 	else M_DrawCursor(192, 32 + display_cursor*8);
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
@@ -2366,7 +2376,7 @@ void M_Display_Draw()
 	else if(scr_hudstyle.value==7)M_Print(xoffset+204,48,"Minimalist3");
 	else if(scr_hudstyle.value==8)M_Print(xoffset+204,48,"Classic no BG");
 	else                          M_Print(xoffset+204,48,"EZQuake");
-	if (crosshair.value) { temp[0] = cl_crosschar.value+128; temp[1] = 0; }
+	if(crosshair.value){ temp[0] = cl_crosschar.value+128; temp[1] = 0; }
 	else sprintf(temp, "Off");
 	M_Print(xoffset + 204, 56, temp);
 	sprintf(temp, "%0.2f\n", aspectr.value);
@@ -2380,7 +2390,7 @@ void M_Display_Draw()
 	sprintf(temp, "%0.2f\n", aspectr.value);
 	sprintf(temp, "%d\n", (s32)scr_fov.value);
 	M_Print(xoffset + 204, 104, temp);
-	if (r_fovmode.value && display_cursor == 9) {
+	if(r_fovmode.value && display_cursor == 9){
 		f32 asp = r_fovmode.value==1 ?
 			((f32)vid.width / (f32)vid.height * 0.75) :
 			yaspectscale.value;
@@ -2391,45 +2401,45 @@ void M_Display_Draw()
 		sprintf(temp, "%0.2f\n", fov_modern);
 		M_PrintWhite(176, 174, temp);
 	}
-	if (r_fovmode.value == 0)      M_Print(xoffset + 204, 112, "Classic");
-	else if (r_fovmode.value == 1) M_Print(xoffset + 204, 112, "Modern");
-	else {                   M_Print(xoffset + 204, 112, "Manual");
-		if (display_cursor == 10) {
+	if(r_fovmode.value == 0)      M_Print(xoffset + 204, 112, "Classic");
+	else if(r_fovmode.value == 1) M_Print(xoffset + 204, 112, "Modern");
+	else{                   M_Print(xoffset + 204, 112, "Manual");
+		if(display_cursor == 10){
 			M_DrawTextBox(52, 166, 25, 2);
 			M_Print(64, 174, "Set through console with");
 			M_PrintWhite(64, 182, "      yaspectscale");
 		}
 	}
-	if (newwinmode == 0)      M_Print(xoffset + 204, 120, "Windowed");
-	else if (newwinmode == 1) M_Print(xoffset + 204, 120, "Fullscreen");
+	if(newwinmode == 0)      M_Print(xoffset + 204, 120, "Windowed");
+	else if(newwinmode == 1) M_Print(xoffset + 204, 120, "Fullscreen");
 	else                      M_Print(xoffset + 204, 120, "Borderless");
 	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
-	if (csqc_active && display_cursor == 2) {
+	if(csqc_active && display_cursor == 2){
 		M_DrawTextBox(52, 166, 25, 2);
 		M_Print(72, 174, "WARNING: Custom mod HUD");
 		M_Print(72, 182, "      is");
 		M_PrintWhite(72, 182, "         ACTIVE");
-	} else if (display_cursor == 4) {
+	}else if(display_cursor == 4){
 		M_DrawTextBox(84, 166, 17, 1);
 		M_Print(96, 174, "Press   for auto");
 		M_PrintWhite(96, 174, "      A");
-	} else if (display_cursor == 6) {
+	}else if(display_cursor == 6){
 		M_DrawTextBox(52, 166, 25, 2);
 		M_Print(64, 174, "Press   for default (1:1)");
 		M_PrintWhite(112, 174, "D");
 		M_Print(72, 182, "Or   for squished (3:4)");
 		M_PrintWhite(96, 182, "S");
-	} else if (display_cursor == 7 && (s32)host_maxfps.value > 72) {
+	}else if(display_cursor == 7 && (s32)host_maxfps.value > 72){
 		M_DrawTextBox(52, 166, 30, 1);
 		M_Print(64, 174, "Vanilla max is    expect bugs");
 		M_PrintWhite(64, 174, "               72");
 	}
-	if (newwinmode == 1) {
-		if (!modes) { 
+	if(newwinmode == 1){
+		if(!modes){ 
 			modes = SDL_GetFullscreenDisplayModes(1, &moden);
-			if (modes) mode = modes[0];
+			if(modes) mode = modes[0];
 		}
-		if (moden <= 0) {
+		if(moden <= 0){
 			M_Print(xoffset + 204, 128, "No Fullscreen");
 			M_Print(xoffset + 204, 136, "Modes Detected");
 			return;
@@ -2439,12 +2449,13 @@ void M_Display_Draw()
 		snprintf(temp, 16, "%dx%d@%d", mode->w, mode->h,
 				(s32)(mode->refresh_rate+0.5));
 		M_Print(xoffset + 204, 128, temp);
-	} else {
+	}else{
 		M_Print(xoffset, 132, "          Custom Width");
 		M_DrawTextBox(xoffset + 196, 124, 8, 1);
 		M_Print(xoffset + 204, 132, customwidthstr);
-		if (display_cursor == 12) {
-			M_DrawCursorLine(xoffset+204 + 8 * strlen(customwidthstr), 132);
+		if(display_cursor == 12){
+			M_DrawCursorLine(xoffset+204+8*strlen(customwidthstr),
+									132);
 			sprintf(temp, "%d", MAXWIDTH);
 			M_DrawTextBox(xoffset + 68, 166, 16 + strlen(temp), 1);
 			M_Print(xoffset + 80, 174, "320 <= Width <=");
@@ -2453,8 +2464,9 @@ void M_Display_Draw()
 		M_Print(xoffset, 148, "         Custom Height");
 		M_DrawTextBox(xoffset + 196, 140, 8, 1);
 		M_Print(xoffset + 204, 148, customheightstr);
-		if (display_cursor == 13) {
-			M_DrawCursorLine(xoffset+204+8 * strlen(customheightstr), 148);
+		if(display_cursor == 13){
+			M_DrawCursorLine(xoffset+204+8*strlen(customheightstr),
+									148);
 			sprintf(temp, "%d", MAXHEIGHT);
 			M_DrawTextBox(xoffset + 68, 166, 17 + strlen(temp), 1);
 			M_Print(xoffset + 80, 174, "200 <= Height <=");
@@ -2466,12 +2478,12 @@ void M_Display_Draw()
 
 void M_Graphics_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ESCAPE:
-		if (graphics_cursor >= 100) { 
+		if(graphics_cursor >= 100){ 
 			S_LocalSound("misc/menu3.wav");
 			graphics_cursor /= 100;
 			break;
@@ -2483,7 +2495,7 @@ void M_Graphics_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		switch (graphics_cursor) {
+		switch(graphics_cursor){
 		case 300: Cvar_SetValue("r_nofog",
 			!r_nofog.value); break;
 		case 301: Cvar_SetValue("r_fognoise",
@@ -2586,7 +2598,7 @@ void M_Graphics_Key(s32 k)
 		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
-		if (graphics_cursor == 0) {
+		if(graphics_cursor == 0){
 			Cvar_Reset("r_nofog");
 			Cvar_Reset("r_entalpha");
 			Cvar_Reset("r_litwater");
@@ -2605,7 +2617,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
-		} else if (graphics_cursor == 1) {
+		}else if(graphics_cursor == 1){
 			Cvar_SetValue("r_nofog", 1);
 			Cvar_SetValue("r_entalpha", 0);
 			Cvar_SetValue("r_litwater", 0);
@@ -2624,7 +2636,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
-		} else if (graphics_cursor == 2) {
+		}else if(graphics_cursor == 2){
 			Cvar_Reset("r_nofog");
 			Cvar_Reset("r_entalpha");
 			Cvar_Reset("r_litwater");
@@ -2643,8 +2655,8 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("v_gunkick", 2);
 			Cvar_SetValue("r_dithertex", 1);
 			Cvar_SetValue("r_particlestyle", 1);
-		} else if (graphics_cursor < 100) graphics_cursor *= 100;
-		else switch (graphics_cursor) {
+		}else if(graphics_cursor < 100) graphics_cursor *= 100;
+		else switch(graphics_cursor){
 		case 300: Cvar_SetValue("r_nofog",
 			!r_nofog.value); break;
 		case 301: Cvar_SetValue("r_fognoise",
@@ -2753,61 +2765,61 @@ void M_Graphics_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (graphics_cursor == 0) graphics_cursor = 9;
-		else if (graphics_cursor == 300) {
-			if (r_lockfog.value) graphics_cursor = 311;
+		if(graphics_cursor == 0) graphics_cursor = 9;
+		else if(graphics_cursor == 300){
+			if(r_lockfog.value) graphics_cursor = 311;
 			else graphics_cursor = 307;
 		}else if(graphics_cursor == 400) graphics_cursor = 402;
-		else if (graphics_cursor == 500) graphics_cursor = 502;
-		else if (graphics_cursor == 600) {
-			if (r_hlwater.value) graphics_cursor = 608;
+		else if(graphics_cursor == 500) graphics_cursor = 502;
+		else if(graphics_cursor == 600){
+			if(r_hlwater.value) graphics_cursor = 608;
 			else graphics_cursor = 605;
-		}else if (graphics_cursor == 700) graphics_cursor = 703;
-		else if (graphics_cursor == 800) graphics_cursor = 807;
-		else if (graphics_cursor == 900) graphics_cursor = 909;
+		}else if(graphics_cursor == 700) graphics_cursor = 703;
+		else if(graphics_cursor == 800) graphics_cursor = 807;
+		else if(graphics_cursor == 900) graphics_cursor = 909;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (graphics_cursor < 100) {
-			if (graphics_cursor == 9) graphics_cursor = 0;
+		if(graphics_cursor < 100){
+			if(graphics_cursor == 9) graphics_cursor = 0;
 			else graphics_cursor++;
-		} else if (graphics_cursor < 400) {
-			if (r_lockfog.value) {
-				if (graphics_cursor==311) graphics_cursor = 300;
+		}else if(graphics_cursor < 400){
+			if(r_lockfog.value){
+				if(graphics_cursor==311) graphics_cursor = 300;
 				else graphics_cursor++;
-			} else {
-				if (graphics_cursor==307) graphics_cursor = 300;
-				else graphics_cursor++;
-			}
-		} else if (graphics_cursor < 500) {
-			if (graphics_cursor == 402) graphics_cursor = 400;
-			else graphics_cursor++;
-		} else if (graphics_cursor < 600) {
-			if (graphics_cursor == 502) graphics_cursor = 500;
-			else graphics_cursor++;
-		} else if (graphics_cursor < 700) {
-			if (r_hlwater.value) {
-				if (graphics_cursor==608) graphics_cursor = 600;
-				else graphics_cursor++;
-			} else {
-				if (graphics_cursor==605) graphics_cursor = 600;
+			}else{
+				if(graphics_cursor==307) graphics_cursor = 300;
 				else graphics_cursor++;
 			}
-		} else if (graphics_cursor < 800) {
-			if (graphics_cursor == 703) graphics_cursor = 700;
+		}else if(graphics_cursor < 500){
+			if(graphics_cursor == 402) graphics_cursor = 400;
 			else graphics_cursor++;
-		} else if (graphics_cursor < 900) {
-			if (graphics_cursor == 807) graphics_cursor = 800;
+		}else if(graphics_cursor < 600){
+			if(graphics_cursor == 502) graphics_cursor = 500;
 			else graphics_cursor++;
-		} else if (graphics_cursor < 1000) {
-			if (graphics_cursor == 909) graphics_cursor = 900;
+		}else if(graphics_cursor < 700){
+			if(r_hlwater.value){
+				if(graphics_cursor==608) graphics_cursor = 600;
+				else graphics_cursor++;
+			}else{
+				if(graphics_cursor==605) graphics_cursor = 600;
+				else graphics_cursor++;
+			}
+		}else if(graphics_cursor < 800){
+			if(graphics_cursor == 703) graphics_cursor = 700;
+			else graphics_cursor++;
+		}else if(graphics_cursor < 900){
+			if(graphics_cursor == 807) graphics_cursor = 800;
+			else graphics_cursor++;
+		}else if(graphics_cursor < 1000){
+			if(graphics_cursor == 909) graphics_cursor = 900;
 			else graphics_cursor++;
 		}
 		break;
 	default: break;
 	}
-	if (graphics_cursor >= 307 && graphics_cursor <= 311 && r_lockfog.value)
+	if(graphics_cursor >= 307 && graphics_cursor <= 311 && r_lockfog.value)
 		Fog_Update(0, 0, 0, 0);
 }
 
@@ -2824,7 +2836,7 @@ void M_Graphics_Draw()
 	s32 xoffset = 0;
 	switch(graphics_cursor/100){
 		case 0: M_DrawCursor(6, 32 + graphics_cursor*8); break;
-		default: M_DrawCursor(6+144, 32 + (graphics_cursor%100)*8); break;
+		default: M_DrawCursor(6+144, 32+(graphics_cursor%100)*8); break;
 	}
 	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
@@ -2840,7 +2852,7 @@ void M_Graphics_Draw()
 	M_Print(xoffset, 104, "  Misc...");
 	xoffset = 160;
 	s32 x2 = 104;
-	if (graphics_cursor == 0) {
+	if(graphics_cursor == 0){
 		M_Print(xoffset, 32, "Enables features");
 		M_Print(xoffset, 40, "used by modern mods:");
 		M_Print(xoffset, 48, " -fog");
@@ -2849,7 +2861,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 72, " -lit water");
 		M_Print(xoffset, 80, " -translusency");
 		M_Print(xoffset, 88, " -layered rendering");
-	} else if (graphics_cursor == 1) {
+	}else if(graphics_cursor == 1){
 		M_Print(xoffset, 32, "Disables features");
 		M_Print(xoffset, 40, "used by modern mods:");
 		M_Print(xoffset, 48, " -fog");
@@ -2858,14 +2870,14 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 72, " -lit water");
 		M_Print(xoffset, 80, " -translusency");
 		M_Print(xoffset, 88, " -layered rendering");
-	} else if (graphics_cursor == 2) {
+	}else if(graphics_cursor == 2){
 		M_Print(xoffset, 32, "Default preset with");
 		M_Print(xoffset, 40, "the following added:");
 		M_Print(xoffset, 48, " -dithered textures");
 		M_Print(xoffset, 56, " -animation lerping");
 		M_Print(xoffset, 64, " -rounded particles");
 		M_Print(xoffset, 72, " -far mipmaps");
-	} else if (graphics_cursor == 3 || graphics_cursor/100 == 3) {
+	}else if(graphics_cursor == 3 || graphics_cursor/100 == 3){
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "On" : "Off");
 		M_Print(xoffset, 40, "Noise:");
@@ -2881,7 +2893,7 @@ void M_Graphics_Draw()
 		snprintf(temp, sizeof(temp), "%0.1f", r_fogbrightness.value);
 		M_Print(xoffset + x2, 64, temp);
 		M_Print(xoffset, 72, "Style:");
-		switch ((s32)r_fogstyle.value) {
+		switch((s32)r_fogstyle.value){
 		case 0: M_Print(xoffset + x2, 72, "Noisy"); break;
 		case 1: M_Print(xoffset + x2, 72, "Dither"); break;
 		case 2: M_Print(xoffset + x2, 72, "Mixed"); break;
@@ -2893,7 +2905,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 88, "Set By Map:");
 		M_Print(xoffset + x2, 88,
 			r_lockfog.value==1 ? "Off" : "On");
-		if (r_lockfog.value) {
+		if(r_lockfog.value){
 			M_Print(xoffset, 96, "Density:");
 			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogd.value);
 			M_Print(xoffset + x2, 96, temp);
@@ -2907,7 +2919,7 @@ void M_Graphics_Draw()
 			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogb.value);
 			M_Print(xoffset + x2, 120, temp);
 		}
-	} else if (graphics_cursor == 4 || graphics_cursor/100 == 4) {
+	}else if(graphics_cursor == 4 || graphics_cursor/100 == 4){
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "Off":"On");
 		M_Print(xoffset, 40, "Sky Fog:");
@@ -2916,43 +2928,43 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Sky Noise:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset + x2, 48, temp);
-		if (graphics_cursor == 402) {
+		if(graphics_cursor == 402){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Applies to newly loaded skyboxes");
 		}
-	} else if (graphics_cursor == 5 || graphics_cursor/100 == 5) {
+	}else if(graphics_cursor == 5 || graphics_cursor/100 == 5){
 		M_Print(xoffset, 32, "Color:");
 		M_Print(xoffset+x2, 32, r_rgblighting.value==1 ? "On" : "Off");
 		M_Print(xoffset, 40, "Lit Water:");
 		M_Print(xoffset + x2, 40, r_litwater.value == 1 ? "On" : "Off");
 		M_Print(xoffset, 48, "Color Space:");
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
-	} else if (graphics_cursor == 6 || graphics_cursor/100 == 6) {
+	}else if(graphics_cursor == 6 || graphics_cursor/100 == 6){
 		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==601&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWWATER)
-			&& r_wateralpha.value && r_wateralpha.value < 1) {
+			&& r_wateralpha.value && r_wateralpha.value < 1){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
 		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==602&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWSLIME)
-			&& r_slimealpha.value && r_slimealpha.value < 1) {
+			&& r_slimealpha.value && r_slimealpha.value < 1){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
 		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==603&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWLAVA)
-			&& r_lavaalpha.value && r_lavaalpha.value < 1) {
+			&& r_lavaalpha.value && r_lavaalpha.value < 1){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
 		if(cls.signon==SIGNONS&&cl.worldmodel&&graphics_cursor==604&&
 			!(cl.worldmodel->contentstransparent&SURF_DRAWTELE)
-			&& r_telealpha.value && r_telealpha.value < 1) {
+			&& r_telealpha.value && r_telealpha.value < 1){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Not supported by the current map");
 		}
-		if(graphics_cursor==605) {
+		if(graphics_cursor==605){
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(28, 158, " Enables translucent liquids on");
 			M_Print(28, 166, "        unsupported maps");
@@ -2974,7 +2986,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset + x2, 64, temp);
 		M_Print(xoffset, 72, "No VIS:");
 		M_DrawCheckbox(xoffset + x2, 72, r_novis.value);
-		if (!r_hlwater.value) return;
+		if(!r_hlwater.value) return;
 		M_Print(xoffset, 80, "Quality:");
 		M_Print(xoffset+x2, 80, r_hlwaterquality.value==0?"Low":"High");
 		M_Print(xoffset, 88, "Ripple Scale:");
@@ -2983,7 +2995,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 96, "Wave Scale:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlwavescale.value);
 		M_Print(xoffset + x2, 96, temp);
-	} else if (graphics_cursor == 7 || graphics_cursor/100 == 7) {
+	}else if(graphics_cursor == 7 || graphics_cursor/100 == 7){
 		x2 -= 32;
 		M_Print(xoffset, 32, "Scale:");
 		snprintf(temp, sizeof(temp), "x%0.1f", r_particlescale.value);
@@ -2997,7 +3009,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 56, "Alpha:");
 		snprintf(temp, sizeof(temp), "%0.1f", r_particlealpha.value);
 		M_Print(xoffset + x2, 56, temp);
-	} else if (graphics_cursor == 8 || graphics_cursor/100 == 8) {
+	}else if(graphics_cursor == 8 || graphics_cursor/100 == 8){
 		x2 += 16;
 		M_Print(xoffset, 32, "World:");
 		snprintf(temp, sizeof(temp), "%d", (s32)lyr_main.value);
@@ -3026,27 +3038,27 @@ void M_Graphics_Draw()
 		M_Print(16, 166, "1: default palette, not scaled");
 		M_Print(16, 174, "2: custom ui palette, scaled");
 		M_Print(16, 182, "3: custom ui palette, scaled");
-	} else if (graphics_cursor == 9 || graphics_cursor/100 == 9) {
+	}else if(graphics_cursor == 9 || graphics_cursor/100 == 9){
 		x2 += 24;
 		M_Print(xoffset, 32, "Mipmap Distance:");
 		snprintf(temp, sizeof(temp), " %0.1f", r_mipscale.value);
 		M_Print(xoffset + x2, 32, temp);
 		M_Print(xoffset, 40, "Menu BG Style:");
 		M_Print(xoffset, 48, "Rebuild Mipmaps:");
-		switch ((s32)r_rebuildmips.value) {
+		switch((s32)r_rebuildmips.value){
 		default: case 0: M_Print(xoffset + x2, 48, " Off"); break;
 		case 1: M_Print(xoffset + x2, 48, "  On"); break;
 		case 2: M_Print(xoffset + x2, 48, "Auto"); break;
 		}
 		M_Print(xoffset, 56, "Textures:");
 		M_Print(xoffset+96,56,r_dithertex.value?"Dithered":" Default");
-		if (graphics_cursor == 802) {
+		if(graphics_cursor == 802){
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "  Enable if you see pink around");
 			M_Print(16, 166, " cutouts or fullbright reds that");
 			M_Print(16, 174, " shouldn't be there at a distance");
 		}
-		switch ((s32)scr_menubgstyle.value) {
+		switch((s32)scr_menubgstyle.value){
 		default: case 0: M_Print(xoffset + x2, 40, " Win"); break;
 		case 1: M_Print(xoffset + x2, 40, " DOS"); break;
 		case 2: M_Print(xoffset + x2, 40, "Dark"); break;
@@ -3055,9 +3067,9 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 64, "Alpha Style:");
 		M_Print(xoffset+112, 64, !r_alphastyle.value?"   Mix":"Dither");
 		M_Print(xoffset, 72, "Popup Style:");
-		M_Print(xoffset+104,72,scr_saturntext.value?" Saturn":"Default");
+	       M_Print(xoffset+104,72,scr_saturntext.value?" Saturn":"Default");
 		M_Print(xoffset, 80, "Coarse Culling:");
-		switch ((s32)r_coarseocclusion.value) {
+		switch((s32)r_coarseocclusion.value){
 		default: case 0: M_Print(xoffset + x2, 80, " Off"); break;
 		case 1: M_Print(xoffset + x2, 80, "  On"); break;
 		case 2: M_Print(xoffset + x2, 80, "Auto"); break;
@@ -3068,7 +3080,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset+x2, 96, r_lerpmove.value?"  On":" Off");
 		M_Print(xoffset, 104, "Recoil lerp:");
 		M_Print(xoffset+x2, 104, v_gunkick.value==2?"  On":" Off");
-		if (graphics_cursor == 806) {
+		if(graphics_cursor == 806){
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "   An extra step that boosts FPS");
 			M_Print(16, 166, " on some modern maps with poor VIS");
@@ -3095,7 +3107,7 @@ void M_New_Draw()
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
 	M_Print(xoffset, 32, "             This Menu");
 	M_DrawCheckbox(xoffset + 204, 32, newoptions.value);
-	if (new_cursor == 0) {
+	if(new_cursor == 0){
 		M_DrawTextBox(52, 158, 30, 2);
 		M_Print(64, 166, "  This menu can be restored");
 		M_Print(64, 174, "with the              command");
@@ -3109,7 +3121,7 @@ void M_New_Draw()
 		M_Print(xoffset + 204, 48, "Quiet");
 	else if(ui_mouse.value && ui_mouse_sound.value)
 		M_Print(xoffset + 204, 48, "Loud");
-	if (new_cursor == 2) {
+	if(new_cursor == 2){
 		M_DrawTextBox(52, 158, 30, 2);
 		M_Print(64, 166, "     - Enter        - Escape");
 		M_PrintWhite(64, 166, " LMB            RMB");
@@ -3152,7 +3164,7 @@ void M_Gamepad_Key(s32 k)
 {
 	s32 axis = SDL_GetNumJoystickAxes(joystick) - 1;
 	s32 buts = SDL_GetNumJoystickButtons(joystick) - 1;
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -3164,32 +3176,32 @@ void M_Gamepad_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		if (gamepad_cursor == 0)
+		if(gamepad_cursor == 0)
 			Cvar_SetValue("joysticknum",
 					q_max(-1, joysticknum.value-1));
-		else if (gamepad_cursor == 1) Cvar_SetValue("jdeadzone",
+		else if(gamepad_cursor == 1) Cvar_SetValue("jdeadzone",
 			CLAMP(8, jdeadzone.value-(1<<14)/10, (1<<14)));
-		else if (gamepad_cursor == 2) Cvar_SetValue("jmovesens",
+		else if(gamepad_cursor == 2) Cvar_SetValue("jmovesens",
 			CLAMP(0.5, jmovesens.value-0.5, 5));
-		else if (gamepad_cursor == 3) Cvar_SetValue("jlooksens",
+		else if(gamepad_cursor == 3) Cvar_SetValue("jlooksens",
 			CLAMP(0.5, jlooksens.value-0.5, 5));
-		else if (gamepad_cursor == 4) Cvar_SetValue("jtriggerthresh",
+		else if(gamepad_cursor == 4) Cvar_SetValue("jtriggerthresh",
 		    CLAMP(8-(1<<15),jtriggerthresh.value-(1<<16)/10,(1<<15)-8));
-		else if (gamepad_cursor == 5 && jmoveaxisx.value >= 0)
+		else if(gamepad_cursor == 5 && jmoveaxisx.value >= 0)
 			Cvar_SetValue("jmoveaxisx", jmoveaxisx.value - 1);
-		else if (gamepad_cursor == 6 && jmoveaxisx.value >= 0)
+		else if(gamepad_cursor == 6 && jmoveaxisx.value >= 0)
 			Cvar_SetValue("jmoveaxisy", jmoveaxisy.value - 1);
-		else if (gamepad_cursor == 7 && jlookaxisx.value >= 0)
+		else if(gamepad_cursor == 7 && jlookaxisx.value >= 0)
 			Cvar_SetValue("jlookaxisx", jlookaxisx.value - 1);
-		else if (gamepad_cursor == 8 && jlookaxisy.value >= 0)
+		else if(gamepad_cursor == 8 && jlookaxisy.value >= 0)
 			Cvar_SetValue("jlookaxisy", jlookaxisy.value - 1);
-		else if (gamepad_cursor == 9 && jtrigaxis1.value >= 0)
+		else if(gamepad_cursor == 9 && jtrigaxis1.value >= 0)
 			Cvar_SetValue("trigaxis1", jtrigaxis1.value - 1);
-		else if (gamepad_cursor == 10 && jtrigaxis2.value >= 0)
+		else if(gamepad_cursor == 10 && jtrigaxis2.value >= 0)
 			Cvar_SetValue("trigaxis2", jtrigaxis2.value - 1);
-		else if (gamepad_cursor == 11 && jenterbutton.value >= 0)
+		else if(gamepad_cursor == 11 && jenterbutton.value >= 0)
 			Cvar_SetValue("jenterbutton", jenterbutton.value - 1);
-		else if (gamepad_cursor == 12 && jescapebutton.value >= 0)
+		else if(gamepad_cursor == 12 && jescapebutton.value >= 0)
 			Cvar_SetValue("jescapebutton", jescapebutton.value - 1);
 		break;
 	case K_MWHEELUP:
@@ -3199,43 +3211,43 @@ void M_Gamepad_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
-		if (gamepad_cursor == 0)
+		if(gamepad_cursor == 0)
 			Cvar_SetValue("joysticknum", joysticknum.value + 1);
-		else if (gamepad_cursor == 1) Cvar_SetValue("jdeadzone",
+		else if(gamepad_cursor == 1) Cvar_SetValue("jdeadzone",
 			CLAMP(8, jdeadzone.value+(1<<14)/10, (1<<14)));
-		else if (gamepad_cursor == 2) Cvar_SetValue("jmovesens",
+		else if(gamepad_cursor == 2) Cvar_SetValue("jmovesens",
 			CLAMP(0.5, jmovesens.value+0.5, 5));
-		else if (gamepad_cursor == 3) Cvar_SetValue("jlooksens",
+		else if(gamepad_cursor == 3) Cvar_SetValue("jlooksens",
 			CLAMP(0.5, jlooksens.value+0.5, 5));
-		else if (gamepad_cursor == 4) Cvar_SetValue("jtriggerthresh",
+		else if(gamepad_cursor == 4) Cvar_SetValue("jtriggerthresh",
 		    CLAMP(8-(1<<15),jtriggerthresh.value+(1<<16)/10,(1<<15)-8));
-		else if (gamepad_cursor == 5 && jmoveaxisx.value < axis)
+		else if(gamepad_cursor == 5 && jmoveaxisx.value < axis)
 			Cvar_SetValue("jmoveaxisx", jmoveaxisx.value + 1);
-		else if (gamepad_cursor == 6 && jmoveaxisx.value < axis)
+		else if(gamepad_cursor == 6 && jmoveaxisx.value < axis)
 			Cvar_SetValue("jmoveaxisy", jmoveaxisy.value + 1);
-		else if (gamepad_cursor == 7 && jlookaxisx.value < axis)
+		else if(gamepad_cursor == 7 && jlookaxisx.value < axis)
 			Cvar_SetValue("jlookaxisx", jlookaxisx.value + 1);
-		else if (gamepad_cursor == 8 && jlookaxisy.value < axis)
+		else if(gamepad_cursor == 8 && jlookaxisy.value < axis)
 			Cvar_SetValue("jlookaxisy", jlookaxisy.value + 1);
-		else if (gamepad_cursor == 9 && jtrigaxis1.value < axis)
+		else if(gamepad_cursor == 9 && jtrigaxis1.value < axis)
 			Cvar_SetValue("trigaxis1", jtrigaxis1.value + 1);
-		else if (gamepad_cursor == 10 && jtrigaxis2.value < axis)
+		else if(gamepad_cursor == 10 && jtrigaxis2.value < axis)
 			Cvar_SetValue("trigaxis2", jtrigaxis2.value + 1);
-		else if (gamepad_cursor == 11 && jenterbutton.value < buts)
+		else if(gamepad_cursor == 11 && jenterbutton.value < buts)
 			Cvar_SetValue("jenterbutton", jenterbutton.value + 1);
-		else if (gamepad_cursor == 12 && jescapebutton.value < buts)
+		else if(gamepad_cursor == 12 && jescapebutton.value < buts)
 			Cvar_SetValue("jescapebutton", jescapebutton.value + 1);
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (gamepad_cursor == 0)
+		if(gamepad_cursor == 0)
 			gamepad_cursor = 12;
 		else
 			gamepad_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (gamepad_cursor == 12)
+		if(gamepad_cursor == 12)
 			gamepad_cursor = 0;
 		else
 			gamepad_cursor++;
@@ -3245,12 +3257,12 @@ void M_Gamepad_Key(s32 k)
 
 void M_New_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ESCAPE:
-		if (!newoptions.value) options_cursor = 0;
+		if(!newoptions.value) options_cursor = 0;
 		M_Menu_Options_f();
 		break;
 	case K_MWHEELDOWN:
@@ -3258,35 +3270,35 @@ void M_New_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		if (new_cursor == 0)
+		if(new_cursor == 0)
 			Cvar_SetValue("newoptions", !newoptions.value);
-		else if (new_cursor == 1)
+		else if(new_cursor == 1)
 			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
-		else if (new_cursor == 2){
+		else if(new_cursor == 2){
 			if(ui_mouse.value && ui_mouse_sound.value)
 				Cvar_SetValue("ui_mouse_sound", 0);
 			else if(ui_mouse.value && !ui_mouse_sound.value){
 				Cvar_SetValue("ui_mouse", 0);
 				Cvar_SetValue("ui_mouse_sound", 0);
-			} else {
+			}else{
 				Cvar_SetValue("ui_mouse", 1);
 				Cvar_SetValue("ui_mouse_sound", 1);
 			}
 		}
-		else if (new_cursor == 3)
+		else if(new_cursor == 3)
 			Cvar_SetValue("sensitivityyscale",
 				      CLAMP(0, sensitivityyscale.value-0.1, 2));
-		else if (new_cursor == 4)
+		else if(new_cursor == 4)
 			Cvar_SetValue("exitstyle",
 				CLAMP(0,exitstyle.value - 1, 2));
-		else if (new_cursor == 5){
+		else if(new_cursor == 5){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
 			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
-		else if (new_cursor == 6)
+		else if(new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value - 1,60));
-		else if (new_cursor == 7){
+		else if(new_cursor == 7){
 			if(cl_startdemos.value){
 				Cvar_SetValue("cl_startdemos",0);
 				Cvar_SetValue("cl_automenu",0);
@@ -3297,17 +3309,17 @@ void M_New_Key(s32 k)
 				Cvar_SetValue("cl_startdemos",0);
 				Cvar_SetValue("cl_automenu",1);
 			}
-		} else if (new_cursor == 8)
-			Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
+		}else if(new_cursor == 8)
+		      Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 0) new_cursor = 15;
+		if(new_cursor == 0) new_cursor = 15;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if (new_cursor == 15) new_cursor = 0;
+		if(new_cursor == 15) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_MWHEELUP:
@@ -3317,35 +3329,35 @@ void M_New_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
-		if (new_cursor == 0)
+		if(new_cursor == 0)
 			Cvar_SetValue("newoptions", !newoptions.value);
-		if (new_cursor == 1)
+		if(new_cursor == 1)
 			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
-		else if (new_cursor == 2){
+		else if(new_cursor == 2){
 			if(ui_mouse.value && ui_mouse_sound.value){
 				Cvar_SetValue("ui_mouse", 0);
 				Cvar_SetValue("ui_mouse_sound", 0);
-			} else if(ui_mouse.value && !ui_mouse_sound.value){
+			}else if(ui_mouse.value && !ui_mouse_sound.value){
 				Cvar_SetValue("ui_mouse_sound", 1);
-			} else {
+			}else{
 				Cvar_SetValue("ui_mouse", 1);
 				Cvar_SetValue("ui_mouse_sound", 0);
 			}
 		}
-		else if (new_cursor == 3)
+		else if(new_cursor == 3)
 			Cvar_SetValue("sensitivityyscale",
 				      CLAMP(0, sensitivityyscale.value+0.1, 2));
-		else if (new_cursor == 4)
+		else if(new_cursor == 4)
 			Cvar_SetValue("exitstyle",
 				CLAMP(0,exitstyle.value + 1, 2));
-		else if (new_cursor == 5){
+		else if(new_cursor == 5){
 			Cvar_SetValue("sv_autosave", !sv_autosave.value);
 			Cvar_SetValue("sv_autoload", sv_autosave.value);
 		}
-		else if (new_cursor == 6)
+		else if(new_cursor == 6)
 			Cvar_SetValue("sv_autosave_interval",
 				CLAMP(1,sv_autosave_interval.value + 1,60));
-		else if (new_cursor == 7){
+		else if(new_cursor == 7){
 			if(cl_startdemos.value){
 				Cvar_SetValue("cl_startdemos",0);
 				Cvar_SetValue("cl_automenu",1);
@@ -3356,15 +3368,15 @@ void M_New_Key(s32 k)
 				Cvar_SetValue("cl_startdemos",1);
 				Cvar_SetValue("cl_automenu",0);
 			}
-		}else if (new_cursor == 8)
-			Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
-		else if (new_cursor == 9) M_Menu_Display_f();
-		else if (new_cursor == 10) M_Menu_Graphics_f();
-		else if (new_cursor == 11) M_Menu_Gamepad_f();
-		else if (new_cursor == 12) M_Menu_Maps_f();
-		else if (new_cursor == 13) M_Menu_Mods_f();
-		else if (new_cursor == 14) M_Menu_CSQC_f();
-		else if (new_cursor == 15) M_Menu_Palette_f();
+		}else if(new_cursor == 8)
+		      Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
+		else if(new_cursor == 9) M_Menu_Display_f();
+		else if(new_cursor == 10) M_Menu_Graphics_f();
+		else if(new_cursor == 11) M_Menu_Gamepad_f();
+		else if(new_cursor == 12) M_Menu_Maps_f();
+		else if(new_cursor == 13) M_Menu_Mods_f();
+		else if(new_cursor == 14) M_Menu_CSQC_f();
+		else if(new_cursor == 15) M_Menu_Palette_f();
 		break;
 	}
 }
@@ -3385,14 +3397,14 @@ void M_Video_Draw()
 	c8 temp[64];
 	qpic_t *p = Draw_CachePic("gfx/vidmodes.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	for (s32 i = 0; i < NUM_OLDMODES; ++i)
+	for(s32 i = 0; i < NUM_OLDMODES; ++i)
 		sprintf(modelist[i], "%dx%d", oldmodes[i * 2],
 			oldmodes[i * 2 + 1]);
 	M_Print(13 * 8, 36, "Windowed Modes");
 	s32 column = 16;
 	s32 row = 36 + 2 * 8;
-	for (s32 i = 0; i < 3; i++) {
-		if (i == vid_modenum)
+	for(s32 i = 0; i < 3; i++){
+		if(i == vid_modenum)
 			M_PrintWhite(column, row, modelist[i]);
 		else
 			M_Print(column, row, modelist[i]);
@@ -3401,34 +3413,34 @@ void M_Video_Draw()
 	M_Print(12 * 8, 36 + 4 * 8, "Fullscreen Modes");
 	column = 16;
 	row = 36 + 6 * 8;
-	for (s32 i = 3; i < NUM_OLDMODES; i++) {
-		if (i == vid_modenum)
+	for(s32 i = 3; i < NUM_OLDMODES; i++){
+		if(i == vid_modenum)
 			M_PrintWhite(column, row, modelist[i]);
 		else
 			M_Print(column, row, modelist[i]);
 		column += 13 * 8;
-		if (((i - 3) % VID_ROW_SIZE) == (VID_ROW_SIZE - 1)) {
+		if(((i - 3) % VID_ROW_SIZE) == (VID_ROW_SIZE - 1)){
 			column = 16;
 			row += 8;
 		}
 	}
-	if (vid_testingmode) {
+	if(vid_testingmode){
 		sprintf(temp, "TESTING %s", modelist[vid_line]);
 		M_Print(13 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 4, temp);
 		M_Print(9 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 6,
 			"Please wait 5 seconds...");
-	} else {
+	}else{
 		M_Print(9 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8,
 			"Press Enter to set mode");
 		M_Print(6 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 3,
 			"T to test mode for 5 seconds");
 		c8 *ptr = VID_GetModeDescription(vid_modenum);
-		if (vid_modenum >= 0 && vid_modenum < NUM_OLDMODES) {
+		if(vid_modenum >= 0 && vid_modenum < NUM_OLDMODES){
 			sprintf(temp, "D to set default: %s", ptr);
 			M_Print(2 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 5, temp);
 		}
 		ptr = VID_GetModeDescription((s32)_vid_default_mode_win.value);
-		if (ptr) {
+		if(ptr){
 			sprintf(temp, "Current default: %s", ptr);
 			M_Print(3 * 8, 36 + MODE_AREA_HEIGHT * 8 + 8 * 6, temp);
 		}
@@ -3436,7 +3448,7 @@ void M_Video_Draw()
 			"Esc to exit");
 		row = 36 + 2 * 8 + (vid_line / VID_ROW_SIZE) * 8;
 		column = 8 + (vid_line % VID_ROW_SIZE) * 13 * 8;
-		if (vid_line >= 3)
+		if(vid_line >= 3)
 			row += 3 * 8;
 		M_DrawCursor(column, row);
 	}
@@ -3444,9 +3456,9 @@ void M_Video_Draw()
 
 void M_Video_Key(s32 key)
 {
-	if (vid_testingmode)
+	if(vid_testingmode)
 		return;
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -3458,33 +3470,33 @@ void M_Video_Key(s32 key)
 		S_LocalSound("misc/menu1.wav");
 		vid_line = ((vid_line / VID_ROW_SIZE) * VID_ROW_SIZE) +
 		    ((vid_line + 2) % VID_ROW_SIZE);
-		if (vid_line >= NUM_OLDMODES)
+		if(vid_line >= NUM_OLDMODES)
 			vid_line = NUM_OLDMODES - 1;
 		break;
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu1.wav");
 		vid_line = ((vid_line / VID_ROW_SIZE) * VID_ROW_SIZE) +
 		    ((vid_line + 4) % VID_ROW_SIZE);
-		if (vid_line >= NUM_OLDMODES)
+		if(vid_line >= NUM_OLDMODES)
 			vid_line = (vid_line / VID_ROW_SIZE) * VID_ROW_SIZE;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		vid_line -= VID_ROW_SIZE;
-		if (vid_line < 0) {
+		if(vid_line < 0){
 			vid_line += ((NUM_OLDMODES + (VID_ROW_SIZE - 1)) /
 				     VID_ROW_SIZE) * VID_ROW_SIZE;
-			while (vid_line >= NUM_OLDMODES)
+			while(vid_line >= NUM_OLDMODES)
 				vid_line -= VID_ROW_SIZE;
 		}
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		vid_line += VID_ROW_SIZE;
-		if (vid_line >= NUM_OLDMODES) {
+		if(vid_line >= NUM_OLDMODES){
 			vid_line -= ((NUM_OLDMODES + (VID_ROW_SIZE - 1)) /
 				     VID_ROW_SIZE) * VID_ROW_SIZE;
-			while (vid_line < 0)
+			while(vid_line < 0)
 				vid_line += VID_ROW_SIZE;
 		}
 		break;
@@ -3507,7 +3519,7 @@ void M_Video_Key(s32 key)
 		break;
 	case 'D':
 	case 'd':
-		if (vid_modenum >= 0 && vid_modenum < NUM_OLDMODES) {
+		if(vid_modenum >= 0 && vid_modenum < NUM_OLDMODES){
 			S_LocalSound("misc/menu1.wav");
 			Cvar_SetValue("_vid_default_mode_win", vid_modenum);
 			Cvar_SetValue("vid_cheight", -1);
@@ -3528,13 +3540,11 @@ void M_Menu_Help_f()
 }
 
 void M_Help_Draw()
-{
-	M_DrawTransPic(0, 0, Draw_CachePic(va("gfx/help%i.lmp", help_page)));
-}
+{ M_DrawTransPic(0, 0, Draw_CachePic(va("gfx/help%i.lmp", help_page))); }
 
 void M_Help_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -3548,7 +3558,7 @@ void M_Help_Key(s32 key)
 	case K_UPARROW:
 	case K_RIGHTARROW:
 		m_entersound = 1;
-		if (++help_page >= NUM_HELP_PAGES)
+		if(++help_page >= NUM_HELP_PAGES)
 			help_page = 0;
 		break;
 	case K_MWHEELDOWN:
@@ -3557,7 +3567,7 @@ void M_Help_Key(s32 key)
 	case K_DOWNARROW:
 	case K_LEFTARROW:
 		m_entersound = 1;
-		if (--help_page < 0)
+		if(--help_page < 0)
 			help_page = NUM_HELP_PAGES - 1;
 		break;
 	}
@@ -3566,14 +3576,14 @@ void M_Help_Key(s32 key)
 
 void M_Menu_Quit_f()
 {
-	if (exitstyle.value == 2) { //F10 key quickexit fix
+	if(exitstyle.value == 2){ //F10 key quickexit fix
 		CL_Disconnect();
 		Host_ShutdownServer(0);
 		Sys_Quit();
 		return;
 	}
 
-	if (m_state == m_quit)
+	if(m_state == m_quit)
 		return;
 	wasInMenus = (key_dest == key_menu);
 	key_dest = key_menu;
@@ -3585,17 +3595,17 @@ void M_Menu_Quit_f()
 
 void M_Quit_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ESCAPE:
 	case 'n':
 	case 'N':
-		if (wasInMenus) {
+		if(wasInMenus){
 			m_state = m_quit_prevstate;
 			m_entersound = 1;
-		} else {
+		}else{
 			key_dest = key_game;
 			m_state = m_none;
 		}
@@ -3618,13 +3628,13 @@ void M_Quit_Key(s32 key)
 
 void M_Quit_Draw()
 {
-	if (wasInMenus) {
+	if(wasInMenus){
 		m_state = m_quit_prevstate;
 		m_recursiveDraw = 1;
 		M_Draw();
 		m_state = m_quit;
 	}
-	if (exitstyle.value==1) {
+	if(exitstyle.value==1){
 		M_DrawTextBox(0, 0, 38, 23);
 		M_PrintWhite(16,12,  "  Quake version 1.09 by id Software\n\n");
 		M_PrintWhite(16, 28,  "Programming        Art \n");
@@ -3646,7 +3656,7 @@ void M_Quit_Draw()
 		M_PrintWhite(16, 164, "registered trademark licensed to\n");
 		M_PrintWhite(16, 172, "Nothing Interactive, Inc. All rights\n");
 		M_PrintWhite(16, 180, "reserved. Press y to exit\n");
-	} else {
+	}else{
 		M_DrawTextBox(56, 76, 24, 4);
 		M_Print(64, 84,  quitMessage[msgNumber * 4 + 0]);
 		M_Print(64, 92,  quitMessage[msgNumber * 4 + 1]);
@@ -3660,13 +3670,13 @@ void M_Menu_LanConfig_f()
 	key_dest = key_menu;
 	m_state = m_lanconfig;
 	m_entersound = 1;
-	if (lanConfig_cursor == -1) {
-		if (JoiningGame && TCPIPConfig)
+	if(lanConfig_cursor == -1){
+		if(JoiningGame && TCPIPConfig)
 			lanConfig_cursor = 2;
 		else
 			lanConfig_cursor = 1;
 	}
-	if (StartingGame && lanConfig_cursor == 2)
+	if(StartingGame && lanConfig_cursor == 2)
 		lanConfig_cursor = 1;
 	lanConfig_port = DEFAULTnet_hostport;
 	sprintf(lanConfig_portname, "%u", lanConfig_port);
@@ -3681,7 +3691,7 @@ void M_LanConfig_Draw()
 	s32 basex = (320 - p->width) / 2;
 	M_DrawTransPic(basex, 4, p);
 	c8 *startJoin;
-	if (StartingGame)
+	if(StartingGame)
 		startJoin = "New Game";
 	else
 		startJoin = "Join Game";
@@ -3694,31 +3704,31 @@ void M_LanConfig_Draw()
 	M_Print(basex, lanConfig_cursor_table[0], "Port");
 	M_DrawTextBox(basex + 8 * 8, lanConfig_cursor_table[0] - 8, 6, 1);
 	M_Print(basex + 9 * 8, lanConfig_cursor_table[0], lanConfig_portname);
-	if (JoiningGame) {
+	if(JoiningGame){
 		M_Print(basex, lanConfig_cursor_table[1],
 			"Search for local games...");
 		M_Print(basex, 108, "Join game at:");
 		M_DrawTextBox(basex + 8, lanConfig_cursor_table[2] - 8, 22, 1);
 		M_Print(basex + 16, lanConfig_cursor_table[2],
 			lanConfig_joinname);
-	} else {
+	}else{
 		M_DrawTextBox(basex, lanConfig_cursor_table[1] - 8, 2, 1);
 		M_Print(basex + 8, lanConfig_cursor_table[1], "OK");
 	}
 	M_DrawCursor(basex - 8, lanConfig_cursor_table[lanConfig_cursor]);
-	if (lanConfig_cursor == 0)
+	if(lanConfig_cursor == 0)
 		M_DrawCursor(basex + 9 * 8 + 8 * strlen(lanConfig_portname),
 				lanConfig_cursor_table[0]);
-	if (lanConfig_cursor == 2)
+	if(lanConfig_cursor == 2)
 		M_DrawCursor(basex + 16 + 8 * strlen(lanConfig_joinname),
 				lanConfig_cursor_table[2]);
-	if (*m_return_reason)
+	if(*m_return_reason)
 		M_PrintWhite(basex, 148, m_return_reason);
 }
 
 void M_LanConfig_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -3728,32 +3738,32 @@ void M_LanConfig_Key(s32 key)
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		lanConfig_cursor--;
-		if (lanConfig_cursor < 0)
+		if(lanConfig_cursor < 0)
 			lanConfig_cursor = NUM_LANCONFIG_CMDS - 1;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		lanConfig_cursor++;
-		if (lanConfig_cursor >= NUM_LANCONFIG_CMDS)
+		if(lanConfig_cursor >= NUM_LANCONFIG_CMDS)
 			lanConfig_cursor = 0;
 		break;
 	case K_MOUSE1:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_ENTER:
-		if (lanConfig_cursor == 0)
+		if(lanConfig_cursor == 0)
 			break;
 		m_entersound = 1;
 		M_ConfigureNetSubsystem();
-		if (lanConfig_cursor == 1) {
-			if (StartingGame) {
+		if(lanConfig_cursor == 1){
+			if(StartingGame){
 				M_Menu_GameOptions_f();
 				break;
 			}
 			M_Menu_Search_f();
 			break;
 		}
-		else if (lanConfig_cursor == 2) {
+		else if(lanConfig_cursor == 2){
 			m_return_state = m_state;
 			m_return_onerror = 1;
 			key_dest = key_game;
@@ -3763,37 +3773,37 @@ void M_LanConfig_Key(s32 key)
 		}
 		break;
 	case K_BACKSPACE:
-		if (lanConfig_cursor == 0 && strlen(lanConfig_portname)) {
+		if(lanConfig_cursor == 0 && strlen(lanConfig_portname)){
 			lanConfig_portname[strlen(lanConfig_portname) - 1] = 0;
 		}
-		else if (lanConfig_cursor == 2 && strlen(lanConfig_joinname)) {
+		else if(lanConfig_cursor == 2 && strlen(lanConfig_joinname)){
 			lanConfig_joinname[strlen(lanConfig_joinname) - 1] = 0;
 		}
 		break;
 	default:
-		if (key < 32 || key > 127)
+		if(key < 32 || key > 127)
 			break;
-		if (lanConfig_cursor == 2) {
+		if(lanConfig_cursor == 2){
 			s32 l = strlen(lanConfig_joinname);
-			if (l < 21) {
+			if(l < 21){
 				lanConfig_joinname[l + 1] = 0;
 				lanConfig_joinname[l] = key;
 			}
 		}
-		if (key < '0' || key > '9')
+		if(key < '0' || key > '9')
 			break;
-		if (lanConfig_cursor == 0) {
+		if(lanConfig_cursor == 0){
 			s32 l = strlen(lanConfig_portname);
-			if (l < 5) {
+			if(l < 5){
 				lanConfig_portname[l + 1] = 0;
 				lanConfig_portname[l] = key;
 			}
 		}
 	}
-	if (StartingGame && lanConfig_cursor == 2)
+	if(StartingGame && lanConfig_cursor == 2)
 		lanConfig_cursor = (key == K_UPARROW);
 	s32 l = atoi(lanConfig_portname);
-	if (l > 65535)
+	if(l > 65535)
 		l = lanConfig_port;
 	else
 		lanConfig_port = l;
@@ -3805,9 +3815,9 @@ void M_Menu_GameOptions_f()
 	key_dest = key_menu;
 	m_state = m_gameoptions;
 	m_entersound = 1;
-	if (maxplayers == 0)
+	if(maxplayers == 0)
 		maxplayers = svs.maxclients;
-	if (maxplayers < 2)
+	if(maxplayers < 2)
 		maxplayers = svs.maxclientslimit;
 }
 
@@ -3821,14 +3831,14 @@ void M_GameOptions_Draw()
 	M_Print(0, 56, "      Max players");
 	M_Print(160, 56, va("%i", maxplayers));
 	M_Print(0, 64, "        Game Type");
-	if (coop.value)
+	if(coop.value)
 		M_Print(160, 64, "Cooperative");
 	else
 		M_Print(160, 64, "Deathmatch");
 	M_Print(0, 72, "        Teamplay");
 	c8 *msg;
-	if (rogue) {
-		switch ((s32)teamplay.value) {
+	if(rogue){
+		switch((s32)teamplay.value){
 			case 1: msg = "No Friendly Fire"; break;
 			case 2: msg = "Friendly Fire"; break;
 			case 3: msg = "Tag"; break;
@@ -3838,8 +3848,8 @@ void M_GameOptions_Draw()
 			default: msg = "Off"; break;
 		}
 		M_Print(160, 72, msg);
-	} else {
-		switch ((s32)teamplay.value) {
+	}else{
+		switch((s32)teamplay.value){
 			case 1: msg = "No Friendly Fire"; break;
 			case 2: msg = "Friendly Fire"; break;
 			default: msg = "Off"; break;
@@ -3847,33 +3857,33 @@ void M_GameOptions_Draw()
 		M_Print(160, 72, msg);
 	}
 	M_Print(0, 80, "            Skill");
-	if (skill.value == 0)
+	if(skill.value == 0)
 		M_Print(160, 80, "Easy difficulty");
-	else if (skill.value == 1)
+	else if(skill.value == 1)
 		M_Print(160, 80, "Normal difficulty");
-	else if (skill.value == 2)
+	else if(skill.value == 2)
 		M_Print(160, 80, "Hard difficulty");
 	else
 		M_Print(160, 80, "Nightmare difficulty");
 	M_Print(0, 88, "       Frag Limit");
-	if (fraglimit.value == 0)
+	if(fraglimit.value == 0)
 		M_Print(160, 88, "none");
 	else
 		M_Print(160, 88, va("%i frags", (s32)fraglimit.value));
 	M_Print(0, 96, "       Time Limit");
-	if (timelimit.value == 0)
+	if(timelimit.value == 0)
 		M_Print(160, 96, "none");
 	else
 		M_Print(160, 96, va("%i minutes", (s32)timelimit.value));
 	M_Print(0, 112, "         Episode");
-	if (hipnotic) //MED 01/06/97 added hipnotic episodes
+	if(hipnotic) //MED 01/06/97 added hipnotic episodes
 		M_Print(160, 112, hipnoticepisodes[startepisode].description);
-	else if (rogue) //PGM 01/07/97 added rogue episodes
+	else if(rogue) //PGM 01/07/97 added rogue episodes
 		M_Print(160, 112, rogueepisodes[startepisode].description);
 	else
 		M_Print(160, 112, episodes[startepisode].description);
 	M_Print(0, 120, "           Level");
-	if (hipnotic) { //MED 01/06/97 added hipnotic episodes
+	if(hipnotic){ //MED 01/06/97 added hipnotic episodes
 		M_Print(160, 120,
 			hipnoticlevels[hipnoticepisodes[startepisode].
 				       firstLevel + startlevel].description);
@@ -3881,14 +3891,14 @@ void M_GameOptions_Draw()
 			hipnoticlevels[hipnoticepisodes[startepisode].
 				       firstLevel + startlevel].name);
 	}
-	else if (rogue) { //PGM 01/07/97 added rogue episodes
+	else if(rogue){ //PGM 01/07/97 added rogue episodes
 		M_Print(160, 120,
 			roguelevels[rogueepisodes[startepisode].firstLevel +
 				    startlevel].description);
 		M_Print(160, 128,
 			roguelevels[rogueepisodes[startepisode].firstLevel +
 				    startlevel].name);
-	} else {
+	}else{
 		M_Print(160, 120,
 			levels[episodes[startepisode].firstLevel +
 			       startlevel].description);
@@ -3897,8 +3907,8 @@ void M_GameOptions_Draw()
 			       startlevel].name);
 	}
 	M_DrawCursor(144, gameoptions_cursor_table[gameoptions_cursor]);
-	if (m_serverInfoMessage) {
-		if ((realtime - m_serverInfoMessageTime) < 5.0) {
+	if(m_serverInfoMessage){
+		if((realtime - m_serverInfoMessageTime) < 5.0){
 			s32 x = (320 - 26 * 8) / 2;
 			M_DrawTextBox(x, 138, 24, 4);
 			x += 8;
@@ -3906,7 +3916,7 @@ void M_GameOptions_Draw()
 			M_Print(x, 154, " requires using command ");
 			M_Print(x, 162, "line parameters; please ");
 			M_Print(x, 170, "   see techinfo.txt.    ");
-		} else
+		}else
 			m_serverInfoMessage = 0;
 	}
 }
@@ -3914,79 +3924,79 @@ void M_GameOptions_Draw()
 void M_NetStart_Change(s32 dir)
 {
 	s32 count;
-	switch (gameoptions_cursor) {
+	switch(gameoptions_cursor){
 	case 1:
 		maxplayers += dir;
-		if (maxplayers > svs.maxclientslimit) {
+		if(maxplayers > svs.maxclientslimit){
 			maxplayers = svs.maxclientslimit;
 			m_serverInfoMessage = 1;
 			m_serverInfoMessageTime = realtime;
 		}
-		if (maxplayers < 2)
+		if(maxplayers < 2)
 			maxplayers = 2;
 		break;
 	case 2:
 		Cvar_SetValue("coop", coop.value ? 0 : 1);
 		break;
 	case 3:
-		if (rogue)
+		if(rogue)
 			count = 6;
 		else
 			count = 2;
 		Cvar_SetValue("teamplay", teamplay.value + dir);
-		if (teamplay.value > count)
+		if(teamplay.value > count)
 			Cvar_SetValue("teamplay", 0);
-		else if (teamplay.value < 0)
+		else if(teamplay.value < 0)
 			Cvar_SetValue("teamplay", count);
 		break;
 	case 4:
 		Cvar_SetValue("skill", skill.value + dir);
-		if (skill.value > 3)
+		if(skill.value > 3)
 			Cvar_SetValue("skill", 0);
-		if (skill.value < 0)
+		if(skill.value < 0)
 			Cvar_SetValue("skill", 3);
 		break;
 	case 5:
 		Cvar_SetValue("fraglimit", fraglimit.value + dir * 10);
-		if (fraglimit.value > 100)
+		if(fraglimit.value > 100)
 			Cvar_SetValue("fraglimit", 0);
-		if (fraglimit.value < 0)
+		if(fraglimit.value < 0)
 			Cvar_SetValue("fraglimit", 100);
 		break;
 	case 6:
 		Cvar_SetValue("timelimit", timelimit.value + dir * 5);
-		if (timelimit.value > 60)
+		if(timelimit.value > 60)
 			Cvar_SetValue("timelimit", 0);
-		if (timelimit.value < 0)
+		if(timelimit.value < 0)
 			Cvar_SetValue("timelimit", 60);
 		break;
 	case 7:
 		startepisode += dir;
-		if (hipnotic) //MED 01/06/97 added hipnotic count
+		if(hipnotic) //MED 01/06/97 added hipnotic count
 			count = 6;
-		else if (rogue) //PGM 01/07/97 added rogue count
+		else if(rogue) //PGM 01/07/97 added rogue count
 			count = 4; //PGM 03/02/97 added 1 for dmatch episode
-		else if (registered.value)
+		else if(registered.value)
 			count = 7;
 		else
 			count = 2;
-		if (startepisode < 0)
+		if(startepisode < 0)
 			startepisode = count - 1;
-		if (startepisode >= count)
+		if(startepisode >= count)
 			startepisode = 0;
 		startlevel = 0;
 		break;
 	case 8:
 		startlevel += dir;
-		if (hipnotic) //MED 01/06/97 added hipnotic episodes
+		if(hipnotic) //MED 01/06/97 added hipnotic episodes
 			count = hipnoticepisodes[startepisode].levels;
-		else if (rogue) //PGM 01/06/97 added hipnotic episodes
+		else if(rogue) //PGM 01/06/97 added hipnotic episodes
 			count = rogueepisodes[startepisode].levels;
 		else
 			count = episodes[startepisode].levels;
-		if (startlevel < 0)
+		if(startlevel < 0)
 			startlevel = count - 1;
-		if (startlevel >= count)
+		if(startlevel >= count)
 			startlevel = 0;
 		break;
 	}
@@ -3994,7 +4004,7 @@ void M_NetStart_Change(s32 dir)
 
 void M_GameOptions_Key(s32 key)
 {
-	switch (key) {
+	switch(key){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -4004,20 +4014,20 @@ void M_GameOptions_Key(s32 key)
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		gameoptions_cursor--;
-		if (gameoptions_cursor < 0)
+		if(gameoptions_cursor < 0)
 			gameoptions_cursor = NUM_GAMEOPTIONS - 1;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		gameoptions_cursor++;
-		if (gameoptions_cursor >= NUM_GAMEOPTIONS)
+		if(gameoptions_cursor >= NUM_GAMEOPTIONS)
 			gameoptions_cursor = 0;
 		break;
 	case K_MWHEELDOWN:
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_LEFTARROW:
-		if (gameoptions_cursor == 0)
+		if(gameoptions_cursor == 0)
 			break;
 		S_LocalSound("misc/menu3.wav");
 		M_NetStart_Change(-1);
@@ -4026,7 +4036,7 @@ void M_GameOptions_Key(s32 key)
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_RIGHTARROW:
-		if (gameoptions_cursor == 0)
+		if(gameoptions_cursor == 0)
 			break;
 		S_LocalSound("misc/menu3.wav");
 		M_NetStart_Change(1);
@@ -4036,20 +4046,21 @@ void M_GameOptions_Key(s32 key)
 		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu2.wav");
-		if (gameoptions_cursor == 0) {
-			if (sv.active)
+		if(gameoptions_cursor == 0){
+			if(sv.active)
 				Cbuf_AddText("disconnect\n");
-			Cbuf_AddText("listen 0\n"); // so host_netport will be re-examined
+			// so host_netport will be re-examined
+			Cbuf_AddText("listen 0\n");
 			Cbuf_AddText(va("maxplayers %u\n", maxplayers));
 			SCR_BeginLoadingPlaque();
-			if (hipnotic)
+			if(hipnotic)
 				Cbuf_AddText(va
 					     ("map %s\n",
 					      hipnoticlevels[hipnoticepisodes
 							     [startepisode].
 							     firstLevel +
 							     startlevel].name));
-			else if (rogue)
+			else if(rogue)
 				Cbuf_AddText(va
 					     ("map %s\n",
 					      roguelevels[rogueepisodes
@@ -4088,20 +4099,20 @@ void M_Search_Draw()
 	s32 x = (320 / 2) - ((12 * 8) / 2) + 4;
 	M_DrawTextBox(x - 8, 32, 12, 1);
 	M_Print(x, 40, "Searching...");
-	if (slistInProgress) {
+	if(slistInProgress){
 		NET_Poll();
 		return;
 	}
-	if (!searchComplete) {
+	if(!searchComplete){
 		searchComplete = 1;
 		searchCompleteTime = realtime;
 	}
-	if (hostCacheCount) {
+	if(hostCacheCount){
 		M_Menu_ServerList_f();
 		return;
 	}
 	M_PrintWhite((320 / 2) - ((22 * 8) / 2), 64, "No Quake servers found");
-	if ((realtime - searchCompleteTime) < 3.0)
+	if((realtime - searchCompleteTime) < 3.0)
 		return;
 	M_Menu_LanConfig_f();
 }
@@ -4119,14 +4130,14 @@ void M_Menu_ServerList_f()
 
 void M_ServerList_Draw()
 {
-	if (!slist_sorted) {
-		if (hostCacheCount > 1) {
+	if(!slist_sorted){
+		if(hostCacheCount > 1){
 			s32 i, j;
 			hostcache_t temp;
-			for (i = 0; i < hostCacheCount; i++)
-				for (j = i + 1; j < hostCacheCount; j++)
-					if (strcmp (hostcache[j].name,
-					     hostcache[i].name) < 0) {
+			for(i = 0; i < hostCacheCount; i++)
+				for(j = i + 1; j < hostCacheCount; j++)
+					if(strcmp (hostcache[j].name,
+					     hostcache[i].name) < 0){
 						memcpy(&temp, &hostcache[j],
 							 sizeof(hostcache_t));
 						memcpy(&hostcache[j],
@@ -4140,9 +4151,9 @@ void M_ServerList_Draw()
 	}
 	qpic_t *p = Draw_CachePic("gfx/p_multi.lmp");
 	M_DrawTransPic((320 - p->width) / 2, 4, p);
-	for (s32 n = 0; n < hostCacheCount; n++) {
+	for(s32 n = 0; n < hostCacheCount; n++){
 		c8 string[64];
-		if (hostcache[n].maxusers)
+		if(hostcache[n].maxusers)
 			sprintf(string, "%-15.15s %-15.15s %2u/%2u\n",
 				hostcache[n].name, hostcache[n].map,
 				hostcache[n].users, hostcache[n].maxusers);
@@ -4153,13 +4164,13 @@ void M_ServerList_Draw()
 	}
 	M_DrawCharacter(0, 32 + slist_cursor * 8,
 			12 + ((s32)(realtime * 4) & 1));
-	if (*m_return_reason)
+	if(*m_return_reason)
 		M_PrintWhite(16, 148, m_return_reason);
 }
 
 void M_ServerList_Key(s32 k)
 {
-	switch (k) {
+	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
 		// fallthrough
@@ -4176,7 +4187,7 @@ void M_ServerList_Key(s32 k)
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu1.wav");
 		slist_cursor--;
-		if (slist_cursor < 0)
+		if(slist_cursor < 0)
 			slist_cursor = hostCacheCount - 1;
 		break;
 	case K_MWHEELUP:
@@ -4186,7 +4197,7 @@ void M_ServerList_Key(s32 k)
 	case K_RIGHTARROW:
 		S_LocalSound("misc/menu1.wav");
 		slist_cursor++;
-		if (slist_cursor >= hostCacheCount)
+		if(slist_cursor >= hostCacheCount)
 			slist_cursor = 0;
 		break;
 	case K_MOUSE1:
@@ -4235,17 +4246,17 @@ void M_Init()
 
 void M_Draw()
 {
-	if (m_state == m_none || key_dest != key_menu)
+	if(m_state == m_none || key_dest != key_menu)
 		return;
-	if (!m_recursiveDraw) {
-		if (scr_con_current) Draw_ConsoleBackground(vid.height);
-		else if (lyr_menu.value != 0) fadescreen = 1;
+	if(!m_recursiveDraw){
+		if(scr_con_current) Draw_ConsoleBackground(vid.height);
+		else if(lyr_menu.value != 0) fadescreen = 1;
 		else Draw_FadeScreen();
 		scr_fullupdate = 0;
-	} else {
+	}else{
 		m_recursiveDraw = 0;
 	}
-	switch (m_state) {
+	switch(m_state){
 		case m_none: break;
 		case m_main: M_Main_Draw(); break;
 		case m_singleplayer: M_SinglePlayer_Draw(); break;
@@ -4272,7 +4283,7 @@ void M_Draw()
 		case m_search: M_Search_Draw(); break;
 		case m_slist: M_ServerList_Draw(); break;
 	}
-	if (m_entersound) {
+	if(m_entersound){
 		S_LocalSound("misc/menu2.wav");
 		m_entersound = 0;
 	}
@@ -4280,7 +4291,7 @@ void M_Draw()
 
 void M_Keydown(s32 key)
 {
-	switch (m_state) {
+	switch(m_state){
 		case m_none: return;
 		case m_main: M_Main_Key(key); return;
 		case m_singleplayer: M_SinglePlayer_Key(key); return;
@@ -4422,9 +4433,9 @@ void M_ServerList_Mouse(s32 x, s32 y)
 {
 	if(x < 16 || x >= 310 || y < 32 || y >= 200) return;
 	M_SetMouseCursor(&slist_cursor, (y - 32) / 8);
-	if (slist_cursor < 0)
+	if(slist_cursor < 0)
 		slist_cursor = hostCacheCount - 1;
-	if (slist_cursor >= hostCacheCount)
+	if(slist_cursor >= hostCacheCount)
 		slist_cursor = 0;
 }
 
@@ -4548,7 +4559,7 @@ void M_MouseCursor(s32 x, s32 y)
 	y -= menu_origin_y;
 	x /= uiscale;
 	y /= uiscale;
-	switch (m_state) {
+	switch(m_state){
 	case m_none: return;
 	case m_main: M_Main_Mouse(x, y); return;
 	case m_singleplayer: M_SinglePlayer_Mouse(x, y); return;
