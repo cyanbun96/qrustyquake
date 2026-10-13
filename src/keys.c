@@ -44,7 +44,7 @@ keyname_t keynames[] = {
 static void Con_InsertChar(s32 c)
 {
 	s32 len = strlen(key_lines[edit_line]);
-	if (len >= MAXCMDLINE - 2) // keep room for prompt and NUL
+	if(len >= MAXCMDLINE - 2) // keep room for prompt and NUL
 		return;
 	memmove(&key_lines[edit_line][key_linepos + 1],
 			&key_lines[edit_line][key_linepos],
@@ -56,7 +56,7 @@ static void Con_InsertChar(s32 c)
 static void Con_BackspaceChar()
 {
 	s32 len = strlen(key_lines[edit_line]);
-	if (key_linepos <= 1)
+	if(key_linepos <= 1)
 		return;
 	memmove(&key_lines[edit_line][key_linepos - 1],
 			&key_lines[edit_line][key_linepos],
@@ -67,14 +67,14 @@ static void Con_BackspaceChar()
 static void Con_DeleteChar()
 {
 	s32 len = strlen(key_lines[edit_line]);
-	if (key_linepos >= len)
+	if(key_linepos >= len)
 		return;
 	memmove(&key_lines[edit_line][key_linepos],
 			&key_lines[edit_line][key_linepos + 1],
 			len - key_linepos); // include NUL
 }
 
-static bool Con_IsSpace(s32 c) { return c <= ' '; }
+static bool Con_IsSpace(s32 c){ return c <= ' '; }
 
 static void Con_WordLeft()
 {
@@ -88,7 +88,7 @@ static void Con_WordLeft()
 static void Con_WordRight()
 {
 	s32 len = strlen(key_lines[edit_line]);
-	if (key_linepos >= len) return;
+	if(key_linepos >= len) return;
 	while(key_linepos<len && Con_IsSpace(key_lines[edit_line][key_linepos]))
 		key_linepos++;
 	while(key_linepos<len &&!Con_IsSpace(key_lines[edit_line][key_linepos]))
@@ -109,11 +109,11 @@ static void Con_DeleteWordRight()
 {
 	s32 start = key_linepos;
 	s32 len = strlen(key_lines[edit_line]);
-	if (start >= len) return;
+	if(start >= len) return;
 	s32 pos = start;
-	while (pos < len && Con_IsSpace(key_lines[edit_line][pos]))
+	while(pos < len && Con_IsSpace(key_lines[edit_line][pos]))
 		pos++;
-	while (pos < len && !Con_IsSpace(key_lines[edit_line][pos]))
+	while(pos < len && !Con_IsSpace(key_lines[edit_line][pos]))
 		pos++;
 	memmove(&key_lines[edit_line][start], &key_lines[edit_line][pos],
 			len - pos + 1); // include NUL
@@ -122,8 +122,8 @@ static void Con_DeleteWordRight()
 static bool Con_LineIsEmpty(int line)
 {
 	c8 *text = con_text + (line % con_totallines) * con_linewidth;
-	for (s32 i = 0; i < con_linewidth; i++)
-		if (text[i] > ' ') return false;
+	for(s32 i = 0; i < con_linewidth; i++)
+		if(text[i] > ' ') return false;
 	return true;
 }
 
@@ -156,28 +156,28 @@ void Key_Console(s32 key) // Line typing into the console
 			return;
 		}
 	}
-	if (key == K_LEFTARROW) {
+	if(key == K_LEFTARROW){
 		if(keydown[K_CTRL])
 			Con_WordLeft();
 		else if(key_linepos > 1)
 			key_linepos--;
 		return;
 	}
-	if (key == K_RIGHTARROW) {
+	if(key == K_RIGHTARROW){
 		if(keydown[K_CTRL])
 			Con_WordRight();
 		else if(key_linepos < (s32)strlen(key_lines[edit_line]))
 			key_linepos++;
 		return;
 	}
-	if (key == K_BACKSPACE) {
+	if(key == K_BACKSPACE){
 		if(keydown[K_CTRL])
 			Con_DeleteWordLeft();
 		else
 			Con_BackspaceChar();
 		return;
 	}
-	if (key == K_DEL) {
+	if(key == K_DEL){
 		if(keydown[K_CTRL])
 			Con_DeleteWordRight();
 		else
@@ -185,7 +185,7 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if(key == K_UPARROW){
-		do { history_line = (history_line - 1) & 31; }
+		do{ history_line = (history_line - 1) & 31; }
 		while(history_line != edit_line && !key_lines[history_line][1]);
 		if(history_line==edit_line) history_line = (edit_line + 1) & 31;
 		strcpy(key_lines[edit_line], key_lines[history_line]);
@@ -195,13 +195,13 @@ void Key_Console(s32 key) // Line typing into the console
 	if(key == K_DOWNARROW){
 		if(history_line == edit_line)
 			return;
-		do { history_line = (history_line + 1) & 31; }
+		do{ history_line = (history_line + 1) & 31; }
 		while(history_line != edit_line && !key_lines[history_line][1]);
 		if(history_line == edit_line){
 			key_lines[edit_line][0] = ']';
 			key_linepos = 1;
 			memset(&key_lines[edit_line][1], 0, MAXCMDLINE-1);
-		} else {
+		}else{
 			strcpy(key_lines[edit_line], key_lines[history_line]);
 			key_linepos = strlen(key_lines[edit_line]);
 		}
@@ -215,7 +215,7 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if(key == K_PGUP || key == K_MWHEELUP){
-		if (keydown[K_CTRL] || keydown[K_SHIFT])
+		if(keydown[K_CTRL] || keydown[K_SHIFT])
 			con_backscroll += 20;
 		else
 			con_backscroll += 2;
@@ -224,14 +224,14 @@ void Key_Console(s32 key) // Line typing into the console
 		return;
 	}
 	if(key == K_PGDN || key == K_MWHEELDOWN){
-		if (keydown[K_CTRL] || keydown[K_SHIFT])
+		if(keydown[K_CTRL] || keydown[K_SHIFT])
 			con_backscroll -= 20;
 		else
 			con_backscroll -= 2;
 		if(con_backscroll < 0) con_backscroll = 0;
 		return;
 	}
-	if (key == K_HOME) {
+	if(key == K_HOME){
 		s32 maxscroll = con_bottom;
 		if(maxscroll < 0) maxscroll = 0;
 		s32 target = con_current - maxscroll;
@@ -239,9 +239,9 @@ void Key_Console(s32 key) // Line typing into the console
 		while(target < con_current && Con_LineIsEmpty(target))
 			target++;
 		con_backscroll = con_current - target;
-		if (con_backscroll > maxscroll)
+		if(con_backscroll > maxscroll)
 			con_backscroll = maxscroll;
-		if (con_backscroll < 0)
+		if(con_backscroll < 0)
 			con_backscroll = 0;
 		return;
 	}
@@ -249,18 +249,18 @@ void Key_Console(s32 key) // Line typing into the console
 		con_backscroll = 0;
 		return;
 	}
-	if ((key == 'v' || key == 'V') && keydown[K_CTRL]) {
+	if((key == 'v' || key == 'V') && keydown[K_CTRL]){
 		c8 *cb = SDL_GetClipboardText();
-		if (!cb) return;
+		if(!cb) return;
 		s32 len_cb = strlen(cb);
 		s32 len_line = strlen(key_lines[edit_line]);
-		if (len_cb <= 0) {
+		if(len_cb <= 0){
 			SDL_free(cb);
 			return;
 		}
-		if (len_line + len_cb >= MAXCMDLINE - 1)
+		if(len_line + len_cb >= MAXCMDLINE - 1)
 			len_cb = (MAXCMDLINE - 1) - len_line;
-		if (len_cb > 0) {
+		if(len_cb > 0){
 			memmove(&key_lines[edit_line][key_linepos + len_cb],
 				&key_lines[edit_line][key_linepos],
 				len_line - key_linepos + 1); // include NUL
@@ -565,7 +565,7 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 			if(kb[0] == '+'){ // button cmds add keynum as a parm
 				sprintf(cmd, "%s %i\n", kb, key);
 				Cbuf_AddText(cmd);
-			} else {
+			}else{
 				Cbuf_AddText(kb);
 				Cbuf_AddText("\n");
 			}

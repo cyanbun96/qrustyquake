@@ -47,12 +47,12 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 		fgetLittleShort(fin),fgetLittleShort(fin),fgetc(fin),
 		fgetLittleShort(fin),fgetLittleShort(fin),fgetLittleShort(fin),
 		fgetLittleShort(fin),fgetc(fin),fgetc(fin)};
-	if(targa_header.image_type==1) {
+	if(targa_header.image_type==1){
 		if(targa_header.pixel_size!=8||targa_header.colormap_size!=24||
 				targa_header.colormap_length>256)
 			Sys_Error("Image_LoadTGA: %s has an %ibit palette",
 				loadfilename, targa_header.colormap_type);
-	} else {
+	}else{
 		if(targa_header.image_type!=2 && targa_header.image_type!=10)
 	Sys_Error("Image_LoadTGA: %s is not a type 2 or type 10 targa(%i)",
 			loadfilename, targa_header.image_type);
@@ -65,13 +65,13 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 	s32 rows = targa_header.height;
 	s32 numPixels = columns * rows;
 	bool upside_down = !(targa_header.attributes & 0x20); //johnfitz -- fix
-	u8 *targa_rgba = (u8 *) Hunk_Alloc(numPixels*4);
+	u8 *targa_rgba = (u8*)Hunk_Alloc(numPixels*4);
 	if(targa_header.id_length != 0)
 		fseek(fin, targa_header.id_length, SEEK_CUR); // skip comment
 	stdio_buffer_t *buf = Buf_Alloc(fin);
 	s32 realrow; //johnfitz -- fix for upside-down targas
 	u8 *pixbuf;
-	if(targa_header.image_type==1){ // Uncompressed, paletted images
+	if(targa_header.image_type == 1){ // Uncompressed, paletted images
 		u8 palette[256*4];
 		u64 i;
 		for(i = 0; i < targa_header.colormap_length; i++){ //bgr palette
@@ -82,10 +82,10 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 		}
 		for(i = targa_header.colormap_length*4; i<sizeof(palette); i++)
 			palette[i] = 0;
-		for(s32 row = rows-1; row>=0; row--) {
+		for(s32 row = rows - 1; row >= 0; row--){
 			realrow = upside_down ? row : rows - 1 - row;
 			pixbuf = targa_rgba + realrow*columns*4;
-			for(s32 column=0; column<columns; column++) {
+			for(s32 column=0; column<columns; column++){
 				i = Buf_GetC(buf);
 				*pixbuf++= palette[i*3+0];
 				*pixbuf++= palette[i*3+1];
@@ -93,8 +93,8 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 				*pixbuf++= palette[i*3+3];
 			}
 		}
-	} else if(targa_header.image_type==2){ // Uncompressed, RGB images
-		for(s32 row = rows-1; row>=0; row--) {
+	}else if(targa_header.image_type == 2){ // Uncompressed, RGB images
+		for(s32 row = rows - 1; row >= 0; row--){
 			realrow = upside_down ? row : rows - 1 - row;
 			pixbuf = targa_rgba + realrow*columns*4;
 			for(s32 column=0; column<columns; column++){
@@ -122,16 +122,16 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 				}
 			}
 		}
-	} else if(targa_header.image_type==10){ // Runlength encoded RGB images
+	}else if(targa_header.image_type==10){ // Runlength encoded RGB images
 		u8 red,green,blue,alphabyte,packetHeader,packetSize,j;
-		for(s32 row = rows-1; row>=0; row--) {
+		for(s32 row = rows - 1; row >= 0; row--){
 			realrow = upside_down ? row : rows - 1 - row;
 			pixbuf = targa_rgba + realrow*columns*4;
-			for(s32 column=0; column<columns; ) {
+			for(s32 column = 0; column < columns;){
 				packetHeader=Buf_GetC(buf);
 				packetSize = 1 + (packetHeader & 0x7f);
 				if(packetHeader & 0x80){ // run-length packet
-					switch(targa_header.pixel_size) {
+					switch(targa_header.pixel_size){
 					case 24:
 						blue = Buf_GetC(buf);
 						green = Buf_GetC(buf);
@@ -165,7 +165,7 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 					}
 				}
 				else{ // non run-length packet
-					for(j = 0; j < packetSize; j++) {
+					for(j = 0; j < packetSize; j++){
 						switch(targa_header.pixel_size){
 						case 24:
 							blue = Buf_GetC(buf);

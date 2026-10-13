@@ -8,35 +8,35 @@ static f64 jhatup=0, jhatright=0, jhatleft=0, jhatdown=0; // last pressed time
 
 void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
 {
-	if (joysticknum.value <= -1) {
+	if(joysticknum.value <= -1){
 		Con_Printf("Joystick disabled\n");
 		SDL_SetJoystickEventsEnabled(0);
 		return;
 	}
 	s32 count = -1;
 	SDL_JoystickID *joys = SDL_GetJoysticks(&count);
-	if (joysticknum.value > count - 1 || joysticknum.value < 0) {
+	if(joysticknum.value > count - 1 || joysticknum.value < 0){
 		Con_Printf("Invalid joysticknum value\n");
-		if (count > 0) {
+		if(count > 0){
 			Con_Printf("Detected joysticks:\n");
-			for (s32 i = 0; i < count; ++i)
+			for(s32 i = 0; i < count; ++i)
 				Con_Printf("%d: %s\n", i,
 					SDL_GetJoystickNameForID(joys[i]));
 		}
 		else Con_Printf("No joysticks found\n");
-	} else if (count > 0) {
+	}else if(count > 0){
 		Con_Printf("Using joystick: %s\n",
 			SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]));
-		if (joystick) { SDL_CloseJoystick(joystick); joystick = 0; }
+		if(joystick){ SDL_CloseJoystick(joystick); joystick = 0; }
 		joystick = SDL_OpenJoystick(joys[(s32)joysticknum.value]);
 		SDL_SetJoystickEventsEnabled(1);
-	} else Con_Printf("No joysticks found\n");
+	}else Con_Printf("No joysticks found\n");
 	SDL_free(joys);
 }
 
 void IN_RemoveJoystick()
 {
-	if (joystick) { SDL_CloseJoystick(joystick); joystick = 0; }
+	if(joystick){ SDL_CloseJoystick(joystick); joystick = 0; }
 	jaxis_move_x = 0;
 	jaxis_move_y = 0;
 	jaxis_look_x = 0;
@@ -79,24 +79,23 @@ void Sys_SendKeyEvents()
 	SDL_Event event;
 	s32 button, winW, winH;
 	s32 sym, state, mod; // keep here for OpenBSD compiler
-	if ((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
+	if((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
 			|| SDL_GetWindowFullscreenMode(window))
-			&& !_windowed_mouse.value)
-				|| key_dest != key_game) {
+			&& !_windowed_mouse.value) || key_dest != key_game){
 		SDL_SetWindowRelativeMouseMode(window, 0);
 		SDL_ShowCursor();
-	} else {
+	}else{
 		SDL_HideCursor();
 		SDL_SetWindowRelativeMouseMode(window, 1);
 	}
-	while (SDL_PollEvent(&event)) {
-		switch (event.type) {
+	while(SDL_PollEvent(&event)){
+		switch(event.type){
 		case SDL_EVENT_KEY_DOWN:
 		case SDL_EVENT_KEY_UP:
 			sym = event.key.key;
 			state = event.key.down;
 			mod = SDL_GetModState() & SDL_KMOD_NUM;
-			switch (sym) {
+			switch(sym){
 			case SDLK_DELETE: sym = K_DEL; break;
 			case SDLK_BACKSPACE: sym = K_BACKSPACE; break;
 			case SDLK_F1: sym = K_F1; break;
@@ -150,8 +149,9 @@ void Sys_SendKeyEvents()
 			case SDLK_KP_ENTER: sym = SDLK_RETURN; break;
 			case SDLK_KP_EQUALS: sym = SDLK_EQUALS; break;
 			}
-			// key reserved for the console, independent of location on keyboard
-			// Located in the top left corner (on both ANSI and ISO keyboards).
+			// key reserved for the console, independent of location
+			// on keyboard Located in the top left corner (on both
+			// ANSI and ISO keyboards).
 			if(event.key.scancode == SDL_SCANCODE_GRAVE){
 				Key_Event('`', state);
 				break;
@@ -190,21 +190,21 @@ void Sys_SendKeyEvents()
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 		case SDL_EVENT_MOUSE_BUTTON_UP:
-			if (event.button.button < 1 ||
-				event.button.button > Q_COUNTOF(buttonremap)) {
+			if(event.button.button < 1 ||
+				event.button.button > Q_COUNTOF(buttonremap)){
 				Con_Printf("Ignored input event for MOUSE%d\n",
 						event.button.button);
 				break;
 			}
 			button = buttonremap[event.button.button - 1];
-			Key_Event(button, event.type==SDL_EVENT_MOUSE_BUTTON_DOWN);
+		      Key_Event(button,event.type==SDL_EVENT_MOUSE_BUTTON_DOWN);
 			break;
 		case SDL_EVENT_MOUSE_WHEEL:
-			if (event.wheel.y > 0) {
+			if(event.wheel.y > 0){
 				Key_Event(K_MWHEELUP, 1);
 				Key_Event(K_MWHEELUP, 0);
 			}
-			else if (event.wheel.y < 0) {
+			else if(event.wheel.y < 0){
 				Key_Event(K_MWHEELDOWN, 1);
 				Key_Event(K_MWHEELDOWN, 0);
 			}
@@ -235,37 +235,37 @@ void Sys_SendKeyEvents()
 				Key_Event(K_UPARROW, 1);
 				Key_Event(K_UPARROW, 0);
 				jhatup = Sys_DoubleTime();
-			} else { jhatup = 0; }
+			}else{ jhatup = 0; }
 			if(event.jhat.value & 2){
 				Key_Event(K_RIGHTARROW, 1);
 				Key_Event(K_RIGHTARROW, 0);
 				jhatright = Sys_DoubleTime();
-			} else { jhatright = 0; }
+			}else{ jhatright = 0; }
 			if(event.jhat.value & 4){
 				Key_Event(K_DOWNARROW, 1);
 				Key_Event(K_DOWNARROW, 0);
 				jhatdown = Sys_DoubleTime();
-			} else { jhatdown = 0; }
+			}else{ jhatdown = 0; }
 			if(event.jhat.value & 8){
 				Key_Event(K_LEFTARROW, 1);
 				Key_Event(K_LEFTARROW, 0);
 				jhatleft = Sys_DoubleTime();
-			} else { jhatleft = 0; }
+			}else{ jhatleft = 0; }
 			break;
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
 			if      (event.jaxis.axis == jmoveaxisx.value)
 				jaxis_move_x = event.jaxis.value;
-			else if (event.jaxis.axis == jmoveaxisy.value)
+			else if(event.jaxis.axis == jmoveaxisy.value)
 				jaxis_move_y = event.jaxis.value;
-			else if (event.jaxis.axis == jlookaxisx.value)
+			else if(event.jaxis.axis == jlookaxisx.value)
 				jaxis_look_x = event.jaxis.value;
-			else if (event.jaxis.axis == jlookaxisy.value)
+			else if(event.jaxis.axis == jlookaxisy.value)
 				jaxis_look_y = event.jaxis.value;
-			else if (event.jaxis.axis == jtrigaxis1.value) {
+			else if(event.jaxis.axis == jtrigaxis1.value){
 				Key_Event(K_AUX31, event.jaxis.value >
 						jtriggerthresh.value);
 				jaxis_trig_1 = event.jaxis.value; }
-			else if (event.jaxis.axis == jtrigaxis2.value) {
+			else if(event.jaxis.axis == jtrigaxis2.value){
 				Key_Event(K_AUX32, event.jaxis.value >
 						jtriggerthresh.value);
 				jaxis_trig_2 = event.jaxis.value; }
@@ -280,64 +280,62 @@ void Sys_SendKeyEvents()
 
 void IN_Init()
 {
-	if (COM_CheckParm("-nomouse")) return;
+	if(COM_CheckParm("-nomouse")) return;
 	mouse_x = mouse_y = 0.0;
 	mouse_avail = 1;
 	SDL_Init(SDL_INIT_JOYSTICK);
 	IN_InitJoystick(0);
 }
 
-void IN_Shutdown() { mouse_avail = 0; }
+void IN_Shutdown(){ mouse_avail = 0; }
 
 void IN_Move(usercmd_t *cmd)
 {
-	if (!mouse_avail) return;
+	if(!mouse_avail) return;
 	s32 jlook_x = jaxis_look_x;
 	s32 jlook_y = jaxis_look_y;
-	if      (jlook_x > 0 && jlook_x <  jdeadzone.value) jlook_x = 0;
-	else if (jlook_x < 0 && jlook_x > -jdeadzone.value) jlook_x = 0;
-	if      (jlook_y > 0 && jlook_y <  jdeadzone.value) jlook_y = 0;
-	else if (jlook_y < 0 && jlook_y > -jdeadzone.value) jlook_y = 0;
-	if      (jlook_x > 0) jlook_x -= jdeadzone.value;
-	else if (jlook_x < 0) jlook_x += jdeadzone.value;
-	if      (jlook_y > 0) jlook_y -= jdeadzone.value;
-	else if (jlook_y < 0) jlook_y += jdeadzone.value;
+	if     (jlook_x > 0 && jlook_x <  jdeadzone.value) jlook_x = 0;
+	else if(jlook_x < 0 && jlook_x > -jdeadzone.value) jlook_x = 0;
+	if     (jlook_y > 0 && jlook_y <  jdeadzone.value) jlook_y = 0;
+	else if(jlook_y < 0 && jlook_y > -jdeadzone.value) jlook_y = 0;
+	if     (jlook_x > 0) jlook_x -= jdeadzone.value;
+	else if(jlook_x < 0) jlook_x += jdeadzone.value;
+	if     (jlook_y > 0) jlook_y -= jdeadzone.value;
+	else if(jlook_y < 0) jlook_y += jdeadzone.value;
 	mouse_x += jlook_x*0.0005*jlooksens.value*host_frametime*72.0;
 	mouse_y += jlook_y*0.0005*jlooksens.value*host_frametime*72.0;
 	s32 jmove_x = jaxis_move_x;
 	s32 jmove_y = jaxis_move_y;
-	if      (jmove_x > 0 && jmove_x <  jdeadzone.value) jmove_x = 0;
-	else if (jmove_x < 0 && jmove_x > -jdeadzone.value) jmove_x = 0;
-	if      (jmove_y > 0 && jmove_y <  jdeadzone.value) jmove_y = 0;
-	else if (jmove_y < 0 && jmove_y > -jdeadzone.value) jmove_y = 0;
-	if      (jmove_x > 0) jmove_x -= jdeadzone.value;
-	else if (jmove_x < 0) jmove_x += jdeadzone.value;
-	if      (jmove_y > 0) jmove_y -= jdeadzone.value;
-	else if (jmove_y < 0) jmove_y += jdeadzone.value;
+	if     (jmove_x > 0 && jmove_x <  jdeadzone.value) jmove_x = 0;
+	else if(jmove_x < 0 && jmove_x > -jdeadzone.value) jmove_x = 0;
+	if     (jmove_y > 0 && jmove_y <  jdeadzone.value) jmove_y = 0;
+	else if(jmove_y < 0 && jmove_y > -jdeadzone.value) jmove_y = 0;
+	if     (jmove_x > 0) jmove_x -= jdeadzone.value;
+	else if(jmove_x < 0) jmove_x += jdeadzone.value;
+	if     (jmove_y > 0) jmove_y -= jdeadzone.value;
+	else if(jmove_y < 0) jmove_y += jdeadzone.value;
 	cmd->sidemove += jmove_x*0.005*jmovesens.value;
 	cmd->forwardmove -= jmove_y*0.005*jmovesens.value;
-	if ((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
+	if((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
 			|| SDL_GetWindowFullscreenMode(window))
-			&& !_windowed_mouse.value)
-				|| key_dest != key_game) {
-		return;
-	}
+			&& !_windowed_mouse.value) || key_dest != key_game)
+				return;
 	mouse_x *= sensitivity.value;
 	mouse_y *= sensitivity.value * sensitivityyscale.value;
-	if ((in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1)))
+	if((in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1)))
 		cmd->sidemove += m_side.value * mouse_x;
 	else
 		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	if (in_mlook.state & 1)
+	if(in_mlook.state & 1)
 		V_StopPitchDrift();
-	if ((in_mlook.state & 1) && !(in_strafe.state & 1)) {
+	if((in_mlook.state & 1) && !(in_strafe.state & 1)){
 		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
-		if (cl.viewangles[PITCH] > cl_maxpitch.value)
+		if(cl.viewangles[PITCH] > cl_maxpitch.value)
 			cl.viewangles[PITCH] = cl_maxpitch.value;
-		if (cl.viewangles[PITCH] < cl_minpitch.value)
+		if(cl.viewangles[PITCH] < cl_minpitch.value)
 			cl.viewangles[PITCH] = cl_minpitch.value;
-	} else {
-		if ((in_strafe.state & 1) && noclip_anglehack)
+	}else{
+		if((in_strafe.state & 1) && noclip_anglehack)
 			cmd->upmove -= m_forward.value * mouse_y;
 		else
 			cmd->forwardmove -= m_forward.value * mouse_y;

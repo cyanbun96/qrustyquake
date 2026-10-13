@@ -10,18 +10,12 @@
 #define RESTRICT __restrict
 #endif
 #define EQUAL_EPSILON 0.001
-static inline bool GetBit (const u32 *arr, u32 i)
-{ return (arr[i/32u] & (1u<<(i%32u))) != 0u; }
-
-static inline void SetBit (u32 *arr, u32 i)
-{ arr[i/32u] |= 1u<<(i%32u); }
-
-static inline void ClearBit (u32 *arr, u32 i)
-{ arr[i/32u] &= ~(1u<<(i%32u)); }
-
-static inline void ToggleBit (u32 *arr, u32 i)
-{ arr[i/32u] ^= 1u<<(i%32u); }
-
+SIL bool GetBit (const u32 *arr, u32 i)
+	{ return (arr[i/32u] & (1u<<(i%32u))) != 0u; }
+SIL void SetBit (u32 *arr, u32 i)
+	{ arr[i/32u] |= 1u<<(i%32u); }
+SIL void ClearBit (u32 *arr, u32 i)
+	{ arr[i/32u] &= ~(1u<<(i%32u)); }
 SIL f32 DotProduct(const f32 *restrict a, const f32 *restrict b)
 	{f32 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
 SIL f64 DotProductF64(const f32 *a, const f32 *b)
@@ -50,7 +44,7 @@ SIL s32 VectorCompare (const vec3_t v1, const vec3_t v2)
 	return 1;
 }
 SIL s32 GreatestCommonDivisor(s32 a, s32 b)
-	{while (b != 0) { s32 t = b; b = a % b; a = t; } return a;}
+	{while(b != 0){ s32 t = b; b = a % b; a = t; } return a;}
 
 SIL void TransformVector(vec3_t in, vec3_t out)
 {
@@ -62,7 +56,7 @@ SIL void TransformVector(vec3_t in, vec3_t out)
 SIL f32 VectorNormalize(vec3_t v)
 {
 	f32 length = VectorLength(v);
-	if (length) {
+	if(length){
 		f32 ilength = 1 / length;
 		v[0] *= ilength;
 		v[1] *= ilength;
@@ -144,12 +138,12 @@ out[2][3]=in1[2][0]*in2[0][3]+in1[2][1]*in2[1][3]+in1[2][2]*in2[2][3]+in1[2][3];
 SIL s32 BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, mplane_t *p)
 { // Returns 1, 2, or 1 + 2
         if(p->type < 3){ //lordhavoc
-                if (p->dist <= emins[p->type]) return 1;
+                if(p->dist <= emins[p->type]) return 1;
 		else if(p->dist >= emaxs[p->type]) return 2;
 		return 3;
 	}
 	f32 dist1 = 0, dist2 = 0;
-	switch (p->signbits) { // general case
+	switch(p->signbits){ // general case
 	case 0:
 	dist1=p->normal[0]*emaxs[0]+p->normal[1]*emaxs[1]+p->normal[2]*emaxs[2];
 	dist2=p->normal[0]*emins[0]+p->normal[1]*emins[1]+p->normal[2]*emins[2];
@@ -187,8 +181,8 @@ SIL s32 BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, mplane_t *p)
 		break;
 	}
 	s32 sides = 0;
-	if (dist1 >= p->dist) sides = 1;
-	if (dist2 < p->dist) sides |= 2;
+	if(dist1 >= p->dist) sides = 1;
+	if(dist2 < p->dist) sides |= 2;
 	return sides;
 }
 
@@ -220,15 +214,15 @@ SIL void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 SIL void FloorDivMod(f64 numer, f64 denom, s32 *quotient, s32 *rem)
 {
 	s32 q, r;
-	if (numer >= 0.0) {
+	if(numer >= 0.0){
 		f64 x = floor(numer / denom);
 		q = (s32)x;
 		r = (s32)floor(numer - (x * denom));
-	} else { // perform operations with positive values, and fix mod
+	}else{ // perform operations with positive values, and fix mod
 		f64 x = floor(-numer / denom); // to make floor-based
 		q = -(s32)x;
 		r = (s32)floor(-numer - (x * denom));
-		if (r != 0) {
+		if(r != 0){
 			q--;
 			r = (s32)denom - r;
 		}
