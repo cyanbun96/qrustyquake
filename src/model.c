@@ -204,7 +204,7 @@ mleaf_t *Mod_PointInLeaf(vec3_t p, model_t *model)
 {
 	if(!model || !model->nodes) Sys_Error("Mod_PointInLeaf: bad model");
 	mnode_t *node = model->nodes;
-	while(1) {
+	while(1){
 		if(node->contents < 0) return(mleaf_t *)node;
 		mplane_t *plane = node->plane;
 		f32 d = DotProduct(p,plane->normal) - plane->dist;
@@ -232,15 +232,17 @@ static u8 *Mod_DecompressVis(u8 *in, model_t *model)
 			row--;
 		}
 		return mod_decompressed;
-	} do {
+	} do{
 		if(*in){
 			*out++ = *in++;
 			continue;
 		}
 		s32 c = in[1];
 		in += 2;
-		if (c > row - (out - mod_decompressed))
-			c = row - (out - mod_decompressed);	//now that we're dynamically allocating pvs buffers, we have to be more careful to avoid heap overflows with buggy maps.
+	// now that we're dynamically allocating pvs buffers, we have to be more
+	// careful to avoid heap overflows with buggy maps.
+		if(c > row - (out - mod_decompressed))
+			c = row - (out - mod_decompressed);
 		while(c){
 			if(out == outend){
 				if(!model->viswarn){
@@ -252,7 +254,7 @@ static u8 *Mod_DecompressVis(u8 *in, model_t *model)
 			*out++ = 0;
 			c--;
 		}
-	} while(out - mod_decompressed < row);
+	}while(out - mod_decompressed < row);
 	return mod_decompressed;
 }
 
@@ -360,12 +362,12 @@ model_t *Mod_ForName(const c8 *name, bool crash)
 static u8 palette_search(u8 r, u8 g, u8 b)
 { // qremip by erysdren (it/its), originally cc0 or public domain
 	s32 pen, dist = 9999999;
-	for (s32 i = 256 - 32; i--;) { // CyanBun96: don't check fullbrights
+	for(s32 i = 256 - 32; i--;){ // CyanBun96: don't check fullbrights
 		s32 rr = host_basepal[i * 3] - r;
 		s32 gg = host_basepal[i * 3 + 1] - g;
 		s32 bb = host_basepal[i * 3 + 2] - b;
 		s32 rank = rr*rr + gg*gg + bb*bb;
-		if (rank < dist) {
+		if(rank < dist){
 			pen = i;
 			dist = rank;
 		}
@@ -381,7 +383,7 @@ static u8 blend4_u8(f32 alpha, f32 beta, u8 a, u8 b, u8 c, u8 d)
 	b_rgb = &host_basepal[b * 3];
 	c_rgb = &host_basepal[c * 3];
 	d_rgb = &host_basepal[d * 3];
-	for (s32 i = 0; i < 3; i++) {
+	for(s32 i = 0; i < 3; i++){
 		result[i] = (1.0 - alpha) * (1.0 - beta) * a_rgb[i] +
 				    alpha * (1.0 - beta) * b_rgb[i] +
 				    (1.0 - alpha) * beta * c_rgb[i] +
@@ -394,8 +396,8 @@ static void bilinear_u8(u8 *in, u8 *out, s32 w, s32 h, s32 new_w, s32 new_h)
 { // qremip by erysdren (it/its), originally cc0 or public domain
 	f32 xscale = (f32)w / (f32)new_w; // get x and y scale
 	f32 yscale = (f32)h / (f32)new_h;
-	for (s32 y = 0; y < new_h; y++) { // loop over all pixels in the new mip
-	for (s32 x = 0; x < new_w; x++) {
+	for(s32 y = 0; y < new_h; y++){ // loop over all pixels in the new mip
+	for(s32 x = 0; x < new_w; x++){
 		f32 src_x = (f32)x * xscale; // get weights
 		f32 src_y = (f32)y * yscale;
 		s32 xlow = (s32)src_x; // get high and low pixels
@@ -406,11 +408,11 @@ static void bilinear_u8(u8 *in, u8 *out, s32 w, s32 h, s32 new_w, s32 new_h)
 		u8 b = in[ylow * w + xhigh];
 		u8 c = in[yhigh * w + xlow];
 		u8 d = in[yhigh * w + xhigh];
-		if (a==0xFF || b==0xFF || c==0xFF || d==0xFF) {
+		if(a==0xFF || b==0xFF || c==0xFF || d==0xFF){
 			out[y * new_w + x] = 0xFF; // don't blend transparents
-		} else if (a>=0xE0 || b>=0xE0 || c>=0xE0 || d>=0xE0) {
+		}else if(a>=0xE0 || b>=0xE0 || c>=0xE0 || d>=0xE0){
 			out[y * new_w + x] = a; // don't blend fullbrights
-		} else { // blend color
+		}else{ // blend color
 			f32 alpha = src_x - (f32)xlow;
 			f32 beta = src_y - (f32)ylow;
 			out[y * new_w + x] = blend4_u8(alpha, beta, a, b, c, d);
@@ -509,12 +511,12 @@ void Mod_LoadTextures(lump_t *l)
 			if(!strncmp(mt->name, "sky", 3))
 				R_InitSky(tx);
 			continue;
-		} else if((mt->width & 8) || (mt->height & 8))
+		}else if((mt->width & 8) || (mt->height & 8))
 			Con_Printf("Texture %s is not 16 aligned\n", mt->name);
 		bool is_water = (mt->name[0] == '*');
 		//CyanBun96: turbulent rendering code only supports 64x64
 		//textures, and i'm NOT trying to rewrite it to support more.
-		if (is_water && (mt->width != 64 || mt->height != 64)) {
+		if(is_water && (mt->width != 64 || mt->height != 64)){
 			u8 *src = (u8 *)mt + mt->offsets[0];
 			u8 resized[64 * 64];
 			//simple nearest-neighbor downscale
@@ -522,11 +524,13 @@ void Mod_LoadTextures(lump_t *l)
 				s32 src_y = y * mt->height / 64;
 				for(s32 x = 0; x < 64; x++){
 					s32 src_x = x * mt->width / 64;
-					resized[y * 64 + x] = src[src_y * mt->width + src_x];
+					resized[y * 64 + x] =
+						src[src_y * mt->width + src_x];
 				}
 			}
 			s32 pixels = 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8;
-			texture_t *tx = Hunk_AllocName(sizeof(texture_t) + pixels, loadname);
+			texture_t *tx = Hunk_AllocName(sizeof(texture_t)+pixels,
+							loadname);
 			loadmodel->textures[i] = tx;
 			memcpy(tx->name, mt->name, sizeof(tx->name));
 			tx->width = 64;
@@ -551,21 +555,24 @@ void Mod_LoadTextures(lump_t *l)
 		memcpy(tx + 1, mt + 1, pixels);
 		if(!SDL_strncasecmp(mt->name, "sky", 3))
 			R_InitSky(tx);
-		if (!r_rebuildmips.value) continue;
+		if(!r_rebuildmips.value) continue;
 		u8 *base = (u8 *)tx + (s32)(tx->offsets[0]);
-		if (r_rebuildmips.value == 2) { // only cutouts and fullbrights
-			for (u32 h = 0; h < tx->height; ++h)
-			for (u32 w = 0; w < tx->width; ++w)
-				if (base[w + h*tx->width] >= 0xE0) goto rebuild;
+		if(r_rebuildmips.value == 2){ // only cutouts and fullbrights
+			for(u32 h = 0; h < tx->height; ++h)
+			for(u32 w = 0; w < tx->width; ++w)
+				if(base[w + h*tx->width] >= 0xE0) goto rebuild;
 			continue;
 		}
 rebuild:
 		mip1 = (u8 *)tx + (s32)(tx->offsets[1]);
 		mip2 = (u8 *)tx + (s32)(tx->offsets[2]);
 		mip3 = (u8 *)tx + (s32)(tx->offsets[3]);
-		bilinear_u8(base, mip1, tx->width, tx->height, tx->width/2, tx->height/2);
-		bilinear_u8(base, mip2, tx->width, tx->height, tx->width/4, tx->height/4);
-		bilinear_u8(base, mip3, tx->width, tx->height, tx->width/8, tx->height/8);
+		bilinear_u8(base, mip1, tx->width, tx->height,
+				tx->width/2, tx->height/2);
+		bilinear_u8(base, mip2, tx->width, tx->height,
+				tx->width/4, tx->height/4);
+		bilinear_u8(base, mip3, tx->width, tx->height,
+				tx->width/8, tx->height/8);
 	}
 	for(s32 i = 0; i < m->nummiptex; i++){ // sequence the animations
 		texture_t *tx = loadmodel->textures[i];
@@ -583,12 +590,12 @@ rebuild:
 			altmax = 0;
 			anims[max] = tx;
 			max++;
-		} else if(max >= 'A' && max <= 'J'){
+		}else if(max >= 'A' && max <= 'J'){
 			altmax = max - 'A';
 			max = 0;
 			altanims[altmax] = tx;
 			altmax++;
-		} else Sys_Error("Bad animating texture %s", tx->name);
+		}else Sys_Error("Bad animating texture %s", tx->name);
 		for(s32 j = i + 1; j < m->nummiptex; j++){
 			texture_t *tx2 = loadmodel->textures[j];
 			if(!tx2 || tx2->name[0] != '+') continue;
@@ -601,12 +608,12 @@ rebuild:
 				anims[num] = tx2;
 				if(num + 1 > max)
 					max = num + 1;
-			} else if(num >= 'A' && num <= 'J'){
+			}else if(num >= 'A' && num <= 'J'){
 				num = num - 'A';
 				altanims[num] = tx2;
 				if(num + 1 > altmax)
 					altmax = num + 1;
-			} else
+			}else
 				Sys_Error("Bad animating texture %s", tx->name);
 		}
 		for(s32 j = 0; j < max; j++){ // link them all together
@@ -663,9 +670,9 @@ static void Mod_LoadLighting(lump_t *l)
 		Con_Printf("Outdated .lit file(%s should be %u bytes, not %u)\n"
 				, litfilename, 8+l->filelen*3, com_filesize);
 			}
-			else { Hunk_FreeToLowMark(mark);
+			else{ Hunk_FreeToLowMark(mark);
 			Con_Printf("Unknown .lit file version(%d)\n",i); }
-		} else { Hunk_FreeToLowMark(mark);
+		}else{ Hunk_FreeToLowMark(mark);
 		Con_Printf("Corrupt .lit file(old version?), ignoring\n");}
 	} // LordHavoc: no .lit found, expand the white lighting data to color
 	if(!l->filelen) return;
@@ -674,7 +681,7 @@ static void Mod_LoadLighting(lump_t *l)
 		// end, so it will not be overwritten until the very last write
 	u8 *out = loadmodel->lightdata;
 	memcpy(in, mod_base + l->fileofs, l->filelen);
-	for(s32 i = 0; i < l->filelen; i++) {
+	for(s32 i = 0; i < l->filelen; i++){
 		u8 d = *in++;
 		*out++ = d; *out++ = d; *out++ = d;
 	}
@@ -707,7 +714,7 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 			out->v[0] = (s32)(in->v[0]);
 			out->v[1] = (s32)(in->v[1]);
 		}
-	} else {
+	}else{
 		dedge_t *in = (dedge_t *)(mod_base + l->fileofs);
 		if(l->filelen % sizeof(*in))
 	Sys_Error("MOD_LoadEdges: funny lump size in %s",loadmodel->name);
@@ -755,24 +762,24 @@ static void Mod_LoadEntities(lump_t *l)
 	snprintf(entfilename,sizeof(entfilename),"%s@%04x.ent",basemapname,crc);
 	u32 path_id;
 	c8 *ents = (c8*)COM_LoadHunkFile(entfilename, &path_id);
-	if(!ents) {
+	if(!ents){
 		snprintf(entfilename,sizeof(entfilename),"%s.ent", basemapname);
 		ents = (c8*)COM_LoadHunkFile(entfilename, &path_id);
 	}
-	if(ents) {
+	if(ents){
 		// use ent file only from the same gamedir as the map
 		// itself or from a searchpath with higher priority.
-		if(path_id < loadmodel->path_id) {
+		if(path_id < loadmodel->path_id){
 			Hunk_FreeToLowMark(mark);
     Con_DPrintf("ignored %s from a gamedir with lower priority\n", entfilename);
-		} else {
+		}else{
 			loadmodel->entities = ents;
 		   Con_DPrintf("Loaded external entity file %s\n", entfilename);
 			return;
 		}
 	}
 _load_embedded:
-	if(!l->filelen) {
+	if(!l->filelen){
 		loadmodel->entities = NULL;
 		return;
 	}
@@ -805,7 +812,7 @@ static void Mod_LoadTexinfo(lump_t *l)
 		if(!loadmodel->textures){
 			out->texture = r_notexture_mip; // checkerboard texture
 			out->flags = 0;
-		} else {
+		}else{
 			if(miptex >= loadmodel->numtextures)
 				Sys_Error("miptex >= loadmodel->numtextures");
 			out->texture = loadmodel->textures[miptex];
@@ -825,11 +832,11 @@ static void CalcSurfaceExtents(msurface_t *s)
 	mins[0] = mins[1] = FLT_MAX;
 	maxs[0] = maxs[1] = -FLT_MAX;
 	mtexinfo_t *tex = s->texinfo;
-	for(s32 i = 0; i < s->numedges; i++) {
+	for(s32 i = 0; i < s->numedges; i++){
 		s32 e = loadmodel->surfedges[s->firstedge+i];
 		if(e >= 0) v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
 		else v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
-		for(s32 j = 0; j < 2; j++) {
+		for(s32 j = 0; j < 2; j++){
 		    // The following calculation is sensitive to floating-point
 		    // precision. It needs to produce the same result that the
 		    // light compiler does, because R_BuildLightMap uses surf->
@@ -852,13 +859,13 @@ static void CalcSurfaceExtents(msurface_t *s)
 			if(val > maxs[j]) maxs[j] = val;
 		}
 	}
-	for(s32 i = 0; i < 2; i++) {
+	for(s32 i = 0; i < 2; i++){
 		bmins[i] = floor(mins[i]/16);
 		bmaxs[i] = ceil(maxs[i]/16);
 		s->texturemins[i] = bmins[i] * 16;
 		s->extents[i] = (bmaxs[i] - bmins[i]) * 16;
 		if(!(tex->flags & TEX_SPECIAL) && s->extents[i] > 2000)
-			Con_Printf("Bad surface extents %d (max 2000)\n", s->extents[i]);
+		Con_Printf("Bad surface extents %d (max 2000)\n",s->extents[i]);
 	}
 }
 
@@ -868,13 +875,13 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	dlface_t *inl;
 	s32 i, count, lofs;
 	s32 planenum, side, texinfon;
-	if(bsp2) {
+	if(bsp2){
 		ins = NULL;
 		inl = (dlface_t *)(mod_base + l->fileofs);
 		if(l->filelen % sizeof(*inl))
 	     Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 		count = l->filelen / sizeof(*inl);
-	} else {
+	}else{
 		ins = (dface_t *)(mod_base + l->fileofs);
 		inl = NULL;
 		if(l->filelen % sizeof(*ins))
@@ -886,8 +893,8 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	      Con_DPrintf("%i faces exceeds standard limit of 32767.\n", count);
 	loadmodel->surfaces = out;
 	loadmodel->numsurfaces = count;
-	for(s32 surfnum = 0; surfnum < count; surfnum++, out++) {
-		if(bsp2) {
+	for(s32 surfnum = 0; surfnum < count; surfnum++, out++){
+		if(bsp2){
 			out->firstedge = (s32)(inl->firstedge);
 			out->numedges = (s32)(inl->numedges);
 			planenum = (s32)(inl->planenum);
@@ -897,7 +904,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 				out->styles[i] = inl->styles[i];
 			lofs = (s32)(inl->lightofs);
 			inl++;
-		} else {
+		}else{
 			out->firstedge = (s32)(ins->firstedge);
 			out->numedges = (s16)(ins->numedges);
 			planenum = (s16)(ins->planenum);
@@ -916,7 +923,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		out->texinfo = loadmodel->texinfo + texinfon;
 		CalcSurfaceExtents(out);
 		if((out->extents[0] > 2000 || out->extents[1] > 2000) &&
-				!(out->texinfo->flags & TEX_SPECIAL)) {
+				!(out->texinfo->flags & TEX_SPECIAL)){
 			out->flags |= SURF_NOTEXTURE; // not a real fix FIXME
 			out->samples = NULL; // just prevents crashes
 		}
@@ -925,11 +932,11 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		if(!SDL_strncasecmp(out->texinfo->texture->name,"sky",3))
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
 		else if(out->texinfo->texture->name[0] == '*' ||
-			out->texinfo->texture->name[0] == '!') { // warp surface
+			out->texinfo->texture->name[0] == '!'){ // warp surface
 			out->flags |= SURF_DRAWTURB;
 			if(out->texinfo->flags & TEX_SPECIAL)
 				out->flags |= SURF_DRAWTILED;
-			else if(out->samples && !loadmodel->haslitwater) {
+			else if(out->samples && !loadmodel->haslitwater){
 				Con_DPrintf("Map has lit water\n");
 				loadmodel->haslitwater = 1;
 			} // detect special liquid types
@@ -940,9 +947,9 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 			else if(!strncmp(out->texinfo->texture->name,"*tele",5))
 				out->flags |= SURF_DRAWTELE;
 			else out->flags |= SURF_DRAWWATER;
-		} else if(out->texinfo->texture->name[0] == '{'){//ericw--fence
+		}else if(out->texinfo->texture->name[0] == '{'){//ericw--fence
 			out->flags |= SURF_DRAWCUTOUT;
-		} else if(out->texinfo->flags & TEX_MISSING){// missing from bsp
+		}else if(out->texinfo->flags & TEX_MISSING){// missing from bsp
 			if(out->samples)out->flags|=SURF_NOTEXTURE;//lightmapped
 			else out->flags|=(SURF_NOTEXTURE|SURF_DRAWTILED);//not.
 		}
@@ -959,21 +966,22 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 size_t Mod_SanitizeMapDescription(c8 *dst, size_t dstsize, const c8 *src)
 {
 	s32 srcpos, dstpos;
-	if (!dstsize) return 0;
-	for (srcpos = dstpos = 0; src[srcpos] && (size_t)dstpos + 1 < dstsize; srcpos++) {
+	if(!dstsize) return 0;
+	for(srcpos=dstpos=0; src[srcpos] && (size_t)dstpos+1<dstsize; srcpos++){
 		c8 c = src[srcpos] & 0x7f; // remove color
-		if (c == '\n' || c == '\r') // replace newlines with spaces
+		if(c == '\n' || c == '\r') // replace newlines with spaces
 			c = ' ';
-		else if (c == '\\' && src[srcpos + 1] == 'n') { // replace '\\' followed by 'n' with space
+		else if(c == '\\' && src[srcpos + 1] == 'n'){
+			// replace '\\' followed by 'n' with space
 			c = ' ';
 			srcpos++;
 		}
-		// remove leading spaces, replace consecutive spaces with single one
-		if (c != ' ' || (dstpos > 0 && dst[dstpos - 1] != c))
+	    // remove leading spaces, replace consecutive spaces with single one
+		if(c != ' ' || (dstpos > 0 && dst[dstpos - 1] != c))
 			dst[dstpos++] = c;
 	}
 	// remove trailing space, if any
-	if (dstpos > 0 && dst[dstpos - 1] == ' ')
+	if(dstpos > 0 && dst[dstpos - 1] == ' ')
 		--dstpos;
 	dst[dstpos] = '\0';
 	return dstpos;
@@ -992,22 +1000,22 @@ bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 	dheader_t header;
 	s32 i, filesize;
 	bool ret = false;
-	if (!maxchars) return false;
+	if(!maxchars) return false;
 	*desc = '\0';
-	if ((size_t) snprintf (path, sizeof(path), "maps/%s.bsp", map) >= sizeof(path))
+	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>= sizeof(path))
 		return false;
 	filesize = COM_FOpenFile (path, &f, NULL);
-	if (filesize <= (s32) sizeof(header)) {
-		if (filesize != -1)
+	if(filesize <= (s32) sizeof(header)){
+		if(filesize != -1)
 			fclose (f);
 		return false;
 	}
-	if (fread (&header, sizeof(header), 1, f) != 1) {
+	if(fread (&header, sizeof(header), 1, f) != 1){
 		fclose (f);
 		return false;
 	}
 	header.version = (s32) (header.version);
-	switch (header.version)
+	switch(header.version)
 	{
 		case BSPVERSION:
 		case BSP2VERSION_2PSB:
@@ -1018,58 +1026,56 @@ bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 			fclose (f);
 			return false;
 	}
-	for (i = 1; i < (s32) (sizeof(header) / sizeof(s32)); i++)
+	for(i = 1; i < (s32) (sizeof(header) / sizeof(s32)); i++)
 		((s32*)&header)[i] = (s32) ( ((s32*)&header)[i]);
 	entlump = &header.lumps[0];
-	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
-			entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize) {
+	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
+	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
 		fclose (f);
 		return false;
 	}
 	// if the entity lump is large enough we assume the map is playable
 	// and only try to parse the first entity (worldspawn) for the map title
-	if ((u64)entlump->filelen >= sizeof(buf)) {
+	if((u64)entlump->filelen >= sizeof(buf)){
 		ret = true;
 		entlump->filelen = sizeof(buf) - 1;
 	}
 	fseek (f, entlump->fileofs - sizeof(header), SEEK_CUR);
 	i = fread (buf, 1, entlump->filelen, f);
 	fclose (f);
-	if (i <= 0)
+	if(i <= 0)
 		return false;
 	buf[i] = '\0';
-	for (i = 0, data = buf; data; i++) {
+	for(i = 0, data = buf; data; i++){
 		data = COM_Parse (data);
-		if (!data || com_token[0] != '{')
+		if(!data || com_token[0] != '{')
 			return ret;
-		while (1) {
+		while(1){
 			bool is_message;
 			bool is_classname;
-			// parse key
-			data = COM_Parse (data);
-			if (!data)
+			data = COM_Parse (data); // parse key
+			if(!data)
 				return ret;
-			if (com_token[0] == '}')
+			if(com_token[0] == '}')
 				break;
 			is_message = i == 0 && !strcmp (com_token, "message");
-			is_classname = i != 0 && !strcmp (com_token, "classname");
+			is_classname = i!=0 && !strcmp (com_token, "classname");
 			// parse value
 			data = COM_ParseEx (data, CPE_ALLOWTRUNC);
-			if (!data)
+			if(!data)
 				return ret;
-			if (is_message) {
-				Mod_SanitizeMapDescription (desc, maxchars, com_token);
-				if (ret)
+			if(is_message){
+			  Mod_SanitizeMapDescription(desc, maxchars, com_token);
+				if(ret)
 					return true;
-			}
-			else if (is_classname) {
+			} else if(is_classname){
 #define CLASSNAME_STARTS_WITH(str) (!strncmp (com_token, str, strlen (str)))
 #define CLASSNAME_IS(str) (!strcmp (com_token, str))
-				if (CLASSNAME_STARTS_WITH ("info_player_") ||
-						CLASSNAME_STARTS_WITH ("ammo_") ||
-						CLASSNAME_STARTS_WITH ("weapon_") ||
-						CLASSNAME_STARTS_WITH ("monster_") ||
-						CLASSNAME_IS ("trigger_changelevel")) {
+				if(CLASSNAME_STARTS_WITH ("info_player_") ||
+				   CLASSNAME_STARTS_WITH ("ammo_") ||
+				   CLASSNAME_STARTS_WITH ("weapon_") ||
+				   CLASSNAME_STARTS_WITH ("monster_") ||
+				   CLASSNAME_IS ("trigger_changelevel")){
 					return true;
 				}
 #undef CLASSNAME_IS
@@ -1089,20 +1095,20 @@ s32 Mod_CountSecrets(const c8 *map)
 	dheader_t header;
 	s32 i, filesize;
 	s32 secret_count = 0;
-	if ((size_t) snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>=sizeof(path))
 		return 0;
-	filesize = COM_FOpenFile (path, &f, NULL);
-	if (filesize <= (s32) sizeof (header)) {
-		if (filesize != -1)
+	filesize = COM_FOpenFile(path, &f, NULL);
+	if(filesize <= (s32)sizeof(header)){
+		if(filesize != -1)
 			fclose (f);
 		return 0;
 	}
-	if (fread (&header, sizeof (header), 1, f) != 1) {
+	if(fread (&header, sizeof(header), 1, f) != 1){
 		fclose (f);
 		return 0;
 	}
 	header.version = (s32) (header.version);
-	switch (header.version) {
+	switch(header.version){
 		case BSPVERSION:
 		case BSP2VERSION_2PSB:
 		case BSP2VERSION_BSP2:
@@ -1112,58 +1118,58 @@ s32 Mod_CountSecrets(const c8 *map)
 			fclose (f);
 			return 0;
 	}
-	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
-		((s32 *)&header)[i] = (s32) (((s32 *)&header)[i]);
+	for(i = 1; i < (s32)(sizeof(header) / sizeof(s32)); i++)
+		((s32*)&header)[i] = (s32)(((s32*)&header)[i]);
 	entlump = &header.lumps[0];
-	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
+	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
 		fclose (f);
 		return 0;
 	}
 	c8 *buf = malloc(entlump->filelen + 1);
-	if (!buf)
+	if(!buf)
 		return 0;
 	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
 	i = fread(buf, 1, entlump->filelen, f);
 	fclose(f);
-	if (i <= 0) {
+	if(i <= 0){
 		free(buf);
 		return 0;
 	}
 	buf[i] = '\0';
-	for (data = buf; data;) {
+	for(data = buf; data;){
 		data = COM_Parse(data);
-		if (!data || com_token[0] != '{')
+		if(!data || com_token[0] != '{')
 			break;
 		s32 spawnflags = 0;
 		bool is_secret = false;
-		while (1) {
+		while(1){
 			data = COM_Parse(data);
-			if (!data)
+			if(!data)
 				return secret_count;
-			if (com_token[0] == '}')
+			if(com_token[0] == '}')
 				break;
 			bool is_classname = !strcmp(com_token, "classname");
 			bool is_spawnflags = !strcmp(com_token, "spawnflags");
 			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-			if (!data)
+			if(!data)
 				return secret_count;
-			if (is_classname) {
-				if (!strcmp(com_token, "trigger_secret")
+			if(is_classname){
+				if(!strcmp(com_token, "trigger_secret")
 				|| !strcmp(com_token, "target_secret") // copper
-				|| !strcmp(com_token, "trigger_secret_point")) // quoth
+			|| !strcmp(com_token, "trigger_secret_point")) // quoth
 					is_secret = true;
 			}
-			else if (is_spawnflags)
+			else if(is_spawnflags)
 				spawnflags = atoi(com_token);
 		}
-		if (is_secret) {
+		if(is_secret){
 			s32 s = (s32)skill.value;
 			bool skip = false;
-			if (s == 0 && (spawnflags & 256)) skip = true;
-			if (s == 1 && (spawnflags & 512)) skip = true;
-			if (s >= 2 && (spawnflags & 1024)) skip = true;
-			if (!skip)
+			if(s == 0 && (spawnflags & 256)) skip = true;
+			if(s == 1 && (spawnflags & 512)) skip = true;
+			if(s >= 2 && (spawnflags & 1024)) skip = true;
+			if(!skip)
 				secret_count++;
 		}
 	}
@@ -1180,20 +1186,20 @@ s32 Mod_CountMonsters(const c8 *map)
 	dheader_t header;
 	s32 i, filesize;
 	s32 monster_count = 0;
-	if ((size_t) snprintf (path, sizeof (path), "maps/%s.bsp", map) >= sizeof (path))
+	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>=sizeof(path))
 		return 0;
 	filesize = COM_FOpenFile (path, &f, NULL);
-	if (filesize <= (s32) sizeof (header)) {
-		if (filesize != -1)
+	if(filesize <= (s32) sizeof (header)){
+		if(filesize != -1)
 			fclose (f);
 		return 0;
 	}
-	if (fread (&header, sizeof (header), 1, f) != 1) {
+	if(fread (&header, sizeof (header), 1, f) != 1){
 		fclose (f);
 		return 0;
 	}
 	header.version = (s32) (header.version);
-	switch (header.version) {
+	switch(header.version){
 		case BSPVERSION:
 		case BSP2VERSION_2PSB:
 		case BSP2VERSION_BSP2:
@@ -1203,56 +1209,56 @@ s32 Mod_CountMonsters(const c8 *map)
 			fclose (f);
 			return 0;
 	}
-	for (i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
+	for(i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
 		((s32 *)&header)[i] = (s32) (((s32 *)&header)[i]);
 	entlump = &header.lumps[0];
-	if (entlump->filelen < 0 || entlump->filelen >= filesize ||
+	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
 		fclose (f);
 		return 0;
 	}
 	c8 *buf = malloc(entlump->filelen + 1);
-	if (!buf)
+	if(!buf)
 		return 0;
 	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
 	i = fread(buf, 1, entlump->filelen, f);
 	fclose(f);
-	if (i <= 0) {
+	if(i <= 0){
 		free(buf);
 		return 0;
 	}
 	buf[i] = '\0';
-	for (data = buf; data;) {
+	for(data = buf; data;){
 		data = COM_Parse(data);
-		if (!data || com_token[0] != '{')
+		if(!data || com_token[0] != '{')
 			break;
 		s32 spawnflags = 0;
 		bool is_monster = false;
-		while (1) {
+		while(1){
 			data = COM_Parse(data);
-			if (!data)
+			if(!data)
 				return monster_count;
-			if (com_token[0] == '}')
+			if(com_token[0] == '}')
 				break;
 			bool is_classname = !strcmp(com_token, "classname");
 			bool is_spawnflags = !strcmp(com_token, "spawnflags");
 			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-			if (!data)
+			if(!data)
 				return monster_count;
-			if (is_classname) {
-				if (!strncmp(com_token, "monster_", 8))
+			if(is_classname){
+				if(!strncmp(com_token, "monster_", 8))
 					is_monster = true;
 			}
-			else if (is_spawnflags)
+			else if(is_spawnflags)
 				spawnflags = atoi(com_token);
 		}
-		if (is_monster) {
+		if(is_monster){
 			s32 s = (s32)skill.value;
 			bool skip = false;
-			if (s == 0 && (spawnflags & 256)) skip = true;
-			if (s == 1 && (spawnflags & 512)) skip = true;
-			if (s >= 2 && (spawnflags & 1024)) skip = true;
-			if (!skip)
+			if(s == 0 && (spawnflags & 256)) skip = true;
+			if(s == 1 && (spawnflags & 512)) skip = true;
+			if(s >= 2 && (spawnflags & 1024)) skip = true;
+			if(!skip)
 				monster_count++;
 		}
 	}
@@ -1292,11 +1298,11 @@ static void Mod_LoadNodes_S(lump_t *l)
 			p = (u16)(s16)(in->children[j]);
 			if(p < count)
 				out->children[j] = loadmodel->nodes + p;
-			else {//note this uses 65535 intentionally, -1 is leaf 0
+			else{//note this uses 65535 intentionally, -1 is leaf 0
 				p = 65535 - p;
 				if(p < loadmodel->numleafs)
 			   out->children[j] = (mnode_t *)(loadmodel->leafs + p);
-				else {
+				else{
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
 							p, loadmodel->numleafs);
 					out->children[j] =
@@ -1329,12 +1335,12 @@ static void Mod_LoadNodes_L1(lump_t *l)
 			p = (s32)(in->children[j]);
 			if(p >= 0 && p < count)
 				out->children[j] = loadmodel->nodes + p;
-			else {//note this uses 65535 intentionally, -1 is leaf 0
+			else{//note this uses 65535 intentionally, -1 is leaf 0
 				p = 0xffffffff - p;
 				if(p >= 0 && p < loadmodel->numleafs)
 					out->children[j] =
 					    (mnode_t *)(loadmodel->leafs + p);
-				else {
+				else{
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
 							p, loadmodel->numleafs);
 					out->children[j] =
@@ -1367,12 +1373,12 @@ static void Mod_LoadNodes_L2(lump_t *l)
 			p = (s32)(in->children[j]);
 			if(p > 0 && p < count)
 				out->children[j] = loadmodel->nodes + p;
-			else {//note this uses 65535 intentionally, -1 is leaf 0
+			else{//note this uses 65535 intentionally, -1 is leaf 0
 				p = 0xffffffff - p;
 				if(p >= 0 && p < loadmodel->numleafs)
 					out->children[j] =
 					    (mnode_t *)(loadmodel->leafs + p);
-				else {
+				else{
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
 							p, loadmodel->numleafs);
 					out->children[j] =
@@ -1492,73 +1498,76 @@ static void Mod_CheckWaterVis()
 	s32 contenttransparent = 0;
 	s32 contenttype;
 	u32 hascontents = 0;
-	if (r_novis.value) { // all can be
+	if(r_novis.value){ // all can be
 		loadmodel->contentstransparent = (SURF_DRAWWATER|SURF_DRAWTELE|
 				SURF_DRAWSLIME|SURF_DRAWLAVA);
 		return;
 	}
-	//pvs is 1-based. leaf 0 sees all (the solid leaf).
-	//leaf 0 has no pvs, and does not appear in other leafs either, so watch out for the biases.
-	for (i=0,leaf=loadmodel->leafs+1 ; i<numclusters ; i++, leaf++) {
+	//pvs is 1-based. leaf 0 sees all (the solid leaf). leaf 0 has no pvs,
+	//and does not appear in other leafs either, so watch out for the biases
+	for(i=0,leaf=loadmodel->leafs+1 ; i<numclusters ; i++, leaf++){
 		u8 *vis;
-		if (leaf->contents < 0) //err... wtf?
+		if(leaf->contents < 0) //err... wtf?
 			hascontents |= 1u<<-leaf->contents;
-		if (leaf->contents == CONTENTS_WATER) {
-			if ((contenttransparent & (SURF_DRAWWATER|SURF_DRAWTELE))==(SURF_DRAWWATER|SURF_DRAWTELE))
+		if(leaf->contents == CONTENTS_WATER){
+			if((contenttransparent & (SURF_DRAWWATER|SURF_DRAWTELE))
+					==(SURF_DRAWWATER|SURF_DRAWTELE))
 				continue;
-			//this check is somewhat risky, but we should be able to get away with it.
-			for (contenttype = 0, j = 0; j < leaf->nummarksurfaces; j++) {
+	//this check is somewhat risky but we should be able to get away with it
+			for(contenttype=0, j=0; j < leaf->nummarksurfaces; j++){
 				surf = leaf->firstmarksurface[j];
-				if (surf->flags & (SURF_DRAWWATER|SURF_DRAWTELE)) {
-					contenttype = surf->flags & (SURF_DRAWWATER|SURF_DRAWTELE);
+				if(surf->flags&(SURF_DRAWWATER|SURF_DRAWTELE)){
+					contenttype = surf->flags &
+						(SURF_DRAWWATER|SURF_DRAWTELE);
 					break;
 				}
 			}
-			//its possible that this leaf has absolutely no surfaces in it, turb or otherwise.
-			if (contenttype == 0) continue;
+			//its possible that this leaf has absolutely no surfaces
+			//in it, turb or otherwise.
+			if(contenttype == 0) continue;
 		}
-		else if (leaf->contents == CONTENTS_SLIME)
+		else if(leaf->contents == CONTENTS_SLIME)
 			contenttype = SURF_DRAWSLIME;
-		else if (leaf->contents == CONTENTS_LAVA)
+		else if(leaf->contents == CONTENTS_LAVA)
 			contenttype = SURF_DRAWLAVA;
 		//fixme: tele
 		else continue;
-		if (contenttransparent & contenttype) {
+		if(contenttransparent & contenttype){
 nextleaf:
 			continue;   //found one of this type already
 		}
 		contentfound |= contenttype;
 		vis = Mod_DecompressVis(leaf->compressed_vis, loadmodel);
-		for (j = 0; j < (numclusters+7)/8; j++) {
-			if (!vis[j]) continue;
-			for (k = 0; k < 8; k++) {
-				if (!(vis[j] & (1u<<k))) continue; 
+		for(j = 0; j < (numclusters+7)/8; j++){
+			if(!vis[j]) continue;
+			for(k = 0; k < 8; k++){
+				if(!(vis[j] & (1u<<k))) continue; 
 				other = &loadmodel->leafs[(j<<3)+k+1];
-				if (leaf->contents != other->contents) {
+				if(leaf->contents != other->contents){
 					contenttransparent |= contenttype;
 					goto nextleaf;
 				}
 			}
 		}
 	}
-	if (!contenttransparent) {   //no water leaf saw a non-water leaf
+	if(!contenttransparent){   //no water leaf saw a non-water leaf
 	    //but only warn when there's actually water somewhere there...
-		if (hascontents & ((1<<-CONTENTS_WATER)
+		if(hascontents & ((1<<-CONTENTS_WATER)
 				|  (1<<-CONTENTS_SLIME)
 				|  (1<<-CONTENTS_LAVA)))
 			Con_DPrintf("%s is not watervised\n", loadmodel->name);
-	} else {
+	}else{
 		Con_DPrintf("%s is vised for transparent", loadmodel->name);
-		if (contenttransparent & SURF_DRAWWATER)
+		if(contenttransparent & SURF_DRAWWATER)
 			Con_DPrintf(" water");
-		if (contenttransparent & SURF_DRAWTELE)
+		if(contenttransparent & SURF_DRAWTELE)
 			Con_DPrintf(" tele");
-		if (contenttransparent & SURF_DRAWLAVA)
+		if(contenttransparent & SURF_DRAWLAVA)
 			Con_DPrintf(" lava");
-		if (contenttransparent & SURF_DRAWSLIME)
+		if(contenttransparent & SURF_DRAWSLIME)
 			Con_DPrintf(" slime");
 		Con_DPrintf("\n");
-		if (((r_wateralpha.value > 0 && r_wateralpha.value < 1) || 
+		if(((r_wateralpha.value > 0 && r_wateralpha.value < 1) || 
 			(r_wateralpha.value > 0 && r_wateralpha.value < 1) ||
 			(r_wateralpha.value > 0 && r_wateralpha.value < 1) ||
 			(r_wateralpha.value > 0 && r_wateralpha.value < 1))
@@ -1582,7 +1591,7 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 		if(l->filelen % sizeof(*inl))
 	  Sys_Error("Mod_LoadClipnodes: funny lump size in %s",loadmodel->name);
 		count = l->filelen / sizeof(*inl);
-	} else {
+	}else{
 		ins = (dsclipnode_t *)(mod_base + l->fileofs);
 		inl = NULL;
 		if(l->filelen % sizeof(*ins))
@@ -1623,7 +1632,7 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 			Host_Error("Mod_LoadClipnodes: planenum out of bounds");
 		out->children[0] = (s32)(inl->children[0]);
 		out->children[1] = (s32)(inl->children[1]);
-	} } else { for(s32 i = 0; i < count; i++, out++, ins++){
+	} }else{ for(s32 i = 0; i < count; i++, out++, ins++){
 		out->planenum = (s32)(ins->planenum);
 		if(out->planenum < 0 || out->planenum >= loadmodel->numplanes)
 			Host_Error("Mod_LoadClipnodes: planenum out of bounds");
@@ -1671,7 +1680,7 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 			 Host_Error("Mod_LoadMarksurfaces: bad surface number");
 			out[i] = loadmodel->surfaces + j;
 		}
-	} else {
+	}else{
 		s16 *in = (s16 *)(mod_base + l->fileofs);
 		if(l->filelen % sizeof(*in))
       Host_Error("Mod_LoadMarksurfaces: funny lump size in %s",loadmodel->name);
@@ -1768,17 +1777,17 @@ static FILE *Mod_FindVisibilityExternal()
 	FILE *f;
 	size_t r;
 	snprintf(visfilename, sizeof(visfilename), "maps/%s.vis", loadname);
-	if(COM_FOpenFile(visfilename, &f, &path_id) < 0) {
+	if(COM_FOpenFile(visfilename, &f, &path_id) < 0){
 		Con_DPrintf("%s not found, trying ", visfilename);
 		snprintf(visfilename, sizeof(visfilename), "%s.vis",
 					COM_SkipPath(com_gamedir));
 		Con_DPrintf("%s\n", visfilename);
-		if(COM_FOpenFile(visfilename, &f, &path_id) < 0) {
+		if(COM_FOpenFile(visfilename, &f, &path_id) < 0){
 			Con_DPrintf("external vis not found\n");
 			return NULL;
 		}
 	}
-	if(path_id < loadmodel->path_id) {
+	if(path_id < loadmodel->path_id){
 		fclose(f);
      Con_DPrintf("ignored %s from a gamedir with lower priority\n",visfilename);
 		return NULL;
@@ -1928,8 +1937,8 @@ visdone:
 }
 
 void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
-	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax, aliashdr_t *pheader,
-	c8 *name, maliasframedesc_t *frame, s32 recursed) {
+	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax,
+	aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame, s32 recursed){
 	daliasframe_t *pdaliasframe = (daliasframe_t *) pin;
 	SDL_strlcpy(name, pdaliasframe->name, 16);
 	if(!recursed){
@@ -1955,7 +1964,7 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 }
 
 void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
-		SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax,
+		SDL_UNUSED trivertx_t *pbboxmin,SDL_UNUSED trivertx_t *pbboxmax,
 		aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame)
 {
 	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
@@ -2134,7 +2143,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 						* ALIAS_BASE_SIZE_RATIO;
 	mod->synctype = (synctype_t)(s32)(pinmodel->synctype);
 	mod->numframes = pheader->numframes;
-	for(s32 i = 0; i < 3; i++) {
+	for(s32 i = 0; i < 3; i++){
 		pmodel->scale[i] = pheader->scale[i] =
 			(f32)(pinmodel->scale[i]);
 		pmodel->scale_origin[i] = pheader->scale_origin[i] =
@@ -2152,14 +2161,14 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pskintype = (daliasskintype_t *)&pinmodel[1];
 	pskindesc = Hunk_AllocName(numskins*sizeof(maliasskindesc_t), loadname);
 	pheader->skindesc = (u8 *)pskindesc - (u8 *)pheader;
-	for(s32 i = 0; i < numskins; i++) {
+	for(s32 i = 0; i < numskins; i++){
 		aliasskintype_t skintype;
 		skintype = (s32)(pskintype->type);
 		pskindesc[i].type = skintype;
-		if(skintype == ALIAS_SKIN_SINGLE) {
+		if(skintype == ALIAS_SKIN_SINGLE){
 			pskintype = (daliasskintype_t *) Mod_LoadAliasSkin(
 			  pskintype + 1, &pskindesc[i].skin, skinsize, pheader);
-		} else {
+		}else{
 			pskintype = (daliasskintype_t *) Mod_LoadAliasSkinGroup(
 			  pskintype + 1, &pskindesc[i].skin, skinsize, pheader);
 		}
@@ -2167,7 +2176,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pstverts = (stvert_t *)&pmodel[1]; // set base s and t vertices
 	pinstverts = (stvert_t *)pskintype;
 	pheader->stverts = (u8 *)pstverts - (u8 *)pheader;
-	for(s32 i = 0; i < pheader->numverts; i++) {
+	for(s32 i = 0; i < pheader->numverts; i++){
 		pstverts[i].onseam = (s32)(pinstverts[i].onseam);
 		// put s and t in 16.16 format
 		pstverts[i].s = (s32)(pinstverts[i].s) << 16;
@@ -2176,14 +2185,14 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	ptri = (mtriangle_t *)&pstverts[pmodel->numverts];//set up the triangles
 	pintriangles = (dtriangle_t *)&pinstverts[pmodel->numverts];
 	pheader->triangles = (u8 *)ptri - (u8 *)pheader;
-	for(s32 i = 0; i<pheader->numtris ; i++) {
+	for(s32 i = 0; i<pheader->numtris ; i++){
 		ptri[i].facesfront = (s32)(pintriangles[i].facesfront);
 		for(s32 j = 0; j < 3; j++)
 		  ptri[i].vertindex[j]=(s32)(pintriangles[i].vertindex[j]);
 	}
 	posenum = 0; // load the frames
 	pframetype = (daliasframetype_t *)&pintriangles[pmodel->numtris];
-	for(s32 i = 0; i < numframes; i++) {
+	for(s32 i = 0; i < numframes; i++){
 		aliasframetype_t frametype;
 		frametype = (aliasframetype_t)(s32)(pframetype->type);
 		pheader->frames[i].type = frametype;
@@ -2296,7 +2305,7 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 			pframetype = (dspriteframetype_t *)
 				Mod_LoadSpriteFrame(pframetype + 1,
 						&psprite->frames[i].frameptr);
-		} else {
+		}else{
 			pframetype = (dspriteframetype_t *)
 				Mod_LoadSpriteGroup(pframetype + 1,
 						&psprite->frames[i].frameptr);
