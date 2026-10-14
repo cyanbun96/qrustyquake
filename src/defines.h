@@ -579,6 +579,7 @@
 #define LIGHT_MIN 5
 #define GUARDSIZE 4 // d_surf.c
 #define ANIM_CYCLE 2 // model.c
+#define MOD_NOLERP 256
 #define MAX_MOD_KNOWN 4096 // johnfitz -- was 512
 #define NL_PRESENT 0 // values for model_t's needload // TODO is this needed at all?
 #define VISPATCH_HEADER_LEN 36

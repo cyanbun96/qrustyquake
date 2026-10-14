@@ -407,7 +407,8 @@ void R_SetupAliasFrame (aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 			e->currentpose = posenum;
 		}
 	}
-	if(r_lerpmodels.value){ //set up values
+	if(r_lerpmodels.value && !(e->model->flags & MOD_NOLERP
+				&& r_lerpmodels.value != 2)){ //set up values
 		lerpdata->blend = CLAMP(0, (cl.time - e->lerpstart) / 
 			((e->lerpflags&LERP_FINISH && numposes==1) ?
 			 (e->lerpfinish - e->lerpstart) : e->lerptime), 1);

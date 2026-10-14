@@ -321,6 +321,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_rebuildmips);
 	Cvar_RegisterVariable(&r_fogdepthcorrection);
 	Cvar_RegisterVariable(&r_fullbright_list);
+	Cvar_RegisterVariable(&r_nolerp_list);
 	Cvar_RegisterVariable(&r_litwater);
 	Cvar_RegisterVariable(&r_novis);
 	Cvar_RegisterVariable(&r_particlescale);

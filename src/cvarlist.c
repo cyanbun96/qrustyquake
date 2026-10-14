@@ -142,6 +142,7 @@ cvar_t r_lockfogg=                                   {"r_lockfogg", "0", 1, ZR};
 cvar_t r_lockfogr=                                   {"r_lockfogr", "0", 1, ZR};
 cvar_t r_mipscale=                                    {"r_mipscale", "1", 1,ZR};
 cvar_t r_nofog=                                          {"r_nofog", "0", 1,ZR};
+cvar_t r_nolerp_list = {"r_nolerp_list", "progs/flame.mdl,progs/flame2.mdl,progs/braztall.mdl,progs/brazshrt.mdl,progs/longtrch.mdl,progs/flame_pyre.mdl,progs/v_saw.mdl,progs/v_xfist.mdl,progs/h2stuff/newfire.mdl", 0, 0, 0, 0, 0};
 cvar_t r_novis=                                           {"r_novis","0", 1,ZR};
 cvar_t r_numedges=                                    {"r_numedges", "0", 0,ZR};
 cvar_t r_numsurfs=                                    {"r_numsurfs", "0", 0,ZR};

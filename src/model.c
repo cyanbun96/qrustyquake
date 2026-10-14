@@ -2210,6 +2210,8 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	}
 	pheader->numposes = posenum; // Baker: Watch this and compare vs. Mark V
 	mod->type = mod_alias;
+	if(nameInList(r_nolerp_list.string, mod->name))
+		mod->flags |= MOD_NOLERP;
 	Mod_CalcAliasBounds(pheader); //johnfitz
 	// move the complete, relocatable alias model to the cache
 	s32 end = Hunk_LowMark();
