@@ -154,7 +154,9 @@ void Con_SafePrintf(c8 *fmt, ...);
 void Con_DrawNotify();
 void Con_ClearNotify();
 void Con_ToggleConsole_f();
-s32 Datagram_Init();                                               // net_dgrm.h
+EX bool m_return_onerror;                                          // net_dgrm.h
+EX c8 m_return_reason[32];
+s32 Datagram_Init();
 void Datagram_Listen(bool state);
 void Datagram_SearchForHosts(bool xmit);
 qsocket_t *Datagram_Connect(const c8 *host);
