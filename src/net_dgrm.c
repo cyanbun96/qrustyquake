@@ -21,6 +21,8 @@ static s32 receivedDuplicateCount = 0;
 static s32 shortPacketCount = 0;
 static s32 droppedDatagrams;
 static s32 myDriverLevel;
+static struct in_addr banAddr;
+static struct in_addr banMask;
 extern bool m_return_onerror;
 extern c8 m_return_reason[32];
 
@@ -41,6 +43,52 @@ static c8 *StrAddr(struct qsockaddr *addr)
 	for (n = 0; n < 16; n++)
 		sprintf(buf + n * 2, "%02x", *p++);
 	return buf;
+}
+
+static void NET_Ban_f()
+{
+	if (cmd_source == src_command) {
+		if (!sv.active) {
+			Cmd_ForwardToServer ();
+			return;
+		}
+	} else if (pr_global_struct->deathmatch)
+			return;
+	c8 addrStr[32];
+	c8 maskStr[32];
+	switch(Cmd_Argc()){
+	case 1:
+		if (banAddr.s_addr != INADDR_ANY) {
+			strcpy(addrStr, inet_ntoa(banAddr));
+			strcpy(maskStr, inet_ntoa(banMask));
+			if (cmd_source == src_command)
+				Con_Printf("Banning %s [%s]\n",addrStr,maskStr);
+			else
+			   SV_ClientPrintf("Banning %s [%s]\n",addrStr,maskStr);
+		} else {
+			if (cmd_source == src_command)
+				Con_Printf("Banning not active\n");
+			else 
+				SV_ClientPrintf("Banning not active\n");
+		}
+		break;
+	case 2:
+		if (SDL_strcasecmp(Cmd_Argv(1), "off") == 0)
+			banAddr.s_addr = INADDR_ANY;
+		else banAddr.s_addr = inet_addr(Cmd_Argv(1));
+		banMask.s_addr = INADDR_NONE;
+		break;
+	case 3:
+		banAddr.s_addr = inet_addr(Cmd_Argv(1));
+		banMask.s_addr = inet_addr(Cmd_Argv(2));
+		break;
+	default:
+		if(cmd_source == src_command)
+			Con_Printf("BAN ip_address [mask]\n");
+		else
+			SV_ClientPrintf("BAN ip_address [mask]\n");
+		break;
+	}
 }
 
 s32 Datagram_SendMessage(qsocket_t *sock, sizebuf_t *data)
@@ -563,10 +611,8 @@ s32 Datagram_Init()
 {
 	s32 i, num_inited;
 	sys_socket_t csock;
-#ifdef BAN_TEST
 	banAddr.s_addr = INADDR_ANY;
 	banMask.s_addr = INADDR_NONE;
-#endif
 	myDriverLevel = net_driverlevel;
 	Cmd_AddCommand("net_stats", NET_Stats_f);
 	s32 safemode = 0;
@@ -583,9 +629,7 @@ s32 Datagram_Init()
 	}
 	if (num_inited == 0)
 		return -1;
-#ifdef BAN_TEST
 	Cmd_AddCommand("ban", NET_Ban_f);
-#endif
 	Cmd_AddCommand("test", Test_f);
 	Cmd_AddCommand("test2", Test2_f);
 	return 0;
@@ -745,7 +789,6 @@ static qsocket_t *_Datagram_CheckNewConnections()
 		SZ_Clear(&net_message);
 		return NULL;
 	}
-#ifdef BAN_TEST
 	// check for a ban
 	if (clientaddr.qsa_family == AF_INET) {
 		in_addr_t testAddr;
@@ -765,7 +808,6 @@ static qsocket_t *_Datagram_CheckNewConnections()
 			return NULL;
 		}
 	}
-#endif
 	// see if this guy is already connected
 	for (s = net_activeSockets; s; s = s->next) {
 		if (s->driver != net_driverlevel)
