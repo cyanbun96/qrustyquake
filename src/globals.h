@@ -320,7 +320,7 @@ void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface);
 s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 s32 D_Dither(u8 *pos, f32 opacity);
-EX s32 DEFAULTnet_hostport;                                             // net.h
+EX s32 default_net_hostport;                                             // net.h
 EX s32 net_hostport;
 EX f64 net_time;
 EX sizebuf_t net_message;

@@ -3678,7 +3678,7 @@ void M_Menu_LanConfig_f()
 	}
 	if(StartingGame && lanConfig_cursor == 2)
 		lanConfig_cursor = 1;
-	lanConfig_port = DEFAULTnet_hostport;
+	lanConfig_port = default_net_hostport;
 	sprintf(lanConfig_portname, "%u", lanConfig_port);
 	m_return_onerror = 0;
 	m_return_reason[0] = 0;

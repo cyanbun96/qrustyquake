@@ -182,6 +182,25 @@ surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
 edge_t *newedges[MAXHEIGHT];
 edge_t *removeedges[MAXHEIGHT];
 s32 r_currentkey;
+s32 net_driverlevel;                                               // net_main.c
+f64 net_time;
+s32 hostCacheCount = 0;
+hostcache_t hostcache[HOSTCACHESIZE];
+qsocket_t *net_activeSockets = NULL;
+qsocket_t *net_freeSockets = NULL;
+bool tcpipAvailable = 0;
+s32 net_hostport;
+s32 default_net_hostport = 26000;
+c8 my_tcpip_address[NET_NAMELEN];
+bool slistSilent = 0;
+bool slistLocal = 1;
+bool slistInProgress = 0;
+sizebuf_t net_message;
+s32 net_activeconnections = 0;
+s32 messagesSent = 0;
+s32 messagesReceived = 0;
+s32 unreliableMessagesSent = 0;
+s32 unreliableMessagesReceived = 0;
 u32 scr_fullupdate;                                                  // screen.c
 u32 clearnotify;
 vrect_t scr_vrect;

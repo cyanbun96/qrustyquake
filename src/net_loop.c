@@ -10,14 +10,12 @@ static qsocket_t *loop_server = NULL;
 
 s32 Loop_Init()
 {
-	if (cls.state == ca_dedicated)
+	if(cls.state == ca_dedicated)
 		return -1;
 	return 0;
 }
 
-void Loop_Shutdown()
-{
-}
+void Loop_Shutdown(){ }
 
 void Loop_Listen(bool state)
 {
@@ -27,10 +25,10 @@ void Loop_Listen(bool state)
 void Loop_SearchForHosts(bool xmit)
 {
 	(void)xmit; // same as above
-	if (!sv.active)
+	if(!sv.active)
 		return;
 	hostCacheCount = 1;
-	if (strcmp(hostname.string, "UNNAMED") == 0)
+	if(strcmp(hostname.string, "UNNAMED") == 0)
 		strcpy(hostcache[0].name, "local");
 	else
 		strcpy(hostcache[0].name, hostname.string);
@@ -43,11 +41,11 @@ void Loop_SearchForHosts(bool xmit)
 
 qsocket_t *Loop_Connect(const c8 *host)
 {
-	if (strcmp(host, "local") != 0)
+	if(strcmp(host, "local") != 0)
 		return NULL;
 	localconnectpending = 1;
-	if (!loop_client) {
-		if ((loop_client = NET_NewQSocket()) == NULL) {
+	if(!loop_client){
+		if((loop_client = NET_NewQSocket()) == NULL){
 			Con_Printf("Loop_Connect: no qsocket available\n");
 			return NULL;
 		}
@@ -56,8 +54,8 @@ qsocket_t *Loop_Connect(const c8 *host)
 	loop_client->receiveMessageLength = 0;
 	loop_client->sendMessageLength = 0;
 	loop_client->canSend = 1;
-	if (!loop_server) {
-		if ((loop_server = NET_NewQSocket()) == NULL) {
+	if(!loop_server){
+		if((loop_server = NET_NewQSocket()) == NULL){
 			Con_Printf("Loop_Connect: no qsocket available\n");
 			return NULL;
 		}
@@ -73,7 +71,7 @@ qsocket_t *Loop_Connect(const c8 *host)
 
 qsocket_t *Loop_CheckNewConnections()
 {
-	if (!localconnectpending)
+	if(!localconnectpending)
 		return NULL;
 	localconnectpending = 0;
 	loop_server->sendMessageLength = 0;
@@ -86,13 +84,11 @@ qsocket_t *Loop_CheckNewConnections()
 }
 
 static s32 IntAlign(s32 value)
-{
-	return (value + (sizeof(s32) - 1)) & (~(sizeof(s32) - 1));
-}
+{ return (value + (sizeof(s32) - 1)) & (~(sizeof(s32) - 1)); }
 
 s32 Loop_GetMessage(qsocket_t *sock)
 {
-	if (sock->receiveMessageLength == 0)
+	if(sock->receiveMessageLength == 0)
 		return 0;
 	s32 ret = sock->receiveMessage[0];
 	s32 length = sock->receiveMessage[1] + (sock->receiveMessage[2] << 8);
@@ -101,20 +97,20 @@ s32 Loop_GetMessage(qsocket_t *sock)
 	SZ_Write(&net_message, &sock->receiveMessage[4], length);
 	length = IntAlign(length + 4);
 	sock->receiveMessageLength -= length;
-	if (sock->receiveMessageLength)
+	if(sock->receiveMessageLength)
 		memmove(sock->receiveMessage, &sock->receiveMessage[length],
 			sock->receiveMessageLength);
-	if (sock->driverdata && ret == 1)
+	if(sock->driverdata && ret == 1)
 		((qsocket_t *) sock->driverdata)->canSend = 1;
 	return ret;
 }
 
 s32 Loop_SendMessage(qsocket_t *sock, sizebuf_t *data)
 {
-	if (!sock->driverdata)
+	if(!sock->driverdata)
 		return -1;
-	s32 *bufferLength = &((qsocket_t *) sock->driverdata)->receiveMessageLength;
-	if ((*bufferLength + data->cursize + 4) > NET_MAXMESSAGE)
+	s32 *bufferLength=&((qsocket_t*)sock->driverdata)->receiveMessageLength;
+	if((*bufferLength + data->cursize + 4) > NET_MAXMESSAGE)
 		Sys_Error("Loop_SendMessage: overflow");
 	u8 *buffer =
 	    ((qsocket_t *) sock->driverdata)->receiveMessage + *bufferLength;
@@ -130,15 +126,12 @@ s32 Loop_SendMessage(qsocket_t *sock, sizebuf_t *data)
 
 s32 Loop_SendUnreliableMessage(qsocket_t *sock, sizebuf_t *data)
 {
-	if (!sock->driverdata)
+	if(!sock->driverdata)
 		return -1;
-	s32 *bufferLength =
-		&((qsocket_t *) sock->driverdata)->receiveMessageLength;
-	if ((*bufferLength + data->cursize + sizeof(u8) + sizeof(s16)) >
-	    NET_MAXMESSAGE)
+	s32 *bufferLength=&((qsocket_t*)sock->driverdata)->receiveMessageLength;
+	if((*bufferLength+data->cursize+sizeof(u8)+sizeof(s16))>NET_MAXMESSAGE)
 		return 0;
-	u8 *buffer =
-	    ((qsocket_t *) sock->driverdata)->receiveMessage + *bufferLength;
+	u8 *buffer=((qsocket_t*)sock->driverdata)->receiveMessage+*bufferLength;
 	*buffer++ = 2; // message type
 	*buffer++ = data->cursize & 0xff; // length
 	*buffer++ = data->cursize >> 8;
@@ -150,7 +143,7 @@ s32 Loop_SendUnreliableMessage(qsocket_t *sock, sizebuf_t *data)
 
 bool Loop_CanSendMessage(qsocket_t *sock)
 {
-	if (!sock->driverdata)
+	if(!sock->driverdata)
 		return 0;
 	return sock->canSend;
 }
@@ -163,12 +156,12 @@ bool Loop_CanSendUnreliableMessage(qsocket_t *sock)
 
 void Loop_Close(qsocket_t *sock)
 {
-	if (sock->driverdata)
+	if(sock->driverdata)
 		((qsocket_t *) sock->driverdata)->driverdata = NULL;
 	sock->receiveMessageLength = 0;
 	sock->sendMessageLength = 0;
 	sock->canSend = 1;
-	if (sock == loop_client)
+	if(sock == loop_client)
 		loop_client = NULL;
 	else
 		loop_server = NULL;

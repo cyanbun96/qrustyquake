@@ -174,7 +174,6 @@ static s32 mod_decompressed_capacity;
 static model_t mod_known[MAX_MOD_KNOWN];
 static s32 mod_numknown;
 static texture_t *r_notexture_mip2; //non-lightmapped surfs without a texture
-extern texture_t *r_notexture_mip;
 
 u8 *Mod_NoVisPVS(model_t *model);
 
