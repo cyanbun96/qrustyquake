@@ -44,7 +44,7 @@ bool R_AliasCheckBBox()
 	// construct the base bounding box for this frame
 	s32 frame = currententity->frame;
 	// TODO: don't repeat this check when drawing?
-	if ((frame >= pmdl->numframes) || (frame < 0)) {
+	if((frame >= pmdl->numframes) || (frame < 0)){
 		Con_DPrintf("No such frame %d %s\n", frame, pmodel->name);
 		frame = 0;
 	}
@@ -64,31 +64,31 @@ bool R_AliasCheckBBox()
 	s32 minz = 9999;
 	finalvert_t *pv0, *pv1, viewpts[16];
 	auxvert_t *pa0, *pa1, viewaux[16];
-	for (s32 i = 0; i < 8; i++) {
+	for(s32 i = 0; i < 8; i++){
 		R_AliasTransformVector(&bp[i][0], &viewaux[i].fv[0]);
-		if (viewaux[i].fv[2] < ALIAS_Z_CLIP_PLANE) {
+		if(viewaux[i].fv[2] < ALIAS_Z_CLIP_PLANE){
 		// we must clip points that are closer than the near clip plane
 			viewpts[i].flags = ALIAS_Z_CLIP;
 			zclipped = 1;
-		} else {
-			if (viewaux[i].fv[2] < minz)
+		}else{
+			if(viewaux[i].fv[2] < minz)
 				minz = viewaux[i].fv[2];
 			viewpts[i].flags = 0;
 			zfullyclipped = 0;
 		}
 	}
-	if (zfullyclipped)
+	if(zfullyclipped)
 		return 0; // everything was near-z-clipped
 	s32 numv = 8;
 	// organize points by edges, use edges to get new points
-	for (s32 i = 0; zclipped && i < 12; i++) { // (possible trivial reject)
+	for(s32 i = 0; zclipped && i < 12; i++){ // (possible trivial reject)
 		// edge endpoints
 		pv0 = &viewpts[aedges[i].index0];
 		pv1 = &viewpts[aedges[i].index1];
 		pa0 = &viewaux[aedges[i].index0];
 		pa1 = &viewaux[aedges[i].index1];
 		// if one end is clipped and the other isn't, make a new point
-		if (!(pv0->flags ^ pv1->flags))
+		if(!(pv0->flags ^ pv1->flags))
 			continue;
 		f32 f=(ALIAS_Z_CLIP_PLANE-pa0->fv[2])/(pa1->fv[2]-pa0->fv[2]);
 		viewaux[numv].fv[0] = pa0->fv[0]+(pa1->fv[0]-pa0->fv[0])*f;
@@ -100,30 +100,30 @@ bool R_AliasCheckBBox()
 	// project the vertices that remain after clipping
 	u32 anyclip = 0;
 	u32 allclip = ALIAS_XY_CLIP_MASK;
-	for (s32 i = 0; i < numv; i++) {
+	for(s32 i = 0; i < numv; i++){
 		// we don't need to bother with vertices that were z-clipped
-		if (viewpts[i].flags & ALIAS_Z_CLIP)
+		if(viewpts[i].flags & ALIAS_Z_CLIP)
 			continue;
 		f32 zi = 1.0 / viewaux[i].fv[2];
 		// FIXME: do with chop mode in ASM, or convert to f32
 		f32 v0 = (viewaux[i].fv[0] * xscale * zi) + xcenter;
 		f32 v1 = (viewaux[i].fv[1] * yscale * zi) + ycenter;
 		s32 flags = 0;
-		if (v0 < r_refdef.fvrectx)
+		if(v0 < r_refdef.fvrectx)
 			flags |= ALIAS_LEFT_CLIP;
-		if (v1 < r_refdef.fvrecty)
+		if(v1 < r_refdef.fvrecty)
 			flags |= ALIAS_TOP_CLIP;
-		if (v0 > r_refdef.fvrectright)
+		if(v0 > r_refdef.fvrectright)
 			flags |= ALIAS_RIGHT_CLIP;
-		if (v1 > r_refdef.fvrectbottom)
+		if(v1 > r_refdef.fvrectbottom)
 			flags |= ALIAS_BOTTOM_CLIP;
 		anyclip |= flags;
 		allclip &= flags;
 	}
-	if (allclip)
+	if(allclip)
 		return 0; // trivial reject off one side
 	currententity->trivial_accept = !anyclip & !zclipped;
-	if (currententity->trivial_accept &&
+	if(currententity->trivial_accept &&
 		minz > (r_aliastransition + (pmdl->size * r_resfudge)))
 			currententity->trivial_accept |= 2;
 	return 1;
@@ -141,11 +141,11 @@ s32 R_AliasLightVert(aliaslerp_t *pverts)
         f32 temp = r_ambientlight;
         f32 *plightnormal = r_avertexnormals[pverts->currlightnormal];
         f32 lightcos = DotProduct (plightnormal, r_plightvec) * pverts->blend;
-        if(lightcos < 0) {
+        if(lightcos < 0){
                 temp += (s32)(r_shadelight * lightcos);
                 // clamp; because we limited the minimum ambient and shading
                 // light, wedon't have to clamp low light, just bright
-                if (temp < 0) temp = 0;
+                if(temp < 0) temp = 0;
         }
         plightnormal = r_avertexnormals[pverts->lastlightnormal];
         lightcos = DotProduct(plightnormal, r_plightvec) * (1.0f-pverts->blend);
@@ -159,7 +159,7 @@ s32 R_AliasLightVert(aliaslerp_t *pverts)
 }
 
 void R_AliasTransformFinalVert(finalvert_t *fv, auxvert_t *av,
-				aliaslerp_t *pverts, stvert_t *pstverts) {
+				aliaslerp_t *pverts, stvert_t *pstverts){
         av->fv[0] =DotProduct(pverts->v,aliastransform[0])+aliastransform[0][3];
         av->fv[1] =DotProduct(pverts->v,aliastransform[1])+aliastransform[1][3];
         av->fv[2] =DotProduct(pverts->v,aliastransform[2])+aliastransform[2][3];
@@ -178,17 +178,17 @@ void R_AliasPreparePoints()
         lerpverts = r_aliaslerpverts;
         for(s32 i = 0; i < r_anumverts; i++,fv++,av++,lerpverts++,pstverts++){
                 R_AliasTransformFinalVert(fv, av, lerpverts, pstverts);
-                if (av->fv[2] < ALIAS_Z_CLIP_PLANE)
+                if(av->fv[2] < ALIAS_Z_CLIP_PLANE)
                         fv->flags |= ALIAS_Z_CLIP;
                 else{
                         R_AliasProjectFinalVert(fv, av);
-                        if (fv->v[0] < r_refdef.aliasvrect.x)
+                        if(fv->v[0] < r_refdef.aliasvrect.x)
                                 fv->flags |= ALIAS_LEFT_CLIP;
-                        if (fv->v[1] < r_refdef.aliasvrect.y)
+                        if(fv->v[1] < r_refdef.aliasvrect.y)
                                 fv->flags |= ALIAS_TOP_CLIP;
-                        if (fv->v[0] > r_refdef.aliasvrectright)
+                        if(fv->v[0] > r_refdef.aliasvrectright)
                                 fv->flags |= ALIAS_RIGHT_CLIP;
-                        if (fv->v[1] > r_refdef.aliasvrectbottom)
+                        if(fv->v[1] > r_refdef.aliasvrectbottom)
                                 fv->flags |= ALIAS_BOTTOM_CLIP;
                 }
         }
@@ -207,7 +207,7 @@ void R_AliasPreparePoints()
                         r_affinetridesc.pfinalverts = pfinalverts;
                         r_affinetridesc.ptriangles = ptri;
                         D_PolysetDraw(); // totally unclipped
-                } else { // partially clipped
+                }else{ // partially clipped
                         R_AliasClipTriangle (ptri);
                 }
         }
@@ -219,9 +219,6 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 	static f32 tmatrix[3][4];
 	static f32 viewmatrix[3][4];
 	vec3_t angles;
-	// TODO: should really be stored with the entity instead of being reconstructed
-	// TODO: should use a look-up table
-	// TODO: could cache lazily, stored in the entity
 	angles[ROLL] = currententity->angles[ROLL];
 	angles[PITCH] = -currententity->angles[PITCH];
 	angles[YAW] = currententity->angles[YAW];
@@ -246,8 +243,7 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 	tmatrix[0][3] = pmdl->scale_origin[0];
 	tmatrix[1][3] = pmdl->scale_origin[1] * gunfovscale;
 	tmatrix[2][3] = pmdl->scale_origin[2] * gunfovscale;
-	// TODO: can do this with simple matrix rearrangement
-	for (s32 i = 0; i < 3; i++) {
+	for(s32 i = 0; i < 3; i++){
 		t2matrix[i][0] = alias_forward[i];
 		t2matrix[i][1] = -alias_right[i];
 		t2matrix[i][2] = alias_up[i];
@@ -255,22 +251,19 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 	t2matrix[0][3] = -modelorg[0];
 	t2matrix[1][3] = -modelorg[1];
 	t2matrix[2][3] = -modelorg[2];
-	// FIXME: can do more efficiently than full concatenation
 	R_ConcatTransforms(t2matrix, tmatrix, rotationmatrix);
-	// TODO: should be global, set when vright, etc., set
 	VectorCopy(vright, viewmatrix[0]);
 	VectorCopy(vup, viewmatrix[1]);
 	VectorInverse(viewmatrix[1]);
 	VectorCopy(vpn, viewmatrix[2]);
 	R_ConcatTransforms(viewmatrix, rotationmatrix, aliastransform);
-	// do the scaling up of x and y to screen coordinates as part of the transform
-	// for the unclipped case (it would mess up clipping in the clipped case).
-	// Also scale down z, so 1/z is scaled 31 bits for free, and scale down x and y
-	// correspondingly so the projected x and y come out right
-	// FIXME: make this work for clipped case too?
-	if (!trivial_accept) 
+// do the scaling up of x and y to screen coordinates as part of the transform
+// for the unclipped case (it would mess up clipping in the clipped case).
+// Also scale down z, so 1/z is scaled 31 bits for free, and scale down x and y
+// correspondingly so the projected x and y come out right
+	if(!trivial_accept) 
 		return;
-	for (s32 i = 0; i < 4; i++) {
+	for(s32 i = 0; i < 4; i++){
 		aliastransform[0][i]*=aliasxscale*(1.0/((f32)0x8000*0x10000));
 		aliastransform[1][i]*=aliasyscale*(1.0/((f32)0x8000*0x10000));
 		aliastransform[2][i] *= 1.0 / ((f32)0x8000 * 0x10000);
@@ -312,7 +305,7 @@ void R_AliasPrepareUnclippedPoints()
         stvert_t *pstverts = (stvert_t *)((u8 *)paliashdr + paliashdr->stverts);
         r_anumverts = pmdl->numverts;
         R_AliasTransformAndProjectFinalVerts(pfinalverts, pstverts);
-        if (r_affinetridesc.drawtype)
+        if(r_affinetridesc.drawtype)
                 D_PolysetDrawFinalVerts(pfinalverts, r_anumverts);
         r_affinetridesc.pfinalverts = pfinalverts;
         r_affinetridesc.ptriangles = (mtriangle_t *)
@@ -324,14 +317,14 @@ void R_AliasPrepareUnclippedPoints()
 void R_AliasSetupSkin()
 {
 	s32 skinnum = currententity->skinnum;
-	if ((skinnum >= pmdl->numskins) || (skinnum < 0)) {
+	if((skinnum >= pmdl->numskins) || (skinnum < 0)){
 		Con_DPrintf("R_AliasSetupSkin: no such skin # %d\n", skinnum);
 		skinnum = 0;
 	}
 	pskindesc = ((maliasskindesc_t *)((u8 *) paliashdr +
 				paliashdr->skindesc)) + skinnum;
 	a_skinwidth = pmdl->skinwidth;
-	if (pskindesc->type == ALIAS_SKIN_GROUP) {
+	if(pskindesc->type == ALIAS_SKIN_GROUP){
 		maliasskingroup_t *paliasskingroup = (maliasskingroup_t *)
 				((u8 *) paliashdr + pskindesc->skin);
 		f32 *pskinintervals = (f32 *)((u8 *) paliashdr
@@ -344,8 +337,8 @@ void R_AliasSetupSkin()
 		f32 skintargettime = skintime - ((s32)(skintime /
 					fullskininterval)) * fullskininterval;
 		s32 i = 0;
-		for (; i < (numskins - 1); i++) {
-			if (pskinintervals[i] > skintargettime)
+		for(; i < (numskins - 1); i++){
+			if(pskinintervals[i] > skintargettime)
 				break;
 		}
 		pskindesc = &paliasskingroup->skindescs[i];
@@ -362,13 +355,13 @@ void R_AliasSetupLighting(alight_t *plighting)
 	// guarantee that no vertex will ever be lit below LIGHT_MIN, so we
 	// don't have to clamp off the bottom
 	r_ambientlight = plighting->ambientlight;
-	if (r_ambientlight < LIGHT_MIN)
+	if(r_ambientlight < LIGHT_MIN)
 		r_ambientlight = LIGHT_MIN;
 	r_ambientlight = (255 - r_ambientlight) << VID_CBITS;
-	if (r_ambientlight < LIGHT_MIN)
+	if(r_ambientlight < LIGHT_MIN)
 		r_ambientlight = LIGHT_MIN;
 	r_shadelight = plighting->shadelight;
-	if (r_shadelight < 0)
+	if(r_shadelight < 0)
 		r_shadelight = 0;
 	r_shadelight *= VID_GRADES;
 	// rotate the lighting vector into the model's frame of reference
@@ -380,7 +373,7 @@ void R_AliasSetupLighting(alight_t *plighting)
 void R_SetupAliasFrame (aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 { // johnfitz -- rewritten to support lerping
 	entity_t *e = currententity;
-	if ((frame >= paliashdr->numframes) || (frame < 0)) {
+	if((frame >= paliashdr->numframes) || (frame < 0)){
 		Con_DPrintf ("R_AliasSetupFrame: no such frame %d", frame);
 		frame = 0;
 	}
@@ -388,7 +381,7 @@ void R_SetupAliasFrame (aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 	s32 numposes = paliashdr->frames[frame].numposes;
 	if(numposes > 1){
 		e->lerptime = paliashdr->frames[frame].interval;
-		posenum += (int)(cl.time / e->lerptime) % numposes;
+		posenum += (s32)(cl.time / e->lerptime) % numposes;
 	}else e->lerptime = 0.1;
 	if(e->lerpflags & LERP_RESETANIM){ //kill any lerp in progress
 		e->lerpstart = 0;
@@ -423,16 +416,16 @@ void R_SetupAliasFrame (aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 
 void R_BoundPoseSingle (mdl_t *m, lerpdata_t *lerpdata)
 {
-        if (lerpdata->pose2 < 0) lerpdata->pose2 = 0;
-        if (lerpdata->pose2 >= m->numframes) lerpdata->pose2 = m->numframes - 1;
-        if (lerpdata->pose1 < 0) lerpdata->pose1 = 0;
-        if (lerpdata->pose1 >= m->numframes) lerpdata->pose1 = m->numframes - 1;
+        if(lerpdata->pose2 < 0) lerpdata->pose2 = 0;
+        if(lerpdata->pose2 >= m->numframes) lerpdata->pose2 = m->numframes - 1;
+        if(lerpdata->pose1 < 0) lerpdata->pose1 = 0;
+        if(lerpdata->pose1 >= m->numframes) lerpdata->pose1 = m->numframes - 1;
 }
 
 void R_AliasSetupFrameMH(entity_t *ent)
 {
 	s32 frame = ent->frame;
-	if ((frame >= pmdl->numframes) || (frame < 0)) {
+	if((frame >= pmdl->numframes) || (frame < 0)){
 		Con_DPrintf("R_AliasSetupFrame: no such frame %d", frame);
 		frame = 0;
 	}
@@ -443,7 +436,7 @@ void R_AliasSetupFrameMH(entity_t *ent)
 	f32 blend = lerpdata.pose1 != lerpdata.pose2 ? lerpdata.blend : 0;
 	trivertx_t *currv;
 	trivertx_t *lastv;
-	if(paliashdr->frames[frame].type == ALIAS_SINGLE) {
+	if(paliashdr->frames[frame].type == ALIAS_SINGLE){
 		R_BoundPoseSingle(pmdl, &lerpdata);
 		currv = (trivertx_t*)((u8*)paliashdr+
 				paliashdr->frames[lerpdata.pose2].frame);
@@ -458,7 +451,7 @@ void R_AliasSetupFrameMH(entity_t *ent)
 				paliasgroup->frames[lerpdata.pose1].frame);
 	}
 	lerpverts = r_aliaslerpverts;
-	for(s32 i = 0; i < pmdl->numverts; i++, currv++, lastv++, lerpverts++) {
+	for(s32 i = 0; i < pmdl->numverts; i++, currv++, lastv++, lerpverts++){
 		lerpverts->v[0] = currv->v[0]*blend + lastv->v[0]*(1.0f-blend);
 		lerpverts->v[1] = currv->v[1]*blend + lastv->v[1]*(1.0f-blend);
 		lerpverts->v[2] = currv->v[2]*blend + lastv->v[2]*(1.0f-blend);
@@ -482,15 +475,15 @@ void R_AliasDrawModel(alight_t *plighting)
 	R_AliasSetUpTransform(currententity->trivial_accept);
 	R_AliasSetupLighting(plighting);
 	R_AliasSetupFrameMH(currententity);
-	if (!currententity->colormap)
+	if(!currententity->colormap)
 		Sys_Error("R_AliasDrawModel: !currententity->colormap");
 	r_affinetridesc.drawtype = currententity->trivial_accept == 3;
-	if (r_affinetridesc.drawtype)
+	if(r_affinetridesc.drawtype)
 		D_PolysetUpdateTables(); // FIXME: precalc...
 	acolormap = currententity->colormap;
 	ziscale = currententity != &cl.viewent ? (f32)0x8000 * (f32)0x10000
 		: (f32)0x8000 * (f32)0x10000 * 3.0;
-	if (currententity->trivial_accept)
+	if(currententity->trivial_accept)
 		R_AliasPrepareUnclippedPoints();
 	else
 		R_AliasPreparePoints();
