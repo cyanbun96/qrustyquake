@@ -5,19 +5,27 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+#define MAXQCTOKENS 64
 static c8 pr_string_temp[STRINGTEMP_BUFFERS][STRINGTEMP_LENGTH];
 static u8 pr_string_tempindex = 0;
 static u8 *checkpvs; //ericw -- changed to malloc
 static s32 checkpvs_capacity;
 static s32 c_invis, c_notvis;
+static s32 numqcpics;
+static s32 maxqcpics;
+static u32 qctoken_count;
 static struct {
 	c8 name[MAX_QPATH];
 	u32 flags;
 	qpic_t *pic;
 	bool malloced;
 } *qcpics;
-static s32 numqcpics;
-static s32 maxqcpics;
+static struct {
+	c8 *token;
+	u32 start;
+	u32 end;
+} qctoken[MAXQCTOKENS];
+
 
 void PF_Fixme(){ if(developer.value)PR_RunError("unimplemented builtin"); }
 
@@ -43,7 +51,7 @@ static qpic_t *DrawQC_CachePic(const c8 *picname1, u32 flags)
 		return NULL; //too long. get lost.
 	if(flags & PICFLAG_NOLOAD)
 		return NULL; //its a query, not actually needed.
-	if(i+1 > (s32)maxqcpics) {
+	if(i+1 > (s32)maxqcpics){
 		maxqcpics = i + 32;
 		qcpics = realloc(qcpics, maxqcpics * sizeof(*qcpics));
 	}
@@ -100,11 +108,12 @@ static c8 *PF_VarString(s32 first)
 	format = LOC_GetString(G_STRING((OFS_PARM0 + first * 3)));
 	if(LOC_HasPlaceholders(format)){
 		s32 offset = first + 1;
-		s = LOC_Format(format, PF_GetStringArg, &offset, out, sizeof(out));
-	} else for(s32 i = first; i < qcvm->argc; i++){
-		s = SDL_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)), sizeof(out));
-		if(s >= sizeof(out)) {
-			Con_DPrintf("PF_VarString: overflow(string truncated)\n");
+		s = LOC_Format(format,PF_GetStringArg,&offset,out,sizeof(out));
+	}else for(s32 i = first; i < qcvm->argc; i++){
+		s = SDL_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)),
+				sizeof(out));
+		if(s >= sizeof(out)){
+		      Con_DPrintf("PF_VarString: overflow(string truncated)\n");
 			return out;
 		}
 	}
@@ -150,11 +159,11 @@ static void PF_setorigin()
 	SV_LinkEdict(e, 0);
 }
 
-static void SetMinMaxSize(edict_t *e, f32 *minvec, f32 *maxvec, SDL_UNUSED bool rotate)
+static void SetMinMaxSize(edict_t*e,f32*minvec,f32*maxvec,SDL_UNUSED bool rot)
 {
-	vec3_t rmin, rmax;
 	for(s32 i = 0; i < 3; i++)
 		if(minvec[i] > maxvec[i]) PR_RunError("backwards mins/maxs");
+	vec3_t rmin, rmax;
 	VectorCopy(minvec, rmin);
 	VectorCopy(maxvec, rmax);
 	VectorCopy(rmin, e->v.mins); // set derived values
@@ -165,71 +174,51 @@ static void SetMinMaxSize(edict_t *e, f32 *minvec, f32 *maxvec, SDL_UNUSED bool 
 
 static void PF_setsize() // the size box is rotated by the current angle
 {
-	edict_t *e;
-	f32 *minvec, *maxvec;
-	e = G_EDICT(OFS_PARM0);
-	minvec = G_VECTOR(OFS_PARM1);
-	maxvec = G_VECTOR(OFS_PARM2);
+	edict_t *e = G_EDICT(OFS_PARM0);
+	f32 *minvec = G_VECTOR(OFS_PARM1);
+	f32 *maxvec = G_VECTOR(OFS_PARM2);
 	SetMinMaxSize(e, minvec, maxvec, false);
 }
 
 static void PF_setmodel()
 { // setmodel(entity, model)
-	s32 i;
-	const c8 *m, **check;
-	model_t *mod;
-	edict_t *e;
-	e = G_EDICT(OFS_PARM0);
-	m = G_STRING(OFS_PARM1);
+	edict_t *e = G_EDICT(OFS_PARM0);
+	const c8 *m = G_STRING(OFS_PARM1);
 	// check to see if model was properly precached
-	for(i = 0, check = sv.model_precache; *check; i++, check++) {
-		if(!strcmp(*check, m))
-			break;
-	}
+	const c8 **check = sv.model_precache;
+	s32 i = 0;
+	for(; *check; i++, check++)
+		if(!strcmp(*check, m)) break;
 	if(!*check)
 		PR_RunError("no precache: %s", m);
 	e->v.model = PR_SetEngineString(*check);
 	e->v.modelindex = i; //SV_ModelIndex(m);
-	mod = sv.models[ (int)e->v.modelindex]; // Mod_ForName(m, true);
+	model_t *mod = sv.models[(s32)e->v.modelindex]; // Mod_ForName(m, true);
 	if(mod){//johnfitz -- correct physics cullboxes for bmodels
 		if(mod->type == mod_brush)
 			SetMinMaxSize(e, mod->clipmins, mod->clipmaxs, true);
-		else
-			SetMinMaxSize(e, mod->mins, mod->maxs, true);
-	} //johnfitz
-	else
-		SetMinMaxSize(e, vec3_origin, vec3_origin, true);
+		else SetMinMaxSize(e, mod->mins, mod->maxs, true);
+	} else SetMinMaxSize(e, vec3_origin, vec3_origin, true);
 }
 
 static void PF_bprint() // broadcast print to everyone on server
 { c8 *s = PF_VarString(0); SV_BroadcastPrintf("%s", s); }
 
-#define MAXQCTOKENS 64
-static struct {
-	c8 *token;
-	u32 start;
-	u32 end;
-} qctoken[MAXQCTOKENS];
-static u32 qctoken_count;
-
 static s32 tokenizeqc(const c8 *str, SDL_UNUSED bool dpfuckage)
-{//FIXME: if dpfuckage, then we should handle punctuation specially, as well as /*.
+{
 	const c8 *start = str;
-	while(qctoken_count > 0) {
+	while(qctoken_count > 0){
 		qctoken_count--;
 		free(qctoken[qctoken_count].token);
 	}
 	qctoken_count = 0;
-	while(qctoken_count < MAXQCTOKENS) {
+	while(qctoken_count < MAXQCTOKENS){
 		//skip whitespace here so the token's start is accurate
 		while(*str && *(const u8*)str <= ' ')
 			str++;
 		if(!*str)
 			break;
 		qctoken[qctoken_count].start = str - start;
-		//      if(dpfuckage)
-		//          str = COM_ParseDPFuckage(str);
-		//      else
 		str = COM_Parse(str);
 		if(!str)
 			break;
@@ -240,8 +229,8 @@ static s32 tokenizeqc(const c8 *str, SDL_UNUSED bool dpfuckage)
 	return qctoken_count;
 }
 
-/*KRIMZON_SV_PARSECLIENTCOMMAND added these two - note that for compatibility
-  with DP, this tokenize builtin is veeery vauge and doesn't match the console*/
+//KRIMZON_SV_PARSECLIENTCOMMAND added these two - note that for compatibility
+//with DP, this tokenize builtin is veeery vauge and doesn't match the console
 static void PF_Tokenize()
 { G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), true); }
 
@@ -255,7 +244,7 @@ static void PF_ArgV()
 		idx += qctoken_count;
 	if((u32)idx >= qctoken_count)
 		G_INT(OFS_RETURN) = 0;
-	else {
+	else{
 		c8 *ret = PR_GetTempString();
 		SDL_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(ret);
@@ -265,9 +254,8 @@ static void PF_ArgV()
 static void PF_ArgC()
 { G_FLOAT(OFS_RETURN) = qctoken_count; }
 
-static void PF_sprintf_internal(const c8 *s, s32 firstarg, c8 *outbuf, s32 outbuflen)
+static void PF_sprintf_internal(const c8*s,s32 firstarg,c8*outbuf,s32 outbuflen)
 {
-	const c8 *s0;
 	c8 *o = outbuf, *end = outbuf + outbuflen, *err;
 	s32 width, precision, thisarg, flags;
 	c8 formatbuf[16];
@@ -276,24 +264,25 @@ static void PF_sprintf_internal(const c8 *s, s32 firstarg, c8 *outbuf, s32 outbu
 	s32 isfloat;
 	static s32 dummyivec[3] = {0, 0, 0};
 	static f32 dummyvec[3] = {0, 0, 0};
-
 #define PRINTF_ALTERNATE 1
 #define PRINTF_ZEROPAD 2
 #define PRINTF_LEFT 4
 #define PRINTF_SPACEPOSITIVE 8
 #define PRINTF_SIGNPOSITIVE 16
-
-#define GETARG_FLOAT(a) (((a)>=firstarg && (a)<qcvm->argc) ? (G_FLOAT(OFS_PARM0 + 3 * (a))) : 0)
-#define GETARG_VECTOR(a) (((a)>=firstarg && (a)<qcvm->argc) ? (G_VECTOR(OFS_PARM0 + 3 * (a))) : dummyvec)
-#define GETARG_INT(a) (((a)>=firstarg && (a)<qcvm->argc) ? (G_INT(OFS_PARM0 + 3 * (a))) : 0)
-#define GETARG_INTVECTOR(a) (((a)>=firstarg && (a)<qcvm->argc) ? ((s32*) G_VECTOR(OFS_PARM0 + 3 * (a))) : dummyivec)
-#define GETARG_STRING(a) (((a)>=firstarg && (a)<qcvm->argc) ? (G_STRING(OFS_PARM0 + 3 * (a))) : "")
-
+#define GETARG_FLOAT(a) (((a)>=firstarg && (a)<qcvm->argc) ? \
+			(G_FLOAT(OFS_PARM0 + 3 * (a))) : 0)
+#define GETARG_VECTOR(a) (((a)>=firstarg && (a)<qcvm->argc) ? \
+			(G_VECTOR(OFS_PARM0 + 3 * (a))) : dummyvec)
+#define GETARG_INT(a) (((a)>=firstarg && (a)<qcvm->argc) ? \
+			(G_INT(OFS_PARM0 + 3 * (a))) : 0)
+#define GETARG_INTVECTOR(a) (((a)>=firstarg && (a)<qcvm->argc) ? \
+			((s32*) G_VECTOR(OFS_PARM0 + 3 * (a))) : dummyivec)
+#define GETARG_STRING(a) (((a)>=firstarg && (a)<qcvm->argc) ? \
+			(G_STRING(OFS_PARM0 + 3 * (a))) : "")
 	formatbuf[0] = '%';
-
-	for(;;) {
-		s0 = s;
-		switch(*s) {
+	for(;;){
+		const c8 *s0 = s;
+		switch(*s){
 		case 0:
 			goto finished;
 		case '%':
@@ -307,50 +296,45 @@ static void PF_sprintf_internal(const c8 *s, s32 firstarg, c8 *outbuf, s32 outbu
 			thisarg = -1;
 			flags = 0;
 			isfloat = -1;
-			// is number following?
-			if(*s >= '0' && *s <= '9') {
+			if(*s >= '0' && *s <= '9'){ // is number following?
 				width = strtol(s, &err, 10);
-				if(!err) {
-					Con_DPrintf("PF_sprintf: bad format string: %s\n", s0);
+				if(!err){
+			Con_DPrintf("PF_sprintf: bad format string: %s\n", s0);
 					goto finished;
 				}
-				if(*err == '$') {
+				if(*err == '$'){
 					thisarg = width + (firstarg-1);
 					width = -1;
 					s = err + 1;
-				} else {
-					if(*s == '0') {
+				}else{
+					if(*s == '0'){
 						flags |= PRINTF_ZEROPAD;
 						if(width == 0)
-							width = -1; // it was just a flag
+							width = -1;//just a flag
 					}
 					s = err;
 				}
 			}
-			if(width < 0) {
-				for(;;) {
-					switch(*s) {
-					case '#': flags |= PRINTF_ALTERNATE; break;
-					case '0': flags |= PRINTF_ZEROPAD; break;
-					case '-': flags |= PRINTF_LEFT; break;
-					case ' ': flags |= PRINTF_SPACEPOSITIVE; break;
-					case '+': flags |= PRINTF_SIGNPOSITIVE; break;
-					default:
-						  goto noflags;
-					}
-					++s;
-				}
+			if(width < 0){
+				for(;;++s){switch(*s){
+				    case '#': flags|=PRINTF_ALTERNATE;break;
+				    case '0': flags|=PRINTF_ZEROPAD;break;
+				    case '-': flags|=PRINTF_LEFT;break;
+				    case ' ': flags|=PRINTF_SPACEPOSITIVE;break;
+				    case '+': flags|=PRINTF_SIGNPOSITIVE;break;
+				    default: goto noflags;
+				}}
 noflags:
-				if(*s == '*') {
+				if(*s == '*'){
 					++s;
-					if(*s >= '0' && *s <= '9') {
+					if(*s >= '0' && *s <= '9'){
 						width = strtol(s, &err, 10);
-						if(!err || *err != '$') {
-							Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
+						if(!err || *err != '$'){
+		Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
 							goto finished;
 						}
 						s = err + 1;
-					} else
+					}else
 						width = argpos++;
 					width = GETARG_FLOAT(width);
 					if(width < 0)
@@ -359,28 +343,28 @@ noflags:
 						width = -width;
 					}
 				}
-				else if(*s >= '0' && *s <= '9') {
+				else if(*s >= '0' && *s <= '9'){
 					width = strtol(s, &err, 10);
-					if(!err) {
-						Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
+					if(!err){
+		Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
 						goto finished;
 					}
 					s = err;
-					if(width < 0) {
+					if(width < 0){
 						flags |= PRINTF_LEFT;
 						width = -width;
 					}
 				}
 				// otherwise width stays -1
 			}
-			if(*s == '.') {
+			if(*s == '.'){
 				++s;
-				if(*s == '*') {
+				if(*s == '*'){
 					++s;
-					if(*s >= '0' && *s <= '9') {
+					if(*s >= '0' && *s <= '9'){
 						precision = strtol(s, &err, 10);
-						if(!err || *err != '$') {
-							Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
+						if(!err || *err != '$'){
+		Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
 							goto finished;
 						}
 						s = err + 1;
@@ -388,21 +372,20 @@ noflags:
 					else
 						precision = argpos++;
 					precision = GETARG_FLOAT(precision);
-				} else if(*s >= '0' && *s <= '9') {
+				}else if(*s >= '0' && *s <= '9'){
 					precision = strtol(s, &err, 10);
-					if(!err)
-					{
-						Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
+					if(!err){
+		Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
 						goto finished;
 					}
 					s = err;
-				} else {
-					Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
+				}else{
+		Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
 					goto finished;
 				}
 			}
-			for(;;) {
-				switch(*s) {
+			for(;;){
+				switch(*s){
 				case 'h': isfloat = 1; break;
 				case 'l': isfloat = 0; break;
 				case 'L': isfloat = 0; break;
@@ -414,14 +397,14 @@ noflags:
 				++s;
 			}
 nolength:
-			// now s points to the final directive char and is no longer changed
-			if(*s == 'p' || *s == 'P') {
-				//%p is slightly different from %x.
-				//always 8-bytes wide with 0 padding, always ints.
+	// now s points to the final directive char and is no longer changed
+			if(*s == 'p' || *s == 'P'){
+				//%p is slightly different from %x. always
+				//8-bytes wide with 0 padding, always ints.
 				flags |= PRINTF_ZEROPAD;
 				if(width < 0) width = 8;
 				if(isfloat < 0) isfloat = 0;
-			} else if(*s == 'i') {
+			}else if(*s == 'i'){
 				//%i defaults to ints, not floats.
 				if(isfloat < 0) isfloat = 0;
 			}
@@ -430,16 +413,16 @@ nolength:
 				isfloat = 1;
 			if(thisarg < 0)
 				thisarg = argpos++;
-			if(o < end - 1) {
+			if(o < end - 1){
 				f = &formatbuf[1];
 				if(*s != 's' && *s != 'c')
-					if(flags & PRINTF_ALTERNATE) *f++ = '#';
+				if(flags & PRINTF_ALTERNATE) *f++ = '#';
 				if(flags & PRINTF_ZEROPAD) *f++ = '0';
 				if(flags & PRINTF_LEFT) *f++ = '-';
 				if(flags & PRINTF_SPACEPOSITIVE) *f++ = ' ';
 				if(flags & PRINTF_SIGNPOSITIVE) *f++ = '+';
 				*f++ = '*';
-				if(precision >= 0) {
+				if(precision >= 0){
 					*f++ = '.';
 					*f++ = '*';
 				}
@@ -454,99 +437,98 @@ nolength:
 				*f++ = 0;
 				if(width < 0) // not set
 					width = 0;
-				switch(*s) {
-				case 'd': case 'i':
-					if(precision < 0) // not set
-						snprintf(o, end - o, formatbuf, width, (isfloat ? (s32) GETARG_FLOAT(thisarg) : (s32) GETARG_INT(thisarg)));
-					else
-						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (s32) GETARG_FLOAT(thisarg) : (s32) GETARG_INT(thisarg)));
-					o += strlen(o);
-					break;
-				case 'o': case 'u': case 'x': case 'X': case 'p': case 'P':
-					if(precision < 0) // not set
-						snprintf(o, end - o, formatbuf, width, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
-					else
-						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
-					o += strlen(o);
-					break;
-				case 'e': case 'E': case 'f': case 'F': case 'g': case 'G':
-					if(precision < 0) // not set
-						snprintf(o, end - o, formatbuf, width, (isfloat ? (f64) GETARG_FLOAT(thisarg) : (f64) GETARG_INT(thisarg)));
-					else
-						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (f64) GETARG_FLOAT(thisarg) : (f64) GETARG_INT(thisarg)));
-					o += strlen(o);
-					break;
-				case 'v': case 'V':
-					f[-2] += 'g' - 'v';
-					if(precision < 0) // not set
-						snprintf(o, end - o, va("%s %s %s", /* NESTED SPRINTF IS NESTED */ formatbuf, formatbuf, formatbuf),
-								width, (isfloat ? (f64) GETARG_VECTOR(thisarg)[0] : (f64) GETARG_INTVECTOR(thisarg)[0]),
-								width, (isfloat ? (f64) GETARG_VECTOR(thisarg)[1] : (f64) GETARG_INTVECTOR(thisarg)[1]),
-								width, (isfloat ? (f64) GETARG_VECTOR(thisarg)[2] : (f64) GETARG_INTVECTOR(thisarg)[2])
-							  );
-					else
-						snprintf(o, end - o, va("%s %s %s", /* NESTED SPRINTF IS NESTED */ formatbuf, formatbuf, formatbuf),
-								width, precision, (isfloat ? (f64) GETARG_VECTOR(thisarg)[0] : (f64) GETARG_INTVECTOR(thisarg)[0]),
-								width, precision, (isfloat ? (f64) GETARG_VECTOR(thisarg)[1] : (f64) GETARG_INTVECTOR(thisarg)[1]),
-								width, precision, (isfloat ? (f64) GETARG_VECTOR(thisarg)[2] : (f64) GETARG_INTVECTOR(thisarg)[2])
-							  );
-					o += strlen(o);
-					break;
-				case 'c':
-					//UTF-8-FIXME: figure it out yourself
-					if(precision < 0) // not set
-						snprintf(o, end - o, formatbuf, width, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
-					else
-						snprintf(o, end - o, formatbuf, width, precision, (isfloat ? (u32) GETARG_FLOAT(thisarg) : (u32) GETARG_INT(thisarg)));
-					o += strlen(o);
-					break;
-				case 'S':
-					{       //tokenizable string
-						const c8 *quotedarg = GETARG_STRING(thisarg);
-						//try and escape it... hopefully it won't get truncated by precision limits...
-						c8 quotedbuf[65536];
-						size_t l;
-						l = strlen(quotedarg);
-						if(strchr(quotedarg, '\"') || strchr(quotedarg, '\n') || strchr(quotedarg, '\r') || l+3 >= sizeof(quotedbuf))
-						{       //our escapes suck...
-							Con_DPrintf("PF_sprintf: unable to safely escape arg: %s\n", s0);
-							quotedarg="";
-						}
-						quotedbuf[0] = '\"';
-						memcpy(quotedbuf+1, quotedarg, l);
-						quotedbuf[1+l] = '\"';
-						quotedbuf[1+l+1] = 0;
-						quotedarg = quotedbuf;
-
-						//UTF-8-FIXME: figure it out yourself
-						//                                                              if(flags & PRINTF_ALTERNATE)
-						{
-							if(precision < 0) // not set
-								snprintf(o, end - o, formatbuf, width, quotedarg);
-							else
-								snprintf(o, end - o, formatbuf, width, precision, quotedarg);
-							o += strlen(o);
-						}
-						/*                                                              else
-														{
-														if(precision < 0) // not set
-														precision = end - o - 1;
-														o += u8_strpad(o, end - o, quotedarg, (flags & PRINTF_LEFT) != 0, width, precision);
-														}
-														*/                                                      }
-						break;
-				case 's':
-						//UTF-8-FIXME: figure it out yourself
-						if(precision < 0) // not set
-							snprintf(o, end - o, formatbuf, width, GETARG_STRING(thisarg));
-						else
-							snprintf(o, end - o, formatbuf, width, precision, GETARG_STRING(thisarg));
-						o += strlen(o);
-						break;
-				default:
-						Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
-						goto finished;
-				}
+				switch(*s){
+/**/case 'd': case 'i':
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end-o, formatbuf, width, (isfloat?
+/**/			(s32)GETARG_FLOAT(thisarg):(s32)GETARG_INT(thisarg)));
+/**/	else
+/**/		snprintf(o, end-o, formatbuf, width, precision, (isfloat?
+/**/			(s32)GETARG_FLOAT(thisarg):(s32)GETARG_INT(thisarg)));
+/**/	o += strlen(o);
+/**/	break;
+/**/case 'o': case 'u': case 'x': case 'X': case 'p': case 'P':
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end-o, formatbuf, width, (isfloat?
+/**/			(u32)GETARG_FLOAT(thisarg):(u32)GETARG_INT(thisarg)));
+/**/	else
+/**/		snprintf(o, end-o, formatbuf, width, precision, (isfloat?
+/**/			(u32)GETARG_FLOAT(thisarg):(u32)GETARG_INT(thisarg)));
+/**/	o += strlen(o);
+/**/	break;
+/**/case 'e': case 'E': case 'f': case 'F': case 'g': case 'G':
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end-o, formatbuf, width, (isfloat?
+/**/			(f64)GETARG_FLOAT(thisarg):(f64)GETARG_INT(thisarg)));
+/**/	else
+/**/		snprintf(o, end-o, formatbuf, width, precision, (isfloat?
+/**/			(f64)GETARG_FLOAT(thisarg):(f64)GETARG_INT(thisarg)));
+/**/	o += strlen(o);
+/**/	break;
+/**/case 'v': case 'V':
+/**/	f[-2] += 'g' - 'v';
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end-o, va("%s%s%s",formatbuf, formatbuf, formatbuf), 
+/**/				width, (isfloat?(f64)GETARG_VECTOR(thisarg)[0]:
+/**/					(f64)GETARG_INTVECTOR(thisarg)[0]), 
+/**/				width, (isfloat?(f64)GETARG_VECTOR(thisarg)[1]:
+/**/					(f64)GETARG_INTVECTOR(thisarg)[1]), 
+/**/				width, (isfloat?(f64)GETARG_VECTOR(thisarg)[2]:
+/**/					(f64)GETARG_INTVECTOR(thisarg)[2])
+/**/			);
+/**/	else
+/**/		snprintf(o, end-o, va("%s%s%s",formatbuf, formatbuf, formatbuf), 
+/**/			width,precision,(isfloat?(f64)GETARG_VECTOR(thisarg)[0]:
+/**/					(f64)GETARG_INTVECTOR(thisarg)[0]), 
+/**/			width,precision,(isfloat?(f64)GETARG_VECTOR(thisarg)[1]:
+/**/					(f64)GETARG_INTVECTOR(thisarg)[1]), 
+/**/			width,precision,(isfloat?(f64)GETARG_VECTOR(thisarg)[2]:
+/**/					(f64)GETARG_INTVECTOR(thisarg)[2])
+/**/			);
+/**/	o += strlen(o);
+/**/	break;
+/**/case 'c':
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end-o, formatbuf, width, (isfloat?
+/**/			(u32)GETARG_FLOAT(thisarg):(u32)GETARG_INT(thisarg)));
+/**/	else
+/**/		snprintf(o, end-o, formatbuf, width, precision, (isfloat?
+/**/			(u32)GETARG_FLOAT(thisarg):(u32)GETARG_INT(thisarg)));
+/**/	o += strlen(o);
+/**/	break;
+/**/case 'S':
+/**/	//tokenizable string
+/**/	const c8 *quotedarg = GETARG_STRING(thisarg);
+/**///try and escape it... hopefully it won't get truncated by precision limits.
+/**/	c8 quotedbuf[65536];
+/**/	size_t l;
+/**/	l = strlen(quotedarg);
+/**/	if(strchr(quotedarg,'\"')||strchr(quotedarg,'\n')||
+/**/			strchr(quotedarg,'\r')||l+3>=sizeof(quotedbuf)){
+/**/		Con_DPrintf("PF_sprintf: unable to safely escape arg: %s\n",s0);
+/**/		quotedarg="";
+/**/	}
+/**/	quotedbuf[0] = '\"';
+/**/	memcpy(quotedbuf+1, quotedarg, l);
+/**/	quotedbuf[1+l] = '\"';
+/**/	quotedbuf[1+l+1] = 0;
+/**/	quotedarg = quotedbuf;
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end - o, formatbuf, width, quotedarg);
+/**/	else
+/**/		snprintf(o, end - o, formatbuf, width, precision, quotedarg);
+/**/	o += strlen(o);
+/**/	break;
+/**/case 's':
+/**/	if(precision < 0) // not set
+/**/		snprintf(o, end - o, formatbuf, width, GETARG_STRING(thisarg));
+/**/	else snprintf(o,end-o,formatbuf,width,precision,GETARG_STRING(thisarg));
+/**/	o += strlen(o);
+/**/	break;
+/**/default:
+/**/	Con_DPrintf("PF_sprintf: invalid format string: %s\n", s0);
+/**/	goto finished;
+}
 			}
 			++s;
 			break;
@@ -608,7 +590,7 @@ static void PF_normalize()
 	f64 new_temp = (f64)v1[0]*v1[0] + (f64)v1[1]*v1[1] + (f64)v1[2]*v1[2];
 	new_temp = sqrt(new_temp);
 	if(new_temp == 0) newvalue[0] = newvalue[1] = newvalue[2] = 0;
-	else {
+	else{
 		new_temp = 1 / new_temp;
 		newvalue[0] = v1[0] * new_temp;
 		newvalue[1] = v1[1] * new_temp;
@@ -630,7 +612,7 @@ static void PF_vectoyaw()
 	f32 *value1 = G_VECTOR(OFS_PARM0);
 	f32 yaw;
 	if(value1[1] == 0 && value1[0] == 0) yaw = 0;
-	else {
+	else{
 		yaw = (s32) (atan2(value1[1], value1[0]) * 180 / M_PI);
 		if(yaw < 0) yaw += 360;
 	}
@@ -644,7 +626,7 @@ static void PF_vectoangles()
 	if(value1[1] == 0 && value1[0] == 0){
 		yaw = 0;
 		pitch = value1[2] > 0 ? 90 : 270;
-	} else {
+	}else{
 		yaw = (s32) (atan2(value1[1], value1[0]) * 180 / M_PI);
 		if(yaw < 0) yaw += 360;
 		f32 forward = sqrt(value1[0]*value1[0] + value1[1]*value1[1]);
@@ -755,12 +737,12 @@ static void PF_traceline()
 
 static s32 PF_newcheckclient(s32 check)
 {
-	s32 i;
-	edict_t *ent;
 	if(check < 1) check = 1; // cycle to the next one
 	if(check > svs.maxclients) check = svs.maxclients;
+	s32 i;
 	if(check == svs.maxclients) i = 1;
 	else i = check + 1;
+	edict_t *ent;
 	for(;; i++){
 		if(i == svs.maxclients+1) i = 1;
 		ent = EDICT_NUM(i);
@@ -888,8 +870,7 @@ static void PF_ftos()
 
 static void PF_fabs()
 {
-	f32 v;
-	v = G_FLOAT(OFS_PARM0);
+	f32 v = G_FLOAT(OFS_PARM0);
 	G_FLOAT(OFS_RETURN) = fabs(v);
 }
 
@@ -909,32 +890,24 @@ static void PF_Spawn()
 
 static void PF_Remove()
 {
-	edict_t *ed;
-	ed = G_EDICT(OFS_PARM0);
+	edict_t *ed = G_EDICT(OFS_PARM0);
 	ED_Free(ed);
 }
 
 
 static void PF_Find()
 { // entity(entity start, .string field, string match) find = #5;
-	s32 e;
-	s32 f;
-	const c8  *s, *t;
-	edict_t *ed;
-	e = G_EDICTNUM(OFS_PARM0);
-	f = G_INT(OFS_PARM1);
-	s = G_STRING(OFS_PARM2);
+	s32 e = G_EDICTNUM(OFS_PARM0);
+	s32 f = G_INT(OFS_PARM1);
+	const c8 *s = G_STRING(OFS_PARM2);
 	if(!s)
 		PR_RunError("PF_Find: bad search string");
-	for(e++ ; e < qcvm->num_edicts ; e++) {
-		ed = EDICT_NUM(e);
-		if(ed->free)
-			continue;
-		t = E_STRING(ed,f);
-		if(!t)
-			continue;
-		if(!strcmp(t,s))
-		{
+	for(e++ ; e < qcvm->num_edicts ; e++){
+		edict_t *ed = EDICT_NUM(e);
+		if(ed->free) continue;
+		const c8 *t = E_STRING(ed,f);
+		if(!t) continue;
+		if(!strcmp(t,s)){
 			RETURN_EDICT(ed);
 			return;
 		}
@@ -1015,7 +988,7 @@ static void PF_droptofloor()
 	end[2] -= 256;
 	trace_t trace=SV_Move(ent->v.origin,ent->v.mins,ent->v.maxs,end,0,ent);
 	if(trace.fraction == 1 || trace.allsolid) G_FLOAT(OFS_RETURN) = 0;
-	else {
+	else{
 		VectorCopy(trace.endpos, ent->v.origin);
 		SV_LinkEdict(ent, 0);
 		ent->v.flags = (s32)ent->v.flags | FL_ONGROUND;
@@ -1101,10 +1074,10 @@ static void PF_checkcommand()
 
 static void PF_clientcommand()
 {
-	edict_t *ed             = G_EDICT(OFS_PARM0);
-	const c8 *str         = G_STRING(OFS_PARM1);
-	u32 i          = NUM_FOR_EDICT(ed)-1;
-	if(i < (u32)svs.maxclients && svs.clients[i].active) {
+	edict_t *ed = G_EDICT(OFS_PARM0);
+	const c8 *str = G_STRING(OFS_PARM1);
+	u32 i = NUM_FOR_EDICT(ed)-1;
+	if(i < (u32)svs.maxclients && svs.clients[i].active){
 		client_t *ohc = host_client;
 		host_client = &svs.clients[i];
 		Cmd_ExecuteString(str, src_client);
@@ -1165,19 +1138,17 @@ static void PF_aim() // Pick a vector for the player to shoot along
 
 void PF_changeyaw()
 { // This was a major timewaster in progs, so it was converted to C
-	edict_t *ent;
-	f32 ideal, current, move, speed;
-	ent = PROG_TO_EDICT(pr_global_struct->self);
-	current = anglemod( ent->v.angles[1] );
-	ideal = ent->v.ideal_yaw;
-	speed = ent->v.yaw_speed;
+	edict_t *ent = PROG_TO_EDICT(pr_global_struct->self);
+	f32 current = anglemod( ent->v.angles[1] );
+	f32 ideal = ent->v.ideal_yaw;
+	f32 speed = ent->v.yaw_speed;
 	if(current == ideal)
 		return;
-	move = ideal - current;
+	f32 move = ideal - current;
 	if(ideal > current){if(move >= 180) move = move - 360;}
-	else                {if(move <= -180) move = move + 360;}
+	else{if(move <= -180) move = move + 360;}
 	if(move > 0){if(move > speed) move = speed;}
-	else         {if(move < -speed) move = -speed;}
+	else{if(move < -speed) move = -speed;}
 	ent->v.angles[1] = anglemod(current + move);
 }
 
@@ -1216,30 +1187,28 @@ static void PF_WriteEntity()
 
 static void PF_makestatic()
 {
-	edict_t *ent;
 	s32 i;
-	s32 bits = 0; //johnfitz -- PROTOCOL_FITZQUAKE
-	ent = G_EDICT(OFS_PARM0);
+	s32 bits = 0;
+	edict_t *ent = G_EDICT(OFS_PARM0);
 	//johnfitz -- don't send invisible static entities
 	if(ent->alpha == ENTALPHA_ZERO){
 		ED_Free(ent);
 		return;
 	}
-	//johnfitz -- PROTOCOL_FITZQUAKE
-	if(sv.protocol == PROTOCOL_NETQUAKE) {
+	if(sv.protocol == PROTOCOL_NETQUAKE){
 		if(SV_ModelIndex(PR_GetString(ent->v.model)) & 0xFF00 ||
-					(s32)(ent->v.frame) & 0xFF00) {
+					(s32)(ent->v.frame) & 0xFF00){
 			ED_Free(ent); //can't display the correct model & frame,
 			return; //so don't show it at all
 		}
-	} else {
+	}else{ //johnfitz -- PROTOCOL_FITZQUAKE
 		if(SV_ModelIndex(PR_GetString(ent->v.model)) & 0xFF00)
 			bits |= B_LARGEMODEL;
 		if((s32)(ent->v.frame) & 0xFF00)
 			bits |= B_LARGEFRAME;
 		if(ent->alpha != ENTALPHA_DEFAULT)
 			bits |= B_ALPHA;
-		if(sv.protocol == PROTOCOL_RMQ) {
+		if(sv.protocol == PROTOCOL_RMQ){
 			eval_t* val;
 			val = GetEdictFieldValueByName(ent, "scale");
 			if(val)
@@ -1252,30 +1221,27 @@ static void PF_makestatic()
 		}
 	}
 	SV_ReserveSignonSpace(34);
-	if(bits) {
+	if(bits){
 		MSG_WriteByte(sv.signon, svc_spawnstatic2);
 		MSG_WriteByte(sv.signon, bits);
-	} else
+	}else
 		MSG_WriteByte(sv.signon, svc_spawnstatic);
 	if(bits & B_LARGEMODEL)
-		MSG_WriteShort(sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
+	    MSG_WriteShort(sv.signon,SV_ModelIndex(PR_GetString(ent->v.model)));
 	else
-		MSG_WriteByte(sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
+	    MSG_WriteByte(sv.signon, SV_ModelIndex(PR_GetString(ent->v.model)));
 	if(bits & B_LARGEFRAME)
 		MSG_WriteShort(sv.signon, ent->v.frame);
 	else
 		MSG_WriteByte(sv.signon, ent->v.frame);
-	//johnfitz
 	MSG_WriteByte(sv.signon, ent->v.colormap);
 	MSG_WriteByte(sv.signon, ent->v.skin);
-	for(i = 0; i < 3; i++) {
+	for(i = 0; i < 3; i++){
 		MSG_WriteCoord(sv.signon, ent->v.origin[i], sv.protocolflags);
 		MSG_WriteAngle(sv.signon, ent->v.angles[i], sv.protocolflags);
 	}
-	//johnfitz -- PROTOCOL_FITZQUAKE
 	if(bits & B_ALPHA)
 		MSG_WriteByte(sv.signon, ent->alpha);
-	//johnfitz
 	if(bits & B_SCALE)
 		MSG_WriteByte(sv.signon, ent->scale);
 	ED_Free(ent); // throw the entity away now
@@ -1363,10 +1329,10 @@ static void PF_mod()
 {
 	f32 a = G_FLOAT(OFS_PARM0);
 	f32 n = G_FLOAT(OFS_PARM1);
-	if(n == 0) {
+	if(n == 0){
 		Con_DPrintf("PF_mod: mod by zero\n");
 		G_FLOAT(OFS_RETURN) = 0;
-	} else { //because QC is inherantly floaty, lets use floats.
+	}else{ //because QC is inherantly floaty, lets use floats.
 		G_FLOAT(OFS_RETURN) = a - (n * (s32)(a/n));
 	}
 }
@@ -1374,8 +1340,7 @@ static void PF_mod()
 static void PF_min()
 {
 	f32 r = G_FLOAT(OFS_PARM0);
-	s32 i;
-	for(i = 1; i < qcvm->argc; i++) {
+	for(s32 i = 1; i < qcvm->argc; i++){
 		if(r > G_FLOAT(OFS_PARM0 + i*3))
 			r = G_FLOAT(OFS_PARM0 + i*3);
 	}
@@ -1385,8 +1350,7 @@ static void PF_min()
 static void PF_max()
 {
 	f32 r = G_FLOAT(OFS_PARM0);
-	s32 i;
-	for(i = 1; i < qcvm->argc; i++) {
+	for(s32 i = 1; i < qcvm->argc; i++){
 		if(r < G_FLOAT(OFS_PARM0 + i*3))
 			r = G_FLOAT(OFS_PARM0 + i*3);
 	}
@@ -1416,7 +1380,7 @@ static void PF_vectorvectors()
 		else
 			pr_global_struct->v_right[1] = 0;
 		pr_global_struct->v_right[0] = pr_global_struct->v_right[2] = 0;
-	} else {
+	}else{
 		pr_global_struct->v_right[0] = pr_global_struct->v_forward[1];
 		pr_global_struct->v_right[1] = -pr_global_struct->v_forward[0];
 		pr_global_struct->v_right[2] = 0;
@@ -1435,10 +1399,10 @@ static void PF_checkextension()
 	// Note: we expose FTE_QC_CHECKCOMMAND so that AD considers the engine
 	// FTE-like instead of DP-like, in order to avoid a bug in the DP
 	// codepath in older AD versions(e.g. 1.42, used in jam8)
-	if(i == FTE_QC_CHECKCOMMAND) {
+	if(i == FTE_QC_CHECKCOMMAND){
 		G_FLOAT(OFS_RETURN) = true;
 		SetBit(qcvm->advertised_ext, i);
-	} else
+	}else
 		G_FLOAT(OFS_RETURN) = false;
 }
 
@@ -1453,9 +1417,9 @@ static void PF_strcat()
 	c8 *out = PR_GetTempString();
 	out[0] = 0;
 	size_t s = 0;
-	for(s32 i = 0; i < qcvm->argc; i++) {
+	for(s32 i = 0; i < qcvm->argc; i++){
 		s = SDL_strlcat(out, G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
-		if(s >= STRINGTEMP_LENGTH) {
+		if(s >= STRINGTEMP_LENGTH){
 			Con_DPrintf("PF_strcat: overflow(string truncated)\n");
 			break;
 		}
@@ -1475,7 +1439,7 @@ static void PF_substring()
 		length = slen-start+(length+1);
 	if(start < 0)
 		start = 0;
-	if(start >= slen || length<=0) {
+	if(start >= slen || length<=0){
 		G_INT(OFS_RETURN) = PR_SetEngineString("");
 		return;
 	}
@@ -1483,7 +1447,7 @@ static void PF_substring()
 	if(length > slen)
 		length = slen;
 	s += start; //utf-8 should switch to bytes now.
-	if(length >= STRINGTEMP_LENGTH) {
+	if(length >= STRINGTEMP_LENGTH){
 		length = STRINGTEMP_LENGTH-1;
 		Con_DPrintf("PF_substring: truncation\n");
 	}
@@ -1498,7 +1462,7 @@ static void PF_strzone()
 	size_t len = 0;
 	const c8 *s[8];
 	size_t l[8];
-	for(s32 i = 0; i < qcvm->argc; i++) {
+	for(s32 i = 0; i < qcvm->argc; i++){
 		s[i] = G_STRING(OFS_PARM0+i*3);
 		l[i] = strlen(s[i]);
 		len += l[i];
@@ -1507,13 +1471,13 @@ static void PF_strzone()
 	c8 *buf = Z_Malloc(len);
 	G_INT(OFS_RETURN) = PR_SetEngineString(buf);
 	size_t id = -1-G_INT(OFS_RETURN);
-	if(id >= qcvm->knownzonesize) {
+	if(id >= qcvm->knownzonesize){
 		qcvm->knownzonesize = (id+32)&~7;
 		qcvm->knownzone = Z_Realloc(qcvm->knownzone,
 					(qcvm->knownzonesize+7)>>3);
 	}
 	qcvm->knownzone[id>>3] |= 1u<<(id&7);
-	for(s32 i = 0; i < qcvm->argc; i++) {
+	for(s32 i = 0; i < qcvm->argc; i++){
 		memcpy(buf, s[i], l[i]);
 		buf += l[i];
 	}
@@ -1536,7 +1500,7 @@ static void PF_strunzone()
 
 //should be just \n and 32-127, but we don't actually support any actual unicode
 //and we don't really want to make things worse.
-static bool qc_isascii(u32 u) { return (u < 256); }
+static bool qc_isascii(u32 u){ return (u < 256); }
 
 static void PF_str2chr()
 {
@@ -1554,7 +1518,7 @@ static void PF_chr2str()
 {
 	c8 *ret = PR_GetTempString(), *out;
 	s32 i = 0;
-	for(out = ret; out-ret < STRINGTEMP_LENGTH-6 && i < qcvm->argc; i++) {
+	for(out = ret; out-ret < STRINGTEMP_LENGTH-6 && i < qcvm->argc; i++){
 		u32 u = G_FLOAT(OFS_PARM0 + i*3);
 		if(u >= 0xe000 && u < 0xe100)
 			*out++ = (u8)u; //quake chars.
@@ -1636,14 +1600,14 @@ static void PF_cl_drawrawstring()
 	s32 c;
 	if(!*text)
 		return; //don't waste time on spaces
-	while((c = *text++)) {
+	while((c = *text++)){
 		Draw_Character_Ex(pos2, size_s, c, rgb, alpha);
 		pos2[0] += size_s[0];
 	}
 }
 
 static void PF_cl_drawstring()
-{ // TODO markup?
+{
 	f32 *pos = G_VECTOR(OFS_PARM0);
 	const c8 *text = G_STRING(OFS_PARM1);
 	f32 *size = G_VECTOR(OFS_PARM2);
@@ -1664,7 +1628,7 @@ static void PF_cl_drawstring()
 	s32 c;
 	if(!*text)
 		return; //don't waste time on spaces
-	while((c = *text++)) {
+	while((c = *text++)){
 		Draw_Character_Ex(pos2, size_s, c, rgb, alpha);
 		pos2[0] += size_s[0];
 	}
@@ -1672,7 +1636,7 @@ static void PF_cl_drawstring()
 
 static void PF_cl_precachepic()
 {
-	const c8 *name    = G_STRING(OFS_PARM0);
+	const c8 *name = G_STRING(OFS_PARM0);
 	u32 flags = G_FLOAT(OFS_PARM1);
 	//return input string, for convienience
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
@@ -1691,20 +1655,18 @@ static void PF_cl_iscachedpic()
 
 static void PF_cl_drawsetclip()
 {
-    f32 x = G_FLOAT(OFS_PARM0);
-    f32 y = G_FLOAT(OFS_PARM1);
-    f32 w = G_FLOAT(OFS_PARM2);
-    f32 h = G_FLOAT(OFS_PARM3);
-    Draw_SetClipRect(x, y, w, h);
+	f32 x = G_FLOAT(OFS_PARM0);
+	f32 y = G_FLOAT(OFS_PARM1);
+	f32 w = G_FLOAT(OFS_PARM2);
+	f32 h = G_FLOAT(OFS_PARM3);
+	Draw_SetClipRect(x, y, w, h);
 }
 
 static void PF_cl_drawresetclip()
-{
-    Draw_ResetClipping();
-}
+{ Draw_ResetClipping(); }
 
 static void PF_cl_stringwidth()
-{ // TODO markup?
+{
 	const c8 *text = G_STRING(OFS_PARM0);
 	G_FLOAT(OFS_RETURN) = strlen(text) * 8;
 }
@@ -1716,7 +1678,7 @@ static void PF_cl_drawpic()
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
-	//s32 flags   = G_FLOAT(OFS_PARM5);
+	//s32 flags = G_FLOAT(OFS_PARM5);
 	f32 srcpos[2] = {0, 0};
 	f32 srcsize[2] = {1, 1};
 	f32 pos_s[2];
@@ -1765,12 +1727,12 @@ static void PF_cl_getstat_float()
 	s32 stnum = G_FLOAT(OFS_PARM0);
 	if(stnum < 0 || stnum >= (s32)(Q_COUNTOF(cl.stats)))
 		G_FLOAT(OFS_RETURN) = 0;
-	else if(qcvm->argc > 1) {
+	else if(qcvm->argc > 1){
 		s32 firstbit = G_FLOAT(OFS_PARM1);
 		s32 bitcount = G_FLOAT(OFS_PARM2);
 		G_FLOAT(OFS_RETURN) = (cl.stats[stnum]>>firstbit)
 					& ((1<<bitcount)-1);
-	} else
+	}else
 		G_FLOAT(OFS_RETURN) = cl.statsf[stnum];
 }
 
@@ -1779,7 +1741,7 @@ static void PF_cl_getstat_string()
 	s32 stnum = G_FLOAT(OFS_PARM0);
 	if(stnum < 0 || stnum>=(s32)(Q_COUNTOF(cl.statss)) || !cl.statss[stnum])
 		G_INT(OFS_RETURN) = 0;
-	else {
+	else{
 		c8 *result = PR_GetTempString();
 		SDL_strlcpy(result, cl.statss[stnum], STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(result);
@@ -1797,43 +1759,44 @@ void PF_cl_playerkey_internal(s32 player, const c8 *key, bool retfloat)
 {
 	c8 buf[1024];
 	const c8 *ret = buf;
-	//FIXMEif (player < 0 && player >= -scoreboardlines)
-	//FIXME	player = fragsort[-1-player];
-	if (player < 0 || player >= MAX_SCOREBOARD)
+	if(player < 0 || player >= MAX_SCOREBOARD)
 		ret = NULL;
-	else if (!strcmp(key, "viewentity"))
-		snprintf(buf, sizeof(buf), "%i", player+1);   //hack for DP compat. always returned even when the slot is empty (so long as its valid).
-	else if (!*cl.scores[player].name)
+	else if(!strcmp(key, "viewentity"))
+		snprintf(buf, sizeof(buf), "%i", player+1);//hack for DP compat.
+	   //always returned even when the slot is empty (so long as its valid).
+	else if(!*cl.scores[player].name)
 		ret = NULL;
-	else if (!strcmp(key, "name"))
+	else if(!strcmp(key, "name"))
 		ret = cl.scores[player].name;
-	else if (!strcmp(key, "frags"))
+	else if(!strcmp(key, "frags"))
 		snprintf(buf, sizeof(buf), "%i", cl.scores[player].frags);
-	else if (!strcmp(key, "ping"))
+	else if(!strcmp(key, "ping"))
 		ret = NULL; //unknown
-	else if (!strcmp(key, "pl"))
+	else if(!strcmp(key, "pl"))
 		ret = NULL; //unknown
-	else if (!strcmp(key, "entertime"))
+	else if(!strcmp(key, "entertime"))
 		snprintf(buf, sizeof(buf), "%g", cl.scores[player].entertime);
-	else if (!strcmp(key, "topcolor_rgb")) {
+	else if(!strcmp(key, "topcolor_rgb")){
 		s32 c = (cl.scores[player].colors & 0xf0) >> 4;
 		snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
 			host_basepal[c+1]/255.0, host_basepal[c]+2/255.0);
 	}
-	else if (!strcmp(key, "bottomcolor_rgb")) {
+	else if(!strcmp(key, "bottomcolor_rgb")){
 		s32 c = cl.scores[player].colors & 0x0f;
 		snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
 			host_basepal[c+1]/255.0, host_basepal[c+2]/255.0);
 	}
-	else if (!strcmp(key, "topcolor"))
-		snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors & 0xf0) >> 4);
-	else if (!strcmp(key, "bottomcolor"))
-		snprintf(buf, sizeof(buf), "%i", cl.scores[player].colors & 0x0f);
-	else if (!strcmp(key, "team"))  //quakeworld uses team infokeys to decide teams (instead of colours). but NQ never did, so that's fun. Lets allow mods to use either so that they can favour QW and let the engine hide differences .
-		snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors & 0x0f)+1);
+	else if(!strcmp(key, "topcolor"))
+	    snprintf(buf,sizeof(buf),"%i",(cl.scores[player].colors&0xf0)>>4);
+	else if(!strcmp(key, "bottomcolor"))
+		snprintf(buf, sizeof(buf), "%i", cl.scores[player].colors&0x0f);
+	else if(!strcmp(key, "team")) // quakeworld uses team infokeys to decide
+// teams (instead of colours). but NQ never did, so that's fun. Lets allow mods
+// to use either so that they can favour QW and let the engine hide differences.
+	    snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors&0x0f)+1);
 	else
 		ret = NULL;
-	if (retfloat)
+	if(retfloat)
 		G_FLOAT(OFS_RETURN) = ret?atof(ret):0;
 	else
 		G_INT(OFS_RETURN) = ret?PR_MakeTempString(ret):0;
@@ -1855,7 +1818,7 @@ static void PF_cl_playerkey_f()
 static s32 chrconv_number(s32 i, s32 base, s32 conv)
 {//part of PF_strconv
 	i -= base;
-	switch(conv) {
+	switch(conv){
 		default:
 		case 5:
 		case 6:
@@ -1880,7 +1843,7 @@ static s32 chrconv_number(s32 i, s32 base, s32 conv)
 static s32 chrconv_punct(s32 i, s32 base, s32 conv)
 {//part of PF_strconv
 	i -= base;
-	switch(conv) {
+	switch(conv){
 		default:
 		case 0:
 			break;
@@ -1894,52 +1857,42 @@ static s32 chrconv_punct(s32 i, s32 base, s32 conv)
 	return i + base;
 }
 
-static s32 chrchar_alpha(s32 i, s32 basec, s32 baset, s32 convc, s32 convt, s32 charnum)
+static s32 chrchar_alpha(s32 i, s32 basec, s32 baset, s32 convc, s32 convt,
+								s32 charnum)
 {//part of PF_strconv
 	i -= baset + basec; //convert case and colour seperatly...
-	switch(convt) {
-		default:
-		case 0:
-			break;
-		case 1:
-			baset = 0;
-			break;
-		case 2:
-			baset = 128;
-			break;
-		case 5:
-		case 6:
-			baset = 128*((charnum&1) == (convt-5));
-			break;
+	switch(convt){
+	default:
+	case 0: break;
+	case 1: baset = 0; break;
+	case 2: baset = 128; break;
+	case 5:
+	case 6: baset = 128*((charnum&1) == (convt-5)); break;
 	}
-	switch(convc) {
+	switch(convc){
 		default:
-		case 0:
-			break;
-		case 1:
-			basec = 'a';
-			break;
-		case 2:
-			basec = 'A';
-			break;
+		case 0: break;
+		case 1: basec = 'a'; break;
+		case 2: basec = 'A'; break;
 	}
 	return i + basec + baset;
 }
 
 static void PF_strconv()
 {//FTE_STRINGS bulk convert a string. change case or colouring.
-	s32 ccase = G_FLOAT(OFS_PARM0);   //0 same, 1 lower, 2 upper
-	s32 redalpha = G_FLOAT(OFS_PARM1);//0 same, 1 white, 2 red, 5 alternate, 6 alternate-alternate
-	s32 rednum = G_FLOAT(OFS_PARM2);  //0 same, 1 white, 2 red, 3 redspecial, 4 whitespecial, 5 alternate, 6 alternate-alternate
+	s32 ccase = G_FLOAT(OFS_PARM0);//0 same, 1 lower, 2 upper
+//0 same, 1 white, 2 red, 5 alternate, 6 alternate-alternate
+	s32 redalpha = G_FLOAT(OFS_PARM1);
+// ...2 red, 3 redspecial, 4 whitespecial, 5 alternate, 6 alternate-alternate
+	s32 rednum = G_FLOAT(OFS_PARM2);
 	const u8 *string = (const u8*)PF_VarString(3);
 	s32 len = strlen((const c8*)string);
 	u8 *resbuf = (u8*)PR_GetTempString();
 	u8 *result = resbuf;
-	//UTF-8-FIXME: cope with utf+^U etc
 	if(len >= STRINGTEMP_LENGTH)
 		len = STRINGTEMP_LENGTH-1;
-	for(s32 i = 0; i < len; i++, string++, result++){//should this be done backwards?
-		if(*string >= '0' && *string <= '9')   //normal numbers...
+	for(s32 i = 0; i < len; i++, string++, result++){
+		if(*string >= '0' && *string <= '9') //normal numbers
 			*result = chrconv_number(*string, '0', rednum);
 		else if(*string >= '0'+128 && *string <= '9'+128)
 			*result = chrconv_number(*string, '0'+128, rednum);
@@ -1947,15 +1900,15 @@ static void PF_strconv()
 			*result = chrconv_number(*string, '0'+128-30, rednum);
 		else if(*string >= '0'-30 && *string <= '9'-30)
 			*result = chrconv_number(*string, '0'-30, rednum);
-		else if(*string >= 'a' && *string <= 'z')  //normal numbers...
-			*result = chrchar_alpha(*string, 'a', 0, ccase, redalpha, i);
-		else if(*string >= 'A' && *string <= 'Z')  //normal numbers...
-			*result = chrchar_alpha(*string, 'A', 0, ccase, redalpha, i);
-		else if(*string >= 'a'+128 && *string <= 'z'+128)  //normal numbers...
-			*result = chrchar_alpha(*string, 'a', 128, ccase, redalpha, i);
-		else if(*string >= 'A'+128 && *string <= 'Z'+128)  //normal numbers...
-			*result = chrchar_alpha(*string, 'A', 128, ccase, redalpha, i);
-		else if((*string & 127) < 16 || !redalpha) //special chars..
+		else if(*string >= 'a' && *string <= 'z') //normal numbers
+			*result=chrchar_alpha(*string,'a',0,ccase,redalpha,i);
+		else if(*string >= 'A' && *string <= 'Z') //normal numbers
+			*result=chrchar_alpha(*string,'A',0,ccase,redalpha,i);
+		else if(*string >= 'a'+128 && *string <= 'z'+128)//normal nums
+			*result=chrchar_alpha(*string,'a',128,ccase,redalpha,i);
+		else if(*string >= 'A'+128 && *string <= 'Z'+128)//normal nums
+			*result=chrchar_alpha(*string,'A',128,ccase,redalpha,i);
+		else if((*string & 127) < 16 || !redalpha) //special chars
 			*result = *string;
 		else if(*string < 128)
 			*result = chrconv_punct(*string, 0, redalpha);
@@ -1968,22 +1921,19 @@ static void PF_strconv()
 
 static struct svcustomstat_s *PR_CustomStat(s32 idx, s32 type)
 {
-	size_t i;
 	if(idx < 0 || idx >= MAX_CL_STATS)
 		return NULL;
-	switch(type)
-	{
-		case ev_ext_integer:
-		case ev_float:
-		case ev_vector:
-		case ev_entity:
-			break;
-		default:
-			return NULL;
+	switch(type){
+	case ev_ext_integer:
+	case ev_float:
+	case ev_vector:
+	case ev_entity:
+		break;
+	default:
+		return NULL;
 	}
-
-	for(i = 0; i < sv.numcustomstats; i++)
-	{
+	size_t i;
+	for(i = 0; i < sv.numcustomstats; i++){
 		if(sv.customstats[i].idx == idx &&
 			(sv.customstats[i].type==ev_string)==(type==ev_string))
 			break;
@@ -2173,5 +2123,4 @@ builtindef_t pr_builtindefs[] =
 
 {"sprintf",                 PF_BOTH(PF_sprintf),            627, DP_QC_SPRINTF}, // string(string fmt, ...)
 };
-
 s32 pr_numbuiltindefs = Q_COUNTOF(pr_builtindefs);
