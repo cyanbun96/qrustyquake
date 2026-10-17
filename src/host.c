@@ -56,6 +56,7 @@ void Host_Error(c8 *error, ...)
 		Sys_Error("Host_Error: %s\n", string);
 	CL_Disconnect();
 	cls.demonum = -1;
+	cl.intermission = 0;
 	inerror = 0;
 	longjmp(host_abortserver, 1);
 }

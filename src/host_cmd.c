@@ -234,6 +234,8 @@ void Host_Changelevel_f()
 	SV_SaveSpawnparms();
 	SV_SpawnServer(level);
 	PR_SwitchQCVM(NULL);
+	if(!sv.active)
+		Host_Error("cannot run map %s", level);
 }
 
 void Host_Restart_f()
@@ -246,6 +248,8 @@ void Host_Restart_f()
 	PR_SwitchQCVM(&sv.qcvm); // cleared in sv_spawnserver
 	SV_SpawnServer(mapname);
 	PR_SwitchQCVM(NULL);
+	if(!sv.active)
+		Host_Error("cannot restart map %s", mapname);
 }
 
 
