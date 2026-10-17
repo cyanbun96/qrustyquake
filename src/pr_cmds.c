@@ -262,6 +262,9 @@ static void PF_sprintf_internal(const c8*s,s32 firstarg,c8*outbuf,s32 outbuflen)
 	c8 *f;
 	s32 argpos = firstarg;
 	s32 isfloat;
+	c8 quotedbuf[65536];
+	const c8 *quotedarg;
+	size_t l;
 	static s32 dummyivec[3] = {0, 0, 0};
 	static f32 dummyvec[3] = {0, 0, 0};
 #define PRINTF_ALTERNATE 1
@@ -498,10 +501,8 @@ nolength:
 /**/	break;
 /**/case 'S':
 /**/	//tokenizable string
-/**/	const c8 *quotedarg = GETARG_STRING(thisarg);
+/**/	quotedarg = GETARG_STRING(thisarg);
 /**///try and escape it... hopefully it won't get truncated by precision limits.
-/**/	c8 quotedbuf[65536];
-/**/	size_t l;
 /**/	l = strlen(quotedarg);
 /**/	if(strchr(quotedarg,'\"')||strchr(quotedarg,'\n')||
 /**/			strchr(quotedarg,'\r')||l+3>=sizeof(quotedbuf)){
