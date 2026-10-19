@@ -837,6 +837,12 @@ static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 	return result;
 }
 
+bool COM_FileExists(const c8 *filename, u32 *path_id)
+{ // Returns whether the file is found in the quake filesystem.
+	s32 ret = COM_FindFile(filename, NULL, NULL, path_id);
+	return (ret == -1) ? false : true;
+}
+
 // filename never has a leading slash, but may contain directory walks.
 // Returns a handle and a length. It may actually be inside a pak file.
 s32 COM_OpenFile(const c8 *filename, s32 *handle, u32 *path_id)

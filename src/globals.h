@@ -655,6 +655,7 @@ EX c8 com_basedir[MAX_OSPATH];
 EX c8 com_gamedir[MAX_OSPATH];
 EX s32 file_from_pak; 
 void COM_WriteFile(const c8 *filename, const void *data, s32 len);
+bool COM_FileExists(const c8 *filename, u32 *path_id); 
 s32 COM_OpenFile(const c8 *filename, s32 *handle, u32 *path_id);
 s32 COM_FOpenFile(const c8 *filename, FILE **file, u32 *path_id);
 u8 *COM_LoadStackFile(const c8 *path, void *buffer, s32 bufsize, u32 *path_id);

@@ -226,8 +226,12 @@ void Host_Changelevel_f()
 		Con_Printf("Only the server may changelevel\n");
 		return;
 	}
+	//johnfitz -- check for client having map before anything else
+	SDL_snprintf(level, sizeof(level), "maps/%s.bsp", Cmd_Argv(1));
+	if (!COM_FileExists(level, NULL))
+		Host_Error ("cannot find map %s", level);
 	strcpy(level, Cmd_Argv(1));
-	if(!strcmp(sv.name, level) && Host_AutoLoad ())
+	if(!strcmp(sv.name, level) && Host_AutoLoad())
 		return;
 	key_dest = key_game;
 	PR_SwitchQCVM(&sv.qcvm);
