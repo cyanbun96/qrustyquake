@@ -461,6 +461,8 @@ void Draw_CharToConbackScaled(s32 num, u8 *dest, s32 scale, s32 width)
 
 void Draw_ConsoleBackground(s32 lines)
 {
+	s32 olddrawlayer = drawlayer;
+	drawlayer = lyr_console.value;
 	c8 ver[100];
 	qpic_t *conback = Draw_CachePic("gfx/conback.lmp");
 	// hack the version number directly into the pic
@@ -491,6 +493,7 @@ void Draw_ConsoleBackground(s32 lines)
 			}
 		}
 	}
+	drawlayer = olddrawlayer;
 }
 
 void R_DrawRect(vrect_t *prect, s32 rowbytes, u8 *psrc)
