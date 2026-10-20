@@ -321,6 +321,13 @@ void R_GenerateSpans()
 	surfaces[1].last_u = edge_head_u_shift20;
 	// generate spans
 	for(edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next){
+	// A shared (cached) edge can carry a trailing surface in surfs[0] AND a
+	// leading one in surfs[1]. Always retire the trailing surface first,
+	// whatever the leading surface turns out to be.
+		if(edge->surfs[0])
+			R_TrailingEdge(&surfaces[edge->surfs[0]], edge);
+		if(!edge->surfs[1])
+			continue;
 		if((surfaces[edge->surfs[1]].flags & SURF_DRAWCUTOUT) ||
 			(surfaces[edge->surfs[1]].flags & SURF_DRAWSKYBOX)){
 		// Generates spans for whole cutout surfaces, from the leftmost
@@ -344,19 +351,11 @@ void R_GenerateSpans()
 			span->v = current_iv;
 			span->pnext = surf->spans;
 			surf->spans = span;
-		}else{ // Normal span generation that avoids overdraw
-			if(edge->surfs[0]){
-		// has a left surface, so a surface is going away for this span
-				surf_t *surf = &surfaces[edge->surfs[0]];
-				R_TrailingEdge(surf, edge);
-				if(!edge->surfs[1])
-					continue;
-			}
-			R_LeadingEdge(edge);
+			continue;
 		}
+		R_LeadingEdge(edge);
 	}
 	R_CleanupSpan();
-	return;
 }
 
 void R_GenerateSpansBackward()

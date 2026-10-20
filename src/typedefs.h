@@ -533,6 +533,7 @@ typedef struct edge_s {
 	struct edge_s *nextremove;
 	f32 nearzi;
 	medge_t *owner;
+	u8 rev; // reverse edge, used for detecting cache conflicts
 } edge_t;
 
 typedef struct {                                                    // d_iface.h

@@ -20,6 +20,7 @@ static f32 r_u1, r_v1, r_lzi1;
 static s32 r_ceilv1;
 static bool r_lastvertvalid;
 static bool makeleftedge, makerightedge;
+static u8 r_edgerev; // direction of the face currently being walked
 
 // r_coarseocclusion enables conservative coarse screen-space occlusion:
 // - Static tile coverage bitmap.
@@ -508,6 +509,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	s64 side = ceilv0 > r_ceilv1;
 	edge_t *edge = edge_p++;
 	edge->owner = r_pedge;
+	edge->rev = r_edgerev;
 	edge->nearzi = lzi0;
 	f64 u, u_step;
 	s64 v, v2;
@@ -631,9 +633,8 @@ void R_ClipEdge(mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 	R_EmitEdge(pv0, pv1); // add the edge
 }
 
-void R_EmitCachedEdge()
+void R_EmitCachedEdge(edge_t *pedge_t)
 {
-	edge_t *pedge_t=(edge_t*)((uintptr_t)r_edges+r_pedge->cachededgeoffset);
 	if(!pedge_t->surfs[0])
 		pedge_t->surfs[0] = surface_p - surfaces;
 	else
@@ -727,82 +728,50 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 					first_vert->position);
 		}
 	}
+	const s32 *sedges = currententity->model->surfedges + fa->firstedge;
+	mvertex_t *vbase = r_pcurrentvertbase;
+	const bool nosub = !insubmodel;
+	const u32 fstamp = r_framecount & FRAMECOUNT_MASK;
 	for(i = 0; i < fa->numedges; i++){
-		s32 lindex = currententity->model->surfedges[fa->firstedge + i];
-		if(lindex > 0){
-			r_pedge = &pedges[lindex];
-			// if the edge is cached, we can just reuse the edge
-			if(!insubmodel){
-				if(r_pedge->cachededgeoffset &
-						FULLY_CLIPPED_CACHED){
-					if((r_pedge->cachededgeoffset &
-						FRAMECOUNT_MASK)==r_framecount){
+		s32 lindex = sedges[i];
+		s32 rev = lindex <= 0;	// 1 = walks the edge v[1] -> v[0]
+		r_pedge = &pedges[rev ? -lindex : lindex];
+		// if the edge is cached, we can just reuse the edge
+		if(nosub){
+			u32 off = r_pedge->cachededgeoffset;
+			if(off & FULLY_CLIPPED_CACHED){
+				if((off & FRAMECOUNT_MASK) == fstamp){
+					r_lastvertvalid = 0;
+					continue;
+				}
+			}else if((uintptr_t)edge_p - (uintptr_t)r_edges > off){
+				edge_t *ce = (edge_t *)((uintptr_t)r_edges+off);
+				if(ce->owner == r_pedge){
+				// Share only if the creator walked the edge the
+				// other way and a slot is still free.
+					if(ce->rev == (u8)(rev ^ 1) &&
+						!(ce->surfs[0]&&ce->surfs[1])){
+						R_EmitCachedEdge(ce);
 						r_lastvertvalid = 0;
 						continue;
 					}
-				}else{
-					if((((uintptr_t)edge_p -
-						(uintptr_t)r_edges) >
-						r_pedge->cachededgeoffset) &&
-						(((edge_t *)((uintptr_t)r_edges+
-						r_pedge->cachededgeoffset))->
-						owner == r_pedge)){
-						R_EmitCachedEdge();
-						r_lastvertvalid = 0;
-						continue;
-					}
+				//Same direction or already shared: fall through
+				//and build a private edge_t for this face.
 				}
 			}
-			// assume it's cacheable
-			cacheoffset = (u32*)edge_p - (u32*)r_edges;
-			r_leftclipped = r_rightclipped = 0;
-			R_ClipEdge(&r_pcurrentvertbase[r_pedge->v[0]],
-				&r_pcurrentvertbase[r_pedge->v[1]], pclip);
-			r_pedge->cachededgeoffset = cacheoffset;
-			if(r_leftclipped)
-				makeleftedge = 1;
-			if(r_rightclipped)
-				makerightedge = 1;
-			r_lastvertvalid = 1;
-		}else{
-			lindex = -lindex;
-			r_pedge = &pedges[lindex];
-			// if the edge is cached, we can just reuse the edge
-			if(!insubmodel){
-				if(r_pedge->cachededgeoffset &
-						FULLY_CLIPPED_CACHED){
-					if((r_pedge-> cachededgeoffset &
-						FRAMECOUNT_MASK)==r_framecount){
-						r_lastvertvalid = 0;
-						continue;
-					}
-				}else{
-					// it's cached if the cached edge is
-					// valid and is owned by this medge_t
-					if((((uintptr_t)edge_p -
-						(uintptr_t)r_edges) >
-						r_pedge->cachededgeoffset) &&
-						(((edge_t*)((uintptr_t)r_edges +
-						r_pedge->cachededgeoffset))
-						->owner == r_pedge)){
-						R_EmitCachedEdge();
-						r_lastvertvalid = 0;
-						continue;
-					}
-				}
-			}
-			// assume it's cacheable
-			cacheoffset = (u32 *) edge_p - (u32 *) r_edges;
-			r_leftclipped = r_rightclipped = 0;
-			R_ClipEdge(&r_pcurrentvertbase[r_pedge->v[1]],
-				&r_pcurrentvertbase[r_pedge->v[0]], pclip);
-			r_pedge->cachededgeoffset = cacheoffset;
-			if(r_leftclipped)
-				makeleftedge = 1;
-			if(r_rightclipped)
-				makerightedge = 1;
-			r_lastvertvalid = 1;
 		}
+		// assume it's cacheable
+		cacheoffset = (u32)((uintptr_t)edge_p - (uintptr_t)r_edges);
+		r_edgerev = (u8)rev; // R_EmitEdge stores this in the new edge_t
+		r_leftclipped = r_rightclipped = 0;
+		R_ClipEdge(&vbase[r_pedge->v[rev]], &vbase[r_pedge->v[rev ^ 1]],
+				pclip);
+		r_pedge->cachededgeoffset = cacheoffset;
+		if(r_leftclipped)
+			makeleftedge = 1;
+		if(r_rightclipped)
+			makerightedge = 1;
+		r_lastvertvalid = 1;
 	}
 	// if there was a clip off the left edge, add that edge too
 	if(makeleftedge){
