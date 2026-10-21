@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 typedef struct { s32 x0, y0, x1, y1; } debugline_t;
@@ -10,9 +10,10 @@ static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 verticalFieldOfView;
 static f32 xOrigin, yOrigin;
 static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
+static f32 aliaslightvec[3] = { -1, 0, 0 };
 
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
-{ // Helper to project a 3D point (Used by point entities)
+{ // Helper to project a 3D point(Used by point entities)
 	vec3_t local, transformed;
 	VectorSubtract(world, r_origin, local);
 	TransformVector(local, transformed);
@@ -55,7 +56,7 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 	f32 d1[4] = {DIST_LEFT(t1),DIST_RIGHT(t1),DIST_TOP(t1),DIST_BOTTOM(t1)};
 	f32 d2[4] = {DIST_LEFT(t2),DIST_RIGHT(t2),DIST_TOP(t2),DIST_BOTTOM(t2)};
 	for(s32 i = 0; i < 4; i++){
-		if(d1[i] < 0 && d2[i] < 0)return; // Completely outside this frustum plane
+		if(d1[i]<0 && d2[i]<0)return; //Fully outside this frustum plane
 		if(d1[i] < 0){
 			f32 frac = d1[i] / (d1[i] - d2[i]);
 			t1[0] += frac * (t2[0] - t1[0]);
@@ -74,18 +75,17 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 	}
 	f32 lzi1 = 1.0 / t1[2]; // 2D Projection
 	f32 lzi2 = 1.0 / t2[2];
-	if(r_numdebuglines < MAX_DEBUG_LINES){
-		r_debuglines[r_numdebuglines].x0 = (s32)(xcenter + (xscale * lzi1) * t1[0]);
-		r_debuglines[r_numdebuglines].y0 = (s32)(ycenter - (yscale * lzi1) * t1[1]);
-		r_debuglines[r_numdebuglines].x1 = (s32)(xcenter + (xscale * lzi2) * t2[0]);
-		r_debuglines[r_numdebuglines].y1 = (s32)(ycenter - (yscale * lzi2) * t2[1]);
-		r_numdebuglines++;
-	}
+	if(r_numdebuglines >= MAX_DEBUG_LINES) return;
+	r_debuglines[r_numdebuglines].x0=(s32)(xcenter+(xscale*lzi1)*t1[0]);
+	r_debuglines[r_numdebuglines].y0=(s32)(ycenter-(yscale*lzi1)*t1[1]);
+	r_debuglines[r_numdebuglines].x1=(s32)(xcenter+(xscale*lzi2)*t2[0]);
+	r_debuglines[r_numdebuglines].y1=(s32)(ycenter-(yscale*lzi2)*t2[1]);
+	r_numdebuglines++;
 }
 
 void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
-	vec3_t old_modelorg; // save current state, force modelorg to global spaces
+	vec3_t old_modelorg;//save current state,force modelorg to global spaces
 	VectorCopy(modelorg, old_modelorg);
 	VectorCopy(r_origin, modelorg);
 	vec3_t corners[8];
@@ -102,7 +102,7 @@ void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 	R_DrawDebugLine3D(corners[5], corners[7]);
 	R_DrawDebugLine3D(corners[7], corners[6]);
 	R_DrawDebugLine3D(corners[6], corners[4]);
-	R_DrawDebugLine3D(corners[0], corners[4]); // vertical edges connecting top & bottom
+	R_DrawDebugLine3D(corners[0], corners[4]); // vertical edges
 	R_DrawDebugLine3D(corners[1], corners[5]);
 	R_DrawDebugLine3D(corners[2], corners[6]);
 	R_DrawDebugLine3D(corners[3], corners[7]);
@@ -113,7 +113,7 @@ static s32 ComputeOutCode(s32 x, s32 y, s32 w, s32 h)
 {
 	s32 code = 0;
 	if(x < 0)code |= CLIP_LEFT;
-	else if (x >= w) code |= CLIP_RIGHT;
+	else if(x >= w) code |= CLIP_RIGHT;
 	if(y < 0)code |= CLIP_TOP;
 	else if(y >= h)code |= CLIP_BOTTOM;
 	return code;
@@ -137,13 +137,13 @@ void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 			s32 x = 0, y = 0;
 			s32 outcodeOut = outcode0 ? outcode0 : outcode1;
 			if(outcodeOut & CLIP_BOTTOM){
-				x=x0+(s32)((((s64)x1-x0)*(h-1-y0))/((s64)y1-y0));
+			    x=x0+(s32)((((s64)x1-x0)*(h-1-y0))/((s64)y1-y0));
 				y = h - 1;
 			}else if(outcodeOut & CLIP_TOP){
 				x=x0+(s32)((((s64)x1-x0)*(0-y0))/((s64)y1-y0));
 				y = 0;
 			}else if(outcodeOut & CLIP_RIGHT){
-				y=y0+(s32)((((s64)y1-y0)*(w-1-x0))/((s64)x1-x0));
+			    y=y0+(s32)((((s64)y1-y0)*(w-1-x0))/((s64)x1-x0));
 				x = w - 1;
 			}else if(outcodeOut & CLIP_LEFT){
 				y=y0+(s32)((((s64)y1-y0)*(0-x0))/((s64)x1-x0));
@@ -189,16 +189,16 @@ void R_ParseDebugEntities()
 {
 	R_AllocShowTris();
 	r_numdebugpoints = 0;
-	if (!cl.worldmodel || !cl.worldmodel->entities) return;
+	if(!cl.worldmodel || !cl.worldmodel->entities) return;
 	const c8 *data = cl.worldmodel->entities;
 	c8 key[128], value[4096];
-	while (1){
+	while(1){
 		data = COM_Parse(data);
 		if(!data)break;
 		if(com_token[0] != '{')continue;
 		bool is_point = true;
 		vec3_t parsed_origin = {0, 0, 0};
-		while (1){
+		while(1){
 			data = COM_Parse(data);
 			if(!data || com_token[0] == '}')break;
 			strcpy(key, com_token);
@@ -208,8 +208,8 @@ void R_ParseDebugEntities()
 			if(!strcmp(key, "origin"))
 				sscanf(value, "%f %f %f", &parsed_origin[0],
 					&parsed_origin[1], &parsed_origin[2]);
-			else if (!strcmp(key, "model"))
-				is_point = false; // Has a brush model, not a point entity
+			else if(!strcmp(key, "model")) // Has a brush model
+				is_point = false; // not a point entity
 		}
 		if((is_point && (parsed_origin[0] != 0 || parsed_origin[1] != 0
 				|| parsed_origin[2] != 0))
@@ -382,7 +382,7 @@ void R_Init()
 	Sky_Init();
 }
 
-void Pal_ParseWorldspawn ()
+void Pal_ParseWorldspawn()
 { // called at map load
 	c8 key[128], value[4096];
 	const c8 *data = COM_Parse(cl.worldmodel->entities);
@@ -458,8 +458,8 @@ void R_SetVrect(vrect_t *pvrectin, vrect_t *pvrect, s32 lineadj)
 void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 { // Called every time the vid structure or r_refdef changes.
  // Guaranteed to be called before the first refresh
-	if (r_fovmode.value == 1) aspect *= (f32)vid.width/(f32)vid.height*0.75;
-	else if (r_fovmode.value == 2) aspect *= yaspectscale.value;
+	if(r_fovmode.value == 1) aspect *= (f32)vid.width/(f32)vid.height*0.75;
+	else if(r_fovmode.value == 2) aspect *= yaspectscale.value;
 	r_viewchanged = 1;
 	R_SetVrect(pvrect, &r_refdef.vrect, lineadj);
 	r_refdef.horizontalFieldOfView = 2.0 * tan(r_refdef.fov_x / 360 * M_PI);
@@ -576,8 +576,8 @@ void R_SetupEntityTransform(entity_t *e)
                 VectorCopy(e->angles, e->currentangles);
                 e->lerpflags -= LERP_RESETMOVE;
         }else if(!VectorCompare(e->origin, e->currentorigin) || 
-		!VectorCompare(e->angles, e->currentangles)){ // origin/angles changed, start new lerp
-                e->movelerpstart = cl.time;
+		!VectorCompare(e->angles, e->currentangles)){ // origin/angles
+                e->movelerpstart = cl.time; // changed, start new lerp
                 VectorCopy(e->currentorigin, e->previousorigin);
                 VectorCopy(e->origin,  e->currentorigin);
                 VectorCopy(e->currentangles, e->previousangles);
@@ -588,81 +588,112 @@ void R_SetupEntityTransform(entity_t *e)
 				(e->lerpflags & LERP_FINISH ?
 				 e->lerpfinish - e->movelerpstart : 0.1f), 1.f);
 		vec3_t d;
-                VectorSubtract (e->currentorigin, e->previousorigin, d);
+                VectorSubtract(e->currentorigin, e->previousorigin, d);
                 lerpdata.origin[0] = e->previousorigin[0] + d[0] * blend;
                 lerpdata.origin[1] = e->previousorigin[1] + d[1] * blend;
                 lerpdata.origin[2] = e->previousorigin[2] + d[2] * blend;
-                VectorSubtract (e->currentangles, e->previousangles, d);
+                VectorSubtract(e->currentangles, e->previousangles, d);
                 for(s32 i = 0; i < 3; i++){
-                        if (d[i] > 180)  d[i] -= 360;
-                        if (d[i] < -180) d[i] += 360;
+                        if(d[i] > 180)  d[i] -= 360;
+                        if(d[i] < -180) d[i] += 360;
                 }
                 lerpdata.angles[0] = e->previousangles[0] + d[0] * blend;
                 lerpdata.angles[1] = e->previousangles[1] + d[1] * blend;
                 lerpdata.angles[2] = e->previousangles[2] + d[2] * blend;
         }else{//don't lerp
-                VectorCopy (e->origin, lerpdata.origin);
-                VectorCopy (e->angles, lerpdata.angles);
+                VectorCopy(e->origin, lerpdata.origin);
+                VectorCopy(e->angles, lerpdata.angles);
         }
 	// Baker: Software uses these fields in too many places
         VectorCopy(lerpdata.origin, e->origin);
         VectorCopy(lerpdata.angles, e->angles);
 }
 
+static void R_SetEntityModelOrg(entity_t *ent)
+{
+	VectorCopy(ent->origin, r_entorigin);
+	VectorSubtract(r_origin, r_entorigin, modelorg);
+}
+ 
+static f32 R_EntityAlpha(entity_t *ent)
+{ return ent->alpha ? (f32)ent->alpha/255 : 1; }
+ 
+static void R_ClampAliasLighting(alight_t *light)
+{
+	if(light->ambientlight > 128)
+		light->ambientlight = 128;
+	if(light->ambientlight + light->shadelight > 192)
+		light->shadelight = 192 - light->ambientlight;
+}
+ 
+static s32 R_AddDlightsToAliasLight(alight_t *light, vec3_t origin)
+{
+	s32 muzzleflash = 0;
+	for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++){
+		dlight_t *dl = &cl_dlights[lnum];
+		if(!dl->radius || dl->die < cl.time)
+			continue;
+		vec3_t dist;
+		VectorSubtract(origin, dl->origin, dist);
+		f32 len = VectorLength(dist);
+		f32 add = dl->radius - len;
+		if(add > 150 && len < 50)
+			muzzleflash = 1;
+		if(add > 0)
+			light->ambientlight += add;
+	}
+	return muzzleflash;
+}
+ 
+static void R_SetupAliasEntityLighting(alight_t *lighting)
+{
+	s32 j = R_LightPoint(currententity->origin, 0.f);
+	if(!j)
+		R_LightPoint(currententity->origin,
+				currententity->model->maxs[2]*0.5f);
+	lighting->ambientlight = j;
+	lighting->shadelight = j;
+	lighting->plightvec = aliaslightvec;
+	R_AddDlightsToAliasLight(lighting, currententity->origin);
+	R_ClampAliasLighting(lighting);
+}
+ 
+static void R_DrawAliasEntity()
+{
+	if(r_lerpmove.value && !(cls.demoplayback && (cl.paused & 2)))
+		R_SetupEntityTransform(currententity); // move lerp
+	R_SetEntityModelOrg(currententity);
+	// see if the bounding box lets us trivially reject
+	// also sets trivial accept status
+	if(!R_AliasCheckBBox())
+		return;
+	alight_t lighting;
+	R_SetupAliasEntityLighting(&lighting);
+	cur_ent_alpha = r_entalpha.value == 1 ? R_EntityAlpha(currententity):1;
+	if(colored_aliaslight &&
+		nameInList(r_fullbright_list.string,currententity->model->name))
+		colored_aliaslight = 0;
+	R_AliasDrawModel(&lighting);
+}
+ 
 void R_DrawEntitiesOnList()
 {
-	f32 lightvec[3] = { -1, 0, 0 };
 	if(!r_drawentities.value)
 		return;
 	for(s32 i = 0; i < cl_numvisedicts; i++){
 		currententity = cl_visedicts[i];
 		if(currententity == &cl_entities[cl.viewentity]
-			&& !chase_active.value)
-			continue; // don't draw the player
-		if (r_showtris.value && currententity->model)
-			R_DebugDrawBBox(currententity->origin,
-				currententity->model->mins, currententity->model->maxs);
+			&& !chase_active.value) continue;//don't draw the player
+		if(r_showtris.value && currententity->model)
+			R_DebugDrawBBox(currententity->origin,currententity->
+					model->mins,currententity->model->maxs);
 		switch(currententity->model->type){
 		case mod_sprite:
-			VectorCopy(currententity->origin, r_entorigin);
-			VectorSubtract(r_origin, r_entorigin, modelorg);
+			R_SetEntityModelOrg(currententity);
 			R_DrawSprite();
 			break;
 		case mod_alias:
-			if(r_lerpmove.value && !(cls.demoplayback && cl.paused & 2))
-				R_SetupEntityTransform(currententity); // move lerp
-			VectorCopy(currententity->origin, r_entorigin);
-			VectorSubtract(r_origin, r_entorigin, modelorg);
-			// see if the bounding box lets us trivially reject
-			// also sets trivial accept status
-			if(R_AliasCheckBBox()){
-				s32 j = R_LightPoint(currententity->origin, 0.f);
-				if(!j) R_LightPoint(currententity->origin, currententity->model->maxs[2]*0.5f);
-				alight_t lighting;
-				lighting.ambientlight = j;
-				lighting.shadelight = j;
-				lighting.plightvec = lightvec;
-				for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++)
-					if(cl_dlights[lnum].die >= cl.time){
-						vec3_t dist;
-						VectorSubtract(currententity-> origin,
-								cl_dlights[lnum]. origin, dist);
-						f32 add = cl_dlights[lnum].radius - VectorLength(dist);
-						if (add > 0)
-							lighting.ambientlight += add;
-					}
-				// clamp lighting so it doesn't overbright as much
-				if(lighting.ambientlight > 128)
-					lighting.ambientlight = 128;
-				if(lighting.ambientlight + lighting.shadelight > 192)
-					lighting.shadelight = 192 - lighting.ambientlight;
-				cur_ent_alpha = currententity->alpha && r_entalpha.value == 1 ?
-					(f32)currententity->alpha/255 : 1;
-				if(colored_aliaslight &&
-					nameInList(r_fullbright_list.string, currententity->model->name))
-					colored_aliaslight = 0;
-				R_AliasDrawModel(&lighting);
-			}
+			R_DrawAliasEntity();
 			break;
 		default:
 			break;
@@ -670,186 +701,199 @@ void R_DrawEntitiesOnList()
 	}
 	cur_ent_alpha = 1;
 }
-
+ 
+static void R_SetupViewModelLighting()
+{
+	s32 j = R_LightPoint(currententity->origin, 0.f);
+	if(j < 24)
+		j = 24; // always give some light on the gun
+	r_viewlighting.ambientlight = j;
+	r_viewlighting.shadelight = j;
+	r_viewlighting.plightvec = aliaslightvec;
+	colored_aliaslight = r_rgblighting.value && lit_loaded ? 1 : 0;
+	// add dynamic lights
+	if(R_AddDlightsToAliasLight(&r_viewlighting, currententity->origin))
+		colored_aliaslight = 0; // hack in the muzzleflash
+	R_ClampAliasLighting(&r_viewlighting);
+}
+ 
 void R_DrawViewModel()
 {
-	f32 lightvec[3] = { -1, 0, 0 };
 	if(!r_drawviewmodel.value || cl.items & IT_INVISIBILITY
 		|| cl.stats[STAT_HEALTH] <= 0 || !cl.viewent.model
 		|| chase_active.value)
-		return;
+                return;
 	currententity = &cl.viewent;
-	VectorCopy(currententity->origin, r_entorigin);
-	VectorSubtract(r_origin, r_entorigin, modelorg);
+	R_SetEntityModelOrg(currententity);
 	VectorCopy(vup, viewlightvec);
 	VectorInverse(viewlightvec);
-	s32 j = R_LightPoint(currententity->origin, 0.f);
-	if(j < 24)
-		j = 24; // allways give some light on the gun
-	r_viewlighting.ambientlight = j;
-	r_viewlighting.shadelight = j;
-	colored_aliaslight = r_rgblighting.value && lit_loaded ? 1 : 0;
-	for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++){ // add dynamic lights
-		dlight_t *dl = &cl_dlights[lnum];
-		if(!dl->radius || dl->die < cl.time)
-			continue;
-		vec3_t dist;
-		VectorSubtract(currententity->origin, dl->origin, dist);
-		f32 add = dl->radius - VectorLength(dist);
-		if(add > 150 && VectorLength(dist) < 50) // hack in the muzzleflash
-			colored_aliaslight = 0; // FIXME and do it properly
-		if(add > 0)
-			r_viewlighting.ambientlight += add;
-	}
-	// clamp lighting so it doesn't overbright as much
-	if(r_viewlighting.ambientlight > 128)
-		r_viewlighting.ambientlight = 128;
-	if(r_viewlighting.ambientlight + r_viewlighting.shadelight > 192)
-		r_viewlighting.shadelight = 192 - r_viewlighting.ambientlight;
-	r_viewlighting.plightvec = lightvec;
+	R_SetupViewModelLighting();
 	R_AliasDrawModel(&r_viewlighting);
 }
-
-s32 R_BmodelCheckBBox(model_t *clmodel, f32 *minmaxs)
+ 
+static f64 R_ClipPlaneDist(vec3_t point, s32 i)
+{
+	f64 d = DotProduct(point, view_clipplanes[i].normal);
+	d -= view_clipplanes[i].dist;
+	return d;
+}
+ 
+static f32 R_BmodelBoundingRadius(model_t *clmodel)
+{
+	f32 dx = clmodel->maxs[0] - clmodel->mins[0];
+	f32 dy = clmodel->maxs[1] - clmodel->mins[1];
+	f32 dz = clmodel->maxs[2] - clmodel->mins[2];
+	return sqrtf(dx*dx + dy*dy + dz*dz) * 0.5f + 8.0f;
+}
+ 
+static s32 R_BmodelCheckRotated(model_t *clmodel)
 {
 	s32 clipflags = 0;
-	// recompute radius from real bounds to support large modern entities
-	vec3_t mins, maxs;
-	mins[0] = clmodel->mins[0];
-	mins[1] = clmodel->mins[1];
-	mins[2] = clmodel->mins[2];
-	maxs[0] = clmodel->maxs[0];
-	maxs[1] = clmodel->maxs[1];
-	maxs[2] = clmodel->maxs[2];
-	f32 dx = maxs[0] - mins[0];
-	f32 dy = maxs[1] - mins[1];
-	f32 dz = maxs[2] - mins[2];
-	f32 radius = sqrtf(dx*dx + dy*dy + dz*dz) * 0.5f;
-	radius += 8.0f; // bias prevents precision clipping with large entities
-	if(currententity->angles[0] || currententity->angles[1]
-	    || currententity->angles[2]){
-		for(s32 i = 0; i < 4; i++){
-			f64 d = DotProduct(currententity->origin,
-					view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
-			if(d <= -radius)
-				return BMODEL_FULLY_CLIPPED;
-			if(d <= radius)
-				clipflags |= (1 << i);
-		}
-	} else {
-		for(s32 i = 0; i < 4; i++){
-			s32 *pindex = pfrustum_indexes[i];
-			vec3_t acceptpt, rejectpt;
-			rejectpt[0] = minmaxs[pindex[0]];
-			rejectpt[1] = minmaxs[pindex[1]];
-			rejectpt[2] = minmaxs[pindex[2]];
-			f64 d = DotProduct(rejectpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
-			if(d <= 0)
-				return BMODEL_FULLY_CLIPPED;
-			acceptpt[0] = minmaxs[pindex[3 + 0]];
-			acceptpt[1] = minmaxs[pindex[3 + 1]];
-			acceptpt[2] = minmaxs[pindex[3 + 2]];
-			d = DotProduct(acceptpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
-			if(d <= 0)
-				clipflags |= (1 << i);
-		}
+	f32 radius = R_BmodelBoundingRadius(clmodel);
+ 
+	for(s32 i = 0; i < 4; i++){
+		f64 d = R_ClipPlaneDist(currententity->origin, i);
+		if(d <= -radius)
+			return BMODEL_FULLY_CLIPPED;
+		if(d <= radius)
+			clipflags |= (1 << i);
 	}
 	return clipflags;
 }
+ 
+static s32 R_BmodelCheckAxisAligned(f32 *minmaxs)
+{
+	s32 clipflags = 0;
+	for(s32 i = 0; i < 4; i++){
+		s32 *pindex = pfrustum_indexes[i];
+		vec3_t acceptpt, rejectpt;
+		rejectpt[0] = minmaxs[pindex[0]];
+		rejectpt[1] = minmaxs[pindex[1]];
+		rejectpt[2] = minmaxs[pindex[2]];
+		if(R_ClipPlaneDist(rejectpt, i) <= 0)
+			return BMODEL_FULLY_CLIPPED;
+		acceptpt[0] = minmaxs[pindex[3 + 0]];
+		acceptpt[1] = minmaxs[pindex[3 + 1]];
+		acceptpt[2] = minmaxs[pindex[3 + 2]];
+		if(R_ClipPlaneDist(acceptpt, i) <= 0)
+			clipflags |= (1 << i);
+	}
+	return clipflags;
+}
+ 
+s32 R_BmodelCheckBBox(model_t *clmodel, f32 *minmaxs)
+{
+	if(currententity->angles[0] || currententity->angles[1]
+			|| currententity->angles[2])
+		return R_BmodelCheckRotated(clmodel);
+	return R_BmodelCheckAxisAligned(minmaxs);
+}
+ 
+static s32 R_SetupBmodelAlpha(entity_t *ent)
+{
+	if(r_entalpha.value != 1){
+		cur_ent_alpha = 1;
+		return 1;
+	}
+	if(!r_alphapass){
+		if(ent->alpha && ent->alpha != 255){
+			r_foundtranswater = 1;
+			return 0;
+		}
+		return 1;
+	}
+	cur_ent_alpha = R_EntityAlpha(ent);
+	return 1;
+}
+ 
+static void R_BmodelWorldBounds(entity_t *ent, f32 *minmaxs)
+{
+	model_t *clmodel = ent->model;
+	for(s32 j = 0; j < 3; j++){
+		minmaxs[j] = ent->origin[j] + clmodel->mins[j];
+		minmaxs[3 + j] = ent->origin[j] + clmodel->maxs[j];
+	}
+}
+ 
+static void R_MarkBmodelDlights(model_t *clmodel)
+{
+	if(clmodel->firstmodelsurface == 0)
+		return;
+	for(s32 k = 0; k < MAX_DLIGHTS; k++){
+		if(cl_dlights[k].die < cl.time || !cl_dlights[k].radius)
+			continue;
+		R_MarkLights(&cl_dlights[k], 1 << k,
+			clmodel->nodes + clmodel->hulls[0].firstclipnode);
+	}
+}
+ 
 
+static void R_DrawBmodelPolygons(model_t *clmodel, f32 *minmaxs, s32 clipflags)
+{
+	r_pefragtopnode = NULL;
+	for(s32 j = 0; j < 3; j++){
+		r_emins[j] = minmaxs[j];
+		r_emaxs[j] = minmaxs[3 + j];
+	}
+	R_SplitEntityOnNode2(cl.worldmodel->nodes);
+	if(!r_pefragtopnode)
+		return;
+	currententity->topnode = r_pefragtopnode;
+	if(r_pefragtopnode->contents >= 0){
+		// not a leaf; has to be clipped to the world BSP
+		r_clipflags = clipflags;
+		R_DrawSolidClippedSubmodelPolygons(clmodel);
+	} else {
+// falls entirely in one leaf, so we just put all the edges in the edge list and
+// let 1/z sorting handle drawing order
+		R_DrawSubmodelPolygons(clmodel, clipflags);
+	}
+	currententity->topnode = NULL;
+}
+ 
+
+static void R_RestoreWorldView(vec3_t oldorigin)
+{
+	VectorCopy(base_vpn, vpn);
+	VectorCopy(base_vup, vup);
+	VectorCopy(base_vright, vright);
+	VectorCopy(oldorigin, modelorg);
+	R_TransformFrustum();
+}
+ 
+
+static void R_DrawBrushEntity(vec3_t oldorigin)
+{
+	model_t *clmodel = currententity->model;
+	f32 minmaxs[6];
+	if(!R_SetupBmodelAlpha(currententity))
+		return;
+	// see if the bounding box lets us trivially reject
+	// also sets trivial accept status
+	R_BmodelWorldBounds(currententity, minmaxs);
+	s32 clipflags = R_BmodelCheckBBox(clmodel, minmaxs);
+	if(clipflags == BMODEL_FULLY_CLIPPED)
+		return;
+	R_SetEntityModelOrg(currententity);
+	r_pcurrentvertbase = clmodel->vertexes;
+	R_RotateBmodel();
+	R_MarkBmodelDlights(clmodel);
+	R_DrawBmodelPolygons(clmodel, minmaxs, clipflags);
+	R_RestoreWorldView(oldorigin);
+}
+ 
 void R_DrawBEntitiesOnList()
 {
-	f32 minmaxs[6];
 	if(!r_drawentities.value)
 		return;
 	vec3_t oldorigin;
 	VectorCopy(modelorg, oldorigin);
 	insubmodel = 1;
 	r_dlightframecount = r_framecount;
-	model_t *clmodel; // keep here for the OpenBSD compiler
 	for(s32 i = 0; i < cl_numvisedicts; i++){
 		currententity = cl_visedicts[i];
-		switch(currententity->model->type){
-		case mod_brush:
-			if(r_entalpha.value == 1){
-				if(!r_alphapass && currententity->alpha &&
-						currententity->alpha != 255){
-					r_foundtranswater = 1;
-					continue;
-				}
-				if(r_alphapass)
-					cur_ent_alpha = currententity->alpha ?
-						(f32)currententity->alpha/255 : 1;
-			}
-			else
-				cur_ent_alpha = 1;
-			clmodel = currententity->model;
-			// see if the bounding box lets us trivially reject
-			// also sets trivial accept status
-			for(s32 j = 0; j < 3; j++){
-				minmaxs[j] = currententity->origin[j] +
-				    clmodel->mins[j];
-				minmaxs[3 + j] = currententity->origin[j] +
-				    clmodel->maxs[j];
-			}
-			s32 clipflags = R_BmodelCheckBBox(clmodel, minmaxs);
-			if(clipflags != BMODEL_FULLY_CLIPPED){
-				VectorCopy(currententity->origin, r_entorigin);
-				VectorSubtract(r_origin, r_entorigin, modelorg);
-				r_pcurrentvertbase = clmodel->vertexes;
-				// FIXME: stop transforming twice
-				R_RotateBmodel();
-				// calculate dynamic lighting for bmodel
-				// if it's not an instanced model
-				if(clmodel->firstmodelsurface != 0){
-					for(s32 k = 0; k < MAX_DLIGHTS; k++){
-						if((cl_dlights[k].die <cl.time)
-						    || (!cl_dlights[k].radius))
-							continue;
-						R_MarkLights(&cl_dlights[k],
-							     1 << k,
-							     clmodel->nodes +
-							     clmodel->hulls[0].
-							     firstclipnode);
-					}
-				}
-				r_pefragtopnode = NULL;
-				for(s32 j = 0; j < 3; j++){
-					r_emins[j] = minmaxs[j];
-					r_emaxs[j] = minmaxs[3 + j];
-				}
-				R_SplitEntityOnNode2(cl.worldmodel-> nodes);
-				if(r_pefragtopnode){
-					currententity->topnode =r_pefragtopnode;
-					if(r_pefragtopnode->contents >= 0){
-						// not a leaf; has to be clipped to the world BSP
-						r_clipflags = clipflags;
-						R_DrawSolidClippedSubmodelPolygons(clmodel);
-					} else {
-						// falls entirely in one leaf, so we just put all the
-						// edges in the edge list and let 1/z sorting handle
-						// drawing order
-						R_DrawSubmodelPolygons(clmodel, clipflags);
-					}
-					currententity->topnode = NULL;
-				}
-				// put back world rotation and frustum clipping
-				// FIXME: R_RotateBmodel should just work off base_vxx
-				VectorCopy(base_vpn, vpn);
-				VectorCopy(base_vup, vup);
-				VectorCopy(base_vright, vright);
-				VectorCopy(base_modelorg, modelorg);
-				VectorCopy(oldorigin, modelorg);
-				R_TransformFrustum();
-			}
-			break;
-
-		default:
-			break;
-		}
+		if(currententity->model->type == mod_brush)
+			R_DrawBrushEntity(oldorigin);
 	}
 	insubmodel = 0;
 	cur_ent_alpha = 1;
@@ -908,9 +952,9 @@ void R_RenderView()
 	if(r_speeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
 	if(r_showtris.value){
-		for (s32 i = 0; i < r_numdebugpoints; i++)
+		for(s32 i = 0; i < r_numdebugpoints; i++)
 			R_DebugDrawPoint(r_debugpoints[i].origin);
-		for (s32 i = 0; i < r_numdebuglines; i++) {
+		for(s32 i = 0; i < r_numdebuglines; i++){
 			R_DrawDebugLine(r_debuglines[i].x0, r_debuglines[i].y0,
 					r_debuglines[i].x1, r_debuglines[i].y1,
 					r_showtris_color.value);
