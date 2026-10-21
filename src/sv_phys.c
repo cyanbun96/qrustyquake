@@ -510,7 +510,6 @@ void SV_WalkMove(edict_t *ent)
 
 void SV_Physics_Client(edict_t *ent, s32 num) // Player character actions
 {
-	if((s32)ent->v.movetype == 7) return; // FIXME
 	if(!svs.clients[num-1].active) return; // unconnected slot
 	pr_global_struct->time = qcvm->time; // call standard client pre-think
 	pr_global_struct->self = EDICT_TO_PROG(ent);
