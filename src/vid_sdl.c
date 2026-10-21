@@ -90,7 +90,7 @@ void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 void VID_SetWindowed()
 {
 	SDL_SetWindowFullscreen(window, 0);
-	SDL_SetWindowSize(window, vid.width*renderscale, vid.height*renderscale);
+	SDL_SetWindowSize(window,vid.width*renderscale,vid.height*renderscale);
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED);
 }
@@ -100,13 +100,13 @@ void VID_SetFullscreen(s32 w, s32 h)
 	s32 moden = -1;
 	SDL_DisplayMode *mode = 0;
 	SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(1, &moden);
-	for(s32 i = 0; i < moden; ++i) {
+	for(s32 i = 0; i < moden; ++i){
 		if(modes[i]->w == w && modes[i]->h == h){
 			mode = modes[i];
 			break;
 		}}
-	if(!mode)Con_Printf("Couldn't find an exclusive fullscreen mode with specified dimensions (%dx%d), using borderless fullscreen\n", w, h);
-	else Con_Printf("Setting exclusive fullscreen mode (%dx%d)\n", w, h);
+	if(!mode)Con_Printf("Couldn't find an exclusive fullscreen mode with specified dimensions(%dx%d), using borderless fullscreen\n", w, h);
+	else Con_Printf("Setting exclusive fullscreen mode(%dx%d)\n", w, h);
 	SDL_SetWindowFullscreenMode(window, mode);
 	SDL_SetWindowFullscreen(window, 1);
 	SDL_free(modes);
@@ -123,8 +123,9 @@ void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
 	if(vid.width / 320 >= scr_uiscale.value && scr_uiscale.value >= 1){
 		uiscale = scr_uiscale.value;
 		vid.recalc_refdef = 1;
-	} else {
-		Con_Printf("Invalid UI scale value %d\n", (s32)scr_uiscale.value);
+	}else{
+		Con_Printf("Invalid UI scale value %d\n",
+				(s32)scr_uiscale.value);
 		Con_Printf("Max %d for current resolution\n", vid.width/320);
 		Cvar_SetValue("scr_uiscale", uiscale);
 	}
@@ -132,9 +133,6 @@ void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
 
 void VID_Init(SDL_UNUSED u8 *palette)
 {
-	s32 pnum;
-	s32 winmode;
-	s32 defmode = -1;
 	c8 caption[50];
 	Cvar_RegisterVariable(&_windowed_mouse);
 	Cvar_RegisterVariable(&_vid_default_mode_win);
@@ -146,22 +144,22 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	Cvar_RegisterVariable(&aspectr_lock);
 	Cvar_RegisterVariable(&realwidth);
 	Cvar_RegisterVariable(&realheight);
-	void (*vid_callback)(cvar_t *) =
-		(void (*)(cvar_t *))VID_CalcScreenDimensions;
+	void(*vid_callback)(cvar_t *) =
+		(void(*)(cvar_t *))VID_CalcScreenDimensions;
 	Cvar_SetCallback(&aspectr, vid_callback);
 	Cvar_SetCallback(&realwidth, vid_callback);
 	Cvar_SetCallback(&realheight, vid_callback);
 	Cvar_SetCallback(&scr_uiscale, VID_UpdateUIScale);
 	Cmd_AddCommand("vid_fullscreen", VID_VidFullscreenCommand_f);
-	// Set up display mode (width and height)
+	// Set up display mode(width and height)
 	vid.width = 320;
 	vid.height = 240;
+	s32 winmode = 0;
 #ifdef __EMSCRIPTEN__
 	// erysdren: emscripten requires windowed mode
 	winmode = 1;
-#else
-	winmode = 0;
 #endif
+	s32 defmode = -1;
 	if(!(COM_CheckParm("-width") || COM_CheckParm("-height")
 	   || COM_CheckParm("-window") || COM_CheckParm("-fullscreen")
 	   || COM_CheckParm("-winsize"))){
@@ -176,7 +174,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	s32 confheight = VID_GetConfigCvar("vid_cheight");
 	s32 confwmode = VID_GetConfigCvar("vid_cwmode");
 	renderscale = VID_GetConfigCvar("r_renderscale");
-	if (renderscale < 1) renderscale = 1;
+	if(renderscale < 1) renderscale = 1;
 	if(confwidth >= 320 && confheight >= 200 &&
 		confwidth <= MAXWIDTH && confheight <= MAXHEIGHT){
 		vid.width = confwidth;
@@ -185,6 +183,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	}
 	else if(defmode != -1)
 		Sys_Printf("Using _vid_default_mode_win to set mode\n");
+	s32 pnum;
 	if((pnum = COM_CheckParm("-winsize"))){
 		if(pnum >= com_argc - 2)
 			Sys_Error("VID: -winsize <width> <height>\n");
@@ -212,16 +211,21 @@ void VID_Init(SDL_UNUSED u8 *palette)
 		Sys_Printf("vanilla maximum resolution is 1280x1024\n");
 	aspectr.value = 1.333333;
 	realwidth.value = vid.width*renderscale;
-	realheight.value = (s32)(vid.width / aspectr.value + 0.5)*renderscale;
-	window = SDL_CreateWindow("QrustyQuake",realwidth.value,realheight.value,SDL_WINDOW_RESIZABLE);
+	realheight.value = (s32)(vid.width / aspectr.value + 0.5) * renderscale;
+	window = SDL_CreateWindow("QrustyQuake",realwidth.value,
+			realheight.value,SDL_WINDOW_RESIZABLE);
 	SDL_SetWindowMinimumSize(window, 320, 200);
-	screen = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlworldpal = SDL_CreateSurfacePalette(screen);
-	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlsbarpal = SDL_CreateSurfacePalette(screensbar);
-	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdluipal = SDL_CreateSurfacePalette(screenui);
-	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdltoppal = SDL_CreateSurfacePalette(screentop);
 	screen->pixels = screenpixels;
 	screenui->pixels = uipixels;
@@ -232,7 +236,8 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	screensbar->pitch = vid.width;
 	screentop->pitch = vid.width;
 	vid.buffer = screenpixels;
-	scrbuffs[0] = screen; scrbuffs[1] = screentop; scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
+	scrbuffs[0] = screen; scrbuffs[1] = screentop;
+	scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
 	VID_SetPalette(host_basepal, screen);
 	VID_SetPalette(host_basepal, screentop);
 	SDL_SetSurfaceColorKey(screentop, 1, 255);
@@ -242,11 +247,15 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	SDL_SetSurfaceColorKey(screensbar, 1, 255);
 	renderer = SDL_CreateRenderer(window, NULL);
 	window_format = SDL_GetWindowPixelFormat(window);
-	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale, vid.height*renderscale, window_format, 0, 0);
+	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale,
+			vid.height*renderscale, window_format, 0, 0);
 	argbbuffer->pixels = argbpixels;
-	s32 bpp = SDL_BYTESPERPIXEL(SDL_GetPixelFormatDetails(window_format)->format);
+	s32 bpp = SDL_BYTESPERPIXEL(
+			SDL_GetPixelFormatDetails(window_format)->format);
 	argbbuffer->pitch = vid.width * renderscale * bpp;
-	texture = SDL_CreateTexture(renderer, window_format, SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale, vid.height*renderscale);
+	texture = SDL_CreateTexture(renderer, window_format,
+			SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale,
+			vid.height * renderscale);
 	if(!texture){printf("%s\n", SDL_GetError());}
 	SDL_SetTextureScaleMode(texture, scalemode);
 	windowSurface = SDL_GetWindowSurface(window);
@@ -260,8 +269,9 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	else vid_modenum = VID_DetermineMode();
 	if(vid_modenum < 0) Con_Printf("WARNING: non-standard video mode\n");
 	else Con_Printf("Detected video mode %d\n", vid_modenum);
-	if(COM_CheckParm("-fullscreen") || confwmode == 1) VID_SetFullscreen(vid.width*renderscale, vid.height*renderscale);
-	else if(COM_CheckParm("-borderless") || confwmode == 2) VID_SetBorderless();
+	if(COM_CheckParm("-fullscreen") || confwmode == 1)
+		VID_SetFullscreen(vid.width*renderscale,vid.height*renderscale);
+	else if(COM_CheckParm("-borderless")||confwmode==2)VID_SetBorderless();
 	else if(COM_CheckParm("-window") || confwmode == 0) VID_SetWindowed();
 	else if(winmode == 0) VID_SetBorderless();
 	else if(winmode == 1) VID_SetWindowed();
@@ -271,7 +281,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	memset(scrshot_name, 0, sizeof(scrshot_name));
 }
 
-void VID_Shutdown() { SDL_QuitSubSystem(SDL_INIT_VIDEO); }
+void VID_Shutdown(){ SDL_QuitSubSystem(SDL_INIT_VIDEO); }
 
 void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 {
@@ -286,16 +296,15 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 	s32 winW, winH;
 	if(realwidth.value == 0 || realheight.value == 0){
 		SDL_GetWindowSize(window, &winW, &winH);
-	} else {
+	}else{
 		winW = realwidth.value;
 		winH = realheight.value;
 	}
 	s32 bufW = vid.width * renderscale;
 	s32 bufH = vid.height * renderscale;
 	f32 bufAspect;
-	if(aspectr.value == 0){
+	if(aspectr.value == 0)
 		bufAspect = (f32)bufW / bufH;
-	}
 	else
 		bufAspect = aspectr.value;
 	Cvar_SetValue("aspectr", bufAspect);
@@ -304,7 +313,7 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 		// Window is wider than buffer, black bars on sides
 		destH = winH;
 		destW = (s32)(winH * bufAspect + 0.5);
-	} else {
+	}else{
 		// Window is taller than buffer, black bars on top/bottom
 		destW = winW;
 		destH = (s32)(winW / bufAspect + 0.5);
@@ -321,13 +330,13 @@ void VID_Update()
 	bool blitscreentop = false;
 	bool blitscreenui = false;
 	bool blitscreensbar = false;
-	if (lyr_main.value==1||lyr_sbar.value==1||lyr_menu.value==1||
+	if(lyr_main.value==1||lyr_sbar.value==1||lyr_menu.value==1||
 		lyr_centerprint.value==1||lyr_console.value==1||
 		lyr_notify.value==1||lyr_crosshair.value==1)blitscreentop=true;
-	if (lyr_main.value==2||lyr_sbar.value==2||lyr_menu.value==2||
+	if(lyr_main.value==2||lyr_sbar.value==2||lyr_menu.value==2||
 		lyr_centerprint.value==2||lyr_console.value==2||
 		lyr_notify.value==2||lyr_crosshair.value==2)blitscreenui=true;
-	if (lyr_main.value==3||lyr_sbar.value==3||lyr_menu.value==3||
+	if(lyr_main.value==3||lyr_sbar.value==3||lyr_menu.value==3||
 		lyr_centerprint.value==3||lyr_console.value==3||
 		lyr_notify.value==3||lyr_crosshair.value==3)blitscreensbar=true;
 	SDL_Rect dst = {0, 0, vid.width*renderscale, vid.height*renderscale};
@@ -335,21 +344,27 @@ void VID_Update()
 	scRect.h = vid.height * (scr_uiyscale.value>0 ? scr_uiyscale.value : 1);
 	scRect.x = (vid.width - scRect.w) / 2;
 	scRect.y = (vid.height - scRect.h) / 2;
-	scRect2.w = vid.width*renderscale * (scr_uixscale.value>0 ? scr_uixscale.value : 1);
-	scRect2.h = vid.height*renderscale * (scr_uiyscale.value>0 ? scr_uiyscale.value : 1);
+	scRect2.w = vid.width * renderscale * (scr_uixscale.value>0 ?
+			scr_uixscale.value : 1);
+	scRect2.h = vid.height * renderscale * (scr_uiyscale.value>0 ?
+			scr_uiyscale.value : 1);
 	scRect2.x = (vid.width*renderscale - scRect2.w) / 2;
 	scRect2.y = (vid.height*renderscale - scRect2.h) / 2;
-	if (SDL_LockTexture(texture, 0, &argbbuffer->pixels, &argbbuffer->pitch)){
+	if(SDL_LockTexture(texture,0, &argbbuffer->pixels, &argbbuffer->pitch)){
 		if(blitscreensbar)
-			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen, &scRect, scalemode);
+			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
+						&scRect, scalemode);
 		if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
-		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst, scalemode);
+		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst,
+					scalemode);
 		if(blitscreenui)
-			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer, &scRect2, scalemode);
+			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer,
+					&scRect2, scalemode);
 		if(blitscreentop)
-			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer, &dst, scalemode);
+			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer,
+					&dst, scalemode);
 		SDL_UnlockTexture(texture);
-	} else { printf("Couldn't lock texture %s\n", SDL_GetError()); }
+	}else{ printf("Couldn't lock texture %s\n", SDL_GetError()); }
 	if(scrshot_name[0]){
 		if(!SDL_SaveBMP(argbbuffer, scrshot_name))
 			Con_Printf("Screenshot: couldn't save %s: %s\n",
@@ -366,7 +381,7 @@ void VID_Update()
 			VID_SetMode(vid_realmode, 0, 0, 0, vid_curpal);
 			vid_testingmode = 0;
 		}
-	} else if((s32)vid_mode.value != vid_realmode && vid_realmode != -1){
+	}else if((s32)vid_mode.value != vid_realmode && vid_realmode != -1){
 		VID_SetMode((s32)vid_mode.value, 0, 0, 0, vid_curpal);
 		Cvar_SetValue("vid_mode", (f32)vid_modenum);
 		vid_realmode = vid_modenum;
@@ -411,7 +426,8 @@ void VID_AllocBuffers()
 	D_AllocCaches();
 }
 
-void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 *palette)
+void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm,
+		SDL_UNUSED u8 *palette)
 {
 	Con_DPrintf("SetMode: %d %dx%d %d\n", modenum, custw, custh, custwinm);
 	if(modenum == vid_modenum && (!custw || !custh))
@@ -420,7 +436,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 
 		vid.width = custw;
 		vid.height = custh;
 		vid_modenum = -1;
-	} else {
+	}else{
 		vid.width = oldmodes[modenum * 2];
 		vid.height = oldmodes[modenum * 2 + 1];
 		vid_modenum = modenum;
@@ -429,22 +445,31 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 
 	SDL_DestroySurface(screentop);
 	SDL_DestroySurface(screenui);
 	SDL_DestroySurface(screensbar);
-	screen = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlworldpal = SDL_CreateSurfacePalette(screen);
-	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlsbarpal = SDL_CreateSurfacePalette(screensbar);
-	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdluipal = SDL_CreateSurfacePalette(screenui);
-	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height, SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height,
+			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdltoppal = SDL_CreateSurfacePalette(screentop);
-	scrbuffs[0] = screen; scrbuffs[1] = screentop; scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
+	scrbuffs[0] = screen; scrbuffs[1] = screentop;
+	scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
 	SDL_DestroySurface(argbbuffer);
-	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale, vid.height*renderscale, window_format, 0, 0);
+	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale,
+			vid.height*renderscale, window_format, 0, 0);
 	argbbuffer->pixels = argbpixels;
-	s32 bpp = SDL_BYTESPERPIXEL(SDL_GetPixelFormatDetails(window_format)->format);
+	s32 bpp = SDL_BYTESPERPIXEL(
+			SDL_GetPixelFormatDetails(window_format)->format);
 	argbbuffer->pitch = vid.width * renderscale * bpp;
 	SDL_DestroyTexture(texture);
-	texture = SDL_CreateTexture(renderer, window_format, SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale, vid.height*renderscale);
+	texture = SDL_CreateTexture(renderer, window_format,
+		SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale,
+		vid.height * renderscale);
 	SDL_SetTextureScaleMode(texture, scalemode);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	screen->pixels = screenpixels;
@@ -468,9 +493,10 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm, SDL_UNUSED u8 
 	if(!custw || !custh){
 		if(modenum <= 2) VID_SetWindowed();
 		else VID_SetBorderless();
-	} else {
+	}else{
 		if(custwinm == 0) VID_SetWindowed();
-		else if(custwinm== 1) VID_SetFullscreen(custw*renderscale, custh*renderscale);
+		else if(custwinm== 1) VID_SetFullscreen(custw*renderscale,
+							custh*renderscale);
 		else VID_SetBorderless();
 	}
 	realwidth.value = 0;
@@ -496,7 +522,7 @@ void VID_VidSetModeCommand_f()
 	case 4:
 		custw = atoi(Cmd_Argv(1));
 		custh = atoi(Cmd_Argv(2));
-		if(custw<320||custw>MAXWIDTH||custh<200||custh>MAXHEIGHT) {
+		if(custw<320||custw>MAXWIDTH||custh<200||custh>MAXHEIGHT){
 			Con_Printf("320 <= width <= %d\n", MAXWIDTH);
 			Con_Printf("200 <= height <= %d\n", MAXHEIGHT);
 			return;
@@ -533,7 +559,7 @@ void VID_VidFullscreenCommand_f()
 
 void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar)
 {
-	if ((s32)r_renderscale.value < 1)
+	if((s32)r_renderscale.value < 1)
 		r_renderscale.value = 1;
 	renderscale = r_renderscale.value;
 	VID_SetMode(-1, vid.width, vid.height, vid_cwmode.value, vid_curpal);
@@ -546,18 +572,18 @@ void VID_SetScaleModeCommand_f()
 	default:
 	case 1:
 		Con_Printf("valid values:\n");
-		Con_Printf("   0 - nearest (default, pixelated)\n");
-		Con_Printf("   1 - linear (smooth)\n");
-		Con_Printf("   2 - pixelart (pixelated, smoother)\n");
+		Con_Printf("   0 - nearest(default, pixelated)\n");
+		Con_Printf("   1 - linear(smooth)\n");
+		Con_Printf("   2 - pixelart(pixelated, smoother)\n");
 		Con_Printf("   current: %d\n", scalemode);
 		return;
 	case 2:
 		i = atof(Cmd_Argv(1));
 		if(i < 0 || i > 2){
 			Con_Printf("valid values:\n");
-			Con_Printf("   0 - nearest (default, pixelated)\n");
-			Con_Printf("   1 - linear (smooth)\n");
-			Con_Printf("   2 - pixelart (pixelated, smoother)\n");
+			Con_Printf("   0 - nearest(default, pixelated)\n");
+			Con_Printf("   1 - linear(smooth)\n");
+			Con_Printf("   2 - pixelart(pixelated, smoother)\n");
 			Con_Printf("   current: %d\n", scalemode);
 			return;
 		}

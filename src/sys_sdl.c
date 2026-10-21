@@ -17,7 +17,7 @@ void Sys_Quit()
 {
 	CDAudio_Stop();
 	if(!exitstyle.value){
-		u16 *screen; // erysdren (it/its)
+		u16 *screen; // erysdren(it/its)
 		if(registered.value)screen=(u16*)COM_LoadHunkFile("end2.bin",0);
 		else screen = (u16*)COM_LoadHunkFile("end1.bin", 0);
 		SDL_SetWindowSize(window, 640, 400);
@@ -66,7 +66,7 @@ static s32 Qfilelength(FILE *f)
 	return end;
 }
 
-static f64 Sys_WaitUntil (f64 endtime)
+static f64 Sys_WaitUntil(f64 endtime)
 {
 	static f64 estimate = 1e-3;
 	static f64 mean = 1e-3;
@@ -75,7 +75,7 @@ static f64 Sys_WaitUntil (f64 endtime)
 	f64 now = Sys_DoubleTime();
 	f64 before, observed, delta, stddev;
 	endtime -= 1e-6; // allow finishing 1 microsecond earlier than requested
-	while(now + estimate < endtime) {
+	while(now + estimate < endtime){
 		before = now;
 		SDL_Delay(1);
 		now = Sys_DoubleTime();
@@ -92,12 +92,12 @@ static f64 Sys_WaitUntil (f64 endtime)
 		estimate = mean + 1.5 * stddev;
 		estimate = q_min(estimate, 2e-3);
 	}
-	while(now < endtime) { now = Sys_DoubleTime (); }
+	while(now < endtime){ now = Sys_DoubleTime(); }
 	return now;
 }
 
-static f64 Sys_Throttle (f64 oldtime)
-{ return Sys_WaitUntil (oldtime + Host_GetFrameInterval ()); }
+static f64 Sys_Throttle(f64 oldtime)
+{ return Sys_WaitUntil(oldtime + Host_GetFrameInterval()); }
 
 s32 Sys_FileOpenRead(const c8 *path, s32 *hndl)
 {
@@ -141,15 +141,15 @@ s32 Sys_FileOpenWrite(const c8 *path)
 f64 Sys_DoubleTime()
 {
 	static u64 starttime = 0;
-	if (!starttime) starttime = SDL_GetTicksNS();
-	return ((f64)(SDL_GetTicksNS() - starttime)) / 1000000000;
+	if(!starttime) starttime = SDL_GetTicksNS();
+	return((f64)(SDL_GetTicksNS() - starttime)) / 1000000000;
 }
 
 s32 Sys_FileType(const c8* path)
 {
 	SDL_PathInfo info;
-	if (SDL_GetPathInfo(path, &info)) {
-		switch (info.type) {
+	if(SDL_GetPathInfo(path, &info)){
+		switch(info.type){
 		case SDL_PATHTYPE_FILE: return FS_ENT_FILE;
 		case SDL_PATHTYPE_DIRECTORY: return FS_ENT_DIRECTORY;
 		default: break;
@@ -158,15 +158,15 @@ s32 Sys_FileType(const c8* path)
 	return 0;
 }
 
-void Sys_mkdir(const c8* path) {
+void Sys_mkdir(const c8* path){
 	SDL_CreateDirectory(path);
 }
 
 #ifdef __EMSCRIPTEN__
-static void main_loop(void)
+static void main_loop()
 {
 	static f64 oldtime = 0;
-	if (oldtime == 0) oldtime = Sys_DoubleTime() - 0.1;
+	if(oldtime == 0) oldtime = Sys_DoubleTime() - 0.1;
 	f64 newtime = Sys_Throttle(oldtime);
 	f64 deltatime = newtime - oldtime;
 	if(cls.state == ca_dedicated) deltatime = sys_ticrate.value;

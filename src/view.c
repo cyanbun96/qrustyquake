@@ -92,7 +92,7 @@ void V_DriftPitch()
 			move = delta;
 		}
 		cl.viewangles[PITCH] += move;
-	} else if(delta < 0){
+	}else if(delta < 0){
 		if(move > -delta){
 			cl.pitchvel = 0;
 			move = -delta;
@@ -142,15 +142,15 @@ void V_ParseDamage()
 		cl.cshifts[CSHIFT_DAMAGE].percent = 0;
 	if(cl.cshifts[CSHIFT_DAMAGE].percent > 150)
 		cl.cshifts[CSHIFT_DAMAGE].percent = 150;
-	if(armor > blood) {
+	if(armor > blood){
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[0] = 200;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[1] = 100;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[2] = 100;
-	} else if(armor) {
+	}else if(armor){
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[0] = 220;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[1] = 50;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[2] = 50;
-	} else {
+	}else{
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[0] = 255;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[1] = 0;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[2] = 0;
@@ -200,22 +200,22 @@ void V_CalcPowerupCshift()
 		cl.cshifts[CSHIFT_POWERUP].destcolor[1] = 0;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[2] = 255;
 		cl.cshifts[CSHIFT_POWERUP].percent = 30;
-	} else if(cl.items & IT_SUIT){
+	}else if(cl.items & IT_SUIT){
 		cl.cshifts[CSHIFT_POWERUP].destcolor[0] = 0;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
 		cl.cshifts[CSHIFT_POWERUP].percent = 20;
-	} else if(cl.items & IT_INVISIBILITY){
+	}else if(cl.items & IT_INVISIBILITY){
 		cl.cshifts[CSHIFT_POWERUP].destcolor[0] = 100;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[1] = 100;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[2] = 100;
 		cl.cshifts[CSHIFT_POWERUP].percent = 100;
-	} else if(cl.items & IT_INVULNERABILITY){
+	}else if(cl.items & IT_INVULNERABILITY){
 		cl.cshifts[CSHIFT_POWERUP].destcolor[0] = 255;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[1] = 255;
 		cl.cshifts[CSHIFT_POWERUP].destcolor[2] = 0;
 		cl.cshifts[CSHIFT_POWERUP].percent = 30;
-	} else cl.cshifts[CSHIFT_POWERUP].percent = 0;
+	}else cl.cshifts[CSHIFT_POWERUP].percent = 0;
 }
 
 void adjust_saturation(u8 *r, u8 *g, u8 *b, f32 factor)
@@ -275,8 +275,8 @@ void adjust_vibrance(u8 *r, u8 *g, u8 *b, f32 k)
 	f32 fg = *g;
 	f32 fb = *b;
 	f32 maxc = fr;
-	if (fg > maxc) maxc = fg;
-	if (fb > maxc) maxc = fb;
+	if(fg > maxc) maxc = fg;
+	if(fb > maxc) maxc = fb;
 	f32 avg = (fr + fg + fb) / 3.0f;
 	f32 d = (maxc - avg) / 255.0f;
 	f32 scale = 1.0f + k * d;
@@ -390,10 +390,10 @@ void CalcGunAngle()
 	f32 move = host_frametime * 20;
 	if(yaw > oldyaw){
 		if(oldyaw + move < yaw) yaw = oldyaw + move;
-	} else if(oldyaw - move > yaw) yaw = oldyaw - move;
+	}else if(oldyaw - move > yaw) yaw = oldyaw - move;
 	if(pitch > oldpitch){
 		if(oldpitch + move < pitch) pitch = oldpitch + move;
-	} else if(oldpitch - move > pitch) pitch = oldpitch - move;
+	}else if(oldpitch - move > pitch) pitch = oldpitch - move;
 	oldyaw = yaw;
 	oldpitch = pitch;
 	cl.viewent.angles[YAW] = r_refdef.viewangles[YAW] + yaw;
@@ -505,7 +505,7 @@ void V_CalcRefdef()
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
 	if(v_oldviewmodelpos.value || (scr_hudstyle.value == 0 && 
-	    !(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))) {
+	    !(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))){
 		if(scr_viewsize.value == 110) view->origin[2] += 1;
 		else if(scr_viewsize.value == 100) view->origin[2] += 2;
 		else if(scr_viewsize.value == 90) view->origin[2] += 1;
@@ -515,20 +515,19 @@ void V_CalcRefdef()
 	view->frame = cl.stats[STAT_WEAPONFRAME];
 	view->colormap = CURWORLDCMAP;
 	//johnfitz -- v_gunkick
-	if (v_gunkick.value == 1) //original quake kick
-		VectorAdd (r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
-	if (v_gunkick.value == 2) //lerped kick
-	{
-		float punchblend = (cl.time - cl.punchtime) / 0.1f;
-
-		if (punchblend < 0.0f) punchblend = 0.0f;
-		if (punchblend > 1.0f) punchblend = 1.0f;
-
-		r_refdef.viewangles[0] += v_punchangles[1][0] + (v_punchangles[0][0] - v_punchangles[1][0]) * punchblend;
-		r_refdef.viewangles[1] += v_punchangles[1][1] + (v_punchangles[0][1] - v_punchangles[1][1]) * punchblend;
-		r_refdef.viewangles[2] += v_punchangles[1][2] + (v_punchangles[0][2] - v_punchangles[1][2]) * punchblend;
-	}
-	//johnfitz
+	if(v_gunkick.value == 1) //original quake kick
+	    VectorAdd(r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
+	if(v_gunkick.value == 2){ //lerped kick
+		f32 punchblend = (cl.time - cl.punchtime) / 0.1f;
+		if(punchblend < 0.0f) punchblend = 0.0f;
+		if(punchblend > 1.0f) punchblend = 1.0f;
+		r_refdef.viewangles[0] += v_punchangles[1][0] +
+			(v_punchangles[0][0]-v_punchangles[1][0]) * punchblend;
+		r_refdef.viewangles[1] += v_punchangles[1][1] +
+			(v_punchangles[0][1]-v_punchangles[1][1]) * punchblend;
+		r_refdef.viewangles[2] += v_punchangles[1][2] +
+			(v_punchangles[0][2]-v_punchangles[1][2]) * punchblend;
+	} //johnfitz
 	// smooth out stair step ups
 	if(cl.onground && ent->origin[2] - oldz > 0){
 		f32 steptime;
@@ -539,7 +538,7 @@ void V_CalcRefdef()
 		if(ent->origin[2] - oldz > 12) oldz = ent->origin[2] - 12;
 		r_refdef.vieworg[2] += oldz - ent->origin[2];
 		view->origin[2] += oldz - ent->origin[2];
-	} else oldz = ent->origin[2];
+	}else oldz = ent->origin[2];
 	if(chase_active.value) Chase_Update();
 }
 

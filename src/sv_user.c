@@ -15,7 +15,7 @@ void SV_SetIdealPitch()
 	f32 sinval = sin(angleval);
 	f32 cosval = cos(angleval);
 	s32 i = 0;
-	for(; i < MAX_FORWARD; i++) {
+	for(; i < MAX_FORWARD; i++){
 		vec3_t top, bottom;
 		top[0] = sv_player->v.origin[0] + cosval*(i+3)*12;
 		top[1] = sv_player->v.origin[1] + sinval*(i+3)*12;
@@ -30,15 +30,15 @@ void SV_SetIdealPitch()
 	}
 	s32 dir = 0;
 	s32 steps = 0;
-	for(s32 j = 1; j < i; j++) {
+	for(s32 j = 1; j < i; j++){
 		s32 step = z[j] - z[j-1];
 		if(step > -ON_EPSILON && step < ON_EPSILON) continue;
-		if(dir && ( step-dir > ON_EPSILON || step-dir < -ON_EPSILON ) )
+		if(dir && (step-dir > ON_EPSILON || step-dir < -ON_EPSILON))
 			return; // mixed changes
 		steps++;
 		dir = step;
 	}
-	if(!dir) {
+	if(!dir){
 		sv_player->v.idealpitch = 0;
 		return;
 	}
@@ -110,14 +110,14 @@ void SV_WaterMove()
 		wishvel[2] -= 60; // drift towards bottom
 	else wishvel[2] += cmd.upmove;
 	f32 wishspeed = VectorLength(wishvel);
-	if(wishspeed > sv_maxspeed.value) {
+	if(wishspeed > sv_maxspeed.value){
 		VectorScale(wishvel, sv_maxspeed.value/wishspeed, wishvel);
 		wishspeed = sv_maxspeed.value;
 	}
 	wishspeed *= 0.7;
 	f32 speed = VectorLength(velocity); // water friction
 	f32 newspeed = 0;
-	if(speed) {
+	if(speed){
 		newspeed = speed - host_frametime * speed * sv_friction.value;
 		if(newspeed < 0) newspeed = 0;
 		VectorScale(velocity, newspeed/speed, velocity);
@@ -136,7 +136,7 @@ void SV_WaterMove()
 
 void SV_WaterJump()
 {
-	if(qcvm->time > sv_player->v.teleport_time || !sv_player->v.waterlevel) {
+	if(qcvm->time > sv_player->v.teleport_time || !sv_player->v.waterlevel){
 		sv_player->v.flags = (s32)sv_player->v.flags & ~FL_WATERJUMP;
 		sv_player->v.teleport_time = 0;
 	}
@@ -151,7 +151,7 @@ void SV_NoclipMove()
 	velocity[1] = sv_fwd[1]*cmd.forwardmove + sv_rgt[1]*cmd.sidemove;
 	velocity[2] = sv_fwd[2]*cmd.forwardmove + sv_rgt[2]*cmd.sidemove;
 	velocity[2] += cmd.upmove*2; //doubled to match running speed
-	if(VectorLength(velocity) > sv_maxspeed.value) {
+	if(VectorLength(velocity) > sv_maxspeed.value){
 		VectorNormalize(velocity);
 		VectorScale(velocity, sv_maxspeed.value, velocity);
 	}
@@ -171,16 +171,16 @@ void SV_AirMove()
 	else wishvel[2] = 0;
 	VectorCopy(wishvel, wishdir);
 	f32 wishspeed = VectorNormalize(wishdir);
-	if(wishspeed > sv_maxspeed.value) {
+	if(wishspeed > sv_maxspeed.value){
 		VectorScale(wishvel, sv_maxspeed.value/wishspeed, wishvel);
 		wishspeed = sv_maxspeed.value;
 	}
-	if(sv_player->v.movetype == MOVETYPE_NOCLIP) { // noclip
+	if(sv_player->v.movetype == MOVETYPE_NOCLIP){ // noclip
 		VectorCopy(wishvel, velocity);
-	} else if(onground) {
+	}else if(onground){
 		SV_UserFriction();
 		SV_Accelerate(wishspeed, wishdir);
-	} else // not on ground, so little effect on velocity
+	}else // not on ground, so little effect on velocity
 		SV_AirAccelerate(wishspeed, wishvel);
 }
 
@@ -200,11 +200,11 @@ void SV_ClientThink() // the move fields specify an intended velocity in pix/sec
 	vec3_t v_angle;
 	VectorAdd(sv_player->v.v_angle, sv_player->v.punchangle, v_angle);
 	angles[ROLL] = V_CalcRoll(sv_player->v.angles, sv_player->v.velocity)*4;
-	if(!sv_player->v.fixangle) {
+	if(!sv_player->v.fixangle){
 		angles[PITCH] = -v_angle[PITCH]/3;
 		angles[YAW] = v_angle[YAW];
 	}
-	if((s32)sv_player->v.flags & FL_WATERJUMP) {
+	if((s32)sv_player->v.flags & FL_WATERJUMP){
 		SV_WaterJump();
 		return;
 	}
@@ -241,24 +241,24 @@ bool SV_ReadClientMessage()
 { // Returns 0 if the client should be killed
 	const c8 *s;
 	s32 ret;
-	do {
+	do{
 nextmsg:
 		ret = NET_GetMessage(host_client->netconnection);
-		if(ret == -1) {
+		if(ret == -1){
 		    Sys_Printf("SV_ReadClientMessage: NET_GetMessage failed\n");
 			return 0;
 		}
 		if(!ret) return 1;
 		MSG_BeginReading();
-		while(1) {
+		while(1){
 			if(!host_client->active)
 				return 0; // a command caused an error
-			if(msg_badread) {
+			if(msg_badread){
 				Sys_Printf("SV_ReadClientMessage: badread\n");
 				return 0;
 			}
 			s32 ccmd = MSG_ReadChar();
-			switch(ccmd) {
+			switch(ccmd){
 			case -1:
 				goto nextmsg; // end of message
 			default:
@@ -274,22 +274,29 @@ nextmsg:
 					qcvm->extfuncs.SV_ParseClientCommand){
 // the spawn/begin/prespawn are because of numerous mods that disobey the rules.
 // at a minimum, we must be able to join the server, so that we can see any
-// sprints/bprints (because dprint sucks, yes there's proper ways to deal with
+// sprints/bprints(because dprint sucks, yes there's proper ways to deal with
 // this, but moders don't always know them).
 					client_t *ohc = host_client;
-					bool checked = GetBit(qcvm->checked_ext, KRIMZON_SV_PARSECLIENTCOMMAND);
-					// disable warnings for KRIMZON_SV_PARSECLIENTCOMMAND temporarily
-					// by marking the extension as checked and advertised
-					SetBit(qcvm->checked_ext, KRIMZON_SV_PARSECLIENTCOMMAND);
-					SetBit(qcvm->advertised_ext, KRIMZON_SV_PARSECLIENTCOMMAND);
-					G_INT(OFS_PARM0) = PR_SetEngineString(s);
+					bool checked = GetBit(qcvm->checked_ext,
+						KRIMZON_SV_PARSECLIENTCOMMAND);
+		//disable warnings for KRIMZON_SV_PARSECLIENTCOMMAND temporarily
+		//by marking the extension as checked and advertised
+					SetBit(qcvm->checked_ext,
+						KRIMZON_SV_PARSECLIENTCOMMAND);
+					SetBit(qcvm->advertised_ext,
+						KRIMZON_SV_PARSECLIENTCOMMAND);
+					G_INT(OFS_PARM0)=PR_SetEngineString(s);
 					pr_global_struct->time = qcvm->time;
-					pr_global_struct->self = EDICT_TO_PROG(host_client->edict);
-					PR_ExecuteProgram(qcvm->extfuncs.SV_ParseClientCommand);
+					pr_global_struct->self =
+					    EDICT_TO_PROG(host_client->edict);
+					PR_ExecuteProgram(
+					  qcvm->extfuncs.SV_ParseClientCommand);
 					// re-enable warnings
-					ClearBit(qcvm->advertised_ext, KRIMZON_SV_PARSECLIENTCOMMAND);
+					ClearBit(qcvm->advertised_ext,
+						KRIMZON_SV_PARSECLIENTCOMMAND);
 					if(!checked)
-						ClearBit(qcvm->checked_ext, KRIMZON_SV_PARSECLIENTCOMMAND);
+						ClearBit(qcvm->checked_ext,
+						KRIMZON_SV_PARSECLIENTCOMMAND);
 					host_client = ohc;
 					break;
 				}
@@ -347,21 +354,21 @@ nextmsg:
 				break;
 			}
 		}
-	} while(ret == 1);
+	}while(ret == 1);
 	return 1;
 }
 
 void SV_RunClients()
 {
 	s32 i = 0;
-	for(host_client = svs.clients ; i<svs.maxclients ; i++, host_client++) {
+	for(host_client = svs.clients ; i<svs.maxclients ; i++, host_client++){
 		if(!host_client->active) continue;
 		sv_player = host_client->edict;
-		if(!SV_ReadClientMessage()) {
+		if(!SV_ReadClientMessage()){
 			SV_DropClient(0); // client misbehaved...
 			continue;
 		}
-		if(!host_client->spawned) {
+		if(!host_client->spawned){
 			// clear client movement until a new packet is received
 			memset(&host_client->cmd, 0, sizeof(host_client->cmd));
 			continue;

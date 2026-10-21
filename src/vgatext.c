@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2025 erysdren (it/its)
+// Copyright(c) 2024-2025 erysdren(it/its)
 // GPLv3 See LICENSE for details.
 // Originally MIT License
 #include "quakedef.h"
@@ -20,12 +20,12 @@ static void render_cell(u8 *image, s32 pitch, Uint16 cell, bool noblink)
 	u8 blink = (attr >> 7) & 0x01; // break out attributes
 	u8 bgcolor = (attr >> 4) & 0x07;
 	u8 fgcolor = attr & 0x0F;
-	for (s32 y = 0; y < 16; y++) {
-		for (s32 x = 0; x < 8; x++) {
+	for(s32 y = 0; y < 16; y++){
+		for(s32 x = 0; x < 8; x++){
 			image[y * pitch + x] = bgcolor; // write bgcolor
-			if (blink && noblink) continue;
+			if(blink && noblink) continue;
 			u8 *bitmap = &VGA_FONT_CP437[code * 16]; // fgcolor
-			if (bitmap[y] & 1 << SDL_abs(x - 7))
+			if(bitmap[y] & 1 << SDL_abs(x - 7))
 				image[y * pitch + x] = fgcolor;
 		}
 	}
@@ -58,15 +58,15 @@ s32 vgatext_main(SDL_Window *window, u16 *screen)
 	SDL_PixelFormat format = SDL_GetWindowPixelFormat(window);
 	SDL_Surface *windowsurface0 = SDL_CreateSurface(640, 400, format);
 	SDL_Surface *windowsurface1 = SDL_CreateSurface(640, 400, format);
-	if (!windowsurface0 || !windowsurface1) return -1;
+	if(!windowsurface0 || !windowsurface1) return -1;
 	// setup render texture
 	SDL_Texture *texture = SDL_CreateTexture(
 			renderer, format, SDL_TEXTUREACCESS_STREAMING,640,400);
-	if (!texture) return -1;
+	if(!texture) return -1;
 	SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 	SDL_Rect rect = {0, 0, 640, 400}; // setup blit rect
-	for (s32 y = 0; y < 25; y++) { // render vgatext
-		for (s32 x = 0; x < 80; x++) {
+	for(s32 y = 0; y < 25; y++){ // render vgatext
+		for(s32 x = 0; x < 80; x++){
 			s16 cell = screen[y * 80 + x];
 			u8 *imgpos0 = &image0[y * 16][x * 8];
 			u8 *imgpos1 = &image1[y * 16][x * 8];
@@ -76,11 +76,11 @@ s32 vgatext_main(SDL_Window *window, u16 *screen)
 	}
 	u8 *imgpos1 = &image1[24 * 16][0];
 	render_cell(imgpos1, 640, 0x70dc, true); // CyanBun96: blinking cursor
-	for (s32 y = 0; y < 400; y++) // create rgb image0
+	for(s32 y = 0; y < 400; y++) // create rgb image0
 		SDL_memcpy(&((u8 *)surface8->pixels)[y * surface8->pitch],
 				&image0[y][0], 640);
 	SDL_BlitSurface(surface8, &rect, windowsurface0, &rect);
-	for (s32 y = 0; y < 400; y++) // create rgb image1
+	for(s32 y = 0; y < 400; y++) // create rgb image1
 		SDL_memcpy(&((u8 *)surface8->pixels)[y * surface8->pitch],
 				&image1[y][0], 640);
 	SDL_BlitSurface(surface8, &rect, windowsurface1, &rect);
@@ -89,7 +89,7 @@ s32 vgatext_main(SDL_Window *window, u16 *screen)
 	while(true){ // main loop
 		SDL_Event event;
 		while(SDL_PollEvent(&event)){
-			if (event.type == SDL_EVENT_QUIT
+			if(event.type == SDL_EVENT_QUIT
 				|| event.type == SDL_EVENT_KEY_DOWN
 				|| event.type == SDL_EVENT_MOUSE_BUTTON_DOWN
 				|| event.type == SDL_EVENT_JOYSTICK_BUTTON_DOWN)
@@ -97,7 +97,7 @@ s32 vgatext_main(SDL_Window *window, u16 *screen)
 		}
 		u64 now = SDL_GetTicks();
 		if(next <= now){
-			if (windowsurface == &windowsurface0)
+			if(windowsurface == &windowsurface0)
 				windowsurface = &windowsurface1;
 			else
 				windowsurface = &windowsurface0;
