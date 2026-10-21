@@ -10,7 +10,7 @@ static s32 buffersize;
 
 static void SDLCALL paint_audio(SDL_UNUSED void *unused, Uint8 *stream, s32 len)
 {
-	if(!shm) { // shouldn't happen, but just in case
+	if(!shm){ // shouldn't happen, but just in case
 		memset(stream, 0, len);
 		return;
 	}
@@ -20,14 +20,14 @@ static void SDLCALL paint_audio(SDL_UNUSED void *unused, Uint8 *stream, s32 len)
 	s32 tobufend = buffersize - pos; // bytes to buffer's end
 	s32 len1 = len;
 	s32 len2 = 0;
-	if(len1 > tobufend) {
+	if(len1 > tobufend){
 		len1 = tobufend;
 		len2 = len - len1;
 	}
 	memcpy(stream, shm->buffer + pos, len1);
-	if(len2 <= 0) {
+	if(len2 <= 0){
 		shm->samplepos += (len1 / (shm->samplebits / 8));
-	} else { // wraparound?
+	}else{ // wraparound?
 		if(!stream || !len1 || !len2 || !shm->buffer)
 		{memset(stream,0,len);return;} // fix for WINE
 		memcpy(stream + len1, shm->buffer, len2);
@@ -37,11 +37,12 @@ static void SDLCALL paint_audio(SDL_UNUSED void *unused, Uint8 *stream, s32 len)
 		shm->samplepos = 0;
 }
 
-void SDLCALL paint_audio_new(void *userdata, SDL_AudioStream *stream, s32 additional_amount, SDL_UNUSED s32 total_amount)
+void SDLCALL paint_audio_new(void *userdata, SDL_AudioStream *stream,
+		s32 additional_amount, SDL_UNUSED s32 total_amount)
 {
-	if (additional_amount > 0) {
+	if(additional_amount > 0){
 		Uint8 *data = SDL_stack_alloc(Uint8, additional_amount);
-		if (data) {
+		if(data){
 			paint_audio(userdata, data, additional_amount);
 			SDL_PutAudioStreamData(stream, data, additional_amount);
 			SDL_stack_free(data);
@@ -52,7 +53,7 @@ void SDLCALL paint_audio_new(void *userdata, SDL_AudioStream *stream, s32 additi
 bool SNDDMA_Init(dma_t *dma)
 {
 	c8 drivername[128];
-	if(!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+	if(!SDL_InitSubSystem(SDL_INIT_AUDIO)){
 		Con_Printf("Couldn't init SDL audio: %s\n", SDL_GetError());
 		return 0;
 	}
@@ -69,7 +70,7 @@ bool SNDDMA_Init(dma_t *dma)
 	shm->speed = desired.freq;
 	shm->channels = desired.channels;
 	s32 tmp = (samples * desired.channels) * 10;
-	if(tmp & (tmp - 1)) { // make it a power of two
+	if(tmp & (tmp - 1)){ // make it a power of two
 		s32 val = 1;
 		while(val < tmp) val <<= 1;
 		tmp = val;
@@ -88,21 +89,22 @@ bool SNDDMA_Init(dma_t *dma)
 	Con_Printf("SDL audio driver: %s, %d bytes buffer\n",
 			drivername, buffersize);
 	shm->buffer = (u8 *) calloc(1, buffersize);
-	if(!shm->buffer) {
+	if(!shm->buffer){
 		//SDL_CloseAudio();
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		shm = NULL;
 		Con_Printf("Failed allocating memory for SDL audio\n");
 		return 0;
 	}
-	SDL_AudioStream *stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, paint_audio_new, 0);
+	SDL_AudioStream *stream = SDL_OpenAudioDeviceStream(
+		SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&desired, paint_audio_new, 0);
 	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream));
 	return 1;
 }
 
 void SNDDMA_Shutdown()
 {
-	if(shm) {
+	if(shm){
 		Con_Printf("Shutting down SDL sound\n");
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		if(shm->buffer) free(shm->buffer);
@@ -111,4 +113,4 @@ void SNDDMA_Shutdown()
 	}
 }
 
-s32 SNDDMA_GetDMAPos() { return shm->samplepos; }
+s32 SNDDMA_GetDMAPos(){ return shm->samplepos; }

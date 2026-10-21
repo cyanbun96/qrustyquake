@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // screen.c -- master for refresh, status bar, console, chat, notify, etc
 #include "quakedef.h"
 
@@ -25,12 +25,12 @@ void SCR_HUDStyle_f(cvar_t *cvar);
 void SCR_DrawSellScreen()
 {
 	qpic_t *pic;
-	if (!cls.sellscreen) return;
+	if(!cls.sellscreen) return;
 	// Clear the background to black
 	Draw_Fill(0, 0, vid.width, vid.height, 0);
 	// Load and draw the sell screen lump centered on the screen
 	pic = Draw_CachePic("gfx/sell.lmp");
-	if (!pic) {
+	if(!pic){
 		Cbuf_AddText("disconnect\n");
 		Cbuf_AddText("help\n");
 		return;
@@ -49,8 +49,8 @@ void SCR_CenterPrint(const c8 *str) // Called for important messages
 	scr_centertime_off = scr_centertime.value;
 	scr_centertime_start = cl.time;
 	scr_center_lines = 1; // count the number of lines for centering
-	while (*str) {
-		if (*str == '\n')
+	while(*str){
+		if(*str == '\n')
 			scr_center_lines++;
 		str++;
 	}
@@ -58,12 +58,12 @@ void SCR_CenterPrint(const c8 *str) // Called for important messages
 
 void SCR_EraseCenterString()
 {
-	if (scr_erase_center++ > vid.numpages) {
+	if(scr_erase_center++ > vid.numpages){
 		scr_erase_lines = 0;
 		return;
 	}
 	s32 y = 48;
-	if (scr_center_lines <= 4)
+	if(scr_center_lines <= 4)
 		y = vid.height * 0.35;
 	Draw_TileClear(0, y, vid.width, 8 * scr_erase_lines);
 }
@@ -76,33 +76,33 @@ void SCR_DrawCenterString()
 	c8 *start = scr_centerstring;
 	s32 y = scr_center_lines <= 4 ? vid.height * 0.35 : 48 * uiscale;
 	drawlayer = lyr_centerprint.value;
-	do {
+	do{
 		s32 l = 0;
-		for (; l<(s32)(vid.width/(8*uiscale)); l++) // scan width
-			if (start[l] == '\n' || !start[l])
+		for(; l<(s32)(vid.width/(8*uiscale)); l++) // scan width
+			if(start[l] == '\n' || !start[l])
 				break;
 		s32 x = (vid.width - l * 8 * uiscale) / 2;
-		for (s32 j = 0; j < l; j++, x += 8 * uiscale) {
+		for(s32 j = 0; j < l; j++, x += 8 * uiscale){
 			Draw_CharacterScaled(x, y, start[j], uiscale,
 					scr_saturntext.value);
-			if (!remaining--) {drawlayer = lyr_main.value; return;}
+			if(!remaining--){drawlayer = lyr_main.value; return;}
 		}
 		y += 8 * uiscale;
-		while (*start && *start != '\n')
+		while(*start && *start != '\n')
 			start++;
-		if (!*start)
+		if(!*start)
 			break;
 		start++; // skip the \n
-	} while (1);
+	}while(1);
 	drawlayer = lyr_main.value;
 }
 
 void SCR_CheckDrawCenterString()
 {
-	if (scr_center_lines > scr_erase_lines)
+	if(scr_center_lines > scr_erase_lines)
 		scr_erase_lines = scr_center_lines;
 	scr_centertime_off -= host_frametime;
-	if ((scr_centertime_off <= 0 && !cl.intermission)
+	if((scr_centertime_off <= 0 && !cl.intermission)
 		|| key_dest != key_game)
 		return;
 	SCR_DrawCenterString();
@@ -110,7 +110,7 @@ void SCR_CheckDrawCenterString()
 
 f32 CalcFov(f32 fov_x, f32 width, f32 height)
 {
-	if (fov_x < 1 || fov_x > 179)
+	if(fov_x < 1 || fov_x > 179)
 		Sys_Error("Bad fov: %f", fov_x);
 	return atan(height / (width / tan(fov_x / 360 * M_PI))) * 360 / M_PI;
 }
@@ -122,22 +122,22 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	vid.recalc_refdef = 0;
 	Sbar_CalcPos();
 	Sbar_Changed(); // force the status bar to redraw
-	if (scr_viewsize.value < 30) // bound viewsize
+	if(scr_viewsize.value < 30) // bound viewsize
 		Cvar_Set("viewsize", "30");
-	if (scr_viewsize.value > 120)
+	if(scr_viewsize.value > 120)
 		Cvar_Set("viewsize", "120");
-	if (scr_fov.value < 10) // bound field of view
+	if(scr_fov.value < 10) // bound field of view
 		Cvar_Set("fov", "10");
-	if (scr_fov.value > 170)
+	if(scr_fov.value > 170)
 		Cvar_Set("fov", "170");
 	r_refdef.fov_x = scr_fov.value;
 	r_refdef.fov_y = CalcFov(r_refdef.fov_x,
 		r_refdef.vrect.width, r_refdef.vrect.height);
 	f32 size = cl.intermission ? 120 : scr_viewsize.value;
-	if (size >= 120 || hudstyle != HUD_CLASSIC ||
+	if(size >= 120 || hudstyle != HUD_CLASSIC ||
 			(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))
 		sb_lines = 0; // no status bar at all
-	else if (size >= 110)
+	else if(size >= 110)
 		sb_lines = 24 * uiscale; // no inventory
 	else
 		sb_lines = (24 + 16 + 8) * uiscale;
@@ -149,7 +149,7 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	R_SetVrect(&vrect, &scr_vrect, sb_lines);
 	// guard against going from one mode to another that's
 	// less than half the vertical resolution
-	if (scr_con_current > vid.height)
+	if(scr_con_current > vid.height)
 		scr_con_current = vid.height;
 	// notify the refresh of the change
 	R_ViewChanged(&vrect, sb_lines, vid.aspect);
@@ -172,7 +172,7 @@ void SCR_Init()
 	scr_ram = Draw_PicFromWad("ram");
 	scr_net = Draw_PicFromWad("net");
 	scr_turtle = Draw_PicFromWad("turtle");
-	if (scr_initialized) return;
+	if(scr_initialized) return;
 	Cvar_RegisterVariable(&scr_fov);
 	Cvar_RegisterVariable(&scr_viewsize);
 	Cvar_RegisterVariable(&scr_conspeed);
@@ -187,7 +187,7 @@ void SCR_Init()
 	Cvar_RegisterVariable(&scr_qchudscale); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_hudstyle);
 	Cvar_RegisterVariable(&scr_centermenus);
-	Cvar_SetCallback (&scr_hudstyle, SCR_HUDStyle_f);
+	Cvar_SetCallback(&scr_hudstyle, SCR_HUDStyle_f);
 	Cmd_AddCommand("screenshot", SCR_ScreenShot_f);
 	Cmd_AddCommand("sizeup", SCR_SizeUp_f);
 	Cmd_AddCommand("sizedown", SCR_SizeDown_f);
@@ -199,7 +199,7 @@ void SCR_DrawFPS()
 	static f64 oldtime = 0;
 	static f64 lastfps = 0;
 	static s32 oldframecount = 0;
-	if (con_forcedup) {
+	if(con_forcedup){
 		oldtime = realtime;
 		oldframecount = r_framecount;
 		lastfps = 0;
@@ -207,19 +207,19 @@ void SCR_DrawFPS()
 	}
 	f64 elapsed_time = realtime - oldtime;
 	s32 frames = r_framecount - oldframecount;
-	if (elapsed_time < 0 || frames < 0) {
+	if(elapsed_time < 0 || frames < 0){
 		oldtime = realtime;
 		oldframecount = r_framecount;
 		return;
 	}
-	if (elapsed_time > 0.75) { // update value every 3/4 second
+	if(elapsed_time > 0.75){ // update value every 3/4 second
 		lastfps = frames / elapsed_time;
 		oldtime = realtime;
 		oldframecount = r_framecount;
 	}
-	if (scr_showfps.value && scr_viewsize.value < 130 && lastfps) {
+	if(scr_showfps.value && scr_viewsize.value < 130 && lastfps){
 		c8 st[16];
-		if (scr_showfps.value > 0.f)
+		if(scr_showfps.value > 0.f)
 			sprintf(st, "%4.0f fps", lastfps);
 		else
 			sprintf(st, "%.2f ms", 1000.f / lastfps);
@@ -230,7 +230,7 @@ void SCR_DrawFPS()
 
 void SCR_DrawRam()
 {
-	if (!scr_showram.value || !r_cache_thrash)
+	if(!scr_showram.value || !r_cache_thrash)
 		return;
 	drawlayer = lyr_menu.value;
 	Draw_PicScaled(scr_vrect.x + 32*uiscale, scr_vrect.y, scr_ram, uiscale);
@@ -240,14 +240,14 @@ void SCR_DrawRam()
 void SCR_DrawTurtle()
 {
 	static s32 count;
-	if (!scr_showturtle.value)
+	if(!scr_showturtle.value)
 		return;
-	if (host_frametime < 0.1) {
+	if(host_frametime < 0.1){
 		count = 0;
 		return;
 	}
 	count++;
-	if (count < 3)
+	if(count < 3)
 		return;
 	drawlayer = lyr_menu.value;
 	Draw_PicScaled(scr_vrect.x, scr_vrect.y, scr_turtle, uiscale);
@@ -256,7 +256,7 @@ void SCR_DrawTurtle()
 
 void SCR_DrawNet()
 {
-	if (realtime - cl.last_received_message < 0.3 || cls.demoplayback ||
+	if(realtime - cl.last_received_message < 0.3 || cls.demoplayback ||
 			cls.state == ca_disconnected)
 		return;
 	drawlayer = lyr_menu.value;
@@ -266,7 +266,7 @@ void SCR_DrawNet()
 
 void SCR_DrawPause()
 {
-	if (!scr_showpause.value || !cl.paused) // turn off for screenshots
+	if(!scr_showpause.value || !cl.paused) // turn off for screenshots
 		return;
 	qpic_t *pic = Draw_CachePic("gfx/pause.lmp");
 	drawlayer = lyr_menu.value;
@@ -278,7 +278,7 @@ void SCR_DrawPause()
 
 void SCR_DrawLoading()
 {
-	if (!scr_drawloading)
+	if(!scr_drawloading)
 		return;
 	qpic_t *pic = Draw_CachePic("gfx/loading.lmp");
 	drawlayer = lyr_menu.value;
@@ -291,45 +291,45 @@ void SCR_DrawLoading()
 void SCR_SetUpToDrawConsole()
 {
 	Con_CheckResize();
-	if (scr_drawloading)
+	if(scr_drawloading)
 		return;	// never a console with loading plaque
 	con_forcedup = !cl.worldmodel || cls.signon != SIGNONS; // height
-	if (con_forcedup) {
+	if(con_forcedup){
 		scr_conlines = vid.height; // full screen
 		scr_con_current = scr_conlines;
-	} else if (key_dest == key_console)
+	}else if(key_dest == key_console)
 		scr_conlines = vid.height / 2; // half screen
 	else
 		scr_conlines = 0; // none visible
-	if (scr_conlines < scr_con_current) {
+	if(scr_conlines < scr_con_current){
 		scr_con_current -= scr_conspeed.value * host_frametime
 			* (vid.height/200);
-		if (scr_conlines > scr_con_current)
+		if(scr_conlines > scr_con_current)
 			scr_con_current = scr_conlines;
 
-	} else if (scr_conlines > scr_con_current) {
+	}else if(scr_conlines > scr_con_current){
 		scr_con_current += scr_conspeed.value * host_frametime
 			* (vid.height/200);
-		if (scr_conlines < scr_con_current)
+		if(scr_conlines < scr_con_current)
 			scr_con_current = scr_conlines;
 	}
-	if (clearconsole++ < vid.numpages) {
+	if(clearconsole++ < vid.numpages){
 		Draw_TileClear(0, (s32)scr_con_current, vid.width,
 			       vid.height - (s32)scr_con_current);
 		Sbar_Changed();
-	} else if (clearnotify++ < vid.numpages) {
+	}else if(clearnotify++ < vid.numpages){
 		Draw_TileClear(0, 0, vid.width, con_notifylines);
-	} else
+	}else
 		con_notifylines = 0;
 }
 
 void SCR_DrawConsole()
 {
-	if (scr_con_current) {
+	if(scr_con_current){
 		Con_DrawConsole(scr_con_current, 1);
 		clearconsole = 0;
-	} else
-		if (key_dest == key_game || key_dest == key_message)
+	}else
+		if(key_dest == key_game || key_dest == key_message)
 			Con_DrawNotify(); // only draw notify in game
 }
 
@@ -339,14 +339,14 @@ void SCR_ScreenShot_f()
 	c8 checkname[MAX_OSPATH*2];
 	strcpy(bmpname, "quake00.bmp"); // find a file name to save it to
 	s32 i = 0;
-	for (; i <= 99; i++) {
+	for(; i <= 99; i++){
 		bmpname[5] = i / 10 + '0';
 		bmpname[6] = i % 10 + '0';
 		sprintf(checkname, "%s/%s", com_gamedir, bmpname);
-		if (Sys_FileTime(checkname) == -1)
+		if(Sys_FileTime(checkname) == -1)
 			break; // file doesn't exist
 	}
-	if (i == 100) {
+	if(i == 100){
 		Con_Printf("SCR_ScreenShot_f: Couldn't create a BMP file\n");
 		return;
 	}
@@ -356,7 +356,7 @@ void SCR_ScreenShot_f()
 void SCR_BeginLoadingPlaque()
 {
 	S_StopAllSounds(1);
-	if (cls.state != ca_connected || cls.signon != SIGNONS)
+	if(cls.state != ca_connected || cls.signon != SIGNONS)
 		return;
 	Con_ClearNotify(); // redraw with no console and the loading plaque
 	scr_centertime_off = 0;
@@ -382,26 +382,26 @@ void SCR_DrawNotifyString()
 {
 	c8 *start = scr_notifystring;
 	s32 y = vid.height * 0.35;
-	do {
+	do{
 		s32 l = 0;
-		for (; l < 40; l++) // scan the width of the line
-			if (start[l] == '\n' || !start[l])
+		for(; l < 40; l++) // scan the width of the line
+			if(start[l] == '\n' || !start[l])
 				break;
 		s32 x = (vid.width - l * 8 * uiscale) / 2;
-		for (s32 j = 0; j < l; j++, x += 8 * uiscale)
+		for(s32 j = 0; j < l; j++, x += 8 * uiscale)
 			Draw_CharacterScaled(x, y, start[j], uiscale, 0);
 		y += 8 * uiscale;
-		while (*start && *start != '\n')
+		while(*start && *start != '\n')
 			start++;
-		if (!*start)
+		if(!*start)
 			break;
 		start++; // skip the \n
-	} while (1);
+	}while(1);
 }
 
 s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 { // of the screen and waits for a Y or N keypress.
-	if (cls.state == ca_dedicated)
+	if(cls.state == ca_dedicated)
 		return 1;
 	scr_notifystring = text;
 	scr_fullupdate = 0; // draw a fresh screen
@@ -417,7 +417,7 @@ s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 	// single press
 	s32 pressedEnter = adj;
 	s32 pressedM1 = adj;
-	do {
+	do{
 		key_lastpress = 0;
 		key_count = -1; // wait for a key down and up
 		Sys_SendKeyEvents();
@@ -426,7 +426,7 @@ s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 #endif
 		pressedEnter += key_lastpress == K_ENTER;
 		pressedM1 += (key_lastpress == K_MOUSE1 && ui_mouse.value);
-	} while (key_lastpress != 'y' && key_lastpress != 'n'
+	}while(key_lastpress != 'y' && key_lastpress != 'n'
 		&& key_lastpress != K_ESCAPE && pressedEnter < 3 && pressedM1<3
 		&& !(key_lastpress == K_MOUSE2 && ui_mouse.value));
 	scr_fullupdate = 0;
@@ -438,28 +438,28 @@ s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 void SCR_UpdateScreen() // This is called every frame,
 { // and can also be called explicitly to flush text to the screen.
 	static f32 oldscr_viewsize;
-	if (scr_disabled_for_loading) {
-		if (realtime - scr_disabled_time > 60) {
+	if(scr_disabled_for_loading){
+		if(realtime - scr_disabled_time > 60){
 			scr_disabled_for_loading = 0;
 			Con_Printf("load failed.\n");
-		} else
+		}else
 			return;
 	}
-	if (cls.state == ca_dedicated || !scr_initialized || !con_initialized)
+	if(cls.state == ca_dedicated || !scr_initialized || !con_initialized)
 		return;
-	if (scr_viewsize.value != oldscr_viewsize) {
+	if(scr_viewsize.value != oldscr_viewsize){
 		oldscr_viewsize = scr_viewsize.value;
 		vid.recalc_refdef = 1;
 	}
-	if (oldfov != scr_fov.value) { // check for vid changes
+	if(oldfov != scr_fov.value){ // check for vid changes
 		oldfov = scr_fov.value;
 		vid.recalc_refdef = 1;
 	}
-	if (oldscreensize != scr_viewsize.value) {
+	if(oldscreensize != scr_viewsize.value){
 		oldscreensize = scr_viewsize.value;
 		vid.recalc_refdef = 1;
 	}
-	if (vid.recalc_refdef) { // something changed, so reorder the screen
+	if(vid.recalc_refdef){ // something changed, so reorder the screen
 		SCR_CalcRefdef();
 	}
 	// do 3D refresh drawing, and then update the screen
@@ -468,29 +468,29 @@ void SCR_UpdateScreen() // This is called every frame,
 	SCR_SetUpToDrawConsole();
 	SCR_EraseCenterString();
 	V_RenderView(); // stay mapped in for linear writes all the time
-	if (scr_drawdialog) {
+	if(scr_drawdialog){
 		Sbar_Draw();
 		fadescreen = 1;
 		drawlayer = lyr_centerprint.value;
 		SCR_DrawNotifyString();
 		drawlayer = lyr_main.value;
-	} else if (scr_drawloading) {
+	}else if(scr_drawloading){
 		SCR_DrawLoading();
 		Sbar_Draw();
-	} else if (cl.intermission == 1 && key_dest == key_game) {
+	}else if(cl.intermission == 1 && key_dest == key_game){
 		Sbar_IntermissionOverlay();
-	} else if (cl.intermission == 2 && key_dest == key_game) {
+	}else if(cl.intermission == 2 && key_dest == key_game){
 		Sbar_FinaleOverlay();
 		SCR_CheckDrawCenterString();
-	} else if (cl.intermission == 3 && key_dest == key_game) {
+	}else if(cl.intermission == 3 && key_dest == key_game){
 		SCR_CheckDrawCenterString();
-	} else {
+	}else{
 		SCR_DrawRam();
 		SCR_DrawNet();
 		SCR_DrawTurtle();
 		SCR_DrawPause();
 		SCR_CheckDrawCenterString();
-		if (cls.sellscreen) SCR_DrawSellScreen();
+		if(cls.sellscreen) SCR_DrawSellScreen();
 		else Sbar_Draw();
 		SCR_DrawConsole();
 		M_Draw();
@@ -500,9 +500,9 @@ void SCR_UpdateScreen() // This is called every frame,
 	VID_Update();
 }
 
-void SCR_HUDStyle_f (cvar_t *cvar)
+void SCR_HUDStyle_f(cvar_t *cvar)
 { // Updates hudstyle variable and invalidates refdef when scr_hudstyle changes
-    s32 val = (s32) cvar->value;
-    hudstyle = (hudstyle_t) CLAMP (0, val, (s32) HUD_COUNT - 1);
-    vid.recalc_refdef = 1;
+	s32 val = (s32) cvar->value;
+	hudstyle = (hudstyle_t) CLAMP(0, val, (s32) HUD_COUNT - 1);
+	vid.recalc_refdef = 1;
 }

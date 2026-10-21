@@ -32,23 +32,23 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 	else sc->width = inwidth;
 	sc->stereo = 0;
 	// resample / decimate to the current source rate
-	if(stepscale == 1 && inwidth == 1 && sc->width == 1) {
+	if(stepscale == 1 && inwidth == 1 && sc->width == 1){
 		// fast special case
 		for(s32 i = 0; i < outcount; i++)
 			((c8 *)sc->data)[i] = (s32)((u8)(data[i]) - 128);
-	} else {
+	}else{
 		// general case
 		// samplefrac can overflow 2**31 with very big sounds, see below
 		int64_t samplefrac = 0;
 		s32 fracstep = (s32)(stepscale * 256);
-		for(s32 i = 0; i < outcount; i++) {
+		for(s32 i = 0; i < outcount; i++){
 			s32 srcsample = (s32)(samplefrac >> 8);
 			samplefrac += fracstep; // int64_t to prevent overflow
 			s32 sample = inwidth == 2 ? 
 				(s16)(((s16 *)data)[srcsample]):
 				(s32)((u8)(data[srcsample]) - 128) << 8;
 			if(sc->width == 2) ((s16 *)sc->data)[i] = sample;
-			else ((c8 *)sc->data)[i] = sample >> 8;
+			else((c8 *)sc->data)[i] = sample >> 8;
 		}
 	}
 }
@@ -62,23 +62,23 @@ sfxcache_t *S_LoadSound(sfx_t *s)
 	SDL_strlcpy(namebuffer, "sound/", sizeof(namebuffer)); // load it in
 	SDL_strlcat(namebuffer, s->name, sizeof(namebuffer));
 	u8 *data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf), 0);
-	if(!data) {
+	if(!data){
 		Con_Printf("Couldn't load %s\n", namebuffer);
 		return NULL;
 	}
 	wavinfo_t info = GetWavinfo(s->name, data, com_filesize);
-	if(info.channels != 1) {
+	if(info.channels != 1){
 		Con_Printf("%s is a stereo sample\n",s->name);
 		return NULL;
 	}
-	if(info.width != 1 && info.width != 2) {
+	if(info.width != 1 && info.width != 2){
 		Con_Printf("%s is not 8 or 16 bit\n", s->name);
 		return NULL;
 	}
 	f32 stepscale = (f32)info.rate / shm->speed;
 	s32 len = info.samples / stepscale;
 	len = len * info.width * info.channels;
-	if(info.samples == 0 || len == 0) {
+	if(info.samples == 0 || len == 0){
 		Con_Printf("%s has zero samples\n", s->name);
 		return NULL;
 	}
@@ -113,14 +113,14 @@ static s32 GetLittleLong()
 
 static void FindNextChunk(const c8 *name)
 {
-	while(1) {
-		if(last_chunk + 8 >= iff_end) {
+	while(1){
+		if(last_chunk + 8 >= iff_end){
 			data_p = NULL; // Need at least 8 bytes for a chunk
 			return;
 		}
 		data_p = last_chunk + 4;
 		iff_chunk_len = GetLittleLong();
-		if(iff_chunk_len < 0 || iff_chunk_len > iff_end - data_p) {
+		if(iff_chunk_len < 0 || iff_chunk_len > iff_end - data_p){
 			data_p = NULL;
 			return;
 		}
@@ -144,19 +144,19 @@ wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 	iff_data = wav;
 	iff_end = wav + wavlength;
 	FindChunk("RIFF");
-	if(!(data_p && !strncmp((c8 *)data_p + 8, "WAVE", 4))) {
+	if(!(data_p && !strncmp((c8 *)data_p + 8, "WAVE", 4))){
 		Con_Printf("%s missing RIFF/WAVE chunks\n", name);
 		return info;
 	}
 	iff_data = data_p + 12;
 	FindChunk("fmt ");
-	if(!data_p) {
+	if(!data_p){
 		Con_Printf("%s is missing fmt chunk\n", name);
 		return info;
 	}
 	data_p += 8;
 	s32 format = GetLittleShort();
-	if(format != 1) { // wav_format_pcm
+	if(format != 1){ // wav_format_pcm
 		Con_Printf("%s is not Microsoft PCM format\n", name);
 		return info;
 	}
@@ -167,31 +167,31 @@ wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 	if(i != 8 && i != 16) return info;
 	info.width = i / 8;
 	FindChunk("cue ");
-	if(data_p) {
+	if(data_p){
 		data_p += 32;
 		info.loopstart = GetLittleLong();
 		//if the next chunk is a LIST chunk look for a cue length marker
 		FindNextChunk("LIST");
-		if(data_p) {
-			if(!strncmp((c8 *)data_p + 28, "mark", 4)) {
+		if(data_p){
+			if(!strncmp((c8 *)data_p + 28, "mark", 4)){
 				data_p += 24;
 				i = GetLittleLong(); // samples in loop
 				info.samples = info.loopstart + i;
 			}
 		}
-	} else info.loopstart = -1;
+	}else info.loopstart = -1;
 	FindChunk("data");
-	if(!data_p) {
+	if(!data_p){
 		Con_Printf("%s is missing data chunk\n", name);
 		return info;
 	}
 	data_p += 4;
 	s32 samples = GetLittleLong() / info.width;
-	if(info.samples) {
+	if(info.samples){
 		if(samples < info.samples)
 			Sys_Error("%s has a bad loop length", name);
-	} else info.samples = samples;
-	if(info.loopstart >= info.samples) {
+	}else info.samples = samples;
+	if(info.loopstart >= info.samples){
 		printf("%s has loop start >= end\n", name);
 		info.loopstart = -1;
 		info.samples = samples;

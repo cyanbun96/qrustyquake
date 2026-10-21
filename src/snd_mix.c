@@ -22,7 +22,7 @@ static s32 snd_vol;
 
 static void Snd_WriteLinearBlastStereo16()
 {
-	for(s32 i = 0; i < snd_linear_count; i += 2) {
+	for(s32 i = 0; i < snd_linear_count; i += 2){
 		s32 val = snd_p[i] / 256;
 		if(val > 0x7fff) snd_out[i] = 0x7fff;
 		else if(val < (s16)0x8000) snd_out[i] = (s16)0x8000;
@@ -38,7 +38,7 @@ static void S_TransferStereo16(s32 endtime)
 {
 	snd_p = (s32 *) paintbuffer;
 	s32 lpaintedtime = paintedtime;
-	while(lpaintedtime < endtime) {
+	while(lpaintedtime < endtime){
 		// handle recirculating buffer issues
 		s32 lpos = lpaintedtime & ((shm->samples >> 1) - 1);
 		snd_out = (s16 *)shm->buffer + (lpos << 1);
@@ -55,7 +55,7 @@ static void S_TransferStereo16(s32 endtime)
 
 static void S_TransferPaintBuffer(s32 endtime)
 {
-	if(shm->samplebits == 16 && shm->channels == 2) {
+	if(shm->samplebits == 16 && shm->channels == 2){
 		S_TransferStereo16(endtime);
 		return;
 	}
@@ -64,9 +64,9 @@ static void S_TransferPaintBuffer(s32 endtime)
 	s32 out_mask = shm->samples - 1;
 	s32 out_idx = paintedtime * shm->channels & out_mask;
 	s32 step = 3 - shm->channels;
-	if(shm->samplebits == 16) {
+	if(shm->samplebits == 16){
 		s16 *out = (s16 *)shm->buffer;
-		while(count--) {
+		while(count--){
 			s32 val = *p / 256;
 			p+= step;
 			if(val > 0x7fff) val = 0x7fff;
@@ -74,9 +74,9 @@ static void S_TransferPaintBuffer(s32 endtime)
 			out[out_idx] = val;
 			out_idx = (out_idx + 1) & out_mask;
 		}
-	} else if(shm->samplebits == 8 && !shm->signed8) {
+	}else if(shm->samplebits == 8 && !shm->signed8){
 		u8 *out = shm->buffer;
-		while(count--) {
+		while(count--){
 			s32 val = *p / 256;
 			p+= step;
 			if(val > 0x7fff) val = 0x7fff;
@@ -84,9 +84,9 @@ static void S_TransferPaintBuffer(s32 endtime)
 			out[out_idx] = (val / 256) + 128;
 			out_idx = (out_idx + 1) & out_mask;
 		}
-	} else if(shm->samplebits == 8) {
+	}else if(shm->samplebits == 8){
 		c8 *out = (c8 *) shm->buffer;
-		while(count--) {
+		while(count--){
 			s32 val = *p / 256;
 			p+= step;
 			if(val > 0x7fff) val = 0x7fff;
@@ -104,10 +104,10 @@ static void S_TransferPaintBuffer(s32 endtime)
 // f_c is the filter cutoff frequency, as a fraction of the samplerate
 static void S_MakeBlackmanWindowKernel(f32 *kernel, s32 M, f32 f_c)
 {
-	for(s32 i = 0; i <= M; i++) {
+	for(s32 i = 0; i <= M; i++){
 		if(i == M/2)
 			kernel[i] = 2 * M_PI * f_c;
-		else {
+		else{
 			kernel[i]=(sin(2*M_PI*f_c*(i-M/2.0))/(i-(M/2.0)))
 				*(0.42-0.5*cos(2*M_PI*i/(f64)M)
 				+0.08*cos(4*M_PI*i/(f64)M));
@@ -121,7 +121,7 @@ static void S_MakeBlackmanWindowKernel(f32 *kernel, s32 M, f32 f_c)
 
 static void S_UpdateFilter(filter_t *filter, s32 M, f32 f_c)
 {
-	if(filter->f_c != f_c || filter->M != M) {
+	if(filter->f_c != f_c || filter->M != M){
 		if(filter->memory != NULL) free(filter->memory);
 		if(filter->kernel != NULL) free(filter->kernel);
 		filter->M = M;
@@ -144,9 +144,9 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 {
 	const s32 kernelsize = filter->kernelsize;
 	const f32 *kernel = filter->kernel;
-	s32 mark = Hunk_LowMark ();
+	s32 mark = Hunk_LowMark();
 	size_t inputsize = sizeof(f32) * (filter->kernelsize + count);
-	f32 *input = (f32*) Hunk_AllocNoFill (inputsize);
+	f32 *input = (f32*) Hunk_AllocNoFill(inputsize);
 	// set up the input buffer
 	// memory holds the previous filter->kernelsize samples of input.
 	memcpy(input, filter->memory, filter->kernelsize * sizeof(f32));
@@ -156,10 +156,10 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 	memcpy(filter->memory, input + count, filter->kernelsize * sizeof(f32));
 	// apply the filter
 	s32 parity = filter->parity;
-	for(s32 i = 0; i < count; i++) {
+	for(s32 i = 0; i < count; i++){
 		const f32 *input_plus_i = input + i;
 		f32 val[4] = {0, 0, 0, 0};
-		for(s32 j = (4 - parity) % 4; j < kernelsize; j+=16) {
+		for(s32 j = (4 - parity) % 4; j < kernelsize; j+=16){
 			val[0] += kernel[j] * input_plus_i[j];
 			val[1] += kernel[j+4] * input_plus_i[j+4];
 			val[2] += kernel[j+8] * input_plus_i[j+8];
@@ -171,7 +171,7 @@ static void S_ApplyFilter(filter_t *filter, s32 *data, s32 stride, s32 count)
 		parity = (parity + 1) % 4;
 	}
 	filter->parity = parity;
-	Hunk_FreeToLowMark (mark);
+	Hunk_FreeToLowMark(mark);
 }
 
 // lowpass filters 24-bit integer samples in 'data' (stored in 32-bit ints).
@@ -181,7 +181,7 @@ static void S_LowpassFilter(s32 *data, s32 stride, s32 count, filter_t *memory)
 {
 	s32 M;
 	f32 bw;
-	switch((s32)snd_filterquality.value) {
+	switch((s32)snd_filterquality.value){
 	case 1: M = 126; bw = 0.900; break;
 	case 2: M = 150; bw = 0.915; break;
 	case 3: M = 174; bw = 0.930; break;
@@ -201,7 +201,7 @@ static void SND_PaintChannelFrom16
 void S_PaintChannels(s32 endtime)
 {
 	snd_vol = sfxvolume.value * 256;
-	while(paintedtime < endtime) {
+	while(paintedtime < endtime){
 		s32 end = endtime; // if paintbuffer is smaller than DMA buffer
 		if(endtime - paintedtime > PAINTBUFFER_SIZE)
 			end = paintedtime + PAINTBUFFER_SIZE;
@@ -210,17 +210,17 @@ void S_PaintChannels(s32 endtime)
 				* sizeof(portable_samplepair_t));
 		// paint in the channels.
 		channel_t *ch = snd_channels;
-		for(s32 i = 0; i < total_channels; i++, ch++) {
+		for(s32 i = 0; i < total_channels; i++, ch++){
 			if(!ch->sfx) continue;
 			if(!ch->leftvol && !ch->rightvol) continue;
 			sfxcache_t *sc = S_LoadSound(ch->sfx);
 			if(!sc) continue;
 			s32 ltime = paintedtime;
-			while(ltime < end) { // paint up to end
+			while(ltime < end){ // paint up to end
 				s32 count;
 				if(ch->end < end) count = ch->end - ltime;
 				else count = end - ltime;
-				if(count > 0) {
+				if(count > 0){
 			  // the last param to SND_PaintChannelFrom is the index
 			  // to start painting to in the paintbuffer, usually 0.
 					if(sc->width ==1) SND_PaintChannelFrom8(
@@ -230,11 +230,11 @@ void S_PaintChannels(s32 endtime)
 					ltime += count;
 				}
 				// if at end of loop, restart
-				if(ltime >= ch->end) {
-					if(sc->loopstart >= 0) {
+				if(ltime >= ch->end){
+					if(sc->loopstart >= 0){
 					 ch->pos = sc->loopstart;
 					 ch->end = ltime + sc->length - ch->pos;
-					} else { // channel just stopped
+					}else{ // channel just stopped
 						ch->sfx = NULL;
 						break;
 					}
@@ -244,14 +244,14 @@ void S_PaintChannels(s32 endtime)
 		// clip each sample to 0dB, then reduce by 6dB(to leave some
 		// headroom for the lowpass filter and the music). the lowpass
 		// will smooth out the clipping
-		for(s32 i = 0; i < end-paintedtime; i++) {
+		for(s32 i = 0; i < end-paintedtime; i++){
 			paintbuffer[i].left = CLAMP(-32768 * 256,
 					paintbuffer[i].left, 32767 * 256) / 2;
 			paintbuffer[i].right = CLAMP(-32768 * 256,
 					paintbuffer[i].right, 32767 * 256) / 2;
 		}
 		// apply a lowpass filter
-		if(sndspeed.value == 11025 && shm->speed == 44100) {
+		if(sndspeed.value == 11025 && shm->speed == 44100){
 			static filter_t memory_l, memory_r;
 			S_LowpassFilter((s32 *)paintbuffer, 2,
 					end - paintedtime, &memory_l);
@@ -259,9 +259,9 @@ void S_PaintChannels(s32 endtime)
 					end - paintedtime, &memory_r);
 		}
 		// paint in the music
-		if(s_rawend >= paintedtime) { //copy from streaming sound source
+		if(s_rawend >= paintedtime){ //copy from streaming sound source
 			s32 stop = (end < s_rawend) ? end : s_rawend;
-			for(s32 i = paintedtime; i < stop; i++) {
+			for(s32 i = paintedtime; i < stop; i++){
 				s32 s = i & (MAX_RAW_SAMPLES - 1);
 				// lower music by 6db to match sfx
 				paintbuffer[i - paintedtime].left +=
@@ -277,7 +277,7 @@ void S_PaintChannels(s32 endtime)
 
 void SND_InitScaletable()
 {
-	for(s32 i = 0; i < 32; i++) {
+	for(s32 i = 0; i < 32; i++){
 		s32 scale = i * 8 * 256 * sfxvolume.value;
 		for(s32 j = 0; j < 256; j++)
 			snd_scaletable[i][j] = ((j<128) ? j : j - 256) * scale;
@@ -292,7 +292,7 @@ static void SND_PaintChannelFrom8
 	s32 *lscale = snd_scaletable[ch->leftvol >> 3];
 	s32 *rscale = snd_scaletable[ch->rightvol >> 3];
 	u8 *sfx = (u8 *)sc->data + ch->pos;
-	for(s32 i = 0; i < count; i++) {
+	for(s32 i = 0; i < count; i++){
 		s32 data = sfx[i];
 		paintbuffer[paintbufferstart + i].left += lscale[data];
 		paintbuffer[paintbufferstart + i].right += rscale[data];
@@ -308,7 +308,7 @@ static void SND_PaintChannelFrom16
 	leftvol /= 256;
 	rightvol /= 256;
 	s16 *sfx = (s16 *)sc->data + ch->pos;
-	for(s32 i = 0; i < count; i++) {
+	for(s32 i = 0; i < count; i++){
 		s32 data = sfx[i];
 		// this was causing integer overflow as observed in quakespasm
 		// with the warpspasm mod moved >>8 to left/right volume above.
