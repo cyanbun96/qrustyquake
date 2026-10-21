@@ -6,7 +6,7 @@ static s32 color_conv_initialized = 0;
 static lab_t lab_palette[256];
 
 f32 lab_f(f32 t) // cube-root if > epsilon, linear otherwise
-{ return (t > 0.008856f) ? cbrtf(t) : ((903.3f * t + 16.0f) / 116.0f); }
+{ return(t > 0.008856f) ? cbrtf(t) : ((903.3f * t + 16.0f) / 116.0f); }
 
 lab_t rgb_lin_to_lab(f32 r, f32 g, f32 b)
 {
@@ -50,10 +50,10 @@ u8 rgbtoi_lab(u8 r, u8 g, u8 b)
 		f32 da = lab0.a - lab_palette[i].a;
 		f32 db = lab0.b - lab_palette[i].b;
 		f32 dist = dl * dl + da * da + db * db;
-		if (dist < bestdist){
+		if(dist < bestdist){
 			bestdist = dist;
 			besti = (u8)i;
-			if (!dist) break;
+			if(!dist) break;
 		}
 	}
 	return besti;
@@ -69,10 +69,10 @@ u8 rgbtoi(u8 r, u8 g, u8 b)
 		s32 dg = g - p[1];
 		s32 db = b - p[2];
 		s32 dist = dr*dr + dg*dg + db*db;
-		if (dist < bestdist){
+		if(dist < bestdist){
 			bestdist = dist;
 			besti = (u8)i;
-			if (!dist) return besti;
+			if(!dist) return besti;
 		}
 	}
 	return besti;
@@ -81,7 +81,7 @@ u8 rgbtoi(u8 r, u8 g, u8 b)
 void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 {
 	if(fog_lut_built) return;
-	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
+	u8(*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	for(s32 c1 = 0; c1 < 256; c1++){
 	for(s32 c2 = 0; c2 < 256; c2++){
 		u8 r1 = CURWORLDPAL[c1*3+0];
@@ -104,7 +104,7 @@ void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 void R_BuildLitLUT()
 {
 	if(lit_lut_initialized) return;
-	u8 (*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
+	u8(*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	for(s32 r = 0; r < LIT_LUT_RES; ++r){
 	for(s32 g = 0; g < LIT_LUT_RES; ++g){
 	for(s32 b = 0; b < LIT_LUT_RES; ++b){

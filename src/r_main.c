@@ -554,12 +554,12 @@ void R_MarkLeaves()
 	for(s32 i = 0; i < cl.worldmodel->numleafs; i++){
 		if(vis[i >> 3] & (1 << (i & 7))){
 			mnode_t *nd = (mnode_t *) & cl.worldmodel->leafs[i + 1];
-			do {
+			do{
 				if((u32)nd->visframe == r_visframecount)
 					break;
 				nd->visframe = r_visframecount;
 				nd = nd->parent;
-			} while(nd);
+			}while(nd);
 		}
 	}
 }
@@ -843,7 +843,7 @@ static void R_DrawBmodelPolygons(model_t *clmodel, f32 *minmaxs, s32 clipflags)
 		// not a leaf; has to be clipped to the world BSP
 		r_clipflags = clipflags;
 		R_DrawSolidClippedSubmodelPolygons(clmodel);
-	} else {
+	}else{
 // falls entirely in one leaf, so we just put all the edges in the edge list and
 // let 1/z sorting handle drawing order
 		R_DrawSubmodelPolygons(clmodel, clipflags);

@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 static s32 clip_current;
@@ -8,10 +8,8 @@ static s32 sprite_width, sprite_height;
 void R_RotateSprite(f32 beamlength)
 {
 	vec3_t vec;
-
-	if (beamlength == 0.0)
+	if(beamlength == 0.0)
 		return;
-
 	VectorScale(r_spritedesc.vpn, -beamlength, vec);
 	VectorAdd(r_entorigin, vec, r_entorigin);
 	VectorSubtract(modelorg, vec, modelorg);
@@ -23,30 +21,30 @@ s32 R_ClipSpriteFace(s32 nump, clipplane_t *pclipplane) // Clips the winding at
 	f32 clipdist = pclipplane->dist;
 	f32 *pclipnormal = pclipplane->normal;
 	f32 *in, *outstep;
-	if (clip_current) { // calc dists
+	if(clip_current){ // calc dists
 		in = clip_verts[1][0];
 		outstep = clip_verts[0][0];
 		clip_current = 0;
-	} else {
+	}else{
 		in = clip_verts[0][0];
 		outstep = clip_verts[1][0];
 		clip_current = 1;
 	}
 	f32 *instep = in;
 	f32 dists[MAXWORKINGVERTS + 1];
-	for (s32 i = 0; i < nump; i++, instep += sizeof(vec5_t) / sizeof(f32))
+	for(s32 i = 0; i < nump; i++, instep += sizeof(vec5_t) / sizeof(f32))
 		dists[i] = DotProduct(instep, pclipnormal) - clipdist;
 	dists[nump] = dists[0]; // handle wraparound case
 	memcpy(instep, in, sizeof(vec5_t));
 	instep = in; // clip the winding
 	s32 outcount = 0;
-	for (s32 i = 0; i < nump; i++, instep += sizeof(vec5_t)/sizeof(f32)) {
-		if (dists[i] >= 0) {
+	for(s32 i = 0; i < nump; i++, instep += sizeof(vec5_t)/sizeof(f32)){
+		if(dists[i] >= 0){
 			memcpy(outstep, instep, sizeof(vec5_t));
 			outstep += sizeof(vec5_t) / sizeof(f32);
 			outcount++;
 		}
-		if (dists[i] == 0 || dists[i + 1] == 0
+		if(dists[i] == 0 || dists[i + 1] == 0
 			|| (dists[i] > 0) == (dists[i + 1] > 0))
 			continue;
 		// split it into a new vertex
@@ -65,7 +63,7 @@ s32 R_ClipSpriteFace(s32 nump, clipplane_t *pclipplane) // Clips the winding at
 
 void R_SetupAndDrawSprite()
 {
-	if (DotProduct(r_spritedesc.vpn, modelorg) >= 0) // backface cull
+	if(DotProduct(r_spritedesc.vpn, modelorg) >= 0) // backface cull
 		return;
 	// build the sprite poster in worldspace
 	vec3_t left, up, right, down, transformed, local;
@@ -96,25 +94,25 @@ void R_SetupAndDrawSprite()
 	pverts[3][4] = sprite_height;
 	s32 nump = 4; // clip to the frustum in worldspace
 	clip_current = 0;
-	for (s32 i = 0; i < 4; i++) {
+	for(s32 i = 0; i < 4; i++){
 		nump = R_ClipSpriteFace(nump, &view_clipplanes[i]);
-		if (nump < 3)
+		if(nump < 3)
 			return;
-		if (nump >= MAXWORKINGVERTS)
+		if(nump >= MAXWORKINGVERTS)
 			Sys_Error("R_SetupAndDrawSprite: too many points");
 	}
 	// transform vertices into viewspace and project
 	f32 *pv = &clip_verts[clip_current][0][0];
 	r_spritedesc.nearzi = -999999;
 	emitpoint_t outverts[MAXWORKINGVERTS + 1];
-	for (s32 i = 0; i < nump; i++) {
+	for(s32 i = 0; i < nump; i++){
 		VectorSubtract(pv, r_origin, local);
 		TransformVector(local, transformed);
-		if (transformed[2] < NEAR_CLIP)
+		if(transformed[2] < NEAR_CLIP)
 			transformed[2] = NEAR_CLIP;
 		emitpoint_t *pout = &outverts[i];
 		pout->zi = 1.0 / transformed[2];
-		if (pout->zi > r_spritedesc.nearzi)
+		if(pout->zi > r_spritedesc.nearzi)
 			r_spritedesc.nearzi = pout->zi;
 		pout->s = pv[3];
 		pout->t = pv[4];
@@ -132,27 +130,27 @@ void R_SetupAndDrawSprite()
 mspriteframe_t *R_GetSpriteframe(msprite_t *psprite)
 {
 	s32 frame = currententity->frame;
-	if ((frame >= psprite->numframes) || (frame < 0)) {
+	if((frame >= psprite->numframes) || (frame < 0)){
 		Con_DPrintf("R_DrawSprite: no such frame %d\n", frame);
 		frame = 0;
 	}
 	mspritegroup_t *pspritegroup;
 	mspriteframe_t *pspriteframe;
-	if (psprite->frames[frame].type == SPR_SINGLE)
+	if(psprite->frames[frame].type == SPR_SINGLE)
 		pspriteframe = psprite->frames[frame].frameptr;
-	else {
+	else{
 		pspritegroup = (mspritegroup_t*)psprite->frames[frame].frameptr;
 		f32 *pintervals = pspritegroup->intervals;
 		s32 numframes = pspritegroup->numframes;
 		f32 fullinterval = pintervals[numframes - 1];
 		f32 time = cl.time + currententity->syncbase;
-		// when loading in Mod_LoadSpriteGroup, we guaranteed all interval values
-		// are positive, so we don't have to worry about division by 0
+	// when loading in Mod_LoadSpriteGroup, we guaranteed all interval
+	// values are positive, so we don't have to worry about division by 0
 		f32 targettime =
 			time - ((s32)(time / fullinterval)) * fullinterval;
 		s32 i = 0;
-		for (; i < (numframes - 1); i++)
-			if (pintervals[i] > targettime)
+		for(; i < (numframes - 1); i++)
+			if(pintervals[i] > targettime)
 				break;
 		pspriteframe = pspritegroup->frames[i];
 	}
@@ -165,21 +163,21 @@ void R_DrawSprite()
 	r_spritedesc.pspriteframe = R_GetSpriteframe(psprite);
 	sprite_width = r_spritedesc.pspriteframe->width;
 	sprite_height = r_spritedesc.pspriteframe->height;
-	if (psprite->type == 1) { // facing upright
-		// generate the sprite's axes, with vup straight up in worldspace, and
-		// r_spritedesc.vright perpendicular to modelorg.
-		// This will not work if the view direction is very close to straight up or
-		// down, because the cross product will be between two nearly parallel
-		// vectors and starts to approach an undefined state, so we don't draw if
-		// the two vectors are less than 1 degree apart
+	if(psprite->type == 1){ // facing upright
+// generate the sprite's axes, with vup straight up in worldspace, and
+// r_spritedesc.vright perpendicular to modelorg.
+// This will not work if the view direction is very close to straight up or
+// down, because the cross product will be between two nearly parallel
+// vectors and starts to approach an undefined state, so we don't draw if
+// the two vectors are less than 1 degree apart
 		vec3_t tvec;
 		tvec[0] = -modelorg[0];
 		tvec[1] = -modelorg[1];
 		tvec[2] = -modelorg[2];
 		VectorNormalize(tvec);
-		f32 dot = tvec[2]; // same as DotProduct (tvec, r_spritedesc.vup) because
-		// r_spritedesc.vup is 0, 0, 1
-		if ((dot > 0.999848) || (dot < -0.999848)) // cos(1 degree) = 0.999848
+		f32 dot = tvec[2]; // same as DotProduct(tvec, r_spritedesc.vup)
+				   // because r_spritedesc.vup is 0, 0, 1
+		if((dot > 0.999848) || (dot < -0.999848))//cos(1 deg) = 0.999848
 			return;
 		r_spritedesc.vup[0] = 0;
 		r_spritedesc.vup[1] = 0;
@@ -193,18 +191,18 @@ void R_DrawSprite()
 		r_spritedesc.vpn[0] = -r_spritedesc.vright[1];
 		r_spritedesc.vpn[1] = r_spritedesc.vright[0];
 		r_spritedesc.vpn[2] = 0;
-	} else if (psprite->type == 2) { // parallel
-		// generate the sprite's axes, completely parallel to the viewplane. There
-		// are no problem situations, because the sprite is always in the same
-		// position relative to the viewer
-		for (s32 i = 0; i < 3; i++) {
+	}else if(psprite->type == 2){ // parallel
+// generate the sprite's axes, completely parallel to the viewplane. There
+// are no problem situations, because the sprite is always in the same
+// position relative to the viewer
+		for(s32 i = 0; i < 3; i++){
 			r_spritedesc.vup[i] = vup[i];
 			r_spritedesc.vright[i] = vright[i];
 			r_spritedesc.vpn[i] = vpn[i];
 		}
-	} else if (psprite->type == 0) { // parallel upright
+	}else if(psprite->type == 0){ // parallel upright
 		f32 dot = vpn[2];
-		if ((dot > 0.999848) || (dot < -0.999848))
+		if((dot > 0.999848) || (dot < -0.999848))
 			return;
 		r_spritedesc.vup[0] = 0;
 		r_spritedesc.vup[1] = 0;
@@ -216,23 +214,23 @@ void R_DrawSprite()
 		r_spritedesc.vpn[0] = -r_spritedesc.vright[1];
 		r_spritedesc.vpn[1] = r_spritedesc.vright[0];
 		r_spritedesc.vpn[2] = 0;
-	} else if (psprite->type == 3) { // oriented
-		// generate the sprite's axes, according to the sprite's world orientation
+	}else if(psprite->type == 3){ // oriented
+// generate the sprite's axes, according to the sprite's world orientation
 		AngleVectors(currententity->angles, r_spritedesc.vpn,
 			     r_spritedesc.vright, r_spritedesc.vup);
-	} else if (psprite->type == 4) { // parallel oriented
-		// generate the sprite's axes, parallel to the viewplane, but rotated in
-		// that plane around the center according to the sprite entity's roll
-		// angle. So vpn stays the same, but vright and vup rotate
+	}else if(psprite->type == 4){ // parallel oriented
+	// generate the sprite's axes, parallel to the viewplane, but rotated in
+	// that plane around the center according to the sprite entity's roll
+	// angle. So vpn stays the same, but vright and vup rotate
 		f32 angle = currententity->angles[ROLL] * (M_PI * 2 / 360);
 		f32 sr = sin(angle);
 		f32 cr = cos(angle);
-		for (s32 i = 0; i < 3; i++) {
+		for(s32 i = 0; i < 3; i++){
 			r_spritedesc.vpn[i] = vpn[i];
 			r_spritedesc.vright[i] = vright[i] * cr + vup[i] * sr;
 			r_spritedesc.vup[i] = vright[i] * -sr + vup[i] * cr;
 		}
-	} else
+	}else
 		Sys_Error("R_DrawSprite: Bad sprite type %d", psprite->type);
 	R_RotateSprite(psprite->beamlength);
 	R_SetupAndDrawSprite();

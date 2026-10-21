@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 static f32 map_fallbackalpha;
@@ -24,7 +24,7 @@ void R_ParseWorldspawn()
 		data = COM_Parse(data);
 		if(!data)return; // error
 		if(com_token[0]=='}')break; // end of worldspawn
-		if(com_token[0]=='_')SDL_strlcpy(key, com_token + 1, sizeof(key));
+		if(com_token[0]=='_')SDL_strlcpy(key, com_token+1, sizeof(key));
 		else SDL_strlcpy(key, com_token, sizeof(key));
 		while(key[0]&&key[strlen(key)-1]==' ') // remove trailing spaces
 			key[strlen(key)-1] = 0;
@@ -40,7 +40,7 @@ void R_ParseWorldspawn()
 
 void R_SetWateralpha_f(cvar_t *var) 
 { // -- ericw
-	if (cls.signon == SIGNONS && cl.worldmodel &&
+	if(cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWWATER)
 		&& var->value < 1)
 		Con_Printf("Map does not appear to be water-vised\n");
@@ -50,7 +50,7 @@ void R_SetWateralpha_f(cvar_t *var)
 
 void R_SetLavaalpha_f(cvar_t *var)
 {
-	if (cls.signon == SIGNONS && cl.worldmodel &&
+	if(cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWLAVA)
 		&& var->value && var->value < 1)
 		Con_Printf("Map does not appear to be lava-vised\n");
@@ -59,7 +59,7 @@ void R_SetLavaalpha_f(cvar_t *var)
 
 void R_SetTelealpha_f(cvar_t *var)
 {
-	if (cls.signon == SIGNONS && cl.worldmodel &&
+	if(cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWTELE)
 		&& var->value && var->value < 1)
 		Con_Printf("Map does not appear to be tele-vised\n");
@@ -68,7 +68,7 @@ void R_SetTelealpha_f(cvar_t *var)
 
 void R_SetSlimealpha_f(cvar_t *var)
 {
-	if (cls.signon == SIGNONS && cl.worldmodel &&
+	if(cls.signon == SIGNONS && cl.worldmodel &&
 		!(cl.worldmodel->contentstransparent&SURF_DRAWSLIME)
 		&& var->value && var->value < 1)
 		Con_Printf("Map does not appear to be slime-vised\n");
@@ -77,11 +77,11 @@ void R_SetSlimealpha_f(cvar_t *var)
 
 f32 R_LiquidAlphaForFlags(s32 flags)
 {
-	if (flags & SURF_DRAWLAVA)
+	if(flags & SURF_DRAWLAVA)
 		return map_lavaalpha > 0 ? map_lavaalpha : map_fallbackalpha;
-	else if (flags & SURF_DRAWSLIME)
+	else if(flags & SURF_DRAWSLIME)
 		return map_slimealpha > 0 ? map_slimealpha : map_fallbackalpha;
-	else if (flags & SURF_DRAWTELE)
+	else if(flags & SURF_DRAWTELE)
 		return map_telealpha > 0 ? map_telealpha : map_fallbackalpha;
 	else
 		return map_wateralpha > 0 ? map_wateralpha : map_fallbackalpha;
@@ -90,7 +90,7 @@ f32 R_LiquidAlphaForFlags(s32 flags)
 void R_CheckVariables()
 {
 	static f32 oldbright;
-	if (r_fullbright.value != oldbright) {
+	if(r_fullbright.value != oldbright){
 		oldbright = r_fullbright.value;
 		D_FlushCaches(0); // so all lighting changes
 	}
@@ -100,14 +100,14 @@ void R_TimeRefresh_f()
 { // For program optimization
 	s32 startangle = r_refdef.viewangles[1];
 	f32 start = Sys_DoubleTime();
-	for (s32 i = 0; i < 128; i++) {
+	for(s32 i = 0; i < 128; i++){
 		r_refdef.viewangles[1] = i / 128.0 * 360.0;
 		R_RenderView();
 		VID_Update();
 	}
 	f32 stop = Sys_DoubleTime();
 	f32 time = stop - start;
-	Con_Printf("%f seconds (%f fps)\n", time, 128 / time);
+	Con_Printf("%f seconds(%f fps)\n", time, 128 / time);
 	r_refdef.viewangles[1] = startangle;
 }
 
@@ -129,7 +129,7 @@ void R_PrintDSpeeds()
 
 void R_TransformFrustum()
 {
-	for (s32 i = 0; i < 4; i++) {
+	for(s32 i = 0; i < 4; i++){
 		vec3_t v, v2;
 		v[0] = screenedge[i].normal[2];
 		v[1] = -screenedge[i].normal[0];
@@ -145,9 +145,9 @@ void R_TransformFrustum()
 void R_SetUpFrustumIndexes()
 {
 	s32 *pindex = r_frustum_indexes;
-	for (s32 i = 0; i < 4; i++) {
-		for (s32 j = 0; j < 3; j++) {
-			if (view_clipplanes[i].normal[j] < 0) {
+	for(s32 i = 0; i < 4; i++){
+		for(s32 j = 0; j < 3; j++){
+			if(view_clipplanes[i].normal[j] < 0){
 				pindex[j] = j;
 				pindex[j + 3] = j + 3;
 			} else {
@@ -162,30 +162,30 @@ void R_SetUpFrustumIndexes()
 
 void R_SetupFrame()
 {
-	if (cl.maxclients > 1) { // don't allow cheats in multiplayer
+	if(cl.maxclients > 1){ // don't allow cheats in multiplayer
 		Cvar_Set("r_draworder", "0");
 		Cvar_Set("r_fullbright", "0");
 		Cvar_Set("r_ambient", "0");
 		Cvar_Set("r_drawflat", "0");
 	}
-	if (r_numsurfs.value) {
-		if (surface_p - surfaces > r_maxsurfsseen)
+	if(r_numsurfs.value){
+		if(surface_p - surfaces > r_maxsurfsseen)
 			r_maxsurfsseen = surface_p - surfaces;
 		Con_Printf("Used %d of %d surfs; %d max\n",
 				surface_p - surfaces, surf_max - surfaces,
 				r_maxsurfsseen);
 	}
-	if (r_numedges.value) {
+	if(r_numedges.value){
 		s32 edgecount = edge_p - r_edges;
-		if (edgecount > r_maxedgesseen)
+		if(edgecount > r_maxedgesseen)
 			r_maxedgesseen = edgecount;
 		Con_Printf("Used %d of %d edges; %d max\n", edgecount,
 				r_ledges_size, r_maxedgesseen);
 	}
 	r_refdef.ambientlight = r_ambient.value;
-	if (r_refdef.ambientlight < 0)
+	if(r_refdef.ambientlight < 0)
 		r_refdef.ambientlight = 0;
-	if (!sv.active)
+	if(!sv.active)
 		r_draworder.value = 0;	// don't let cheaters look behind walls
 	R_CheckVariables();
 	R_AnimateLight();
@@ -199,10 +199,10 @@ void R_SetupFrame()
 	r_dowarpold = r_dowarp;
 	r_dowarp = r_waterwarp.value && (r_viewleaf->contents<=CONTENTS_WATER);
 	vrect_t vrect;
-	if ((r_dowarp != r_dowarpold) || r_viewchanged) {
-		if (r_dowarp) {
-			if ((vid.width <= WARP_WIDTH) &&
-					(vid.height <= WARP_HEIGHT)) {
+	if((r_dowarp != r_dowarpold) || r_viewchanged){
+		if(r_dowarp){
+			if((vid.width <= WARP_WIDTH) &&
+					(vid.height <= WARP_HEIGHT)){
 				vrect.x = 0;
 				vrect.y = 0;
 				vrect.width = vid.width;
@@ -211,11 +211,11 @@ void R_SetupFrame()
 			} else {
 				f32 w = vid.width;
 				f32 h = vid.height;
-				if (w > WARP_WIDTH) {
+				if(w > WARP_WIDTH){
 					h *= (f32)WARP_WIDTH / w;
 					w = WARP_WIDTH;
 				}
-				if (h > WARP_HEIGHT) {
+				if(h > WARP_HEIGHT){
 					h = WARP_HEIGHT;
 					w *= (f32)WARP_HEIGHT / h;
 				}

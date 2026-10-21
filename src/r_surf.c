@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // r_surf.c: surface-related refresh code
 #include "quakedef.h"
 
@@ -28,27 +28,25 @@ void R_DrawSurfaceBlockRGBMono();
 void R_DrawSurfaceBlockRGB();
 
 void R_AddDynamicLights()
-{
-	//johnfitz -- lit support via lordhavoc
+{ //johnfitz -- lit support via lordhavoc
 	f32 cred, cgreen, cblue, brightness;
-	//johnfitz
 	msurface_t *surf = r_drawsurf.surf;
 	s32 smax = (surf->extents[0] >> 4) + 1;
 	s32 tmax = (surf->extents[1] >> 4) + 1;
 	mtexinfo_t *tex = surf->texinfo;
-	for (s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++) {
-		if (!(surf->dlightbits & (1 << lnum)))
+	for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++){
+		if(!(surf->dlightbits & (1 << lnum)))
 			continue; // not lit by this light
 		f32 rad = cl_dlights[lnum].radius;
 		f32 dist = DotProduct(cl_dlights[lnum].origin,
 				surf->plane->normal) - surf->plane->dist;
 		rad -= fabs(dist);
 		f32 minlight = cl_dlights[lnum].minlight;
-		if (rad < minlight)
+		if(rad < minlight)
 			continue;
 		minlight = rad - minlight;
 		vec3_t impact, local;
-		for (s32 i = 0; i < 3; i++)
+		for(s32 i = 0; i < 3; i++)
 			impact[i] = cl_dlights[lnum].origin[i] -
 				surf->plane->normal[i] * dist;
 		local[0] = DotProduct(impact, tex->vecs[0]) + tex->vecs[0][3];
@@ -63,17 +61,16 @@ void R_AddDynamicLights()
 		cgreen = cl_dlights[lnum].color[1] * 256.0f;
 		cblue = cl_dlights[lnum].color[2] * 256.0f;
 		//johnfitz
-		for (s32 t = 0; t < tmax; t++) {
+		for(s32 t = 0; t < tmax; t++){
 			s32 td = local[1] - t * 16;
-			if (td < 0)
+			if(td < 0)
 				td = -td;
-			for (s32 s = 0; s < smax; s++) {
+			for(s32 s = 0; s < smax; s++){
 				s32 sd = local[0] - s * 16;
-				if (sd < 0)
+				if(sd < 0)
 					sd = -sd;
 				dist = sd > td ? sd + td / 2 : td + sd / 2;
-				if (dist < minlight) {
-					//johnfitz -- lit support via lordhavoc
+				if(dist < minlight){
 					brightness = rad - dist;
 					bl[0] += (s32) (brightness * cred);
 					bl_g[0] += (s32) (brightness * cgreen);
@@ -82,7 +79,6 @@ void R_AddDynamicLights()
 				bl += 1;
 				bl_g += 1;
 				bl_b += 1;
-				//johnfitz
 			}
 		}
 	}
@@ -98,46 +94,47 @@ void R_BuildLightMap()
 	if((u64)size > sizeof(blocklights)/sizeof(*blocklights))
 		size=sizeof(blocklights)/sizeof(*blocklights);
 	u8 *lightmap = surf->samples;
-	if (r_fullbright.value || !cl.worldmodel->lightdata) {
+	if(r_fullbright.value || !cl.worldmodel->lightdata){
 		memset(blocklights,   0, size * sizeof(*blocklights));
 		memset(blocklights_g, 0, size * sizeof(*blocklights_g));
 		memset(blocklights_b, 0, size * sizeof(*blocklights_b));
 		return;
 	}
-	for (s32 i = 0; i < size; i++) { // clear to ambient
+	for(s32 i = 0; i < size; i++){ // clear to ambient
 		blocklights[i] = r_refdef.ambientlight << 8;
 		blocklights_g[i] = r_refdef.ambientlight << 8;
 		blocklights_b[i] = r_refdef.ambientlight << 8;
 	}
-	if (lightmap) // add all the lightmaps
-		for (s32 maps = 0; maps < MAXLIGHTMAPS && surf->styles[maps] != 255; maps++) {
+	if(lightmap) // add all the lightmaps
+		for(s32 maps = 0; maps<MAXLIGHTMAPS && surf->styles[maps]!=255;
+				maps++){
 			u32 scale = r_drawsurf.lightadj[maps];	// 8.8 fraction         
 			u32 *bl = blocklights;
 			u32 *bl_g = blocklights_g;
 			u32 *bl_b = blocklights_b;
-			for (s32 i = 0; i < size; i++) {
+			for(s32 i = 0; i < size; i++){
 				*bl++ += *lightmap++ * scale;
 				*bl_g++ += *lightmap++ * scale;
 				*bl_b++ += *lightmap++ * scale;
 			}
 		}
-	if ((u32)surf->dlightframe == r_framecount) //add all the dynamic lights
+	if((u32)surf->dlightframe == r_framecount) //add all the dynamic lights
 		R_AddDynamicLights();
-	for (s32 i = 0; i < size; i++) { // bound, invert, and shift
+	for(s32 i = 0; i < size; i++){ // bound, invert, and shift
 		s32 t = (255 * 256 - (s32)blocklights[i]) >> (8 - VID_CBITS);
-		if (t < 64)
+		if(t < 64)
 			t = 64;
 		blocklights[i] = t;
 	}
-	for (s32 i = 0; i < size; i++) { // Green
+	for(s32 i = 0; i < size; i++){ // Green
 		s32 t = (255 * 256 - (s32)blocklights_g[i]) >> (8 - VID_CBITS);
-		if (t < 64)
+		if(t < 64)
 			t = 64;
 		blocklights_g[i] = t;
 	}
-	for (s32 i = 0; i < size; i++) { // Blue
+	for(s32 i = 0; i < size; i++){ // Blue
 		s32 t = (255 * 256 - (s32)blocklights_b[i]) >> (8 - VID_CBITS);
-		if (t < 64)
+		if(t < 64)
 			t = 64;
 		blocklights_b[i] = t;
 	}
@@ -145,17 +142,17 @@ void R_BuildLightMap()
 
 texture_t *R_TextureAnimation(texture_t *base)
 { // Returns the proper texture for a given time and base texture
-	if (currententity->frame && base->alternate_anims)
+	if(currententity->frame && base->alternate_anims)
 		base = base->alternate_anims;
-	if (!base->anim_total)
+	if(!base->anim_total)
 		return base;
 	s32 reletive = (s32)(cl.time * 10) % base->anim_total;
 	s32 count = 0;
-	while (base->anim_min > reletive || base->anim_max <= reletive) {
+	while(base->anim_min > reletive || base->anim_max <= reletive){
 		base = base->anim_next;
-		if (!base)
+		if(!base)
 			Sys_Error("R_TextureAnimation: broken cycle");
-		if (++count > 100)
+		if(++count > 100)
 			Sys_Error("R_TextureAnimation: infinite cycle");
 	}
 	return base;
@@ -167,7 +164,7 @@ s32 R_DrawSurface()
 	surfrowbytes = r_drawsurf.rowbytes;
 	texture_t *mt = r_drawsurf.texture;
 	r_source = (u8 *) mt + mt->offsets[r_drawsurf.surfmip];
-	// the fractional light values should range from 0 to (VID_GRADES - 1)
+	// the fractional light values should range from 0 to(VID_GRADES - 1)
 	// << 16 from a source range of 0 - 255
 	s32 texwidth = mt->width >> r_drawsurf.surfmip;
 	if((mt->width & 15) || (mt->height & 15)){
@@ -187,7 +184,7 @@ s32 R_DrawSurface()
 	s32 smax = mt->width >> r_drawsurf.surfmip;
 	s32 twidth = texwidth;
 	s32 tmax = mt->height >> r_drawsurf.surfmip;
-	if (!smax || !tmax) {
+	if(!smax || !tmax){
 		Con_DPrintf("Division by 0 in R_DrawSurface\n");
 		return 1;
 	}
@@ -201,17 +198,17 @@ s32 R_DrawSurface()
 	u8 *basetptr = &r_source[((((basetoffset>>r_drawsurf.surfmip)
 				+ (tmax << 16)) % tmax) * twidth)];
 	u8 *pcolumndest = r_drawsurf.surfdat;
-	for (s32 u = 0; u < r_numhblocks; u++) {
+	for(s32 u = 0; u < r_numhblocks; u++){
 		r_lightptr = blocklights + u;
 		r_lightptr_g = blocklights_g + u;
 		r_lightptr_b = blocklights_b + u;
 		prowdestbase = pcolumndest;
 		pbasesource = basetptr + soffset;
-		if (!lit_loaded&&!lmonly) R_DrawSurfaceBlock();
-		else if (!r_rgblighting.value) R_DrawSurfaceBlockRGBMono();
+		if(!lit_loaded&&!lmonly) R_DrawSurfaceBlock();
+		else if(!r_rgblighting.value) R_DrawSurfaceBlockRGBMono();
 		else R_DrawSurfaceBlockRGB();
 		soffset = soffset + blocksize;
-		if (soffset >= smax)
+		if(soffset >= smax)
 			soffset = 0;
 		pcolumndest += blocksize;
 	}
@@ -222,19 +219,17 @@ void R_DrawSurfaceBlock()
 {
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
-	for (s32 v = 0; v < r_numvblocks; v++) {
-		// FIXME: make these locals?
-		// FIXME: use delta rather than both right and left, like ASM?
+	for(s32 v = 0; v < r_numvblocks; v++){
 		lightleft = r_lightptr[0];
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;
 		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
 		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
-		for (s32 i = 0; i < blocksize; i++) {
+		for(s32 i = 0; i < blocksize; i++){
 			s32 lighttemp = lightleft - lightright;
 			s32 lightstep = lighttemp >> blockdivshift;
 			s32 light = lightright;
-			for (s32 b = blocksize - 1; b >= 0; b--) {
+			for(s32 b = blocksize - 1; b >= 0; b--){
 				u8 pix = psource[b];
 				prowdest[b] = CURWORLDCMAP[(light&0xFF00)+pix];
 				light += lightstep;
@@ -244,7 +239,7 @@ void R_DrawSurfaceBlock()
 			lightleft += lightleftstep;
 			prowdest += surfrowbytes;
 		}
-		if (psource >= r_sourcemax)
+		if(psource >= r_sourcemax)
 			psource -= r_stepback;
 	}
 }
@@ -253,7 +248,7 @@ void R_DrawSurfaceBlockRGBMono()
 {
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
-	for (s32 v = 0; v < r_numvblocks; v++) {
+	for(s32 v = 0; v < r_numvblocks; v++){
 		// FIXME: make these locals?
 		// FIXME: use delta rather than both right and left, like ASM?
 		lightleft = r_lightptr[0]; // Red
@@ -264,23 +259,24 @@ void R_DrawSurfaceBlockRGBMono()
 		lightleft_g = r_lightptr_g[0]; // Green
 		lightright_g = r_lightptr_g[1];
 		r_lightptr_g += r_lightwidth;
-		lightleftstep_g = (r_lightptr_g[0] - lightleft_g) >> blockdivshift;
-		lightrightstep_g = (r_lightptr_g[1] - lightright_g) >> blockdivshift;
+		lightleftstep_g=(r_lightptr_g[0]-lightleft_g)>>blockdivshift;
+		lightrightstep_g =(r_lightptr_g[1]-lightright_g)>>blockdivshift;
 		lightleft_b = r_lightptr_b[0]; // Blue
 		lightright_b = r_lightptr_b[1];
 		r_lightptr_b += r_lightwidth;
-		lightleftstep_b = (r_lightptr_b[0] - lightleft_b) >> blockdivshift;
-		lightrightstep_b = (r_lightptr_b[1] - lightright_b) >> blockdivshift;
-		for (s32 i = 0; i < blocksize; i++) {
+		lightleftstep_b=(r_lightptr_b[0]-lightleft_b)>>blockdivshift;
+		lightrightstep_b=(r_lightptr_b[1]-lightright_b)>>blockdivshift;
+		for(s32 i = 0; i < blocksize; i++){
 			s32 lighttemp = lightleft - lightright; // Red
 			s32 lightstep = lighttemp >> blockdivshift;
 			s32 light = lightright;
 			s32 light_g = lightright_g;
 			s32 light_b = lightright_b;
-			for (s32 b = blocksize - 1; b >= 0; b--) {
+			for(s32 b = blocksize - 1; b >= 0; b--){
 				u8 pix = psource[b];
-				s32 lightavg = ((light&0xFF00) + (light_g&0xFF00) + (light_b&0xFF00))/3;
-				prowdest[b] = CURWORLDCMAP[(lightavg & 0xFF00) + pix];
+				s32 lightavg = ((light&0xFF00) +
+					(light_g&0xFF00) + (light_b&0xFF00))/3;
+				prowdest[b]=CURWORLDCMAP[(lightavg&0xFF00)+pix];
 				light += lightstep;
 			}
 			psource += sourcetstep;
@@ -292,19 +288,17 @@ void R_DrawSurfaceBlockRGBMono()
 			lightleft_b += lightleftstep_b;
 			prowdest += surfrowbytes;
 		}
-		if (psource >= r_sourcemax)
+		if(psource >= r_sourcemax)
 			psource -= r_stepback;
 	}
 }
 
 void R_DrawSurfaceBlockRGB()
 {
-	if (!lit_lut_initialized) R_BuildLitLUT();
+	if(!lit_lut_initialized) R_BuildLitLUT();
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
-	for (s32 v = 0; v < r_numvblocks; v++) {
-		// FIXME: make these locals?
-		// FIXME: use delta rather than both right and left, like ASM?
+	for(s32 v = 0; v < r_numvblocks; v++){
 		lightleft = r_lightptr[0]; // Red
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;
@@ -313,14 +307,14 @@ void R_DrawSurfaceBlockRGB()
 		lightleft_g = r_lightptr_g[0]; // Green
 		lightright_g = r_lightptr_g[1];
 		r_lightptr_g += r_lightwidth;
-		lightleftstep_g = (r_lightptr_g[0] - lightleft_g) >> blockdivshift;
-		lightrightstep_g = (r_lightptr_g[1] - lightright_g) >> blockdivshift;
+		lightleftstep_g=(r_lightptr_g[0]-lightleft_g)>>blockdivshift;
+		lightrightstep_g=(r_lightptr_g[1]-lightright_g)>>blockdivshift;
 		lightleft_b = r_lightptr_b[0]; // Blue
 		lightright_b = r_lightptr_b[1];
 		r_lightptr_b += r_lightwidth;
-		lightleftstep_b = (r_lightptr_b[0] - lightleft_b) >> blockdivshift;
-		lightrightstep_b = (r_lightptr_b[1] - lightright_b) >> blockdivshift;
-		for (s32 i = 0; i < blocksize; i++) {
+		lightleftstep_b=(r_lightptr_b[0]-lightleft_b)>>blockdivshift;
+		lightrightstep_b=(r_lightptr_b[1]-lightright_b)>>blockdivshift;
+		for(s32 i = 0; i < blocksize; i++){
 			s32 lighttemp = lightleft - lightright; // Red
 			s32 lightstep = lighttemp >> blockdivshift;
 			s32 light = lightright;
@@ -330,7 +324,7 @@ void R_DrawSurfaceBlockRGB()
 			s32 lighttemp_b = lightleft_b - lightright_b; // Blue
 			s32 lightstep_b = lighttemp_b >> blockdivshift;
 			s32 light_b = lightright_b;
-			for (s32 b = blocksize - 1; !lmonly && b >= 0; b--) {
+			for(s32 b = blocksize - 1; !lmonly && b >= 0; b--){
 				u8 tex = psource[b];
 				u8 ir = CURWORLDCMAP[(light   & 0xFF00) + tex];
 				u8 ig = CURWORLDCMAP[(light_g & 0xFF00) + tex];
@@ -338,19 +332,21 @@ void R_DrawSurfaceBlockRGB()
 				u8 r_ = CURWORLDPAL[ir * 3 + 0];
 				u8 g_ = CURWORLDPAL[ig * 3 + 1];
 				u8 b_ = CURWORLDPAL[ib * 3 + 2];
-				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)][QUANT(b_)];
+				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)]
+								[QUANT(b_)];
 				light += lightstep;
 				light_g += lightstep_g;
 				light_b += lightstep_b;
 			}
-			for (s32 b = blocksize - 1; lmonly && b >= 0; b--) {
+			for(s32 b = blocksize - 1; lmonly && b >= 0; b--){
 				u8 ir = CURWORLDCMAP[(light   & 0xFF00)+15];
 				u8 ig = CURWORLDCMAP[(light_g & 0xFF00)+15];
 				u8 ib = CURWORLDCMAP[(light_b & 0xFF00)+15];
 				u8 r_ = CURWORLDPAL[ir * 3 + 0];
 				u8 g_ = CURWORLDPAL[ig * 3 + 1];
 				u8 b_ = CURWORLDPAL[ib * 3 + 2];
-				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)][QUANT(b_)];
+				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)]
+								[QUANT(b_)];
 				light += lightstep;
 				light_g += lightstep_g;
 				light_b += lightstep_b;
@@ -364,7 +360,7 @@ void R_DrawSurfaceBlockRGB()
 			lightleft_b += lightleftstep_b;
 			prowdest += surfrowbytes;
 		}
-		if (psource >= r_sourcemax)
+		if(psource >= r_sourcemax)
 			psource -= r_stepback;
 	}
 }
