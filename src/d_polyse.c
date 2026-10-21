@@ -548,7 +548,9 @@ void D_PolysetDrawSpansDithered(spanpackage_t *pspanpackage)
 				// The single shotgun model would sometimes get
 				// bright blue texels, which should be unused as
 				// it's the "transparent" color for model skins
-					if(texel == 0xd0) texel = 0;
+				// Same with 0xd3 on the torch model
+					if(texel == 0xd0 || texel == 0xd3)
+						texel = 0;
 					s32 pix;
 					if(r_rgblighting.value && colored_aliaslight && texel < 0xE0)
 						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
