@@ -885,7 +885,7 @@ forward:
 		if(strcmp(hostname.string, setup_hostname) != 0)
 			Cvar_Set("hostname", setup_hostname);
 		if(setup_top!=setup_oldtop || setup_bottom!=setup_oldbottom)
-			Cbuf_AddText(va("color%i%i\n",setup_top,setup_bottom));
+		    Cbuf_AddText(va("color %i %i\n",setup_top,setup_bottom));
 		m_entersound = 1;
 		M_Menu_MultiPlayer_f();
 		break;
