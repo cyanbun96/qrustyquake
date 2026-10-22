@@ -1,59 +1,49 @@
-// CyanBun96: compile with -flto to force the compiler to optimize this
-// atsb: windows and linux compatible macro definitions
-#if defined(_MSC_VER)
-#define SIL static __forceinline
-#define RESTRICT
-#define _USE_MATH_DEFINES
-#include <math.h>
-#else
-#define SIL static inline __attribute__((always_inline))
-#define RESTRICT __restrict
-#endif
+#include "quakedef.h"
 #define EQUAL_EPSILON 0.001
-SIL bool GetBit (const u32 *arr, u32 i)
+Q_SIL bool GetBit (const u32 *arr, u32 i)
 	{ return (arr[i/32u] & (1u<<(i%32u))) != 0u; }
-SIL void SetBit (u32 *arr, u32 i)
+Q_SIL void SetBit (u32 *arr, u32 i)
 	{ arr[i/32u] |= 1u<<(i%32u); }
-SIL void ClearBit (u32 *arr, u32 i)
+Q_SIL void ClearBit (u32 *arr, u32 i)
 	{ arr[i/32u] &= ~(1u<<(i%32u)); }
-SIL f32 DotProduct(const f32 *restrict a, const f32 *restrict b)
+Q_SIL f32 DotProduct(const f32 *restrict a, const f32 *restrict b)
 	{f32 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
-SIL f64 DotProductF64(const f32 *a, const f32 *b)
+Q_SIL f64 DotProductF64(const f32 *a, const f32 *b)
 	{f64 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
-SIL f32 DotProductU8(const u8 *a, const f32 *b)
+Q_SIL f32 DotProductU8(const u8 *a, const f32 *b)
 	{f32 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
-SIL void VectorSubtract(const f32 *a, const f32 *b, f32 *c)
+Q_SIL void VectorSubtract(const f32 *a, const f32 *b, f32 *c)
 	{c[0] = a[0] - b[0]; c[1] = a[1] - b[1]; c[2] = a[2] - b[2];}
-SIL void VectorAdd(const f32 *a, const f32 *b, f32 *c)
+Q_SIL void VectorAdd(const f32 *a, const f32 *b, f32 *c)
 	{c[0] = a[0] + b[0]; c[1] = a[1] + b[1]; c[2] = a[2] + b[2];}
-SIL void VectorCopy(const f32 *a, f32 *b)
+Q_SIL void VectorCopy(const f32 *a, f32 *b)
 	{b[0] = a[0]; b[1] = a[1]; b[2] = a[2];}
-SIL f32 anglemod(f32 a)
+Q_SIL f32 anglemod(f32 a)
 	{a = (360.0 / 65536) * ((s32)(a * (65536 / 360.0)) & 65535); return a;}
-SIL void VectorInverse(vec3_t v)
+Q_SIL void VectorInverse(vec3_t v)
 	{v[0] = -v[0]; v[1] = -v[1]; v[2] = -v[2];}
-SIL void VectorScale(vec3_t in, vec_t scale, vec3_t out)
+Q_SIL void VectorScale(vec3_t in, vec_t scale, vec3_t out)
 	{out[0] = in[0]*scale; out[1] = in[1]*scale; out[2] = in[2]*scale;}
-SIL vec_t VectorLength(const vec3_t v)
+Q_SIL vec_t VectorLength(const vec3_t v)
 	{return sqrt(DotProduct(v,v)); }
-SIL s32 VectorCompare (const vec3_t v1, const vec3_t v2)
+Q_SIL s32 VectorCompare (const vec3_t v1, const vec3_t v2)
 {
 	for(s32 i=0; i<3; i++)
 		if(v1[i] != v2[i])
 			return 0;
 	return 1;
 }
-SIL s32 GreatestCommonDivisor(s32 a, s32 b)
+Q_SIL s32 GreatestCommonDivisor(s32 a, s32 b)
 	{while(b != 0){ s32 t = b; b = a % b; a = t; } return a;}
 
-SIL void TransformVector(vec3_t in, vec3_t out)
+Q_SIL void TransformVector(vec3_t in, vec3_t out)
 {
 	out[0] = DotProduct(in, vright);
 	out[1] = DotProduct(in, vup);
 	out[2] = DotProduct(in, vpn);
 }
 
-SIL f32 VectorNormalize(vec3_t v)
+Q_SIL f32 VectorNormalize(vec3_t v)
 {
 	f32 length = VectorLength(v);
 	if(length){
@@ -65,7 +55,7 @@ SIL f32 VectorNormalize(vec3_t v)
 	return length;
 }
 
-SIL void ProjectPointOnPlane(vec3_t dst, const vec3_t p, const vec3_t normal)
+Q_SIL void ProjectPointOnPlane(vec3_t dst, const vec3_t p, const vec3_t normal)
 {
 	vec3_t n;
 	f32 inv_denom = 1.0F / DotProduct(normal, normal);
@@ -81,7 +71,7 @@ SIL void ProjectPointOnPlane(vec3_t dst, const vec3_t p, const vec3_t normal)
 // johnfitz -- the opposite of AngleVectors.
 // this takes forward and generates pitch yaw roll
 // TODO: take right and up vectors to properly set yaw and roll
-SIL void VectorAngles(const vec3_t forward, vec3_t angles)
+Q_SIL void VectorAngles(const vec3_t forward, vec3_t angles)
 {
     vec3_t temp;
     temp[0] = forward[0];
@@ -92,21 +82,21 @@ SIL void VectorAngles(const vec3_t forward, vec3_t angles)
     angles[ROLL] = 0;
 }
 
-SIL void VectorMA(vec3_t veca, f32 scale, vec3_t vecb, vec3_t vecc)
+Q_SIL void VectorMA(vec3_t veca, f32 scale, vec3_t vecb, vec3_t vecc)
 {
 	vecc[0] = veca[0] + scale * vecb[0];
 	vecc[1] = veca[1] + scale * vecb[1];
 	vecc[2] = veca[2] + scale * vecb[2];
 }
 
-SIL void CrossProduct(vec3_t v1, vec3_t v2, vec3_t cross)
+Q_SIL void CrossProduct(vec3_t v1, vec3_t v2, vec3_t cross)
 {
 	cross[0] = v1[1] * v2[2] - v1[2] * v2[1];
 	cross[1] = v1[2] * v2[0] - v1[0] * v2[2];
 	cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
 }
 
-SIL void R_ConcatRotations(f32 in1[3][3], f32 in2[3][3], f32 out[3][3])
+Q_SIL void R_ConcatRotations(f32 in1[3][3], f32 in2[3][3], f32 out[3][3])
 {
 	out[0][0]=in1[0][0]*in2[0][0]+in1[0][1]*in2[1][0]+in1[0][2]*in2[2][0];
 	out[0][1]=in1[0][0]*in2[0][1]+in1[0][1]*in2[1][1]+in1[0][2]*in2[2][1];
@@ -119,7 +109,7 @@ SIL void R_ConcatRotations(f32 in1[3][3], f32 in2[3][3], f32 out[3][3])
 	out[2][2]=in1[2][0]*in2[0][2]+in1[2][1]*in2[1][2]+in1[2][2]*in2[2][2];
 }
 
-SIL void R_ConcatTransforms(f32 in1[3][4], f32 in2[3][4], f32 out[3][4])
+Q_SIL void R_ConcatTransforms(f32 in1[3][4], f32 in2[3][4], f32 out[3][4])
 {
 out[0][0]=in1[0][0]*in2[0][0]+in1[0][1]*in2[1][0]+in1[0][2]*in2[2][0];
 out[0][1]=in1[0][0]*in2[0][1]+in1[0][1]*in2[1][1]+in1[0][2]*in2[2][1];
@@ -135,7 +125,7 @@ out[2][2]=in1[2][0]*in2[0][2]+in1[2][1]*in2[1][2]+in1[2][2]*in2[2][2];
 out[2][3]=in1[2][0]*in2[0][3]+in1[2][1]*in2[1][3]+in1[2][2]*in2[2][3]+in1[2][3];
 }
 
-SIL s32 BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, mplane_t *p)
+Q_SIL s32 BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, mplane_t *p)
 { // Returns 1, 2, or 1 + 2
         if(p->type < 3){ //lordhavoc
                 if(p->dist <= emins[p->type]) return 1;
@@ -186,7 +176,7 @@ SIL s32 BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, mplane_t *p)
 	return sides;
 }
 
-SIL void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
+Q_SIL void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	f32 angle = angles[YAW] * (M_PI * 2 / 360);
 	f32 sy = sin(angle);
@@ -211,7 +201,7 @@ SIL void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 // Returns mathematically correct (floor-based) quotient and remainder for
 // numer and denom, both of which should contain no fractional part. The
 // quotient must fit in 32 bits.
-SIL void FloorDivMod(f64 numer, f64 denom, s32 *quotient, s32 *rem)
+Q_SIL void FloorDivMod(f64 numer, f64 denom, s32 *quotient, s32 *rem)
 {
 	s32 q, r;
 	if(numer >= 0.0){
@@ -230,4 +220,3 @@ SIL void FloorDivMod(f64 numer, f64 denom, s32 *quotient, s32 *rem)
 	*quotient = q;
 	*rem = r;
 }
-#undef SIL

@@ -1,5 +1,14 @@
 #ifndef GLOBDEFINES_
 #define GLOBDEFINES_
+// CyanBun96: compile with -flto to force the compiler to optimize this
+// atsb: windows and linux compatible macro definitions
+#if defined(_MSC_VER)
+#define Q_SIL static __forceinline
+#define RESTRICT
+#else
+#define Q_SIL static inline __attribute__((always_inline))
+#define RESTRICT __restrict
+#endif
 #define q_min(a, b) (((a) < (b)) ? (a) : (b)) // common.h
 #define q_max(a, b) (((a) > (b)) ? (a) : (b))
 #define CLAMP(_minval, x, _maxval) \

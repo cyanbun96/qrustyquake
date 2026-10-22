@@ -1,8 +1,16 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // d_polyset.c: routines for drawing sets of polygons sharing the same texture
 // (used for Alias models)
 #include "quakedef.h"
 
+enum { TEXSAMPLE_NEAREST, TEXSAMPLE_DITHERED };
+enum { BLEND_OPAQUE, BLEND_MIX, BLEND_STIPPLE };
+typedef struct {
+	const u8 *colormap;
+	s32 blend; // BLEND_*
+	s32 mixlevel; // color_mix_lut level, for BLEND_MIX
+	s32 rgblight; // per-channel coloured lighting instead of the colormap
+} polysetstyle_t;
 typedef struct {
 	void *pdest;
 	s16 *pz;
@@ -337,7 +345,7 @@ void D_PolysetUpdateTables()
 
 void D_PolysetScanLeftEdge(s32 height)
 {
-	do {
+	do{
 		d_pedgespanpackage->pdest = d_pdest;
 		d_pedgespanpackage->pz = d_pz;
 		d_pedgespanpackage->count = d_aspancount;
@@ -403,7 +411,7 @@ void D_PolysetCalcGradients(s32 skinwidth)
 	f32 p11_minus_p21 = r_p1[1] - r_p2[1];
 	f32 xstepdenominv = 1.0 / (f32)d_xdenom;
 	f32 ystepdenominv = -xstepdenominv;
-// ceil () for light so positive steps are exaggerated, negative steps
+// ceil() for light so positive steps are exaggerated, negative steps
 // diminished, pushing us away from underflow toward overflow. Underflow is
 // very visible, overflow is very unlikely, because of ambient lighting
 	f32 t0 = r_p0[4] - r_p2[4];
@@ -427,168 +435,148 @@ void D_PolysetCalcGradients(s32 skinwidth)
 	a_ststepxwhole = skinwidth * (r_tstepx >> 16) + (r_sstepx >> 16);
 }
 
-void D_PolysetDrawSpans(spanpackage_t *pspanpackage)
+static polysetstyle_t D_PolysetPixelStyle()
 {
-	do{
-		s32 lcount = d_aspancount - pspanpackage->count;
-		errorterm += erroradjustup;
-		if(errorterm >= 0){
-			d_aspancount += d_countextrastep;
-			errorterm -= erroradjustdown;
-		}else d_aspancount += ubasestep;
-		if(lcount > 0){
-			u8 *lpdest = pspanpackage->pdest;
-			s16 *lpz = pspanpackage->pz;
-			u8 *dest_end = d_viewbuffer + vid.width * vid.height;
-			s16 *z_end = d_pzbuffer + vid.width * vid.height;
-			if(lpdest < d_viewbuffer || lpdest + lcount > dest_end ||
-				lpz < d_pzbuffer || lpz + lcount > z_end){
-				pspanpackage++; // invalid span
-				continue;
-			}
-			u8 *lptex = pspanpackage->ptex;
-			s32 lsfrac = pspanpackage->sfrac;
-			s32 ltfrac = pspanpackage->tfrac;
-			s32 llight = pspanpackage->light;
-			s32 lzi = pspanpackage->zi;
-			do {
-				if((lzi >> 16) >= *lpz){
-					s32 pix;
-					if(r_rgblighting.value && colored_aliaslight && *lptex < 0xE0)
-						pix = D_GetRGBPix(((u8*)acolormap)[*lptex]);
-					else
-						pix = ((u8*)acolormap)[*lptex + (llight & 0xFF00)];
-					if(((u8*)acolormap)[*lptex + (llight & 0xFF00)] != 0xFF){
-						if(r_alphastyle.value == 0 && cur_ent_alpha != 1){
-							s32 curpix = *lpdest;
-							*lpdest = color_mix_lut[curpix][pix]
-								[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
-						}
-						else if(r_alphastyle.value == 1 && cur_ent_alpha != 1){
-							if(D_Dither(lpdest, cur_ent_alpha))
-								*lpdest = pix;
-						}
-						else
-							*lpdest = pix;
-						*lpz = lzi >> 16;
-					}
-				}
-				lpdest++;
-				lzi += r_zistepx;
-				lpz++;
-				llight += r_lstepx;
-				lptex += a_ststepxwhole;
-				lsfrac += a_sstepxfrac;
-				lptex += lsfrac >> 16;
-				lsfrac &= 0xFFFF;
-				ltfrac += a_tstepxfrac;
-				if(ltfrac & 0x10000){
-					lptex += r_affinetridesc.skinwidth;
-					ltfrac &= 0xFFFF;
-				}
-			}while(--lcount);
-		}
-		pspanpackage++;
-	}while(pspanpackage->count != -999999);
+	polysetstyle_t st;
+	st.colormap = (u8 *)acolormap;
+	st.rgblight = r_rgblighting.value && colored_aliaslight;
+	st.mixlevel = 0;
+	if(cur_ent_alpha == 1)
+		st.blend = BLEND_OPAQUE;
+	else if(r_alphastyle.value == 0){
+		st.blend = BLEND_MIX;
+		st.mixlevel = (s32)(cur_ent_alpha * FOG_LUT_LEVELS);
+	}else if(r_alphastyle.value == 1)
+		st.blend = BLEND_STIPPLE;
+	else
+		st.blend = BLEND_OPAQUE;
+	return st;
 }
+ 
 
-void D_PolysetDrawSpansDithered(spanpackage_t *pspanpackage)
+Q_SIL u8 D_PolysetDitheredTexel(const u8 *ptex, s32 sfrac, s32 tfrac,
+		const u8 *pdest)
+{ // CyanBun96: dithered sampling from Unreal
+	const u8 *skin = (u8 *)r_affinetridesc.pskin;
+	s32 skinw = r_affinetridesc.skinwidth;
+	s32 skinh = r_affinetridesc.skinheight;
+	ptrdiff_t off = ptex - skin;
+	if(off < 0) off = 0;
+	s32 s = ((s32)(off % skinw) << 16) | (sfrac & 0xFFFF);
+	s32 t = ((s32)(off / skinw) << 16) | (tfrac & 0xFFFF);
+	s32 pixel = (s32)(pdest - (u8 *)screen->pixels);
+	s32 y = pixel / vid.width;
+	s32 x = pixel - y * vid.width;
+	s32 dither = (x & 1) + ((y & 1) << 1);
+	s += dither_s[dither];
+	t += dither_t[dither];
+	s32 smax = (skinw - 1) << 16;
+	s32 tmax = (skinh - 1) << 16;
+	if(s < 0) s = 0;
+	if(t < 0) t = 0;
+	if(s >= smax) s = smax;
+	if(t >= tmax) t = tmax;
+	u8 texel = skin[(s >> 16) + (t >> 16) * skinw];
+// The single shotgun model would sometimes get bright blue texels, which should
+// be unused as it's the "transparent" color for model skins
+// Same with 0xd3 on the torch model
+	if(texel == 0xd0 || texel == 0xd3)
+		texel = 0;
+	return texel;
+}
+ 
+Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
+		u8 *pdest, s16 *pz, s32 zi)
 {
-	do {
-		s32 lcount = d_aspancount - pspanpackage->count;
-		errorterm += erroradjustup;
-		if(errorterm >= 0){
-			d_aspancount += d_countextrastep;
-			errorterm -= erroradjustdown;
-		}else{
-			d_aspancount += ubasestep;
+	s32 pix = st->colormap[texel + (light & 0xFF00)];
+	if(pix == 0xFF)
+		return;
+	if(st->rgblight && texel < 0xE0)
+		pix = D_GetRGBPix(st->colormap[texel]);
+	switch(st->blend){
+	case BLEND_MIX:
+		*pdest = color_mix_lut[*pdest][pix][st->mixlevel];
+		break;
+	case BLEND_STIPPLE:
+		if(D_Dither(pdest, cur_ent_alpha))
+			*pdest = pix;
+		break;
+	default:
+		*pdest = pix;
+	}
+	*pz = zi >> 16;
+}
+ 
+Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
+		const polysetstyle_t *st, s32 sample)
+{
+	u8 *pdest = span->pdest;
+	s16 *pz = span->pz;
+	u8 *ptex = span->ptex;
+	s32 sfrac = span->sfrac;
+	s32 tfrac = span->tfrac;
+	s32 light = span->light;
+	s32 zi = span->zi;
+	do{
+		if((zi >> 16) >= *pz){
+			u8 texel = sample == TEXSAMPLE_DITHERED ?
+			  D_PolysetDitheredTexel(ptex,sfrac,tfrac,pdest):*ptex;
+			D_PolysetPlot(st, texel, light, pdest, pz, zi);
 		}
-		if(lcount > 0){
-			u8 *lpdest = pspanpackage->pdest;
-			s16 *lpz = pspanpackage->pz;
-			u8 *dest_end = d_viewbuffer + vid.width * vid.height;
-			s16 *z_end = d_pzbuffer + vid.width * vid.height;
-			if(lpdest < d_viewbuffer || lpdest + lcount > dest_end ||
-				lpz < d_pzbuffer || lpz + lcount > z_end){
-				pspanpackage++; // invalid span
-				continue;
-			}
-			u8 *lptex = pspanpackage->ptex;
-			s32 lsfrac = pspanpackage->sfrac;
-			s32 ltfrac = pspanpackage->tfrac;
-			s32 llight = pspanpackage->light;
-			s32 lzi = pspanpackage->zi;
-			do {
-				if((lzi >> 16) >= *lpz){
-					// CyanBun96: dithered sampling from Unreal
-					u8 *skin_base = (u8 *)r_affinetridesc.pskin;
-					s32 skin_w = r_affinetridesc.skinwidth;
-					s32 skin_h = r_affinetridesc.skinheight;
-					ptrdiff_t ptr_off = lptex - skin_base;
-					if(ptr_off < 0) ptr_off = 0;
-					s32 base_s = (s32)(ptr_off % skin_w);
-					s32 base_t = (s32)(ptr_off / skin_w);
-					s32 abs_sfrac = (base_s << 16) | (lsfrac & 0xFFFF);
-					s32 abs_tfrac = (base_t << 16) | (ltfrac & 0xFFFF);
-					s32 pixel_index = (s32)(lpdest - (u8*)screen->pixels);
-					s32 y = pixel_index / vid.width;
-					s32 x = pixel_index - y * vid.width;
-					s32 dither_idx = (x & 1) + ((y & 1) << 1);
-					s32 s_d = abs_sfrac + dither_s[dither_idx];
-					s32 t_d = abs_tfrac + dither_t[dither_idx];
-					s32 s_max = ((skin_w - 1) << 16);
-					s32 t_max = ((skin_h - 1) << 16);
-					if(s_d < 0) s_d = 0;
-					if(t_d < 0) t_d = 0;
-					if(s_d >= s_max) s_d = s_max;
-					if(t_d >= t_max) t_d = t_max;
-					s32 final_s = s_d >> 16;
-					s32 final_t = t_d >> 16;
-					u8 texel = *(skin_base + final_s + final_t * skin_w);
-				// The single shotgun model would sometimes get
-				// bright blue texels, which should be unused as
-				// it's the "transparent" color for model skins
-				// Same with 0xd3 on the torch model
-					if(texel == 0xd0 || texel == 0xd3)
-						texel = 0;
-					s32 pix;
-					if(r_rgblighting.value && colored_aliaslight && texel < 0xE0)
-						pix = D_GetRGBPix(((u8*)acolormap)[texel]);
-					else
-						pix = ((u8*)acolormap)[texel + (llight & 0xFF00)];
-					if(((u8*)acolormap)[texel + (llight & 0xFF00)] != 0xFF){
-						if(r_alphastyle.value == 0 && cur_ent_alpha != 1){
-							s32 curpix = *lpdest;
-							*lpdest = color_mix_lut[curpix][pix]
-								[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
-						}
-						else if(r_alphastyle.value == 1 && cur_ent_alpha != 1){
-							if(D_Dither(lpdest, cur_ent_alpha))
-								*lpdest = pix;
-						}
-						else
-							*lpdest = pix;
-						*lpz = lzi >> 16;
-					}
-				}
-				lpdest++;
-				lzi += r_zistepx;
-				lpz++;
-				llight += r_lstepx;
-				lptex += a_ststepxwhole;
-				lsfrac += a_sstepxfrac;
-				lptex += lsfrac >> 16;
-				lsfrac &= 0xFFFF;
-				ltfrac += a_tstepxfrac;
-				if(ltfrac & 0x10000){
-					lptex += r_affinetridesc.skinwidth;
-					ltfrac &= 0xFFFF;
-				}
-			}while(--lcount);
+		pdest++;
+		pz++;
+		zi += r_zistepx;
+		light += r_lstepx;
+		ptex += a_ststepxwhole;
+		sfrac += a_sstepxfrac;
+		ptex += sfrac >> 16;
+		sfrac &= 0xFFFF;
+		tfrac += a_tstepxfrac;
+		if(tfrac & 0x10000){
+			ptex += r_affinetridesc.skinwidth;
+			tfrac &= 0xFFFF;
 		}
+	}while(--count);
+}
+ 
+Q_SIL s32 D_PolysetNextSpanWidth(const spanpackage_t *span)
+{
+	s32 width = d_aspancount - span->count;
+	errorterm += erroradjustup;
+	if(errorterm >= 0){
+		d_aspancount += d_countextrastep;
+		errorterm -= erroradjustdown;
+	}else
+		d_aspancount += ubasestep;
+	return width;
+}
+ 
+Q_SIL s32 D_PolysetSpanInBounds(const spanpackage_t *span, s32 count)
+{
+	const u8 *dest = span->pdest;
+	const s16 *pz = span->pz;
+	const u8 *dest_end = d_viewbuffer + vid.width * vid.height;
+	const s16 *z_end = d_pzbuffer + vid.width * vid.height;
+	return dest >= d_viewbuffer && dest + count <= dest_end &&
+		pz >= d_pzbuffer && pz + count <= z_end;
+}
+ 
+Q_SIL void D_PolysetDrawSpansImpl(spanpackage_t *pspanpackage, s32 sample)
+{
+	const polysetstyle_t st = D_PolysetPixelStyle();
+	do{
+		s32 count = D_PolysetNextSpanWidth(pspanpackage);
+		if(count > 0 && D_PolysetSpanInBounds(pspanpackage, count))
+			D_PolysetDrawSpan(pspanpackage, count, &st, sample);
 		pspanpackage++;
 	}while(pspanpackage->count != -999999);
 }
+ 
+void D_PolysetDrawSpans(spanpackage_t *pspanpackage)
+{ D_PolysetDrawSpansImpl(pspanpackage, TEXSAMPLE_NEAREST); }
+ 
+void D_PolysetDrawSpansDithered(spanpackage_t *pspanpackage)
+{ D_PolysetDrawSpansImpl(pspanpackage, TEXSAMPLE_DITHERED); }
 
 void D_RasterizeAliasPolySmooth()
 {
@@ -604,7 +592,7 @@ void D_RasterizeAliasPolySmooth()
 	// triangle because being a triangle, things are affine
 	D_PolysetCalcGradients(r_affinetridesc.skinwidth);
 	// rasterize the polygon
-	// scan out the top (and possibly only) part of the left edge
+	// scan out the top(and possibly only) part of the left edge
 	d_pedgespanpackage = a_spans;
 	ystart = plefttop[1];
 	d_aspancount = plefttop[0] - prighttop[0];
@@ -637,8 +625,8 @@ void D_RasterizeAliasPolySmooth()
 		d_pdestextrastep = d_pdestbasestep + 1;
 		// TODO: can reuse partial expressions here
 		// for negative steps in x along left edge, bias toward overflow
-		// rather than underflow (sort of turning the floor () we did in
-		// the gradient calcs into ceil (), but plus a little bit)
+		// rather than underflow(sort of turning the floor() we did in
+		// the gradient calcs into ceil(), but plus a little bit)
 		if(ubasestep < 0)
 			working_lstepx = r_lstepx - 1;
 		else
@@ -716,7 +704,7 @@ void D_RasterizeAliasPolySmooth()
 			D_PolysetScanLeftEdge(height);
 		}
 	}
-	// scan out the top (and possibly only) part of the right edge, updating
+	// scan out the top(and possibly only) part of the right edge, updating
 	// the count field
 	d_pedgespanpackage = a_spans;
 	D_PolysetSetUpForLineScan(prighttop[0], prighttop[1],
@@ -724,7 +712,7 @@ void D_RasterizeAliasPolySmooth()
 	d_aspancount = 0;
 	d_countextrastep = ubasestep + 1;
 	originalcount = a_spans[initialrightheight].count;
-	a_spans[initialrightheight].count = -999999; // mark end of the spanpackages
+	a_spans[initialrightheight].count = -999999; // mark end of spanpackages
 	if(r_dithertex.value) D_PolysetDrawSpansDithered(a_spans);
 	else D_PolysetDrawSpans(a_spans);
 	// scan out the bottom part of the right edge, if it exists
@@ -752,7 +740,7 @@ void D_PolysetSetEdgeTable()
 		// order in which to rasterize them
 	if(r_p0[1] >= r_p1[1]){
 		if(r_p0[1] == r_p1[1]){
-			pedgetable=r_p0[1]<r_p2[1]?&edgetables[2]:&edgetables[5];
+		    pedgetable=r_p0[1]<r_p2[1]?&edgetables[2]:&edgetables[5];
 			return;
 		}else
 			edgetableindex = 1;
