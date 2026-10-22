@@ -38,7 +38,7 @@ void CL_ParseBeam(model_t *m)
 	end[2] = MSG_ReadCoord(cl.protocolflags);
 	beam_t *b = cl_beams; // override any beam with the same entity
 	for(s32 i = 0; i < MAX_BEAMS; i++, b++)
-		if(b->entity == ent) {
+		if(b->entity == ent){
 			b->entity = ent;
 			b->model = m;
 			b->endtime = cl.time + 0.2;
@@ -48,7 +48,7 @@ void CL_ParseBeam(model_t *m)
 		}
 	b = cl_beams;
 	for(s32 i = 0; i < MAX_BEAMS; i++, b++) // find a free beam
-		if(!b->model || b->endtime < cl.time) {
+		if(!b->model || b->endtime < cl.time){
 			b->entity = ent;
 			b->model = m;
 			b->endtime = cl.time + 0.2;
@@ -63,7 +63,7 @@ void CL_ParseTEnt()
 	dlight_t *dl;
 	vec3_t pos;
 	s32 type = MSG_ReadByte();
-	switch(type) {
+	switch(type){
 	case TE_WIZSPIKE: // spike hitting wall
 		pos[0] = MSG_ReadCoord(cl.protocolflags);
 		pos[1] = MSG_ReadCoord(cl.protocolflags);

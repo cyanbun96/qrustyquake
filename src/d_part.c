@@ -80,7 +80,7 @@ void D_DrawParticle(particle_t *pparticle)
 		}
 	}
 	else if(r_particlestyle.value == 1 && r_alphastyle.value){
-		s32 cy = cy0; // circle (dither alpha)
+		s32 cy = cy0; // circle(dither alpha)
 		s32 dy = cy - v;
 		s32 err = dy*dy;
 		s32 rr = half*half;
@@ -101,7 +101,7 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	}else if(r_alphastyle.value){ // square (dither alpha)
+	}else if(r_alphastyle.value){ // square(dither alpha)
 		for(s32 count = draw_h;
 		    count; count--, pz += d_zwidth, pdest += screenwidth){
 			for(s32 i = 0; i < draw_w; i++){
@@ -112,7 +112,7 @@ void D_DrawParticle(particle_t *pparticle)
 			}
 		}
 	}
-	else if(r_particlestyle.value == 1){ // circle (mix alpha)
+	else if(r_particlestyle.value == 1){ // circle(mix alpha)
 		if(!fog_lut_built)
 			R_BuildColorMixLUT(0);
 		s32 cy = cy0;
@@ -137,7 +137,7 @@ void D_DrawParticle(particle_t *pparticle)
 				}
 			}
 		}
-	}else{ // square (mix alpha)
+	}else{ // square(mix alpha)
 		if(!fog_lut_built)
 			R_BuildColorMixLUT(0);
 		for(s32 count = draw_h;

@@ -397,8 +397,11 @@ bool Cmd_ExecuteString(const c8 *text, cmd_source_t src)
 	if(!Cmd_Argc()) return 1; // no tokens
 	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
 		if(!SDL_strcasecmp(cmd_argv[0], cmd->name)){ // check functions
+		//src_server may only execute server commands (such commands
+		//must be safe to parse within the context of a network message,
+		//so no disconnect/connect/playdemo/etc)
 			if(src == src_server && cmd->srctype != src_server)
-				continue;//src_server may only execute server commands (such commands must be safe to parse within the context of a network message, so no disconnect/connect/playdemo/etc)
+				continue;
 			cmd->function();
 			return 1;
 		}

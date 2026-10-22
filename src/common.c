@@ -72,28 +72,23 @@ static u16 pop[] =
 	     0,     0,     0,     0,0x6400,     0,     0,     0
 };
 
-static const uint32_t qchar_to_unicode[256] =
-{/*     0       1       2       3       4       5       6       7       8       9       10      11      12      13      14      15
-      ----------------------------------------------------------------------------------------------------------------------------------
-  0 */  0x00B7, 0,      0,      0,      0,      0x00B7, 0,      0,      0,      0,      '\n',   0x25A0, ' ',    0x25B6, 0x00B7, 0x00B7, /*
-  1 */  0x301A, 0x301B, '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7',    '8',    '9',    0x00B7, '-',    '-',    '-',    /*
-  2 */  ' ',    '!',    '"',    '#',    '$',    '%',    '&',    '\'',   '(',    ')',    '*',    '+',    ',',    '-',    '.',    '/',    /*
-  3 */  '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7',    '8',    '9',    ':',    ';',    '<',    '=',    '>',    '?',    /*
-  4 */  '@',    'A',    'B',    'C',    'D',    'E',    'F',    'G',    'H',    'I',    'J',    'K',    'L',    'M',    'N',    'O',    /*
-  5 */  'P',    'Q',    'R',    'S',    'T',    'U',    'V',    'W',    'X',    'Y',    'Z',    '[',    '\\',   ']',    '^',    '_',    /*
-  6 */  '`',    'a',    'b',    'c',    'd',    'e',    'f',    'g',    'h',    'i',    'j',    'k',    'l',    'm',    'n',    'o',    /*
-  7 */  'p',    'q',    'r',    's',    't',    'u',    'v',    'w',    'x',    'y',    'z',    '{',    '|',    '}',    '~',    0x2190, /*
-
-  8 */  '-',    '-',    '-',    '-',    0,      0x2022, 0,      0,      0,      0,      '\n',   0x25A0, ' ',    0x25B6, 0x2022, 0x2022, /*
-  9 */  0x301A, 0x301B, '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7',    '8',    '9',    0x2022, '-',    '-',    '-',    /*
- 10 */  ' ',    '!',    '"',    '#',    '$',    '%',    '&',    '\'',   '(',    ')',    '*',    '+',    ',',    '-',    '.',    '/',    /*
- 11 */  '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7',    '8',    '9',    ':',    ';',    '<',    '=',    '>',    '?',    /*
- 12 */  '@',    'A',    'B',    'C',    'D',    'E',    'F',    'G',    'H',    'I',    'J',    'K',    'L',    'M',    'N',    'O',    /*
- 13 */  'P',    'Q',    'R',    'S',    'T',    'U',    'V',    'W',    'X',    'Y',    'Z',    '[',    '\\',   ']',    '^',    '_',    /*
- 14 */  '`',    'a',    'b',    'c',    'd',    'e',    'f',    'g',    'h',    'i',    'j',    'k',    'l',    'm',    'n',    'o',    /*
- 15 */  'p',    'q',    'r',    's',    't',    'u',    'v',    'w',    'x',    'y',    'z',    '{',    '|',    '}',    '~',    0x2190, /*
-      ----------------------------------------------------------------------------------------------------------------------------------
-*/};
+static const uint32_t qchar_to_unicode[256] = {
+183, 0,  0,  0,  0,  183, 0,  0,  0,  0,  '\n', 9632, ' ', 9654, 183, 183,
+12314,12315,'0','1','2', '3', '4', '5', '6', '7', '8', '9', 183, '-', '-', '-',
+' ', '!', '"', '#', '$', '%', '&', '\'','(', ')', '*', '+', ',', '-', '.', '/',
+'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
+'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\',']', '^', '_',
+'`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~',8592,
+'-', '-', '-', '-', 0,  8226, 0,  0,  0,  0,  '\n', 9632, ' ', 9654, 8226,8226,
+12314,12315,'0','1','2', '3', '4', '5', '6', '7', '8', '9', 8226,'-', '-', '-',
+' ', '!', '"', '#', '$', '%', '&', '\'','(', ')', '*', '+', ',', '-', '.', '/',
+'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
+'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\',']', '^', '_',
+'`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~',8592};
 
 void COM_CloseFile(s32 h);
 void ClearLink(link_t *l){ l->prev = l->next = l; } // used for new headnodes
@@ -111,7 +106,7 @@ void InsertLinkBefore(link_t *l, link_t *before)
 }
 
 //Returns the number of bytes needed to encode the codepoint
-//using UTF-8 (max 4), or 0 for an invalid code point
+//using UTF-8(max 4), or 0 for an invalid code point
 size_t UTF8_CodePointLength(u32 codepoint)
 {
 	if(codepoint < 0x80)return 1;
@@ -122,8 +117,8 @@ size_t UTF8_CodePointLength(u32 codepoint)
 }
 
 //Writes a single Unicode code point using UTF-8
-//Returns the number of bytes written (up to 4),
-//or 0 on error (overflow or invalid code point)
+//Returns the number of bytes written(up to 4),
+//or 0 on error(overflow or invalid code point)
 size_t UTF8_WriteCodePoint(c8 *dst, size_t maxbytes, u32 codepoint)
 {
 	if(!maxbytes)return 0;
@@ -156,8 +151,8 @@ size_t UTF8_WriteCodePoint(c8 *dst, size_t maxbytes, u32 codepoint)
 }
 
 //Converts a string from Quake encoding to UTF-8
-//Returns the number of written characters (including the NUL terminator) if a
-//valid output buffer is provided (dst is non-NULL, maxbytes > 0), or the total
+//Returns the number of written characters(including the NUL terminator) if a
+//valid output buffer is provided(dst is non-NULL, maxbytes > 0), or the total
 //amount of space necessary to encode the entire src string if dst is NULL and
 //maxbytes is 0.
 size_t UTF8_FromQuake(c8 *dst, size_t maxbytes, const c8 *src)
@@ -448,12 +443,12 @@ s32 COM_AdvanceLineWrapped(const c8 **text, s32 maxchars)
 		else i++;
 	}
 	// avoid starting next line with a space
-	*text += i + (isspace (str[i]) ? 1 : 0);
+	*text += i + (isspace(str[i]) ? 1 : 0);
 	return i;
 }
 
 // Copies src to dst by word-wrapping lines longer than maxcols, preserving
-// existing linefeeds. If maxcols <= 0 no wrapping is performed (plain string
+// existing linefeeds. If maxcols <= 0 no wrapping is performed(plain string
 // copy). dst is always NUL terminated if dstsize > 0.
 void COM_WordWrap(c8 *dst, const c8 *src, s32 dstsize, s32 maxcols)
 {
@@ -686,7 +681,7 @@ void COM_InitArgv(s32 argc, c8 **argv)
 	}
 }
 
-void COM_Init() { fitzmode = COM_CheckParm("-fitz"); }
+void COM_Init(){ fitzmode = COM_CheckParm("-fitz"); }
 
 // Does a varargs printf into a temp buffer. Cycles between 4 different static
 // buffers. The number of buffers cycled is defined in VA_NUM_BUFFS.
@@ -1250,7 +1245,7 @@ void COM_InitFilesystem()
 		// don't load mission packs twice
 		if(COM_CheckParm("-rogue") && !SDL_strcasecmp(p, "rogue"))
 			p = NULL;
-		if(p && COM_CheckParm("-hipnotic")&&!SDL_strcasecmp(p,"hipnotic"))
+		if(p&&COM_CheckParm("-hipnotic")&&!SDL_strcasecmp(p,"hipnotic"))
 			p = NULL;
 		if(p && COM_CheckParm("-quoth") && !SDL_strcasecmp(p, "quoth")) 
 			p = NULL;

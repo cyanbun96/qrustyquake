@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // cl_main.c  -- client main loop
 #include "quakedef.h"
 
@@ -6,7 +6,7 @@ static efrag_t cl_efrags[MAX_EFRAGS];
 
 void CL_SetStat_f()
 {
-	for(s32 i = 1, argc = Cmd_Argc(); i + 1 < argc; i += 2) {
+	for(s32 i = 1, argc = Cmd_Argc(); i + 1 < argc; i += 2){
 		s32 stnum = atoi(Cmd_Argv(i));
 		if(stnum < 0 || stnum >= MAX_CL_STATS)
 		 Host_Error("CL_SetStat_f: stnum(%d) >= MAX_CL_STATS\n", stnum);
@@ -18,7 +18,7 @@ void CL_SetStat_f()
 
 void CL_SetStatString_f()
 {
-	for(s32 i = 1, argc = Cmd_Argc(); i + 1 < argc; i += 2) {
+	for(s32 i = 1, argc = Cmd_Argc(); i + 1 < argc; i += 2){
 		s32 stnum = atoi(Cmd_Argv(i));
 		if(stnum < 0 || stnum >= MAX_CL_STATS)
 	   Host_Error("CL_SetStatString_f: stnum(%d) >= MAX_CL_STATS\n", stnum);
@@ -29,7 +29,7 @@ void CL_SetStatString_f()
 
 void CL_FreeState()
 {
-	if (cl.qcvm.extfuncs.CSQC_Shutdown){
+	if(cl.qcvm.extfuncs.CSQC_Shutdown){
 		PR_SwitchQCVM(&cl.qcvm);
 		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
 		qcvm->extfuncs.CSQC_Shutdown = 0;
@@ -177,8 +177,8 @@ dlight_t *CL_AllocDlight(s32 key)
 		for(s32 i=0 ; i<MAX_DLIGHTS ; i++, dl++){
 			if(dl->key == key){
 				memset(dl, 0, sizeof(*dl));
-				dl->key = key;
-				dl->color[0] = dl->color[1] = dl->color[2] = 1; //johnfitz -- lit support via lordhavoc
+				dl->key = key; // lit support via lordhavoc
+				dl->color[0] = dl->color[1] = dl->color[2] = 1;
 				return dl;
 			}
 		}
@@ -187,15 +187,15 @@ dlight_t *CL_AllocDlight(s32 key)
 	for(s32 i=0 ; i<MAX_DLIGHTS ; i++, dl++){
 		if(dl->die < cl.time){
 			memset(dl, 0, sizeof(*dl));
-			dl->key = key;
-			dl->color[0] = dl->color[1] = dl->color[2] = 1; //johnfitz -- lit support via lordhavoc
+			dl->key = key; //johnfitz --  lit support via lordhavoc
+			dl->color[0] = dl->color[1] = dl->color[2] = 1;
 			return dl;
 		}
 	}
 	dl = &cl_dlights[0];
 	memset(dl, 0, sizeof(*dl));
-	dl->key = key;
-	dl->color[0] = dl->color[1] = dl->color[2] = 1; //johnfitz -- lit support via lordhavoc
+	dl->key = key; //johnfitz -- lit support via lordhavoc
+	dl->color[0] = dl->color[1] = dl->color[2] = 1;
 	return dl;
 }
 
@@ -227,7 +227,7 @@ f32 CL_LerpPoint() // Determines the fraction between the last two messages
 	if(frac < 0){
 		if(frac < -0.01) cl.time = cl.mtime[1];
 		frac = 0;
-	} else if(frac > 1){
+	}else if(frac > 1){
 		if(frac > 1.01) cl.time = cl.mtime[0];
 		frac = 1;
 	}
@@ -260,7 +260,8 @@ void CL_RelinkEntities()
 		} // if the object wasn't included in the last packet, remove it
 		if(ent->msgtime != cl.mtime[0]){
 			ent->model = NULL;
-			ent->lerpflags |= LERP_RESETMOVE|LERP_RESETANIM; //johnfitz -- next time this entity slot is reused, the lerp will need to be reset
+//johnfitz- next time this entity slot is reused, the lerp will need to be reset
+			ent->lerpflags |= LERP_RESETMOVE|LERP_RESETANIM;
 			continue;
 		}
 		vec3_t oldorg;
@@ -269,7 +270,7 @@ void CL_RelinkEntities()
 					// message so move to the final spot
 			VectorCopy(ent->msg_origins[0], ent->origin);
 			VectorCopy(ent->msg_angles[0], ent->angles);
-		} else { // if the delta is large assume a teleport, don't lerp
+		}else{ // if the delta is large assume a teleport, don't lerp
 			f32 f = frac;
 			vec3_t delta;
 			for(s32 j = 0; j < 3; j++){
@@ -277,11 +278,12 @@ void CL_RelinkEntities()
 					ent->msg_origins[1][j];
 				if(delta[j] > 100 || delta[j] < -100){
 					f = 1;//assume teleportation, not motion
-					ent->lerpflags |= LERP_RESETMOVE; //johnfitz -- don't lerp teleports
+					//johnfitz -- don't lerp teleports
+					ent->lerpflags |= LERP_RESETMOVE;
 				}
 			}
-			//johnfitz -- don't cl_lerp entities that will be r_lerped
-			if (r_lerpmove.value && (ent->lerpflags & LERP_MOVESTEP))
+			//johnfitz- don't cl_lerp entities that will be r_lerped
+			if(r_lerpmove.value && (ent->lerpflags & LERP_MOVESTEP))
 				f = 1;
 			// interpolate the origin and angles
 			for(s32 j = 0; j < 3; j++){
@@ -311,12 +313,15 @@ void CL_RelinkEntities()
 			dl->radius = 200 + (rand() & 31);
 			dl->minlight = 32;
 			dl->die = cl.time + 0.1;
-			//johnfitz -- assume muzzle flash accompanied by muzzle flare, which looks bad when lerped
-			if (r_lerpmodels.value != 2) {
-				if (ent == &cl_entities[cl.viewentity])
-					cl.viewent.lerpflags |= LERP_RESETANIM|LERP_RESETANIM2; //no lerping for two frames
+			//johnfitz -- assume muzzle flash accompanied by muzzle
+			//flare, which looks bad when lerped
+			if(r_lerpmodels.value != 2){ //no lerping for two frames
+				if(ent == &cl_entities[cl.viewentity])
+					cl.viewent.lerpflags |= LERP_RESETANIM
+							|LERP_RESETANIM2;
 				else
-					ent->lerpflags |= LERP_RESETANIM|LERP_RESETANIM2; //no lerping for two frames
+					ent->lerpflags |= LERP_RESETANIM
+							|LERP_RESETANIM2;
 			}
 		}
 		if(ent->effects & EF_BRIGHTLIGHT){
@@ -341,7 +346,7 @@ void CL_RelinkEntities()
 			dl->color[1] = 0.25f;
 			dl->color[2] = 1.0f;
 		}
-		if(ent->effects & EF_QEX_PENTALIGHT) {
+		if(ent->effects & EF_QEX_PENTALIGHT){
 			dl = CL_AllocDlight(i);
 			VectorCopy(ent->origin, dl->origin);
 			dl->radius = 200 + (rand()&31);
@@ -364,7 +369,7 @@ void CL_RelinkEntities()
 			VectorCopy(ent->origin, dl->origin);
 			dl->radius = 200;
 			dl->die = cl.time + 0.01;
-		} else if(ent->model->flags & EF_GRENADE)
+		}else if(ent->model->flags & EF_GRENADE)
 			R_RocketTrail(oldorg, ent->origin, 1);
 		else if(ent->model->flags & EF_TRACER3)
 			R_RocketTrail(oldorg, ent->origin, 6);
@@ -383,7 +388,7 @@ s32 CL_ReadFromServer()
 	cl.oldtime = cl.time;
 	cl.time += host_frametime;
 	s32 ret;
-	do {
+	do{
 		ret = CL_GetMessage();
 		if(ret == -1)
 			Host_Error("CL_ReadFromServer: lost server connection");
@@ -391,7 +396,7 @@ s32 CL_ReadFromServer()
 			break;
 		cl.last_received_message = realtime;
 		CL_ParseServerMessage();
-	} while(ret && cls.state == ca_connected);
+	}while(ret && cls.state == ca_connected);
 	if(cl_shownet.value)
 		Con_Printf("\n");
 	CL_RelinkEntities();
@@ -439,7 +444,7 @@ void CL_SendCmd()
 
 void CL_Viewpos_f()
 {
-	if (cls.state != ca_connected)
+	if(cls.state != ca_connected)
 		return;
 	Con_Printf("Viewpos: (%.0f %.0f %.0f) %.0f %.0f %.0f\n",
 			cl_entities[cl.viewentity].origin[0],

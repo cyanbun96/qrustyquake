@@ -1,6 +1,6 @@
-// Copyright (C) 1996-2001 Id Software, Inc.
-// Copyright (C) 2002-2005 John Fitzgibbons and others
-// Copyright (C) 2007-2008 Kristian Duske
+// Copyright(C) 1996-2001 Id Software, Inc.
+// Copyright(C) 2002-2005 John Fitzgibbons and others
+// Copyright(C) 2007-2008 Kristian Duske
 // GPLv3 See LICENSE for details.
 // When a demo is playing back, all NET_SendMessages are skipped, and
 // NET_GetMessages are read from the demo file.
@@ -52,7 +52,7 @@ s32 CL_GetMessage()
 				// so the bogus time on the first doesn't count
 				if(host_framecount == cls.td_startframe + 1)
 					cls.td_starttime = realtime;
-			} else if(cl.time <= cl.mtime[0])
+			}else if(cl.time <= cl.mtime[0])
 				return 0; // don't need another message yet
 		} // get the next message
 		fread(&net_message.cursize, 4, 1, cls.demofile);
@@ -126,7 +126,7 @@ void CL_Record_f()
 	sprintf(name, "%s/%s", com_gamedir, Cmd_Argv(1));
 	if(c > 2) // start the map up
 		Cmd_ExecuteString(va("map %s", Cmd_Argv(2)), src_command);
-	COM_AddExtension (name, ".dem", sizeof(name));
+	COM_AddExtension(name, ".dem", sizeof(name));
 	Con_Printf("recording to %s.\n", name);
 	cls.demofile = fopen(name, "wb");
 	if(!cls.demofile){
@@ -150,7 +150,7 @@ void CL_PlayDemo_f()
 	CL_Disconnect(); // disconnect from server
 	c8 name[256];
 	strcpy(name, Cmd_Argv(1)); // open the demo file
-	COM_AddExtension (name, ".dem", sizeof(name));
+	COM_AddExtension(name, ".dem", sizeof(name));
 	Con_Printf("Playing demo from %s.\n", name);
 	COM_FOpenFile(name, &cls.demofile, NULL);
 	if(!cls.demofile){
@@ -173,7 +173,9 @@ void CL_TimeDemo_f()
 		return;
 	}
 	CL_PlayDemo_f();
-	cls.timedemo = 1; // cls.td_starttime will be grabbed at the second frame of the demo,
-	cls.td_startframe = host_framecount; // so all the loading time doesn't get counted
+	// cls.td_starttime will be grabbed at the second frame of the demo so
+	// all the loading time doesn't get counted
+	cls.timedemo = 1;
+	cls.td_startframe = host_framecount;
 	cls.td_lastframe = -1;// get a new message this frame
 }

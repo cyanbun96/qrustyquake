@@ -39,9 +39,9 @@ s32 D_Dither(u8 *pos, f32 opacity)
 	u64 y = d / vid.width;
 	switch(dither_pat){
 		case 0: return !(d % 6); // 1/6
-		case 1: return (y&1) && ((y&3) == 3 ? (x&1) : !(x&1)); // 1/4
+		case 1: return(y&1) && ((y&3) == 3 ? (x&1) : !(x&1)); // 1/4
 		case 2: return !(d % 3); // 1/3
-		case 3: return (x + y) & 1; // 1/2
+		case 3: return(x + y) & 1; // 1/2
 		case 4: return d % 3; // 2/3
 		case 5: return !((y&1) && ((y&3) == 3 ? (x&1) : !(x&1))); // 3/4
 		default: case 6: return d % 6; // 5/6
@@ -92,7 +92,7 @@ void D_ViewChanged()
 	}
 }
 
-qpic_t *Draw_PicFromWad(c8 *name) { return W_GetLumpName(name); }
+qpic_t *Draw_PicFromWad(c8 *name){ return W_GetLumpName(name); }
 
 qpic_t *Draw_CachePic(c8 *path)
 {
@@ -148,7 +148,7 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 	bool defcolor = 0;
 	s32 c;
 	if(color[0] == 1.0 && color[1] == 1.0 && color[2] == 1.0) defcolor = 1;
-	else {
+	else{
 		u8(*convfunc)(u8,u8,u8)=r_labmixpal.value==1?rgbtoi_lab:rgbtoi;
 		c = convfunc(color[0]*255, color[1]*255, color[2]*255);
 	}
@@ -221,7 +221,7 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 		source += 128 * clipped_rows;
 		drawline = 8 - clipped_rows;
 		y = 0;
-	} else
+	}else
 		drawline = 8;
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
@@ -240,8 +240,8 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 					if(source[i]){
 						s32 base = source[i]&0xf0;
 						s32 idx = (source[i]&0x0f)+add;
-						if (idx < 0) idx = 0;
-						else if (idx > 15) idx = 15;
+						if(idx < 0) idx = 0;
+						else if(idx > 15) idx = 15;
 						dest[i*scale+j] = base | idx;
 					}
 				}
@@ -378,7 +378,7 @@ void Draw_Pic_Ex(f32 *pos, f32 *sz, qpic_t *pic, f32 *srcpos, f32 *srcsz,
 	bool defcolor = 0;
 	s32 c;
 	if(color[0] == 1.0 && color[1] == 1.0 && color[2] == 1.0) defcolor = 1;
-	else {
+	else{
 		u8(*convfunc)(u8,u8,u8)=r_labmixpal.value==1?rgbtoi_lab:rgbtoi;
 		c = convfunc(color[0]*255, color[1]*255, color[2]*255);
 	}
@@ -471,14 +471,15 @@ void Draw_ConsoleBackground(s32 lines)
 	u8 *dest = conback->data + conback->width*(conback->height-14*scale)
 		+ conback->width - 11*scale - 8*scale * strlen(ver);
 	for(u64 x = 0; x < strlen(ver); x++)
-		Draw_CharToConbackScaled(ver[x], dest + x * 8 * scale, scale, conback->width);
+		Draw_CharToConbackScaled(ver[x], dest + x * 8 * scale, scale,
+								conback->width);
 	dest = (u8*)scrbuffs[drawlayer]->pixels; // draw the pic
 	for(s32 y = 0; y < lines; y++, dest += vid.width){
 		s32 v = (vid.height-lines+y)*conback->height/vid.height;
 		u8 *src = conback->data + v * conback->width;
 		if((s32)vid.width == conback->width)
 			memcpy(dest, src, vid.width);
-		else {
+		else{
 			s32 f = 0;
 			s32 fstep = conback->width * 0x10000 / vid.width;
 			for(u32 x = 0; x < vid.width; x += 4){
@@ -596,7 +597,7 @@ void Draw_InitBrightnessDOSLUT()
 { // Used only for the DOS screen fade effect, thus the range [0x10-0x1F]
 	dos_brightness_lut_init++;
 	for(s32 i = 0; i < 256; ++i){
-		dos_brightness_lut[i] = ((host_basepal[i*3] + host_basepal[i*3+1] +
+		dos_brightness_lut[i] = ((host_basepal[i*3]+host_basepal[i*3+1]+
 			host_basepal[i*3+2]) / 3) / 16 + 0x10;
 	}
 }

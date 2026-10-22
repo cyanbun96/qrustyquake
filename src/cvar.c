@@ -161,7 +161,7 @@ void Cvar_SetQuick(cvar_t *var, const c8 *value)
 	if(var->flags & (CVAR_ROM|CVAR_LOCKED)) return;
 	if(!(var->flags & CVAR_REGISTERED)) return;
 	if(!var->string) var->string = Z_Strdup(value);
-	else {
+	else{
 		if(!strcmp(var->string, value)) return; // no change
 		var->flags |= CVAR_CHANGED;
 		s32 len = strlen(value);
@@ -200,7 +200,7 @@ void Cvar_SetValue(const c8 *var_name, const f32 value)
 	c8 val[32], *ptr = val;
 	if(value == (f32)((s32)value))
 		snprintf(val, sizeof(val), "%i", (s32)value);
-	else {
+	else{
 		snprintf(val, sizeof(val), "%f", value);
 		while(*ptr) ptr++; // kill trailing zeroes
 		while(--ptr > val && *ptr == '0' && ptr[-1] != '.') *ptr = '\0';
@@ -233,7 +233,7 @@ void Cvar_RegisterVariable(cvar_t *variable)
 		variable->next = cvar_vars; // insert at front
 		cvar_vars = variable;
 	}
-	else { // insert later
+	else{ // insert later
 		cvar_t *prev = cvar_vars;
 		cvar_t *cursor = cvar_vars->next;
 		while(cursor && (strcmp(variable->name, cursor->name) > 0)){

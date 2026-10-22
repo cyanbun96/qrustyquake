@@ -16,8 +16,8 @@ void Con_ToggleConsole_f()
 			key_dest = key_game;
 			key_lines[edit_line][1] = 0; // clear any typing
 			key_linepos = 1;
-		} else { M_Menu_Main_f(); }
-	} else key_dest = key_console;
+		}else{ M_Menu_Main_f(); }
+	}else key_dest = key_console;
 	SCR_EndLoadingPlaque();
 	memset(con_times, 0, sizeof(con_times));
 }
@@ -42,7 +42,7 @@ void Con_CheckResize()
 		con_linewidth = width;
 		con_totallines = CON_TEXTSIZE / con_linewidth;
 		memset(con_text, ' ', CON_TEXTSIZE);
-	} else {
+	}else{
 		s32 oldwidth = con_linewidth;
 		con_linewidth = width;
 		s32 oldtotallines = con_totallines;
@@ -117,7 +117,7 @@ void Con_LogCenterPrint(const c8 *str)
 		return; //don't log in deathmatch
 	strcpy(con_lastcenterstring, str);
 	if(con_logcenterprint.value){
-		bool trailing_newline = *str && str[strlen (str) - 1] == '\n';
+		bool trailing_newline = *str && str[strlen(str) - 1] == '\n';
 		Con_Printf("%s", Con_Quakebar(con_linewidth-1));
 		Con_CenterPrintf(40, trailing_newline ? "%s" : "%s\n", str);
 		Con_Printf("%s", Con_Quakebar(con_linewidth-1));
@@ -165,7 +165,7 @@ void Con_Linefeed()
 
 // Handles cursor positioning, line wrapping, etc
 // All console printing must go through this in order to be logged to disk
-// If no console is visible, the notify window will pop up (if notify != 0).
+// If no console is visible, the notify window will pop up(if notify != 0).
 void Con_Print(c8 *txt, s32 notify)
 {
 	static s32 cr;
@@ -176,7 +176,7 @@ void Con_Print(c8 *txt, s32 notify)
 		mask = 128; // go to colored text
 		S_LocalSound("misc/talk.wav"); // play talk wav
 		txt++;
-	} else if(txt[0] == 2){
+	}else if(txt[0] == 2){
 		mask = 128; // go to colored text
 		txt++;
 	}
@@ -260,19 +260,19 @@ void Con_SafePrintf(c8 *fmt, ...)
 
 void Con_DrawInput()
 {
-	if (key_dest != key_console && !con_forcedup)
+	if(key_dest != key_console && !con_forcedup)
 		return;
 	const c8 *line = key_lines[edit_line];
 	s32 len = strlen(line);
 	s32 start = 0;
-	if (key_linepos >= con_linewidth)
+	if(key_linepos >= con_linewidth)
 		start = key_linepos - con_linewidth + 1;
-	for (s32 i = 0; i < con_linewidth; i++) {
+	for(s32 i = 0; i < con_linewidth; i++){
 		s32 idx = start + i;
 		s32 ch = ' ';
-		if (idx < len)
+		if(idx < len)
 			ch = line[idx];
-		if (idx == key_linepos && ((s32)(realtime*con_cursorspeed) & 1))
+		if(idx == key_linepos && ((s32)(realtime*con_cursorspeed) & 1))
 			ch = 11;
 		Draw_CharacterScaled(((i + 1) << 3) * uiscale,
 				con_vislines - 16 * uiscale,
@@ -283,8 +283,8 @@ void Con_DrawInput()
 s32 spstrlen(c8 *s) // two spaces terminate the string
 { // that's necessary here since the console is full of spaces
 	s32 i = 0;
-	while (i < con_linewidth) {
-		if (s[i] == ' ' && (i + 1 == con_linewidth || s[i + 1] == ' '))
+	while(i < con_linewidth){
+		if(s[i] == ' ' && (i + 1 == con_linewidth || s[i + 1] == ' '))
 			break;
 		++i;
 	}

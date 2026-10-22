@@ -1,5 +1,5 @@
-// Copyright (C) 1996-2001 Id Software, Inc.
-// Copyright (C) 2002-2009 John Fitzgibbons and others
+// Copyright(C) 1996-2001 Id Software, Inc.
+// Copyright(C) 2002-2009 John Fitzgibbons and others
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
@@ -40,15 +40,18 @@ static const u16 crctable[256] = {
 	0xef1f,	0xff3e,	0xcf5d,	0xdf7c,	0xaf9b,	0xbfba,	0x8fd9,	0x9ff8,
 	0x6e17,	0x7e36,	0x4e55,	0x5e74,	0x2e93,	0x3eb2,	0x0ed1,	0x1ef0
 };
+
 void CRC_Init(u16 *crcvalue)
 { *crcvalue = 0xFFFF; }
+
 void CRC_ProcessByte(u16 *crcvalue, u8 data)
 { *crcvalue = (*crcvalue << 8) ^ crctable[(*crcvalue >> 8) ^ data]; }
-u16 CRC_Block (const u8 *start, s32 count)
+
+u16 CRC_Block(const u8 *start, s32 count)
 { // johnfitz -- texture crc
 	u16 crc;
-	CRC_Init (&crc);
-	while (count--)
+	CRC_Init(&crc);
+	while(count--)
 		crc = (crc << 8) ^ crctable[(crc >> 8) ^ *start++];
 	return crc;
 }

@@ -61,7 +61,7 @@ static void CL_ParseStuffText(const c8 *msg)
 	SDL_strlcat(cl.stuffcmdbuf, msg, sizeof(cl.stuffcmdbuf));
 	const c8 *str;
 	for(; (str = strchr(cl.stuffcmdbuf, '\n'));
-			memmove(cl.stuffcmdbuf, str, strlen(str)+1)) {
+			memmove(cl.stuffcmdbuf, str, strlen(str)+1)){
 		bool handled = false;
 		str++;//skip past the \n
 		if(*cl.stuffcmdbuf == 0x01 && cl.protocol == PROTOCOL_NETQUAKE){
@@ -71,7 +71,7 @@ static void CL_ParseStuffText(const c8 *msg)
 			continue;
 		}
 		//handle special commands
-		if(cl.stuffcmdbuf[0] == '/' && cl.stuffcmdbuf[1] == '/') {
+		if(cl.stuffcmdbuf[0] == '/' && cl.stuffcmdbuf[1] == '/'){
 			handled=Cmd_ExecuteString(cl.stuffcmdbuf+2, src_server);
 			if(!handled)
 		    Con_DPrintf("Server sent unknown command %s\n",Cmd_Argv(0));
@@ -139,7 +139,7 @@ void CL_ParseStartSoundPacket()
 	if(field_mask & SND_LARGEENTITY){ //johnfitz -- PROTOCOL_FITZQUAKE
 		ent =(u16) MSG_ReadShort();
 		ch = MSG_ReadByte();
-	} else {
+	}else{
 		ch =(u16) MSG_ReadShort();
 		ent = ch >> 3;
 		ch &= 7;
@@ -172,7 +172,7 @@ void CL_KeepaliveMessage()
 	sizebuf_t old = net_message;
 	memcpy(olddata, net_message.data, net_message.cursize);
 	s32 ret;
-	do {
+	do{
 		ret = CL_GetMessage();
 		switch(ret)
 		{
@@ -185,7 +185,7 @@ void CL_KeepaliveMessage()
 				"CL_KeepaliveMessage: datagram wasn't a nop");
 			break;
 		}
-	} while(ret);
+	}while(ret);
 	net_message = old;
 	memcpy(net_message.data, olddata, net_message.cursize);
 	f32 time = Sys_DoubleTime(); // check time
@@ -320,7 +320,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 	ent->frame = bits & U_FRAME ? MSG_ReadByte() : ent->baseline.frame;
 	s32 i = bits & U_COLORMAP ? MSG_ReadByte() : ent->baseline.colormap;
 	if(!i) ent->colormap = CURWORLDCMAP;
-	else { if(i > cl.maxclients)
+	else{ if(i > cl.maxclients)
 			Sys_Error("i >= cl.maxclients");
 		ent->colormap = cl.scores[i-1].translations;
 	}
@@ -343,7 +343,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 	ent->msg_angles[0][2] = bits & U_ANGLE3 ?
 		 MSG_ReadAngle(cl.protocolflags) : ent->baseline.angles[2];
 	//johnfitz -- lerping for movetype_step entities
-	if ( bits & U_STEP )
+	if( bits & U_STEP )
 	{
 		ent->lerpflags |= LERP_MOVESTEP;
 		ent->forcelink = true;
@@ -361,7 +361,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		if(bits & U_LERPFINISH){
 			ent->lerpfinish=ent->msgtime+((f32)(MSG_ReadByte())/255);
 			ent->lerpflags |= LERP_FINISH;
-		} else ent->lerpflags &= ~LERP_FINISH;
+		}else ent->lerpflags &= ~LERP_FINISH;
 	}
 	else if(cl.protocol == PROTOCOL_NETQUAKE){
 		if(bits & U_TRANS){ //HACK: if this bit is set, assume NEHAHRA
@@ -409,8 +409,8 @@ void CL_ParseClientdata()
 	if(v_punchangles[0][0]!=cl.punchangle[0]//johnfitz--update v_punchangles
 			|| v_punchangles[0][1] != cl.punchangle[1] 
 			|| v_punchangles[0][2] != cl.punchangle[2]){
-		VectorCopy (v_punchangles[0], v_punchangles[1]);
-		VectorCopy (cl.punchangle, v_punchangles[0]);
+		VectorCopy(v_punchangles[0], v_punchangles[1]);
+		VectorCopy(cl.punchangle, v_punchangles[0]);
 		cl.punchtime = cl.time;
 	}
 	i = MSG_ReadLong();
@@ -458,7 +458,7 @@ void CL_ParseClientdata()
 			cl.stats[STAT_ACTIVEWEAPON] = i;
 			Sbar_Changed();
 		}
-	} else {
+	}else{
 		if(cl.stats[STAT_ACTIVEWEAPON] != (1 << i)){
 			cl.stats[STAT_ACTIVEWEAPON] = (1 << i);
 			Sbar_Changed();
@@ -522,7 +522,8 @@ void CL_ParseStatic(s32 version) //johnfitz -- added a parameter
 	cl.num_statics++;
 	CL_ParseBaseline(ent, version); //johnfitz -- added second parameter
 	ent->model = cl.model_precache[ent->baseline.modelindex];
-	ent->lerpflags |= LERP_RESETANIM | LERP_RESETMOVE; //johnfitz -- lerping  Baker: Added LERP_RESETMOVE to list
+					   //Baker: Added LERP_RESETMOVE to list
+	ent->lerpflags |= LERP_RESETANIM | LERP_RESETMOVE; //johnfitz -- lerping
 	ent->frame = ent->baseline.frame;
 	ent->colormap = CURWORLDCMAP;
 	ent->skinnum = ent->baseline.skin;
@@ -648,7 +649,7 @@ void CL_ParseServerMessage()
 			}
 			cl_lightstyle[i].average =
 				total / cl_lightstyle[i].length + 'a';
-		} else cl_lightstyle[i].average =
+		}else cl_lightstyle[i].average =
 				cl_lightstyle[i].peak = 'm';
 		break;
 	case svc_sound:

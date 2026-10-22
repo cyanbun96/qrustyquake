@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 static vec3_t transformed_modelorg;
@@ -56,11 +56,11 @@ void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 		tadjust = ((s32)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5))-
 				((pface->texturemins[1] << 16) >> miplevel)
 				+ pface->texinfo->vecs[1][3] * t;
-		// -1 (-epsilon) so we never wander off the edge of the texture
+		// -1(-epsilon) so we never wander off the edge of the texture
 		bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
 		bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
 	}
-	else { // Tiled textures (water, sky) always have miplevel of 0
+	else{ // Tiled textures(water, sky) always have miplevel of 0
 		sadjust = ((s32)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5))-
 				(-0x20000000) + pface->texinfo->vecs[0][3] * t;
 		tadjust = ((s32)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5))-
@@ -166,7 +166,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
-	D_DrawSpans(s->spans, SPAN_NORMAL, 0); // draw the lightmap to a separate buffer
+	D_DrawSpans(s->spans, SPAN_NORMAL, 0);//draw lightmap to separate buffer
 	miplevel = 0;
 	cacheblock = (u8*)pface->texinfo->texture
 		+ pface->texinfo->texture->offsets[0];
@@ -298,7 +298,7 @@ void D_DrawSurfaces()
 			s->spans = NULL;
 		}else if(s->flags & SURF_DRAWCUTOUT){
 			foundcutouts = 1;
-		}else {
+		}else{
 			miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
 					* pface->texinfo->mipadjust);
 			D_DrawNormalSurf(s, pface);
