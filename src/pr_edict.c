@@ -740,7 +740,7 @@ const c8 *ED_ParseGlobals(const c8 *data)
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
 		if(com_token[0] == '}')
-			Host_Error("ED_ParseEntity: closing brace without data");
+		    Host_Error("ED_ParseEntity: closing brace without data");
 		ddef_t *key = ED_FindGlobal(keyname);
 		if(!key){
 			Con_Printf("'%s' is not a global\n", keyname);
@@ -913,7 +913,7 @@ const c8 *ED_ParseEdict(const c8 *data, edict_t *ent)
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
 		if(com_token[0] == '}')
-			Host_Error("ED_ParseEntity: closing brace without data");
+		    Host_Error("ED_ParseEntity: closing brace without data");
 		init = true;
 		// keynames with a leading underscore are used for utility
 		// comments, and are immediately discarded by quake
@@ -1019,7 +1019,7 @@ void ED_LoadFromFile(const c8 *data)
 				sv.mapchecks.intermission++;
 			else if(strcmp(classname, "info_player_coop") == 0)
 				sv.mapchecks.coop_spawns++;
-			else if(strcmp(classname, "info_player_deathmatch") == 0)
+			else if(strcmp(classname,"info_player_deathmatch") == 0)
 				sv.mapchecks.dm_spawns++;
 		}
 		// remove things from different skill levels or deathmatch
@@ -1135,7 +1135,8 @@ void PR_UnzoneAll()
 	qcvm->knownzone = NULL;
 }
 
-//makes sure extension fields are actually registered so they can be used for mappers without qc changes. eg so scale can be used.
+//makes sure extension fields are actually registered so they can be used for
+//mappers without qc changes. eg so scale can be used.
 static void PR_MergeEngineFieldDefs()
 {
 	struct {

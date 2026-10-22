@@ -323,7 +323,7 @@ void Con_DrawNotify()
 		Draw_StringScaled(8 * uiscale, v * uiscale, "say: ", uiscale);
 		while(chat_buffer[x]){
 			Draw_CharacterScaled(((x + 5) << 3) * uiscale,
-					v * uiscale, chat_buffer[x], uiscale, 0);
+				v * uiscale, chat_buffer[x], uiscale, 0);
 			x++;
 		}
 		Draw_CharacterScaled(((x + 5) << 3) * uiscale, v * uiscale,

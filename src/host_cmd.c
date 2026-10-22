@@ -892,7 +892,7 @@ void Host_Give_f()
 	break;
 	case 's':
 		if(rogue){
-			val = GetEdictFieldValueByName(sv_player,"ammo_shells1");
+			val=GetEdictFieldValueByName(sv_player,"ammo_shells1");
 			if(val) val->_float = v; }
 		sv_player->v.ammo_shells = v; break;
 	case 'n':

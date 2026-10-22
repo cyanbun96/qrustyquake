@@ -342,15 +342,11 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		 MSG_ReadCoord(cl.protocolflags) : ent->baseline.origin[2];
 	ent->msg_angles[0][2] = bits & U_ANGLE3 ?
 		 MSG_ReadAngle(cl.protocolflags) : ent->baseline.angles[2];
-	//johnfitz -- lerping for movetype_step entities
-	if( bits & U_STEP )
-	{
+	if(bits & U_STEP){ //johnfitz -- lerping for movetype_step entities
 		ent->lerpflags |= LERP_MOVESTEP;
 		ent->forcelink = true;
 	}
 	else ent->lerpflags &= ~LERP_MOVESTEP;
-	//johnfitz
-
 	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ){
 		ent->alpha = bits&U_ALPHA ? MSG_ReadByte():ent->baseline.alpha;
 		ent->scale = bits&U_SCALE ? MSG_ReadByte():ent->baseline.scale;
@@ -359,7 +355,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		if(bits & U_MODEL2)
 			modnum = (modnum & 0x00FF) | (MSG_ReadByte() << 8);
 		if(bits & U_LERPFINISH){
-			ent->lerpfinish=ent->msgtime+((f32)(MSG_ReadByte())/255);
+		    ent->lerpfinish=ent->msgtime+((f32)(MSG_ReadByte())/255);
 			ent->lerpflags |= LERP_FINISH;
 		}else ent->lerpflags &= ~LERP_FINISH;
 	}
@@ -387,8 +383,8 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		VectorCopy(ent->msg_angles[0], ent->msg_angles[1]);
 		VectorCopy(ent->msg_angles[0], ent->angles);
 		ent->forcelink = 1;
-		ent->lerpflags |= LERP_RESETANIM; //johnfitz -- don't lerp animation across model changes
-	}
+		ent->lerpflags |= LERP_RESETANIM; //johnfitz -- don't lerp
+	} // animation across model changes
 }
 
 void CL_ParseClientdata()

@@ -1419,7 +1419,7 @@ static void PF_strcat()
 	out[0] = 0;
 	size_t s = 0;
 	for(s32 i = 0; i < qcvm->argc; i++){
-		s = SDL_strlcat(out, G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
+		s=SDL_strlcat(out,G_STRING((OFS_PARM0+i*3)),STRINGTEMP_LENGTH);
 		if(s >= STRINGTEMP_LENGTH){
 			Con_DPrintf("PF_strcat: overflow(string truncated)\n");
 			break;
