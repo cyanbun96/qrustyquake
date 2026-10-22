@@ -2,7 +2,6 @@
 #ifndef SDL_PLATFORM_WINDOWS
 #include <stdatomic.h>
 #include <limits.h> // for PATH_MAX, usually 4096
-#define _USE_MATH_DEFINES
 #endif
 #include <errno.h>
 #include <stddef.h>
