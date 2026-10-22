@@ -5,6 +5,7 @@
 #if defined(_MSC_VER)
 #define Q_SIL static __forceinline
 #define RESTRICT
+#define _USE_MATH_DEFINES
 #else
 #define Q_SIL static inline __attribute__((always_inline))
 #define RESTRICT __restrict
