@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // r_alias.c: routines for setting up to draw alias models
 #include "quakedef.h"
 
@@ -140,7 +140,7 @@ s32 R_AliasLightVert(aliaslerp_t *pverts)
 {
         f32 temp = r_ambientlight;
         f32 *plightnormal = r_avertexnormals[pverts->currlightnormal];
-        f32 lightcos = DotProduct (plightnormal, r_plightvec) * pverts->blend;
+        f32 lightcos = DotProduct(plightnormal, r_plightvec) * pverts->blend;
         if(lightcos < 0){
                 temp += (s32)(r_shadelight * lightcos);
                 // clamp; because we limited the minimum ambient and shading
@@ -208,7 +208,7 @@ void R_AliasPreparePoints()
                         r_affinetridesc.ptriangles = ptri;
                         D_PolysetDraw(); // totally unclipped
                 }else{ // partially clipped
-                        R_AliasClipTriangle (ptri);
+                        R_AliasClipTriangle(ptri);
                 }
         }
 }
@@ -258,7 +258,7 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 	VectorCopy(vpn, viewmatrix[2]);
 	R_ConcatTransforms(viewmatrix, rotationmatrix, aliastransform);
 // do the scaling up of x and y to screen coordinates as part of the transform
-// for the unclipped case (it would mess up clipping in the clipped case).
+// for the unclipped case(it would mess up clipping in the clipped case).
 // Also scale down z, so 1/z is scaled 31 bits for free, and scale down x and y
 // correspondingly so the projected x and y come out right
 	if(!trivial_accept) 
@@ -283,20 +283,20 @@ void R_AliasTransformAndProjectFinalVerts(finalvert_t *fv, stvert_t *pstverts)
         aliaslerp_t *pverts = r_aliaslerpverts;
         for(s32 i = 0; i < r_anumverts; i++, fv++, pverts++, pstverts++){
                 // transform and project
-                f32 zi = 1.0 / (DotProduct (pverts->v, aliastransform[2])
+                f32 zi = 1.0 / (DotProduct(pverts->v, aliastransform[2])
 				+ aliastransform[2][3]);
                 // x, y, and z are scaled down by 1/2**31 in the transform,
 		// so 1/z is scaled up by 1/2**31, and the scaling cancels out
 		// for x and y in the projection
                 fv->v[5] = zi;
-                fv->v[0] = ((DotProduct (pverts->v, aliastransform[0])
+                fv->v[0] = ((DotProduct(pverts->v, aliastransform[0])
 				+ aliastransform[0][3]) * zi) + aliasxcenter;
-                fv->v[1] = ((DotProduct (pverts->v, aliastransform[1])
+                fv->v[1] = ((DotProduct(pverts->v, aliastransform[1])
 				+ aliastransform[1][3]) * zi) + aliasycenter;
                 fv->v[2] = pstverts->s;
                 fv->v[3] = pstverts->t;
                 fv->flags = pstverts->onseam;
-                fv->v[4] = R_AliasLightVert (pverts);
+                fv->v[4] = R_AliasLightVert(pverts);
         }
 }
 
@@ -311,7 +311,7 @@ void R_AliasPrepareUnclippedPoints()
         r_affinetridesc.ptriangles = (mtriangle_t *)
                 ((u8 *)paliashdr + paliashdr->triangles);
         r_affinetridesc.numtriangles = pmdl->numtris;
-        D_PolysetDraw ();
+        D_PolysetDraw();
 }
 
 void R_AliasSetupSkin()
@@ -370,11 +370,11 @@ void R_AliasSetupLighting(alight_t *plighting)
 	r_plightvec[2] = DotProduct(plighting->plightvec, alias_up);
 }
 
-void R_SetupAliasFrame (aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
+void R_SetupAliasFrame(aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 { // johnfitz -- rewritten to support lerping
 	entity_t *e = currententity;
 	if((frame >= paliashdr->numframes) || (frame < 0)){
-		Con_DPrintf ("R_AliasSetupFrame: no such frame %d", frame);
+		Con_DPrintf("R_AliasSetupFrame: no such frame %d", frame);
 		frame = 0;
 	}
 	s32 posenum = paliashdr->frames[frame].firstpose;
@@ -414,7 +414,7 @@ void R_SetupAliasFrame (aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 	}
 }
 
-void R_BoundPoseSingle (mdl_t *m, lerpdata_t *lerpdata)
+void R_BoundPoseSingle(mdl_t *m, lerpdata_t *lerpdata)
 {
         if(lerpdata->pose2 < 0) lerpdata->pose2 = 0;
         if(lerpdata->pose2 >= m->numframes) lerpdata->pose2 = m->numframes - 1;
@@ -432,7 +432,7 @@ void R_AliasSetupFrameMH(entity_t *ent)
 	maliasgroup_t *paliasgroup = (maliasgroup_t*)((u8*)paliashdr+
 			paliashdr->frames[frame].frame);
 	lerpdata_t lerpdata;
-	R_SetupAliasFrame (paliashdr, frame, &lerpdata);
+	R_SetupAliasFrame(paliashdr, frame, &lerpdata);
 	f32 blend = lerpdata.pose1 != lerpdata.pose2 ? lerpdata.blend : 0;
 	trivertx_t *currv;
 	trivertx_t *lastv;

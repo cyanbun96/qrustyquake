@@ -1,5 +1,5 @@
-// Copyright (C) 1996-2001 Id Software, Inc.
-// Copyright (C) 2010-2014 QuakeSpasm developers
+// Copyright(C) 1996-2001 Id Software, Inc.
+// Copyright(C) 2010-2014 QuakeSpasm developers
 // GPLv3 See LICENSE for details.
 
 #include "quakedef.h"
@@ -364,7 +364,7 @@ s32 NET_SendToAll(sizebuf_t *data, f64 blocktime)
 {
 	// did we write the message to the client's connection
 	bool msg_init[MAX_SCOREBOARD];
-	// did the msg arrive its destination (canSend state).
+	// did the msg arrive its destination(canSend state).
 	bool msg_sent[MAX_SCOREBOARD];
 	s32 i = 0;
 	s32 count = 0;
@@ -504,7 +504,7 @@ void SchedulePollProcedure(PollProcedure *proc, f64 timeOffset)
 {
 	proc->nextTime = Sys_DoubleTime() + timeOffset;
 	PollProcedure *pp = pollProcedureList, *prev = NULL;
-	for(; pp; pp = pp->next) {
+	for(; pp; pp = pp->next){
 		if(pp->nextTime >= proc->nextTime)
 			break;
 		prev = pp;

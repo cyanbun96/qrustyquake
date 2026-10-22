@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 typedef struct { c8 *name; c8 *description; } level_t;
@@ -879,7 +879,7 @@ forward:
 			return;
 		if(setup_cursor == 2 || setup_cursor == 3)
 			goto forward;
-		// setup_cursor == 4 (OK)
+		// setup_cursor == 4(OK)
 		if(strcmp(cl_name.string, setup_myname) != 0)
 			Cbuf_AddText(va("name \"%s\"\n", setup_myname));
 		if(strcmp(hostname.string, setup_hostname) != 0)
@@ -2425,9 +2425,9 @@ void M_Display_Draw()
 		M_PrintWhite(96, 174, "      A");
 	}else if(display_cursor == 6){
 		M_DrawTextBox(52, 166, 25, 2);
-		M_Print(64, 174, "Press   for default (1:1)");
+		M_Print(64, 174, "Press   for default(1:1)");
 		M_PrintWhite(112, 174, "D");
-		M_Print(72, 182, "Or   for squished (3:4)");
+		M_Print(72, 182, "Or   for squished(3:4)");
 		M_PrintWhite(96, 182, "S");
 	}else if(display_cursor == 7 && (s32)host_maxfps.value > 72){
 		M_DrawTextBox(52, 166, 30, 1);
@@ -4136,7 +4136,7 @@ void M_ServerList_Draw()
 			hostcache_t temp;
 			for(i = 0; i < hostCacheCount; i++)
 				for(j = i + 1; j < hostCacheCount; j++)
-					if(strcmp (hostcache[j].name,
+					if(strcmp(hostcache[j].name,
 					     hostcache[i].name) < 0){
 						memcpy(&temp, &hostcache[j],
 							 sizeof(hostcache_t));

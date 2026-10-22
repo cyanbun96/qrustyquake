@@ -190,7 +190,7 @@ static void Host_Map_f()
 	}
 }
 
-static bool Host_AutoLoad ()
+static bool Host_AutoLoad()
 {
 	if(!sv_autoload.value || !sv.lastsave[0] ||
 			svs.maxclients != 1 || cl.intermission)
@@ -209,7 +209,7 @@ static bool Host_AutoLoad ()
 	Cbuf_Execute();
 	if(sv.autoloading){
 		sv.autoloading = false;
-		Con_Printf ("Autoload failed!\n");
+		Con_Printf("Autoload failed!\n");
 		return false;
 	}
 	return true;
@@ -228,8 +228,8 @@ void Host_Changelevel_f()
 	}
 	//johnfitz -- check for client having map before anything else
 	SDL_snprintf(level, sizeof(level), "maps/%s.bsp", Cmd_Argv(1));
-	if (!COM_FileExists(level, NULL))
-		Host_Error ("cannot find map %s", level);
+	if(!COM_FileExists(level, NULL))
+		Host_Error("cannot find map %s", level);
 	strcpy(level, Cmd_Argv(1));
 	if(!strcmp(sv.name, level) && Host_AutoLoad())
 		return;

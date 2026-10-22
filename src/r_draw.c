@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 typedef struct { f32 x; f32 y; } coarse_occ_vertex_t;
@@ -81,7 +81,7 @@ static inline void R_CoarseOcclusionSetTile(s32 tx, s32 ty)
 
 static inline f32 R_CoarseOccCross(const coarse_occ_vertex_t *a,
 	const coarse_occ_vertex_t *b, f32 x, f32 y) // 2D cross product: AB x AC
-{ return (b->x - a->x) * (y - a->y) - (b->y - a->y) * (x - a->x); }
+{ return(b->x - a->x) * (y - a->y) - (b->y - a->y) * (x - a->x); }
 
 static bool R_CoarseOccPointInPolygon(const coarse_occ_vertex_t *poly,
                           s32 count, f32 x, f32 y)
@@ -324,14 +324,14 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 	// Expand slightly so floating-point rounding cannot make us
 	// accidentally skip a tile that the polygon actually touches.
 	s32 minx = (s32)floorf(poly[0].x) - 1;
-	s32 maxx = (s32)ceilf (poly[0].x) + 1;
+	s32 maxx = (s32)ceilf(poly[0].x) + 1;
 	s32 miny = (s32)floorf(poly[0].y) - 1;
-	s32 maxy = (s32)ceilf (poly[0].y) + 1;
+	s32 maxy = (s32)ceilf(poly[0].y) + 1;
 	for(s32 i = 1; i < count; i++){
 		s32 x0 = (s32)floorf(poly[i].x) - 1;
-		s32 x1 = (s32)ceilf (poly[i].x) + 1;
+		s32 x1 = (s32)ceilf(poly[i].x) + 1;
 		s32 y0 = (s32)floorf(poly[i].y) - 1;
-		s32 y1 = (s32)ceilf (poly[i].y) + 1;
+		s32 y1 = (s32)ceilf(poly[i].y) + 1;
 		if(x0 < minx) minx = x0;
 		if(x1 > maxx) maxx = x1;
 		if(y0 < miny) miny = y0;
@@ -399,9 +399,9 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa)
 	s32 maxy = ceilf(poly[0].y);
 	for(s32 i = 1; i < count; i++){
 		s32 x0 = (s32)floorf(poly[i].x);
-		s32 x1 = (s32)ceilf (poly[i].x);
+		s32 x1 = (s32)ceilf(poly[i].x);
 		s32 y0 = (s32)floorf(poly[i].y);
-		s32 y1 = (s32)ceilf (poly[i].y);
+		s32 y1 = (s32)ceilf(poly[i].y);
 		if(x0 < minx) minx = x0;
 		if(x1 > maxx) maxx = x1;
 		if(y0 < miny) miny = y0;
@@ -513,14 +513,14 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	edge->nearzi = lzi0;
 	f64 u, u_step;
 	s64 v, v2;
-	if(side == 0){ // trailing edge (go from p1 to p2)
+	if(side == 0){ // trailing edge(go from p1 to p2)
 		v = ceilv0;
 		v2 = r_ceilv1 - 1;
 		edge->surfs[0] = surface_p - surfaces;
 		edge->surfs[1] = 0;
 		u_step = ((r_u1 - u0) / (r_v1 - v0));
 		u = u0 + ((f32)v - v0) * u_step;
-	}else{ // leading edge (go from p2 to p1)
+	}else{ // leading edge(go from p2 to p1)
 		v2 = ceilv0 - 1;
 		v = r_ceilv1;
 		edge->surfs[0] = 0;
@@ -544,7 +544,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	// CyanBun96: denser maps like mg1 start begin to chug on the linear
 	// edge list traversal as it gets longer. Remembering the last insert
 	// point and checking if it fits helps a lot in the best case, and hurts
-	// very little in the worst (where performance improvements aren't
+	// very little in the worst(where performance improvements aren't
 	// needed anyway).
 	edge_t *pcheck = last_pcheck[v];
 	if(!newedges[v] || newedges[v]->u >= u_check){ // Insert at the head

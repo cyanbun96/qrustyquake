@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // d_surf.c: rasterization driver surface heap manager
 #include "quakedef.h"
 
@@ -127,7 +127,7 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 				return NULL;
 			}
 		}
-		if(sc_rover->owner){//validate owner (against memory, not cache)
+		if(sc_rover->owner){//validate owner(against memory, not cache)
 			uintptr_t owner_addr = (uintptr_t)sc_rover->owner;
 			if(owner_addr < (uintptr_t)host_parms.membase ||
 					owner_addr >= (uintptr_t)((uintptr_t)

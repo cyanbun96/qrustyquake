@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 net_driver_t net_drivers[] = {
 	{ "Loopback", 0, Loop_Init, Loop_Listen, Loop_SearchForHosts,

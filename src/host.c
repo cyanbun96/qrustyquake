@@ -350,7 +350,7 @@ static void Host_CheckAutosave()
 		return;//Don't save if the player has been hurt recently
 	if(qcvm->time - sv.autosave.shoot_time < 3.f)
 		return;//Don't save if the player has fired recently
-	speed = VectorLength (sv_player->v.velocity);
+	speed = VectorLength(sv_player->v.velocity);
 	if(speed > 100.f)
 		return;//Only save when the player slows down a bit
 	//Copper's func_void holds the player at the bottom for a bit before
@@ -370,7 +370,7 @@ static void Host_CheckAutosave()
 				* sv_player->v.armorvalue)) / 100.f;
 	//Boost the score right after picking up health
 	score += q_max(0.f, health_change) / 100.f;
-	//Lower score a bit based on speed (favor standing still/slowing down)
+	//Lower score a bit based on speed(favor standing still/slowing down)
 	score -= (speed / 100.f) * 0.25f;
 	//Boost the score after finding a secret
 	score += sv.autosave.secret_boost * 0.25f;
@@ -395,7 +395,7 @@ void Host_ServerFrame()
 	if(!sv.paused && (svs.maxclients > 1 || key_dest == key_game))
 		SV_Physics();
 	SV_SendClientMessages(); // send all messages to the clients
-	Host_CheckAutosave ();
+	Host_CheckAutosave();
 }
 
 void Host_PrintTimes(const f64 t[],const c8 *names[], s32 count, bool showtotal)

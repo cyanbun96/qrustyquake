@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 typedef struct btofpoly_s {
@@ -74,7 +74,7 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		f32 lastdist = DotProduct(plastvert->position, tplane.normal)
 			- tplane.dist;
 // CyanBun96: comparison of lastside and side against a low threshold instead of
-// 0 prevents corruption in some edge cases (no pun intended)
+// 0 prevents corruption in some edge cases(no pun intended)
 		s32 lastside = (lastdist > 0.001) ? 0 : 1;
 		mvertex_t *pvert = pedges->v[1];
 		f32 dist = DotProduct(pvert->position, tplane.normal)
@@ -122,7 +122,7 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		}
 	}
 	// if anything was clipped, reconstitute and add the edges along
-	// the clip plane to both sides (but in opposite directions)
+	// the clip plane to both sides(but in opposite directions)
 	if(makeclippededge){
 		if(numbedges >= (MAX_BMODEL_EDGES - 2)){
 			Con_Printf("Out of edges for bmodel\n");

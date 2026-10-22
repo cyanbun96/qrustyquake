@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 static vec3_t lightspot;
@@ -88,7 +88,7 @@ loc0:
 	else{
 		s32 ds, dt;
 		msurface_t *surf;
-		VectorCopy (mid, lightspot); // check for impact on this node
+		VectorCopy(mid, lightspot); // check for impact on this node
 		surf = cl.worldmodel->surfaces + node->firstsurface;
 		for(u32 i = 0;i < node->numsurfaces;i++, surf++)
 		{
@@ -126,7 +126,7 @@ loc0:
 // We hit a surface that is flagged as lightmapped, but doesn't have actual
 // lightmap info. Instead of just returning black, we'll keep looking for nearby
 // surfaces that do have valid samples. This fixes occasional pitch-black models
-// in otherwise well-lit areas in DOTM (e.g. mge1m1, mge4m1) caused by
+// in otherwise well-lit areas in DOTM(e.g. mge1m1, mge4m1) caused by
 // overlapping surfaces with mixed lighting data.
 				const f32 nearby = 8.f;
 				dist += nearby;
@@ -180,7 +180,7 @@ loc0:
 			}
 			return 1; // success
 		}
-		return RecursiveLightPoint (color, node->children[front >= 0],
+		return RecursiveLightPoint(color, node->children[front >= 0],
 				rayorg, mid, end, maxdist); // go down back side
 	}
 }
@@ -212,5 +212,5 @@ s32 R_LightPoint(vec3_t p, f32 ofs)
 	}
 	colored_aliaslight = !(lightcolor[0] == lightcolor[1]
 			&& lightcolor[0] == lightcolor[2]);
-	return ((lightcolor[0] + lightcolor[1] + lightcolor[2]) * (1.0f/3.0f));
+	return((lightcolor[0] + lightcolor[1] + lightcolor[2]) * (1.0f/3.0f));
 }

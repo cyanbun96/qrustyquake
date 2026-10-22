@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 // key up events are sent even if in console mode
 
@@ -318,7 +318,7 @@ s32 Key_StringToKeynum(c8 *str)
 	return -1;
 }
 
-c8 *Key_KeynumToString(s32 keynum) // Returns a string (either a single ascii
+c8 *Key_KeynumToString(s32 keynum) // Returns a string(either a single ascii
 { // c8, or a K_* name) for the given keynum.
 	static c8 tinystr[2];
 	if(keynum == -1)
@@ -371,7 +371,7 @@ void Key_Bind_f()
 	c8 cmd[1024];
 	s32 c = Cmd_Argc();
 	if(c != 2 && c != 3){
-		Con_Printf ("bind <key> [command] : attach a command to a key\n"
+		Con_Printf("bind <key> [command] : attach a command to a key\n"
 		); return;
 	}
 	s32 b = Key_StringToKeynum(Cmd_Argv(1));
@@ -530,7 +530,7 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 		return;
 	}
 // key up events only generate commands if the game key binding is a button
-// command (leading + sign). These will occur even in console mode, to keep the
+// command(leading + sign). These will occur even in console mode, to keep the
 // character from continuing an action started before a console switch. Button
 // commands include a keynum parameter so multiple downs can be matched with ups
 	if(!down){

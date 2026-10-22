@@ -60,7 +60,7 @@ void PR_PopQCVM(qcvm_t *oldvm)
 static s32 PR_HashGet(prhashtable_t *table, const c8 *key)
 {
 	s32 pos = COM_HashString(key) % table->capacity, end = pos;
-	do {
+	do{
 		const c8 *s = table->strings[pos];
 		if(!s)
 			return -1;
@@ -92,7 +92,7 @@ static const c8 *PR_UglyValueString(s32 type, eval_t *val)
     ddef_t *def;
     dfunction_t *f;
     type &= ~DEF_SAVEGLOBAL;
-    switch(type) {
+    switch(type){
     case ev_string:
 	snprintf(line, sizeof(line), "%s", PR_GetString(val->string));
 	break;
@@ -182,7 +182,7 @@ void PR_AutoCvarChanged(cvar_t *var)
 		PR_SwitchQCVM(&sv.qcvm);
 		char *n = va("autocvar_%s", var->name);
 		ddef_t *glob = ED_FindGlobal(n);
-		if(glob) {
+		if(glob){
 			if(!ED_ParseEpair((void *)qcvm->globals, glob,
 							var->string, true))
 				Con_DPrintf("EXT: Unable to configure %s\n", n);
@@ -193,7 +193,7 @@ void PR_AutoCvarChanged(cvar_t *var)
 		PR_SwitchQCVM(&cl.qcvm);
 		char *n = va("autocvar_%s", var->name);
 		ddef_t *glob = ED_FindGlobal(n);
-		if(glob) {
+		if(glob){
 			if(!ED_ParseEpair((void *)qcvm->globals, glob,
 							var->string, true))
 				Con_DPrintf("EXT: Unable to configure %s\n", n);
@@ -258,7 +258,7 @@ static void ED_AddToFreeList(edict_t *ed)
 static void ED_RemoveFromFreeList(edict_t *ed)
 {
 	ed->free = false;
-	if(ed->freechain.prev) {
+	if(ed->freechain.prev){
 		RemoveLink(&ed->freechain);
 		ed->freechain.prev = ed->freechain.next = NULL;
 	}
@@ -281,13 +281,13 @@ void ED_ClearEdict(edict_t *e)
 edict_t *ED_Alloc()
 {
 	edict_t *e;
-	if(qcvm->free_edicts.next != &qcvm->free_edicts) {
+	if(qcvm->free_edicts.next != &qcvm->free_edicts){
 		e = STRUCT_FROM_LINK(qcvm->free_edicts.next, edict_t,freechain);
 		if(!e->free)
 			Host_Error("ED_Alloc: free list entity still in use");
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if(e->freetime < 2 || qcvm->time - e->freetime > 0.5) {
+		if(e->freetime < 2 || qcvm->time - e->freetime > 0.5){
 			ED_ClearEdict(e);
 			return e;
 		}
@@ -326,13 +326,13 @@ void ED_Free(edict_t *ed)
 
 static ddef_t *ED_FindField(const c8 *name)
 {
-	if(qcvm->ht_fields.capacity > 0) {
+	if(qcvm->ht_fields.capacity > 0){
 		s32 index = PR_HashGet(&qcvm->ht_fields, name);
 		if(index < 0)
 			return NULL;
 		return qcvm->fielddefs + index;
 	}
-	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++) {
+	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++){
 		ddef_t *def = &qcvm->fielddefs[i];
 		if(!strcmp(PR_GetString(def->s_name), name))
 			return def;
@@ -442,7 +442,7 @@ const c8 *PR_GlobalString(s32 ofs) // Returns a string with a description and
 	ddef_t *def = ED_GlobalAtOfs(ofs);
 	if(!def)
 		snprintf(line, sizeof(line), "%i(?)", ofs);
-	else {
+	else{
 		const c8 *s = PR_ValueString(def->type, (eval_t *)val);
 		snprintf(line, sizeof(line), "%i(%s)%s", ofs,
 				PR_GetString(def->s_name), s);
@@ -513,7 +513,7 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 
 	// .solid
 	if(ofs == offsetof(entvars_t, solid) && val->_float ==(s32)val->_float){
-		switch((s32)val->_float) {
+		switch((s32)val->_float){
 #define SOLID_CASE(x)   case x: return #x
 			SOLID_CASE(SOLID_NOT);
 			SOLID_CASE(SOLID_TRIGGER);
@@ -557,7 +557,7 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 	    ||ofs==offsetof(entvars_t,effects))&&val->_float==(s32)val->_float){
 		s32 bits = (s32)val->_float;
 		str[0] = '\0';
-#define BIT_CASE(f) do { if(bits & (s32)f){ bits ^= (s32)f; ED_AppendFlagString(str, sizeof(str), #f); } } while(0)
+#define BIT_CASE(f) do{ if(bits & (s32)f){ bits ^= (s32)f; ED_AppendFlagString(str, sizeof(str), #f); } }while(0)
 		if(ofs == offsetof(entvars_t, flags)){
 			BIT_CASE(FL_FLY);
 			BIT_CASE(FL_CONVEYOR);
@@ -583,7 +583,7 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 			BIT_CASE(EF_DIMLIGHT);
 		}
 #undef BIT_CASE
-		while(bits) {
+		while(bits){
 			s32 lowest = bits & -bits;
 			bits ^= lowest;
 			ED_AppendFlagString(str, sizeof(str), va("%d", lowest));
@@ -614,7 +614,7 @@ bool ED_IsRelevantField(edict_t *ed, ddef_t *d)
 void ED_Print(edict_t *ed)
 { // For debugging
 	c8 field[4096], buf[4096], *p;
-	if(ed->free) {
+	if(ed->free){
 		Con_SafePrintf("FREE\n");
 		return;
 	}
@@ -627,7 +627,7 @@ void ED_Print(edict_t *ed)
 		snprintf(field, sizeof(field), "%-14s %s\n",
 			PR_GetString(d->s_name), ED_FieldValueString(ed, d));
 		s32 l = strlen(field);
-		if(l + 1 > buf + sizeof(buf) - p) {
+		if(l + 1 > buf + sizeof(buf) - p){
 			Con_SafePrintf("%s", buf);
 			p = buf;
 		}
@@ -729,7 +729,7 @@ void ED_WriteGlobals(FILE *f)
 const c8 *ED_ParseGlobals(const c8 *data)
 {
 	c8 keyname[64];
-	while(1) {
+	while(1){
 		data = COM_Parse(data); // parse key
 		if(com_token[0] == '}')
 			break;
@@ -742,7 +742,7 @@ const c8 *ED_ParseGlobals(const c8 *data)
 		if(com_token[0] == '}')
 			Host_Error("ED_ParseEntity: closing brace without data");
 		ddef_t *key = ED_FindGlobal(keyname);
-		if(!key) {
+		if(!key){
 			Con_Printf("'%s' is not a global\n", keyname);
 			continue;
 		}
@@ -1045,7 +1045,7 @@ void ED_LoadFromFile(const c8 *data)
 		}
 		// immediately call spawn function
 		func = ED_FindFunction(classname);// look for the spawn function
-		if(!func) {
+		if(!func){
 			Con_DPrintf("No spawn function for:\n");
 			ED_Print(ent);
 			ED_Free(ent);
@@ -1171,7 +1171,7 @@ static void PR_MergeEngineFieldDefs()
 	//figure out where stuff goes
 	for(j = 0; j < Q_COUNTOF(extrafields); j++){
 		extrafields[j].newidx = ED_FindFieldOffset(extrafields[j].fname);
-		if(extrafields[j].newidx < 0) {
+		if(extrafields[j].newidx < 0){
 			extrafields[j].newidx = maxofs;
 			maxdefs++;
 			if(extrafields[j].type == ev_vector)
@@ -1188,7 +1188,7 @@ static void PR_MergeEngineFieldDefs()
 	if(olddefs != (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_fielddefs))
 		free(olddefs);
 	//allocate the extra defs
-	for(j = 0; j < Q_COUNTOF(extrafields); j++) {
+	for(j = 0; j < Q_COUNTOF(extrafields); j++){
 		if(extrafields[j].newidx >= qcvm->progs->entityfields && extrafields[j].newidx < maxofs){
 			//looks like its new. make sure ED_FindField can find it.
 			qcvm->fielddefs[qcvm->progs->numfielddefs].ofs = extrafields[j].newidx;
@@ -1196,7 +1196,7 @@ static void PR_MergeEngineFieldDefs()
 			qcvm->fielddefs[qcvm->progs->numfielddefs].s_name = ED_NewString(extrafields[j].fname);
 			qcvm->progs->numfielddefs++;
 			if(extrafields[j].type == ev_vector){//vectors are weird and annoying.
-				for(a = 0; a < 3; a++) {
+				for(a = 0; a < 3; a++){
 					qcvm->fielddefs[qcvm->progs->numfielddefs].ofs = extrafields[j].newidx+a;
 					qcvm->fielddefs[qcvm->progs->numfielddefs].type = ev_float;
 					qcvm->fielddefs[qcvm->progs->numfielddefs].s_name = ED_NewString(va("%s_%c", extrafields[j].fname, 'x'+a));
@@ -1376,7 +1376,7 @@ static void PR_FillOffsetTables()
 		qcvm->fielddefs, "ofstofield" },
 	{ &qcvm->ofstoglobal, &qcvm->maxglobalofs, qcvm->progs->numglobaldefs,
 		qcvm->globaldefs, "ofstoglobal" }, };
-	for(s32 pass = 0; pass < (s32)Q_COUNTOF(passes); pass++) {
+	for(s32 pass = 0; pass < (s32)Q_COUNTOF(passes); pass++){
 		// find maximum offset
 		s32 maxofs = 0;
 		for(s32 i = 1; i < passes[pass].numdefs; i++)
@@ -1571,7 +1571,7 @@ const c8 *PR_GetString(s32 num)
 		}
 		return qcvm->knownstrings[-1 - num];
 	}else{
-            if(developer.value) {
+            if(developer.value){
                 PR_PrintErrorWithStackTrace("PR_GetString: Invalid string offset %d", num);
             }
             return qcvm->strings; // from QSS and vkquake
@@ -1594,7 +1594,7 @@ static s32 PR_AllocStringSlot()
 			qcvm->knownstrings = (const c8 **) Z_Realloc((void *)qcvm->knownstrings, qcvm->maxknownstrings * sizeof(c8 *));
 		}
 	}
-	return (s32)i;
+	return(s32)i;
 }
 
 s32 PR_SetEngineString(const c8 *s)
@@ -1602,7 +1602,7 @@ s32 PR_SetEngineString(const c8 *s)
 	if(!s)
 		return 0;
 	if(s >= qcvm->strings && s <= qcvm->strings + qcvm->stringssize - 2)
-		return (s32)(s - qcvm->strings);
+		return(s32)(s - qcvm->strings);
 	s32 i = 0;
 	for(; i < qcvm->numknownstrings; i++){
 		if(qcvm->knownstrings[i] == s)

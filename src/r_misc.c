@@ -150,7 +150,7 @@ void R_SetUpFrustumIndexes()
 			if(view_clipplanes[i].normal[j] < 0){
 				pindex[j] = j;
 				pindex[j + 3] = j + 3;
-			} else {
+			}else{
 				pindex[j] = j + 3;
 				pindex[j + 3] = j;
 			}
@@ -208,7 +208,7 @@ void R_SetupFrame()
 				vrect.width = vid.width;
 				vrect.height = vid.height;
 				R_ViewChanged(&vrect, sb_lines, vid.aspect);
-			} else {
+			}else{
 				f32 w = vid.width;
 				f32 h = vid.height;
 				if(w > WARP_WIDTH){
@@ -227,7 +227,7 @@ void R_SetupFrame()
 					(h/(f32)vid.height)),vid.aspect*(h/w)*
 					((f32)vid.width/(f32)vid.height));
 			}
-		} else {
+		}else{
 			vrect.x = 0;
 			vrect.y = 0;
 			vrect.width = vid.width;

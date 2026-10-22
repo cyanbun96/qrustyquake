@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // software top-level rasterization driver module for drawing sprites
 #include "quakedef.h"
 
@@ -78,7 +78,7 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 				sstep = (snext - s) >> 3;
 				tstep = (tnext - t) >> 3;
 			}else{
-	// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so can't
+	// calculate s/z, t/z, zi->fixed s and t at last pixel in span(so can't
 	// step off polygon), clamp, calculate s and t steps across span by
 	// division, biasing steps low so we don't run off the texture
 				f32 spancountminus1 = (f32)(spancount - 1);
@@ -240,7 +240,7 @@ void D_SpriteCalculateGradients()
 	    (-(cachewidth >> 1) << 16);
 	tadjust = ((DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
 	    (-(sprite_height >> 1) << 16);
-	// -1 (-epsilon) so we never wander off the edge of the texture
+	// -1(-epsilon) so we never wander off the edge of the texture
 	bbextents = (cachewidth << 16) - 1;
 	bbextentt = (sprite_height << 16) - 1;
 }

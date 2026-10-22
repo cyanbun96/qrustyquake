@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 
 #include "quakedef.h"
 
@@ -19,7 +19,7 @@ static s64 edge_head_u_shift20, edge_tail_u_shift20;
 static edge_t edge_head, edge_tail;
 static edge_t edge_aftertail;
 static f32 fv;
-static void (*pdrawfunc)();
+static void(*pdrawfunc)();
 void R_GenerateSpans();
 void R_GenerateSpansBackward();
 void R_GenerateSpansCutout();
@@ -58,7 +58,7 @@ void R_BeginEdgeFrame()
 // Adds the edges in the linked list edgestoadd, adding them to the edges in the
 // linked list edgelist. edgestoadd is assumed to be sorted on u, and non-empty
 // (this is actually newedges[v]). edgelist is assumed to be sorted on u, with a
-// sentinel at the end (actually, this is the active edge table starting at
+// sentinel at the end(actually, this is the active edge table starting at
 // edge_head.next).
 void R_InsertNewEdges(edge_t *edgestoadd, edge_t *edgelist)
 {
@@ -166,7 +166,7 @@ void R_LeadingEdgeBackwards(edge_t *edge)
 	// it's adding a new surface in, so find the correct place
 	surf_t *surf = &surfaces[edge->surfs[1]];
 	// don't start a span if this is an inverted span, with the end edge
-	// preceding the start edge (that is, we've already seen the end edge)
+	// preceding the start edge(that is, we've already seen the end edge)
 	surf_t *surf2;
 	s32 iu; // keep here for the OpenBSD compiler
 	if(++surf->spanstate == 1){
@@ -194,7 +194,7 @@ continue_search:
 		}
 		goto gotposition;
 newtop:
-		iu = edge->u >> 20; // emit a span (obscures current top)
+		iu = edge->u >> 20; // emit a span(obscures current top)
 		if(iu > surf2->last_u){
 			espan_t *span = span_p++;
 			span->u = surf2->last_u;
@@ -234,7 +234,7 @@ void R_TrailingEdge(surf_t *surf, edge_t *edge)
 	}
 }
 
-void R_LeadingEdge (edge_t *edge)
+void R_LeadingEdge(edge_t *edge)
 {
 	surf_t *surf, *surf2;
 	s32 iu; // keep here for the OpenBSD compiler
@@ -242,7 +242,7 @@ void R_LeadingEdge (edge_t *edge)
 		// it's adding a new surface in, so find the correct place
 		surf = &surfaces[edge->surfs[1]];
 		// don't start a span if this is an inverted span, with the end
-		// edge preceding the start edge (that is, we've already seen
+		// edge preceding the start edge(that is, we've already seen
 		// the end edge)
 		if(++surf->spanstate == 1){
 			surf2 = surfaces[1].next;
@@ -292,7 +292,7 @@ continue_search:
 			}
 			goto gotposition;
 newtop:
-			// emit a span (obscures current top)
+			// emit a span(obscures current top)
 			iu = edge->u >> 20;
 			if(iu > surf2->last_u){
 				espan_t *span = span_p++;
@@ -321,7 +321,7 @@ void R_GenerateSpans()
 	surfaces[1].last_u = edge_head_u_shift20;
 	// generate spans
 	for(edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next){
-	// A shared (cached) edge can carry a trailing surface in surfs[0] AND a
+	// A shared(cached) edge can carry a trailing surface in surfs[0] AND a
 	// leading one in surfs[1]. Always retire the trailing surface first,
 	// whatever the leading surface turns out to be.
 		if(edge->surfs[0])
@@ -411,7 +411,7 @@ void R_ScanEdges()
 	for(; iv < bottom; iv++){
 		current_iv = iv;
 		fv = (f32)iv;
-		// mark that the head (background start) span is pre-included
+		// mark that the head(background start) span is pre-included
 		surfaces[1].spanstate = 1;
 		if(newedges[iv])
 			R_InsertNewEdges(newedges[iv], edge_head.next);
@@ -432,10 +432,10 @@ void R_ScanEdges()
 		if(edge_head.next != &edge_tail)
 			R_StepActiveU(edge_head.next);
 	}
-	// do the last scan (no need to step or sort or remove on the last scan)
+	// do the last scan(no need to step or sort or remove on the last scan)
 	current_iv = iv;
 	fv = (f32)iv;
-	// mark that the head (background start) span is pre-included
+	// mark that the head(background start) span is pre-included
 	surfaces[1].spanstate = 1;
 	if(newedges[iv])
 		R_InsertNewEdges(newedges[iv], edge_head.next);

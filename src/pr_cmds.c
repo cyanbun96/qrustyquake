@@ -198,7 +198,7 @@ static void PF_setmodel()
 		if(mod->type == mod_brush)
 			SetMinMaxSize(e, mod->clipmins, mod->clipmaxs, true);
 		else SetMinMaxSize(e, mod->mins, mod->maxs, true);
-	} else SetMinMaxSize(e, vec3_origin, vec3_origin, true);
+	}else SetMinMaxSize(e, vec3_origin, vec3_origin, true);
 }
 
 static void PF_bprint() // broadcast print to everyone on server
@@ -1501,7 +1501,7 @@ static void PF_strunzone()
 
 //should be just \n and 32-127, but we don't actually support any actual unicode
 //and we don't really want to make things worse.
-static bool qc_isascii(u32 u){ return (u < 256); }
+static bool qc_isascii(u32 u){ return(u < 256); }
 
 static void PF_str2chr()
 {
@@ -1764,7 +1764,7 @@ void PF_cl_playerkey_internal(s32 player, const c8 *key, bool retfloat)
 		ret = NULL;
 	else if(!strcmp(key, "viewentity"))
 		snprintf(buf, sizeof(buf), "%i", player+1);//hack for DP compat.
-	   //always returned even when the slot is empty (so long as its valid).
+	   //always returned even when the slot is empty(so long as its valid).
 	else if(!*cl.scores[player].name)
 		ret = NULL;
 	else if(!strcmp(key, "name"))
@@ -1792,7 +1792,7 @@ void PF_cl_playerkey_internal(s32 player, const c8 *key, bool retfloat)
 	else if(!strcmp(key, "bottomcolor"))
 		snprintf(buf, sizeof(buf), "%i", cl.scores[player].colors&0x0f);
 	else if(!strcmp(key, "team")) // quakeworld uses team infokeys to decide
-// teams (instead of colours). but NQ never did, so that's fun. Lets allow mods
+// teams(instead of colours). but NQ never did, so that's fun. Lets allow mods
 // to use either so that they can favour QW and let the engine hide differences.
 	    snprintf(buf, sizeof(buf), "%i", (cl.scores[player].colors&0x0f)+1);
 	else

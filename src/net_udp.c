@@ -1,6 +1,6 @@
-// Copyright (C) 1996-2001 Id Software, Inc.
-// Copyright (C) 2007-2008 Kristian Duske
-// Copyright (C) 2010-2014 QuakeSpasm developers
+// Copyright(C) 1996-2001 Id Software, Inc.
+// Copyright(C) 2007-2008 Kristian Duske
+// Copyright(C) 2010-2014 QuakeSpasm developers
 // GPLv3 See LICENSE for details.
 
 #include "quakedef.h"
@@ -29,8 +29,7 @@ sys_socket_t UDP_Init()
 {
 #ifdef SDL_PLATFORM_WINDOWS
 	WSADATA wsaData;
-	if(WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-	{
+	if(WSAStartup(MAKEWORD(2, 2), &wsaData) != 0){
 		Con_SafePrintf("UDP_Init: WSAStartup failed\n");
 		return INVALID_SOCKET;
 	}
@@ -43,7 +42,7 @@ sys_socket_t UDP_Init()
 	myAddr = htonl(INADDR_LOOPBACK); // determine my name & address
 	if(gethostname(buff, MAXHOSTNAMELEN) != 0){
 		s32 err = SOCKETERRNO;
-		Con_SafePrintf("UDP_Init: WARNING: gethostname failed (%s)\n",
+		Con_SafePrintf("UDP_Init: WARNING: gethostname failed(%s)\n",
 			       socketerror(err));
 	}else{
 		buff[MAXHOSTNAMELEN - 1] = 0;
@@ -56,11 +55,11 @@ sys_socket_t UDP_Init()
 				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 				(LPSTR)&herrmsg, 0, NULL);
 			Con_SafePrintf
-			("UDP_Init: WARNING: gethostbyname failed (%s)\n",
+			("UDP_Init: WARNING: gethostbyname failed(%s)\n",
 				herrmsg);
 #else
 			Con_SafePrintf
-			    ("UDP_Init: WARNING: gethostbyname failed (%s)\n",
+			    ("UDP_Init: WARNING: gethostbyname failed(%s)\n",
 			     hstrerror(h_errno));
 #endif
 		}else if(local->h_addrtype != AF_INET){
@@ -72,10 +71,10 @@ sys_socket_t UDP_Init()
 				if(i < com_argc - 1){
 					myAddr = inet_addr(com_argv[i + 1]);
 					if(myAddr == INADDR_NONE)
-						Sys_Error ("%s is not a valid IP address", com_argv[i + 1]);
+		Sys_Error("%s is not a valid IP address", com_argv[i + 1]);
 					strcpy(my_tcpip_address, com_argv[i+1]);
 				}else{
-					Sys_Error ("NET_Init: you must specify an IP address after -ip");
+		Sys_Error("NET_Init: you must specify an IP address after -ip");
 				}
 			}else myAddr = *(in_addr_t*)local->h_addr_list[0];
 		}
@@ -205,7 +204,7 @@ sys_socket_t UDP_CheckNewConnections()
 	s32 available;
 	if(ioctlsocket(net_acceptsocket, FIONREAD, (u_long *)&available) == -1){
 		s32 err = SOCKETERRNO;
-		Sys_Error("UDP: ioctlsocket (FIONREAD) failed (%s)",
+		Sys_Error("UDP: ioctlsocket(FIONREAD) failed(%s)",
 			  socketerror(err));
 	}
 	if(available)

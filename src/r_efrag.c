@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
 static efrag_t **lastlink;
@@ -27,10 +27,10 @@ void R_RemoveEfrags(entity_t *ent)
 	ent->efrag = NULL;
 }
 
-static efrag_t *R_GetEfrag () // based on RMQEngine
+static efrag_t *R_GetEfrag() // based on RMQEngine
 {
 	// we could just Hunk_Alloc a single efrag_t and return it, but since
-	// the struct is so small (2 pointers) allocate groups of them
+	// the struct is so small(2 pointers) allocate groups of them
 	// to avoid wasting too much space on the hunk allocation headers.
 	if(cl.free_efrags){
 		efrag_t *ef = cl.free_efrags;
@@ -47,7 +47,7 @@ static efrag_t *R_GetEfrag () // based on RMQEngine
 			cl.free_efrags[i].leafnext = &cl.free_efrags[i + 1];
 		cl.free_efrags[i].leafnext = NULL;
 		// call recursively to get a newly allocated free efrag
-		return R_GetEfrag ();
+		return R_GetEfrag();
 	}
 }
 

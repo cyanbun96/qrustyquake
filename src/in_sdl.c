@@ -150,7 +150,7 @@ void Sys_SendKeyEvents()
 			case SDLK_KP_EQUALS: sym = SDLK_EQUALS; break;
 			}
 			// key reserved for the console, independent of location
-			// on keyboard Located in the top left corner (on both
+			// on keyboard Located in the top left corner(on both
 			// ANSI and ISO keyboards).
 			if(event.key.scancode == SDL_SCANCODE_GRAVE){
 				Key_Event('`', state);

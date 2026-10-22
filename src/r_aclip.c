@@ -1,4 +1,4 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // r_aclip.c: clip routines for drawing Alias models directly to the screen
 #include "quakedef.h"
 
@@ -107,7 +107,7 @@ void R_Alias_clip_bottom(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 }
 
 s32 R_AliasClip(finalvert_t *in, finalvert_t *out, s32 flag, s32 count,
-	void (*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out))
+	void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out))
 {
 	s32 j = count - 1;
 	s32 k = 0;

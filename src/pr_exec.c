@@ -57,7 +57,7 @@ static void PR_PrintStatement(dstatement_t *s)
 	else if((u32)(s->op-OP_STORE_F) < 6){
 		Con_Printf("%s", PR_GlobalString(s->a));
 		Con_Printf("%s", PR_GlobalStringNoContents(s->b));
-	} else {
+	}else{
 		if(s->a) Con_Printf("%s", PR_GlobalString(s->a));
 		if(s->b) Con_Printf("%s", PR_GlobalString(s->b));
 		if(s->c) Con_Printf("%s", PR_GlobalStringNoContents(s->c));
@@ -75,7 +75,7 @@ static void PR_StackTrace()
 	qcvm->stack[qcvm->depth].f = qcvm->xfunction;
 	for(s32 i = qcvm->depth; i >= 0; i--){
 		f = qcvm->stack[i].f;
-		if (!f)
+		if(!f)
 			Con_Printf("<NO FUNCTION>\n");
 		else
 			Con_Printf("%12s : %s\n", PR_GetString(f->s_file),

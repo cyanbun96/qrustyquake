@@ -1,5 +1,5 @@
-// Copyright (C) 1996-2001 Id Software, Inc.
-// Copyright (C) 2010-2014 QuakeSpasm developers
+// Copyright(C) 1996-2001 Id Software, Inc.
+// Copyright(C) 2010-2014 QuakeSpasm developers
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
@@ -56,7 +56,7 @@ static void NET_Ban_f()
 {
 	if(cmd_source == src_command){
 		if(!sv.active){
-			Cmd_ForwardToServer ();
+			Cmd_ForwardToServer();
 			return;
 		}
 	}else if(pr_global_struct->deathmatch)
@@ -360,7 +360,7 @@ static void NET_Stats_f()
 }
 
 static const c8 *Strip_Port(const c8 *host)
-{ // recognize ip:port (based on ProQuake)
+{ // recognize ip:port(based on ProQuake)
 	static c8 noport[MAX_QPATH]; // array size as in Host_Connect_f()
 	if(!host || !*host)
 		return host;
@@ -615,7 +615,7 @@ void Datagram_Shutdown()
 	}
 }
 
-void Datagram_Close(qsocket_t *sock) { sfunc.Close_Socket(sock->socket); }
+void Datagram_Close(qsocket_t *sock){ sfunc.Close_Socket(sock->socket); }
 
 void Datagram_Listen(bool state)
 {
@@ -786,8 +786,8 @@ static qsocket_t *_Datagram_CheckNewConnections()
 				SZ_Clear(&net_message);
 				return NULL;
 			}
-			// it's somebody coming back in from a crash/disconnect
-			// so close the old qsocket and let their retry get them back in
+		// it's somebody coming back in from a crash/disconnect so close
+		// the old qsocket and let their retry get them back in
 			NET_Close(s);
 			return NULL;
 		}
@@ -824,7 +824,7 @@ static qsocket_t *_Datagram_CheckNewConnections()
 	sock->landriver = net_landriverlevel;
 	sock->addr = clientaddr;
 	strcpy(sock->address, dfunc.AddrToString(&clientaddr));
-	// send him back the info about the server connection he has been allocated
+// send him back the info about the server connection he has been allocated
 	SZ_Clear(&net_message);
 	// save space for the header, filled in later
 	MSG_WriteLong(&net_message, 0);
