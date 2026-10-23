@@ -10,7 +10,7 @@
 #define RESTRICT __restrict
 #endif
 #ifndef M_PI
-#define M_PI 3.14159265358979323846//ISO C99 Standard: 7.12 Mathematics <math.h>
+#define M_PI SDL_PI_D
 #endif
 #define q_min(a, b) (((a) < (b)) ? (a) : (b)) // common.h
 #define q_max(a, b) (((a) > (b)) ? (a) : (b))
