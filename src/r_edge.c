@@ -252,7 +252,7 @@ void R_LeadingEdge(edge_t *edge)
 		//active is in front, so keep going unless it's a bmodel
 			if(surf->insubmodel && (surf->key == surf2->key)){
 			// must be two bmodels in the same leaf; sort on 1/z
-				f64 fu = (f32)(edge->u-0xFFFFF) * (1.0/0x100000);
+				f64 fu = (f32)(edge->u-0xFFFFF)*(1.0/0x100000);
 				f64 newzi = surf->d_ziorigin +
 					fv*surf->d_zistepv + fu*surf->d_zistepu;
 				f64 newzibottom = newzi * 0.99;

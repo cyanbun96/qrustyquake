@@ -176,7 +176,8 @@ void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale);
 void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s);
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale);
 void Draw_TransPicTranslateScaled(s32 x, s32 y, qpic_t *p, u8 *tl, s32 scale);
-void Draw_Pic_Ex(f32 *pos,f32 *sz,qpic_t *pic,f32 *srcpos,f32 *srcsz,f32 *color,f32 alpha);
+void Draw_Pic_Ex(f32 *pos, f32 *sz, qpic_t *pic, f32 *srcpos, f32 *srcsz,
+		f32 *color, f32 alpha);
 void Draw_ConsoleBackground(s32 lines);
 void Draw_TileClear(s32 x, s32 y, s32 w, s32 h);
 void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c);
@@ -300,7 +301,8 @@ void SV_UnlinkEdict(edict_t *ent);
 void SV_LinkEdict(edict_t *ent, bool touch_triggers);
 s32 SV_PointContents(vec3_t p);
 edict_t *SV_TestEntityPosition(edict_t *ent);
-trace_t SV_Move(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, s32 type, edict_t *passedict);
+trace_t SV_Move(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, s32 type,
+		edict_t *passedict);
 EX f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                       // d_local.h
 EX f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;
 EX f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
@@ -320,7 +322,7 @@ void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface);
 s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 s32 D_Dither(u8 *pos, f32 opacity);
-EX s32 default_net_hostport;                                             // net.h
+EX s32 default_net_hostport;                                            // net.h
 EX s32 net_hostport;
 EX f64 net_time;
 EX sizebuf_t net_message;
@@ -405,7 +407,8 @@ void Cbuf_AddText(const c8 *text);
 void Cbuf_AddTextLen (const c8 *text, s32 l);
 void Cbuf_InsertText(c8 *text);
 void Cbuf_Execute();
-cmd_function_t *Cmd_AddCommand2 (const c8 *cmd_name, xcommand_t function, cmd_source_t srctype, bool qcinterceptable);
+cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
+		cmd_source_t srctype, bool qcinterceptable);
 bool Cmd_Exists(const c8 *cmd_name);
 bool Cmd_AliasExists (const c8 *aliasname);
 s32 Cmd_ListCompletions(const c8 *text);
@@ -417,7 +420,8 @@ bool Cmd_ExecuteString(const c8 *text, cmd_source_t src);
 void Cmd_ForwardToServer();
 void S_Init();                                                      // q_sound.h
 void S_Shutdown();
-void S_StartSound(s32 entnum, s32 entchannel, sfx_t *sfx, vec3_t origin, f32 fvol, f32 attenuation);
+void S_StartSound(s32 entnum, s32 entchannel, sfx_t *sfx, vec3_t origin,
+		f32 fvol, f32 attenuation);
 void S_StaticSound(sfx_t *sfx, vec3_t origin, f32 vol, f32 attenuation);
 void S_StopSound(s32 entnum, s32 entchannel);
 void S_ClearBuffer();
@@ -549,7 +553,8 @@ EX server_static_t svs;                                              // server.h
 EX server_t sv;
 void SV_Init();
 void SV_StartParticle(vec3_t org, vec3_t dir, s32 color, s32 count);
-void SV_StartSound(edict_t *entity, s32 channel, const c8 *sample, s32 volume, f32 attenuation);
+void SV_StartSound(edict_t *entity, s32 channel, const c8 *sample, s32 volume,
+		f32 attenuation);
 void SV_LocalSound(client_t *client, const c8 *sample);
 void SV_DropClient(bool crash);
 void SV_SendClientMessages();
@@ -570,7 +575,8 @@ void SV_RunClients();
 void SV_SaveSpawnparms();
 void SV_SpawnServer(c8 *server);
 void Cvar_RegisterVariable(cvar_t *variable);
-bool SV_RecursiveHullCheck(hull_t *hull, s32 num, f32 p1f, f32 p2f, vec3_t p1, vec3_t p2, trace_t *trace);
+bool SV_RecursiveHullCheck(hull_t *hull, s32 num, f32 p1f, f32 p2f, vec3_t p1,
+		vec3_t p2, trace_t *trace);
 void Chase_Init();
 void Chase_Update();
 void CL_AdjustAngles();                                            // cl_input.c
@@ -649,7 +655,8 @@ c8 *va(const c8 *format, ...);
 bool LOC_Init();
 const c8* LOC_GetString(const c8 *key);
 bool LOC_HasPlaceholders(const c8 *str);
-size_t LOC_Format(const c8*format,const c8*(*getarg_fn)(s32 idx,void*userdata),void*userdata,c8*out,size_t len);
+size_t LOC_Format(const c8*format,const c8*(*getarg_fn)(s32 idx,void*userdata),
+		void*userdata,c8*out,size_t len);
 EX s32 com_filesize;
 EX c8 com_basedir[MAX_OSPATH];
 EX c8 com_gamedir[MAX_OSPATH];

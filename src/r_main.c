@@ -45,7 +45,7 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 		t2[2] = NEAR_CLIP;
 	}
 	// 3D Frustum Boundary Clipping Math
-	// We dynamically derive the 4 frustum planes from the projection matrix.
+	// We dynamically derive the 4 frustum planes from the projection matrix
 	// A point is inside the screen if its calculated distance is >= 0.
 	f32 w = vid.width;
 	f32 h = vid.height;

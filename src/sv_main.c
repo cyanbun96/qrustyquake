@@ -669,7 +669,7 @@ void SV_UpdateToReliableMessages()
 			for(s32 j = 0; j < svs.maxclients; j++, client++){
 				if(!client->active)
 					continue;
-				MSG_WriteByte(&client->message, svc_updatefrags);
+				MSG_WriteByte(&client->message,svc_updatefrags);
 				MSG_WriteByte(&client->message, i);
 				MSG_WriteShort(&client->message,
 						host_client->edict->v.frags);
@@ -1014,7 +1014,7 @@ void SV_SpawnServer(c8 *server)
 	SV_Physics();
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
-	//johnfitz -- warn if signon buffer larger than standard server can handle
+	//johnfitz--warn if signon buffer larger than standard server can handle
 	for(i = 0, signonsize = 0; i < sv.num_signon_buffers; i++)
 		signonsize += sv.signon_buffers[i]->cursize;
 	if(signonsize > 64000-2)

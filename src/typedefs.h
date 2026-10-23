@@ -272,7 +272,7 @@ typedef struct entity_s {                                            // render.h
 	f32 traildelay; // time left until next particle trail update
 	vec3_t trailorg; // previous particle trail point
 } entity_t;
-typedef struct {//johnfitz -- struct for passing lerp information to drawing functions
+typedef struct {//johnfitz -- for passing lerp information to drawing functions
         s32 pose1;
         s32 pose2;
         f32 blend;
@@ -428,7 +428,7 @@ typedef struct {
 	intptr_t meshdesc; // offset into extradata: numverts_vbo aliasmesh_t
 	s32 numindexes;
 	intptr_t indexes; // offset into extradata: numindexes unsigned shorts
-	intptr_t vertexes; // offset into extradata: numposes*vertsperframe trivertx_t
+	intptr_t vertexes;//offs in extradata: numposes*vertsperframe trivertx_t
 	s32 numposes;
 	s32 poseverts;
 	s32 posedata; // numposes*poseverts trivert_t
@@ -459,7 +459,7 @@ typedef struct model_s {
 	s32 flags;
 	vec3_t mins, maxs; // volume occupied by the model graphics
 	vec3_t ymins, ymaxs; //johnfitz -- bounds for entities with nonzero yaw
-	vec3_t rmins, rmaxs; //johnfitz -- bounds for entities with nonzero pitch or roll
+	vec3_t rmins, rmaxs; //johnfitz -- same for pitch or roll
 	bool clipbox; // solid volume for clipping
 	vec3_t clipmins, clipmaxs;
 	s32 firstmodelsurface, nummodelsurfaces; // brush model
@@ -574,7 +574,9 @@ typedef struct {
 } affinetridesc_t;
 typedef struct {
 	s32 nump;
-	emitpoint_t *pverts; // there's room for an extra element at [nump], if the driver wants to duplicate element [0] at element [nump] to avoid dealing with wrapping
+	emitpoint_t *pverts; // there's room for an extra element at [nump],
+	// if the driver wants to duplicate element [0] at element [nump] to
+	// avoid dealing with wrapping
 	mspriteframe_t *pspriteframe;
 	vec3_t vup, vright, vpn; // in worldspace
 	f32 nearzi;
@@ -594,7 +596,7 @@ typedef struct {
 typedef enum {key_game, key_console, key_message, key_menu} keydest_t; // keys.h
 typedef struct { c8 *name; s32 keynum; } keyname_t;
 
-#ifndef SDL_PLATFORM_WINDOWS                                                      // net_sys.h
+#ifndef SDL_PLATFORM_WINDOWS                                        // net_sys.h
 typedef s32 sys_socket_t;
 #else
 typedef u_long in_addr_t;
@@ -640,8 +642,10 @@ typedef struct {
 	s32 (*Close_Socket) (sys_socket_t socketid);
 	s32 (*Connect) (sys_socket_t socketid, struct qsockaddr *addr);
 	sys_socket_t (*CheckNewConnections) ();
-	s32 (*Read) (sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr);
-	s32 (*Write) (sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr);
+	s32 (*Read) (sys_socket_t socketid, u8 *buf, s32 len,
+			struct qsockaddr *addr);
+	s32 (*Write) (sys_socket_t socketid, u8 *buf, s32 len,
+			struct qsockaddr *addr);
 	s32 (*Broadcast) (sys_socket_t socketid, u8 *buf, s32 len);
 	const c8 * (*AddrToString) (struct qsockaddr *addr);
 	s32 (*StringToAddr) (const c8 *string, struct qsockaddr *addr);
@@ -1005,15 +1009,14 @@ typedef struct {
 } channel_t;
 
 struct pr_extfuncs_s {                                             // pr_edict.c
-/*ssqc*/
 #define QCEXTFUNCS_SV \
-	QCEXTFUNC(SV_ParseClientCommand, "void(string cmd)") \
-/*csqc*/
+QCEXTFUNC(SV_ParseClientCommand, "void(string cmd)") \
+
 #define QCEXTFUNCS_CS \
-	QCEXTFUNC(CSQC_Init, "void(float apilevel, string enginename, float engineversion)") \
-	QCEXTFUNC(CSQC_Shutdown, "void()") \
-	QCEXTFUNC(CSQC_DrawHud, "void(vector virtsize, float showscores)") /*simple: for the simple(+limited) hud-only csqc interface.*/ \
-	QCEXTFUNC(CSQC_DrawScores, "void(vector virtsize, float showscores)") /*simple: (optional) for the simple hud-only csqc interface.*/ \
+QCEXTFUNC(CSQC_Init,"void(f32 apilevel, string enginename, f32 engineversion)")\
+QCEXTFUNC(CSQC_Shutdown, "void()") \
+QCEXTFUNC(CSQC_DrawHud, "void(vector virtsize, f32 showscores)") \
+QCEXTFUNC(CSQC_DrawScores, "void(vector virtsize, f32 showscores)") \
 
 #define QCEXTFUNC(n,t) func_t n;
 	QCEXTFUNCS_SV
@@ -1041,7 +1044,8 @@ struct pr_extglobals_s {
 #undef QCEXTGLOBAL_INT
 #undef QCEXTGLOBAL_VECTOR
 };
-struct pr_extfields_s { //various fields that might be wanted by the engine. -1 == invalid
+//various fields that might be wanted by the engine. -1 == invalid
+struct pr_extfields_s {
 #define QCEXTFIELDS_ALL \
 	/*renderscene means we need a number of fields here*/ \
 	QCEXTFIELD(alpha, ".float") \
@@ -1118,7 +1122,8 @@ typedef struct qcvm_s
 	f32 *globals; // same as pr_global_struct
 	ddef_t *fielddefs; //yay reflection.
 	s32 edict_size; // in bytes
-	s32 effects_mask; // only enable 2021 rerelease quad/penta dlights when applicable
+	// only enable 2021 rerelease quad/penta dlights when applicable
+	s32 effects_mask;
 	builtin_t builtins[MAX_BUILTINS];
 	s32 numbuiltins;
 	s32 argc;
@@ -1145,7 +1150,7 @@ typedef struct qcvm_s
 	prhashtable_t ht_fields;
 	prhashtable_t ht_functions;
 	prhashtable_t ht_globals;
-	//originally defined in pr_exec, but moved into the switchable qcvm struct
+//originally defined in pr_exec, but moved into the switchable qcvm struct
 	prstack_t stack[MAX_STACK_DEPTH];
 	s32 depth;
 	s32 localstack[LOCALSTACK_SIZE];
