@@ -486,10 +486,7 @@ static void R_FlushSpans(espan_t *basespan_p)
 
 void R_ScanEdges()
 {
-	// Aligned to the cache size. Static because it is ~800KB, too much to
-	// keep on the stack(and it lets MAXSPANS be raised safely); this
-	// function is not reentrant anyway.
-	static _Alignas(CACHE_SIZE) u8 basespans[MAXSPANS * sizeof(espan_t)];
+	static u8 basespans[MAXSPANS * sizeof(espan_t)];
 	espan_t *basespan_p = (espan_t *) basespans;
 	R_CutoutBeginFrame();
 	// Leave room for one full scanline of spans: at most one per pixel for
