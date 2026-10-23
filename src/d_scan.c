@@ -1,73 +1,72 @@
-// Copyright (C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
+// Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 // d_scan.c: Portable C scan-level rasterization code
-// Water can be: 
-// 	unlit/lit
-// 	unfiltered/filtered (dithered texture)
-// 	opaque/mixed/dithered (transparency)
-// 	classic/HL-style
-// Any one of those can be toggled, and all combinations have separate drawing
-// functions.
 #include "quakedef.h"
 
+typedef struct {
+	u8 *pdest;
+	s16 *zp;
+	s32 iz;
+	s32 s, t;
+	s32 sstep, tstep;
+	s32 count;
+} turbchunk_t;
+typedef struct {
+	s32 shift;
+	s32 count;
+	s32 len;
+	f32 sdivz, tdivz, zi;
+	f32 sdivz_chunk, tdivz_chunk, zi_chunk;
+	s32 s, t;
+	s32 snext, tnext;
+	s32 sstep, tstep;
+} spanwalk_t;
+typedef struct {
+	const u8 *pbase;
+	s32 width;
+	s32 s, t;
+	s32 sstep, tstep;
+	s32 s_max, t_max;
+	s32 x, y;
+	s32 count;
+} texcursor_t;
+
+Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit,s32 hl);
+typedef void(*turbspanfunc_t)(turbchunk_t *);
 #define DIST_LUT_SIZE 1024
 #define COS_LUT_SIZE 2048
+enum { TURBTRANS_OPAQUE, TURBTRANS_MIXED, TURBTRANS_DITHERED };
+#define TURBFUNC_FILTERED 3
+#define TURBFUNC_LIT 6
+#define TURBFUNC_HL 12
 
-static void D_DrawTurbulentSpan();
-static void D_DrawTurbulentSpanMixed();
-static void D_DrawTurbulentSpanDithered();
-static void D_DrawTurbulentSpanFiltered();
-static void D_DrawTurbulentSpanFilteredMixed();
-static void D_DrawTurbulentSpanFilteredDithered();
-static void D_DrawTurbulentSpanLit();
-static void D_DrawTurbulentSpanLitMixed();
-static void D_DrawTurbulentSpanLitDithered();
-static void D_DrawTurbulentSpanLitFiltered();
-static void D_DrawTurbulentSpanLitFilteredMixed();
-static void D_DrawTurbulentSpanLitFilteredDithered();
-static void D_DrawTurbulentSpanHL();
-static void D_DrawTurbulentSpanMixedHL();
-static void D_DrawTurbulentSpanDitheredHL();
-static void D_DrawTurbulentSpanFilteredHL();
-static void D_DrawTurbulentSpanFilteredMixedHL();
-static void D_DrawTurbulentSpanFilteredDitheredHL();
-static void D_DrawTurbulentSpanLitHL();
-static void D_DrawTurbulentSpanLitMixedHL();
-static void D_DrawTurbulentSpanLitDitheredHL();
-static void D_DrawTurbulentSpanLitFilteredHL();
-static void D_DrawTurbulentSpanLitFilteredMixedHL();
-static void D_DrawTurbulentSpanLitFilteredDitheredHL();
+#define TURBFUNC_INDEX(trans, filtered, lit, hl) \
+((trans)+TURBFUNC_FILTERED*(filtered)+TURBFUNC_LIT*(lit)+TURBFUNC_HL*(hl))
 
-static void (*turbdrawfunc[24])() = {
-D_DrawTurbulentSpan,
-D_DrawTurbulentSpanMixed,
-D_DrawTurbulentSpanDithered,
-D_DrawTurbulentSpanFiltered,
-D_DrawTurbulentSpanFilteredMixed,
-D_DrawTurbulentSpanFilteredDithered,
-D_DrawTurbulentSpanLit,
-D_DrawTurbulentSpanLitMixed,
-D_DrawTurbulentSpanLitDithered,
-D_DrawTurbulentSpanLitFiltered,
-D_DrawTurbulentSpanLitFilteredMixed,
-D_DrawTurbulentSpanLitFilteredDithered,
-D_DrawTurbulentSpanHL,
-D_DrawTurbulentSpanMixedHL,
-D_DrawTurbulentSpanDitheredHL,
-D_DrawTurbulentSpanFilteredHL,
-D_DrawTurbulentSpanFilteredMixedHL,
-D_DrawTurbulentSpanFilteredDitheredHL,
-D_DrawTurbulentSpanLitHL,
-D_DrawTurbulentSpanLitMixedHL,
-D_DrawTurbulentSpanLitDitheredHL,
-D_DrawTurbulentSpanLitFilteredHL,
-D_DrawTurbulentSpanLitFilteredMixedHL,
-D_DrawTurbulentSpanLitFilteredDitheredHL,
-};
+#define TURB_VARIANTS(X) \
+	X(OPAQUE, 0, 0, 0) X(MIXED, 0, 0, 0) X(DITHERED, 0, 0, 0) \
+	X(OPAQUE, 1, 0, 0) X(MIXED, 1, 0, 0) X(DITHERED, 1, 0, 0) \
+	X(OPAQUE, 0, 1, 0) X(MIXED, 0, 1, 0) X(DITHERED, 0, 1, 0) \
+	X(OPAQUE, 1, 1, 0) X(MIXED, 1, 1, 0) X(DITHERED, 1, 1, 0) \
+	X(OPAQUE, 0, 0, 1) X(MIXED, 0, 0, 1) X(DITHERED, 0, 0, 1) \
+	X(OPAQUE, 1, 0, 1) X(MIXED, 1, 0, 1) X(DITHERED, 1, 0, 1) \
+	X(OPAQUE, 0, 1, 1) X(MIXED, 0, 1, 1) X(DITHERED, 0, 1, 1) \
+	X(OPAQUE, 1, 1, 1) X(MIXED, 1, 1, 1) X(DITHERED, 1, 1, 1)
 
-static u8 *r_turb_pbase, *r_turb_pdest;
-static s32 r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
+#define TURB_DEFINE_CHUNKFUNC(tr, filtered, lit, hl) \
+	Q_SIL void D_TurbChunk_##tr##_##filtered##_##lit##_##hl(turbchunk_t *c)\
+{ D_TurbChunk(c, TURBTRANS_##tr, filtered, lit, hl); }
+
+TURB_VARIANTS(TURB_DEFINE_CHUNKFUNC)
+
+#define TURB_TABLE_ENTRY(tr, filtered, lit, hl) \
+		[TURBFUNC_INDEX(TURBTRANS_##tr, filtered, lit, hl)] = \
+	D_TurbChunk_##tr##_##filtered##_##lit##_##hl,
+	static turbspanfunc_t turbdrawfunc[24] = {
+		TURB_VARIANTS(TURB_TABLE_ENTRY)
+	};
+
+static u8 *r_turb_pbase;
 static s32 *r_turb_turb;
-static s32 r_turb_spancount;
 static s16 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
 static u8 cutoutbuf[MAXHEIGHT*MAXWIDTH];
@@ -77,10 +76,6 @@ static f32 dist_lut_max = 8.0f; // max dx*dx + dy*dy
 static f32 cos_lut_period = 2.0f * M_PI;
 static s32 HLWaterLutInited = 0;
 static f32 turb_opacity = 0;
-static s32 flt_y = 0;
-static s32 flt_x = 0;
-static s32 flt_start_x = 0;
-static s32 flt_cur_x = 0;
 
 void D_WarpScreen() // this performs a slight compression of the screen at the
 { // same time as the sine warp, to keep the edges from wrapping
@@ -90,17 +85,18 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 	f32 hratio = h / (f32)scr_vrect.height;
 	u8 *rowptr[MAXHEIGHT + (TURB_AMP2 * 2)];
 	s32 column[MAXWIDTH + (TURB_AMP2 * 2)];
-	for (s32 v = 0; v < scr_vrect.height + TURB_AMP2 * 2; v++)
+	for(s32 v = 0; v < scr_vrect.height + TURB_AMP2 * 2; v++)
 		rowptr[v] = d_viewbuffer + (r_refdef.vrect.y * screenwidth) +
-		    screenwidth * (s32)((f32)v * hratio * h / (h + TURB_AMP2 * 2));
-	for (s32 u = 0; u < scr_vrect.width + TURB_AMP2 * 2; u++)
-		column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w / (w + TURB_AMP2 * 2));
-	s32 *turb = intsintable + ((s32)(cl.time * TURB_SPEED) & (TURB_CYCLE - 1));
+		screenwidth * (s32)((f32)v * hratio * h / (h + TURB_AMP2 * 2));
+	for(s32 u = 0; u < scr_vrect.width + TURB_AMP2 * 2; u++)
+		column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w /
+				(w + TURB_AMP2 * 2));
+	s32 *turb = intsintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
 	u8 *dest = vid.buffer + scr_vrect.y * vid.width + scr_vrect.x;
-	for (s32 v = 0; v < scr_vrect.height; v++, dest += vid.width) {
+	for(s32 v = 0; v < scr_vrect.height; v++, dest += vid.width){
 		s32 *col = &column[turb[v]];
 		u8 **row = &rowptr[v];
-		for (s32 u = 0; u < scr_vrect.width; u += 4) {
+		for(s32 u = 0; u < scr_vrect.width; u += 4){
 			dest[u + 0] = row[turb[u + 0]][col[u + 0]];
 			dest[u + 1] = row[turb[u + 1]][col[u + 1]];
 			dest[u + 2] = row[turb[u + 2]][col[u + 2]];
@@ -109,31 +105,31 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 	}
 }
 
-static inline f32 fast_sqrt_dist(f32 x)
-{ // x in [0, 8]
-    f32 f = x * (f32)(DIST_LUT_SIZE - 1) / dist_lut_max;
-    s32 i = (s32)f;
-    if (i < 0) i = 0;
-    if (i >= DIST_LUT_SIZE - 1) i = DIST_LUT_SIZE - 1;
-    return dist_lut[i];
+Q_SIL f32 fast_sqrt_dist(f32 x)
+{
+	f32 f = x * (f32)(DIST_LUT_SIZE - 1) / dist_lut_max;
+	s32 i = (s32)f;
+	if(i < 0) i = 0;
+	if(i >= DIST_LUT_SIZE - 1) i = DIST_LUT_SIZE - 1;
+	return dist_lut[i];
 }
 
-static inline f32 fast_cos(f32 theta)
-{ // wrap manually
-    f32 n = theta * (f32)COS_LUT_SIZE / cos_lut_period;
-    s32 i = (s32)n;
-    i &= (COS_LUT_SIZE - 1); // requires power of two table
-    return cos_lut[i];
+Q_SIL f32 fast_cos(f32 theta)
+{
+	f32 n = theta * (f32)COS_LUT_SIZE / cos_lut_period;
+	s32 i = (s32)n;
+	i &= (COS_LUT_SIZE - 1);
+	return cos_lut[i];
 }
 
 static void InitHLWaterLUT()
 {
 	if(HLWaterLutInited) return;
-	for (s32 i = 0; i < DIST_LUT_SIZE; i++) { // sqrt LUT for x in [0, 8]
+	for(s32 i = 0; i < DIST_LUT_SIZE; i++){
 		f32 x = (f32)i * (dist_lut_max / (DIST_LUT_SIZE - 1));
 		dist_lut[i] = sqrtf(x);
 	}
-	for (s32 i = 0; i < COS_LUT_SIZE; i++) { // cos LUT for θ in [0, 2π]
+	for(s32 i = 0; i < COS_LUT_SIZE; i++){
 		f32 t = (f32)i * (cos_lut_period / COS_LUT_SIZE);
 		cos_lut[i] = cosf(t);
 	}
@@ -141,7 +137,7 @@ static void InitHLWaterLUT()
 }
 
 static void HLWarp(f32 *u, f32 *v, f32 time)
-{ // classic warp cos(y), cos(x)
+{
 	f32 x = *u;
 	f32 y = *v;
 	f32 waveSize = (1.0f / 4.0f) * r_hlwavescale.value;
@@ -156,16 +152,16 @@ static void HLWarp(f32 *u, f32 *v, f32 time)
 }
 
 static void HLSingleRipple(f32 *outx, f32 *outy, f32 u, f32 v, f32 px, f32 py,
-				f32 size, f32 freq, f32 strength, f32 t)
-{ // Ripple helper
-	f32 dx = u - px; // [-2, 2]
-	f32 dy = v - py; // [-2, 2]
-	f32 r2 = dx*dx + dy*dy; // [0, 8]
+		f32 size, f32 freq, f32 strength, f32 t)
+{
+	f32 dx = u - px;
+	f32 dy = v - py;
+	f32 r2 = dx*dx + dy*dy;
 	f32 dist = fast_sqrt_dist(r2);
 	f32 f = fast_sqrt_dist(dist) * freq - t;
 	f32 wave = fast_cos(f);
 	f32 decay = 1.0f - dist / size;
-	if (decay < 0.0f)
+	if(decay < 0.0f)
 		decay = 0.0f;
 	wave *= decay;
 	*outx += dx * wave * strength;
@@ -173,7 +169,7 @@ static void HLSingleRipple(f32 *outx, f32 *outy, f32 u, f32 v, f32 px, f32 py,
 }
 
 static void HLRipple(f32 *u, f32 *v, f32 time)
-{ // HL three-point ripple, tiled
+{
 	static const f32 px[3] = {0.2f, 0.1f, 0.7f};
 	static const f32 py[3] = {0.8f, 0.2f, 0.5f};
 	static const f32 tile[8][2] = {
@@ -190,12 +186,12 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 	f32 freq = 200.0f;
 	f32 strength = 0.04f * r_hlripplescale.value;
 	f32 t = time * 20.0f;
-	for (s32 i = 0; i < 3; i++) // main tile
+	for(s32 i = 0; i < 3; i++)
 		HLSingleRipple(&ox, &oy, baseu, basev, iu + px[i], iv + py[i],
 				size, freq, strength, t);
-	if (r_hlwaterquality.value)
-	for (s32 ti = 0; ti < 8; ti += 2) // surrounding tiles
-	for (s32 i = 0; i < 3; i++)
+	if(r_hlwaterquality.value)
+		for(s32 ti = 0; ti < 8; ti += 2)
+		for(s32 i = 0; i < 3; i++)
 		HLSingleRipple(&ox, &oy, baseu+tile[ti][0], basev+tile[ti][1],
 				iu+px[i], iv+py[i], size, freq, strength, t);
 
@@ -205,1107 +201,485 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 
 static inline u8 D_TurbMixLit(u8 pix, u8 lit)
 {
-		u8 rp = CURWORLDPAL[pix * 3 + 0];
-		u8 gp = CURWORLDPAL[pix * 3 + 1];
-		u8 bp = CURWORLDPAL[pix * 3 + 2];
-		u8 rl = CURWORLDPAL[lit * 3 + 0];
-		u8 gl = CURWORLDPAL[lit * 3 + 1];
-		u8 bl = CURWORLDPAL[lit * 3 + 2];
-		s32 r = rp * rl / 255;
-		s32 g = gp * gl / 255;
-		s32 b = bp * bl / 255;
-		return lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
+	u8 rp = CURWORLDPAL[pix * 3 + 0];
+	u8 gp = CURWORLDPAL[pix * 3 + 1];
+	u8 bp = CURWORLDPAL[pix * 3 + 2];
+	u8 rl = CURWORLDPAL[lit * 3 + 0];
+	u8 gl = CURWORLDPAL[lit * 3 + 1];
+	u8 bl = CURWORLDPAL[lit * 3 + 2];
+	s32 r = rp * rl / 255;
+	s32 g = gp * gl / 255;
+	s32 b = bp * bl / 255;
+	return lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
 }
 
-static void D_DrawTurbulentSpan()
+static inline s32 D_ClampCoord(s32 v, s32 lo, s32 hi)
+{ if(v > hi) return hi; if(v < lo) return lo; return v; }
+
+Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift)
 {
-	do {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 pix = *(r_turb_pbase + (t << 6) + s);
-		*r_turb_pdest++ = pix;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+	f32 du = (f32)pspan->u;
+	f32 dv = (f32)pspan->v;
+	w->shift = shift;
+	w->count = pspan->count;
+	w->len = 0;
+	w->sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
+	w->tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
+	w->zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
+	w->sdivz_chunk = d_sdivzstepu * (1 << shift);
+	w->tdivz_chunk = d_tdivzstepu * (1 << shift);
+	w->zi_chunk = d_zistepu * (1 << shift);
+	f32 z = (f32)0x10000 / w->zi;
+	w->s = D_ClampCoord((s32)(w->sdivz * z) + sadjust, 0, bbextents);
+	w->t = D_ClampCoord((s32)(w->tdivz * z) + tadjust, 0, bbextentt);
+	w->snext = w->s;
+	w->tnext = w->t;
+	w->sstep = 0;
+	w->tstep = 0;
 }
 
-static void D_DrawTurbulentSpanLit()
+Q_SIL void D_SpanWalkEvalEnd(spanwalk_t *w)
 {
-	do {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 pix = *(r_turb_pbase + (t << 6) + s);
-		s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-		*r_turb_pdest++ = D_TurbMixLit(pix, lit);
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+	s32 lo = 1 << w->shift;
+	f32 z = (f32)0x10000 / w->zi;
+	w->snext = D_ClampCoord((s32)(w->sdivz * z) + sadjust, lo, bbextents);
+	w->tnext = D_ClampCoord((s32)(w->tdivz * z) + tadjust, lo, bbextentt);
 }
 
-static void D_DrawTurbulentSpanFiltered()
+Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
 {
-	do {
-		s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-		s32 s_d = r_turb_s + dither_s[dither_idx];
-		s32 t_d = r_turb_t + dither_t[dither_idx];
-		s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 pix = *(r_turb_pbase + (t << 6) + s);
-		*r_turb_pdest++ = pix;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanLitFiltered()
-{
-	do {
-		s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-		s32 s_d = r_turb_s + dither_s[dither_idx];
-		s32 t_d = r_turb_t + dither_t[dither_idx];
-		s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 pix = *(r_turb_pbase + (t << 6) + s);
-		s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-		*r_turb_pdest++ = D_TurbMixLit(pix, lit);
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanMixed()
-{
-	do {
-		if (*pz <= (izi >> 16)) {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
-			*r_turb_pdest = color_mix_lut[*(r_turb_pbase+(t<<6)+s)]
-			    [*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
+	w->len = w->count;
+	if(w->len >= (1 << w->shift))
+		w->len = 1 << w->shift;
+	w->count -= w->len;
+	w->sstep = 0;
+	w->tstep = 0;
+	if(w->count){
+		w->sdivz += w->sdivz_chunk;
+		w->tdivz += w->tdivz_chunk;
+		w->zi += w->zi_chunk;
+		D_SpanWalkEvalEnd(w);
+		w->sstep = (w->snext - w->s) >> w->shift;
+		w->tstep = (w->tnext - w->t) >> w->shift;
+	}else{
+		f32 lastpixel = (f32)(w->len - 1);
+		w->sdivz += d_sdivzstepu * lastpixel;
+		w->tdivz += d_tdivzstepu * lastpixel;
+		w->zi += d_zistepu * lastpixel;
+		D_SpanWalkEvalEnd(w);
+		if(w->len > 1){
+			w->sstep = (w->snext - w->s) / (w->len - 1);
+			w->tstep = (w->tnext - w->t) / (w->len - 1);
 		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+	}
 }
 
-static void D_DrawTurbulentSpanLitMixed()
+Q_SIL void D_SpanWalkEndChunk(spanwalk_t *w)
+{ w->s = w->snext; w->t = w->tnext; }
+
+Q_SIL void D_SpanDepthSetup()
+{ izistep = (s32)(d_zistepu * 0x8000 * 0x10000); }
+
+Q_SIL s16 *D_SpanDepthPtr(const espan_t *pspan)
+{ return d_pzbuffer + (d_zwidth * pspan->v) + pspan->u; }
+
+Q_SIL s32 D_SpanDepthStart(f32 zi)
+{ return (s32)(zi * 0x8000 * 0x10000); }
+
+Q_SIL void D_SpanDepthBegin(const espan_t *pspan, f32 zi)
+{ pz = D_SpanDepthPtr(pspan); izi = D_SpanDepthStart(zi); }
+
+Q_SIL s32 D_SpanDepthPass()
+{ return *pz <= (izi >> 16); }
+
+Q_SIL void D_SpanDepthStep()
+{ izi += izistep; pz++; }
+
+Q_SIL s32 D_DitherIndex(s32 x, s32 y)
+{ return(x & 1) + ((y & 1) << 1); }
+
+Q_SIL void D_PixelScreenPos(const u8 *pdest, s32 *x, s32 *y)
 {
-	do {
-		if (*pz <= (izi >> 16)) {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 pix = *(r_turb_pbase + (t << 6) + s);
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			pix = D_TurbMixLit(pix, lit);
-			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
-					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+	s32 pixel_index = (s32)(pdest - (u8 *)screen->pixels);
+	*y = pixel_index / scr_vrect.width;
+	*x = pixel_index - *y * scr_vrect.width;
 }
 
-static void D_DrawTurbulentSpanFilteredMixed()
+Q_SIL u8 D_TurbSample(const u8 *pbase, const s32 *turb, f32 time,
+		s32 s, s32 t, s32 x, s32 y, s32 filtered, s32 hl)
 {
-	do {
-		if (*pz <= (izi >> 16)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			*r_turb_pdest = color_mix_lut[*(r_turb_pbase+(t<<6)+s)]
-			[*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanLitFilteredMixed()
-{
-	do {
-		if (*pz <= (izi >> 16)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 pix = *(r_turb_pbase + (t << 6) + s);
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			pix = D_TurbMixLit(pix, lit);
-			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
-					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanDithered()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
-				*r_turb_pdest = *(r_turb_pbase + (t << 6) + s);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanLitDithered()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
-		s32 s=((r_turb_s+r_turb_turb[(r_turb_t>>16)&(TURB_CYCLE-1)])>>16)&63;
-		s32 t=((r_turb_t+r_turb_turb[(r_turb_s>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 pix = *(r_turb_pbase + (t << 6) + s);
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			*r_turb_pdest = D_TurbMixLit(pix, lit);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanFilteredDithered()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-				*r_turb_pdest = *(r_turb_pbase + (t << 6) + s);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanLitFilteredDithered()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			s32 s = ((s_d+r_turb_turb[(t_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 t = ((t_d+r_turb_turb[(s_d>>16)&(TURB_CYCLE-1)])>>16)&63;
-			s32 pix = *(r_turb_pbase + (t << 6) + s);
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			*r_turb_pdest = D_TurbMixLit(pix, lit);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanHL()
-{
-	do {
-		f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-		f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-		HLWarp(&u, &v, cl.time);
-		HLRipple(&u, &v, cl.time);
+	if(filtered){
+		s32 dither_idx = D_DitherIndex(x, y);
+		s += dither_s[dither_idx];
+		t += dither_t[dither_idx];
+	}
+	if(hl){
+		f32 u = (f32)((s >> 16) & 63) * (1.0f/64.0f);
+		f32 v = (f32)((t >> 16) & 63) * (1.0f/64.0f);
+		HLWarp(&u, &v, time);
+		HLRipple(&u, &v, time);
 		s32 su = ((s32)(u * 64.0f)) & 63;
 		s32 tv = ((s32)(v * 64.0f)) & 63;
-		*r_turb_pdest++ = r_turb_pbase[(tv << 6) + su];
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+		return *(pbase + (tv << 6) + su);
+	}
+	s32 sw = ((s + turb[(t>>16)&(TURB_CYCLE-1)]) >> 16) & 63;
+	s32 tw = ((t + turb[(s>>16)&(TURB_CYCLE-1)]) >> 16) & 63;
+	return *(pbase + (tw << 6) + sw);
 }
 
-static void D_DrawTurbulentSpanLitHL()
+Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 {
-	do {
-		f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-		f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-		HLWarp(&u, &v, cl.time);
-		HLRipple(&u, &v, cl.time);
-		s32 su = ((s32)(u * 64.0f)) & 63;
-		s32 tv = ((s32)(v * 64.0f)) & 63;
-		s32 pix = r_turb_pbase[(tv << 6) + su];
-		s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-		*r_turb_pdest++ = D_TurbMixLit(pix, lit);
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanFilteredHL()
-{
-	do {
-		s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-		s32 s_d = r_turb_s + dither_s[dither_idx];
-		s32 t_d = r_turb_t + dither_t[dither_idx];
-		f32 u = (f32)((s_d >> 16) & 63) * (1.0f/64.0f);
-		f32 v = (f32)((t_d >> 16) & 63) * (1.0f/64.0f);
-		HLWarp(&u, &v, cl.time);
-		HLRipple(&u, &v, cl.time);
-		s32 su = ((s32)(u * 64.0f)) & 63;
-		s32 tv = ((s32)(v * 64.0f)) & 63;
-		*r_turb_pdest++ = r_turb_pbase[(tv << 6) + su];
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-
-
-}
-
-static void D_DrawTurbulentSpanLitFilteredHL()
-{
-	do {
-		s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-		s32 s_d = r_turb_s + dither_s[dither_idx];
-		s32 t_d = r_turb_t + dither_t[dither_idx];
-		f32 u = (f32)((s_d >> 16) & 63) * (1.0f/64.0f);
-		f32 v = (f32)((t_d >> 16) & 63) * (1.0f/64.0f);
-		HLWarp(&u, &v, cl.time);
-		HLRipple(&u, &v, cl.time);
-		s32 su = ((s32)(u * 64.0f)) & 63;
-		s32 tv = ((s32)(v * 64.0f)) & 63;
-		s32 pix = r_turb_pbase[(tv << 6) + su];
-		s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-		*r_turb_pdest++ = D_TurbMixLit(pix, lit);
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanMixedHL()
-{
-	do {
-		if (*pz <= (izi >> 16)) {
-			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			*r_turb_pdest =color_mix_lut[*(r_turb_pbase+(tv<<6)+su)]
-			    [*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
+	u8 *pdest = c->pdest;
+	s16 *zp = c->zp;
+	s32 iz = c->iz;
+	s32 s = c->s;
+	s32 t = c->t;
+	s32 count = c->count;
+	s32 x = 0;
+	s32 y = 0;
+	const s32 sstep = c->sstep;
+	const s32 tstep = c->tstep;
+	const s32 izstep = izistep;
+	const u8 *pbase = r_turb_pbase;
+	const s32 *turb = r_turb_turb;
+	const u8 *litbase = (u8 *)litwater_base;
+	const f32 time = cl.time;
+	const f32 ditherthresh = 1 - turb_opacity;
+	const s32 foglut = (trans == TURBTRANS_MIXED) ?
+		(s32)(turb_opacity*FOG_LUT_LEVELS) : 0;
+	if(filtered)
+		D_PixelScreenPos(pdest, &x, &y);
+	do{
+		s32 draw = 1;
+		if(trans != TURBTRANS_OPAQUE){
+			draw = *zp <= (iz >> 16);
+			if(draw && trans == TURBTRANS_DITHERED)
+				draw = D_Dither(pdest, ditherthresh);
 		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+		if(draw){
+			u8 pix = D_TurbSample(pbase, turb, time, s, t, x, y,
+					filtered, hl);
+			if(lit)
+			    pix = D_TurbMixLit(pix,litbase[pdest-d_viewbuffer]);
+			if(trans == TURBTRANS_MIXED)
+				pix = color_mix_lut[pix][*pdest][foglut];
+			*pdest = pix;
+		}
+		pdest++;
+		if(trans != TURBTRANS_OPAQUE){
+			iz += izstep;
+			zp++;
+		}
+		s += sstep;
+		t += tstep;
+		x++;
+	}while(--count > 0);
+	c->pdest = pdest;
+	c->zp = zp;
+	c->iz = iz;
 }
 
-static void D_DrawTurbulentSpanLitMixedHL()
+static s32 D_TurbFuncIndex()
 {
-	do {
-		if (*pz <= (izi >> 16)) {
-			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			s32 pix = *(r_turb_pbase + (tv << 6) + su);
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			pix = D_TurbMixLit(pix, lit);
-			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
-					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
+	s32 trans = TURBTRANS_OPAQUE;
+	if(r_alphapass)
+		trans = r_alphastyle.value ? TURBTRANS_DITHERED:TURBTRANS_MIXED;
+	return TURBFUNC_INDEX(trans, r_dithertex.value != 0, lmonly != 0,
+			r_hlwater.value != 0);
 }
 
-static void D_DrawTurbulentSpanFilteredMixedHL()
+static turbspanfunc_t D_TurbBegin(f32 opacity)
 {
-	do {
-		if (*pz <= (izi >> 16)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			f32 u = (f32)((s_d >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((t_d >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			*r_turb_pdest =color_mix_lut[*(r_turb_pbase+(tv<<6)+su)]
-			[*r_turb_pdest][(s32)(turb_opacity*FOG_LUT_LEVELS)];
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
+	turb_opacity = opacity;
+	turbspanfunc_t drawspan = turbdrawfunc[D_TurbFuncIndex()];
+	if(r_hlwater.value)
+		InitHLWaterLUT();
+	if(lmonly)
+		R_BuildLitLUT();
+	if(r_alphastyle.value == 0 && opacity != 1 && opacity)
+		R_BuildColorMixLUT(0);
+	r_turb_turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
+	r_turb_pbase = (u8 *)cacheblock;
+	D_SpanDepthSetup();
+	return drawspan;
 }
 
-static void D_DrawTurbulentSpanLitFilteredMixedHL()
+Q_SIL void D_TurbSetChunk(turbchunk_t *c, const spanwalk_t *w)
 {
-	do {
-		if (*pz <= (izi >> 16)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			f32 u = (f32)((s_d >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((t_d >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			s32 pix = r_turb_pbase[(tv << 6) + su];
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			pix = D_TurbMixLit(pix, lit);
-			*r_turb_pdest = color_mix_lut[pix][*r_turb_pdest]
-					[(s32)(turb_opacity*FOG_LUT_LEVELS)];
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
+	c->s = w->s & ((TURB_CYCLE << 16) - 1);
+	c->t = w->t & ((TURB_CYCLE << 16) - 1);
+	c->sstep = w->sstep;
+	c->tstep = w->tstep;
+	c->count = w->len;
 }
 
-static void D_DrawTurbulentSpanDitheredHL()
+static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 {
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest, 1-turb_opacity)){
-			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			*r_turb_pdest = *(r_turb_pbase + (tv << 6) + su);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanLitDitheredHL()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
-			f32 u = (f32)((r_turb_s >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((r_turb_t >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			s32 pix = *(r_turb_pbase + (tv << 6) + su);
-			s32 lit = *(litwater_base+(r_turb_pdest-d_viewbuffer));
-			*r_turb_pdest = D_TurbMixLit(pix, lit);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanFilteredDitheredHL()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			f32 u = (f32)((s_d >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((t_d >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			*r_turb_pdest = *(r_turb_pbase + (tv << 6) + su);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
-}
-
-static void D_DrawTurbulentSpanLitFilteredDitheredHL()
-{
-	do {
-		if (*pz <= (izi>>16) && D_Dither(r_turb_pdest,1-turb_opacity)) {
-			s32 dither_idx = (flt_cur_x & 1) + ((flt_y & 1) << 1);
-			s32 s_d = r_turb_s + dither_s[dither_idx];
-			s32 t_d = r_turb_t + dither_t[dither_idx];
-			f32 u = (f32)((s_d >> 16) & 63) * (1.0f/64.0f);
-			f32 v = (f32)((t_d >> 16) & 63) * (1.0f/64.0f);
-			HLWarp(&u, &v, cl.time);
-			HLRipple(&u, &v, cl.time);
-			s32 su = ((s32)(u * 64.0f)) & 63;
-			s32 tv = ((s32)(v * 64.0f)) & 63;
-			s32 pix = *(r_turb_pbase + (tv << 6) + su);
-			s32 lit = *(litwater_base+ (r_turb_pdest-d_viewbuffer));
-			*r_turb_pdest = D_TurbMixLit(pix, lit);
-		}
-		r_turb_pdest++;
-		izi += izistep;
-		pz++;
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-		flt_cur_x++;
-	} while (--r_turb_spancount > 0);
+	spanwalk_t w;
+	turbchunk_t c;
+	c.pdest = (u8*)((u8*)d_viewbuffer + (screenwidth*pspan->v) + pspan->u);
+	D_SpanWalkBegin(&w, pspan, 4); // exact coords every 16px
+	c.zp = D_SpanDepthPtr(pspan);
+	c.iz = D_SpanDepthStart(w.zi);
+	do{
+		D_SpanWalkNextChunk(&w);
+		D_TurbSetChunk(&c, &w);
+		drawspan(&c);
+		D_SpanWalkEndChunk(&w);
+	}while(w.count > 0);
 }
 
 void Turbulent(espan_t *pspan, f32 opacity)
 {
-	turb_opacity = opacity;
-	s32 turb_func_n = r_alphapass ? (r_alphastyle.value ? 2 : 1) : 0;
-	turb_func_n += lmonly ? 6 : 0;
-	turb_func_n += r_dithertex.value ? 3 : 0;
-	turb_func_n += r_hlwater.value ? 12 : 0;
-	if(r_hlwater.value) InitHLWaterLUT();
-	if(lmonly) R_BuildLitLUT();
-	if(r_alphastyle.value==0 && opacity!=1 && opacity)R_BuildColorMixLUT(0);
-	void (*pturbdrawfunc)() = turbdrawfunc[turb_func_n];
-	r_turb_turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
-	r_turb_sstep = 0; // keep compiler happy
-	r_turb_tstep = 0; // ditto
-	r_turb_pbase = (u8 *)cacheblock;
-	f32 sdivz16stepu = d_sdivzstepu * 16;
-	f32 tdivz16stepu = d_tdivzstepu * 16;
-	f32 zi16stepu = d_zistepu * 16;
-	izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do {
-		r_turb_pdest = (u8 *) ((u8 *) d_viewbuffer + (screenwidth * pspan->v) + pspan->u);
-		pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u; // Manoel Kasimier - translucent water
-		s32 count = pspan->count;
-		f32 du = (f32)pspan->u; // calculate the initial s/z, t/z,
-		f32 dv = (f32)pspan->v; // 1/z, s, and t and clamp
-		f32 sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		f32 tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
-		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-		izi = (s32)(zi * 0x8000 * 0x10000); // Manoel Kasimier - translucent water
-		r_turb_s = (s32)(sdivz * z) + sadjust;
-		if (r_turb_s > bbextents)
-			r_turb_s = bbextents;
-		else if (r_turb_s < 0)
-			r_turb_s = 0;
-		r_turb_t = (s32)(tdivz * z) + tadjust;
-		if (r_turb_t > bbextentt)
-			r_turb_t = bbextentt;
-		else if (r_turb_t < 0)
-			r_turb_t = 0;
-		do {
-			r_turb_spancount = count; // calculate s and t
-			if (count >= 16) // at the far end of the span
-				r_turb_spancount = 16;
-			count -= r_turb_spancount;
-			s32 snext, tnext;
-			if (count) {
-				// calculate s/z, t/z, zi->fixed s and t at far end of span,
-				// calculate s and t steps across span by shifting
-				sdivz += sdivz16stepu;
-				tdivz += tdivz16stepu;
-				zi += zi16stepu;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 16)
-					snext = 16; // prevent round-off error on <0 steps from
-				// from causing overstepping & running off the
-				// edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 16)
-					tnext = 16;
-				// guard against round-off error on <0 steps
-				r_turb_sstep = (snext - r_turb_s) >> 4;
-				r_turb_tstep = (tnext - r_turb_t) >> 4;
-			} else {
-				// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
-				// can't step off polygon), clamp, calculate s and t steps across
-				// span by division, biasing steps low so we don't run off the
-				// texture
-				f32 spancountminus1 = (f32)(r_turb_spancount - 1);
-				sdivz += d_sdivzstepu * spancountminus1;
-				tdivz += d_tdivzstepu * spancountminus1;
-				zi += d_zistepu * spancountminus1;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 16)
-					snext = 16; // prevent round-off error on <0 steps from
-				// from causing overstepping & running off the
-				// edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 16)
-					tnext = 16;// guard against round-off error on <0 steps
-				if (r_turb_spancount > 1) {
-					r_turb_sstep = (snext - r_turb_s) / (r_turb_spancount - 1);
-					r_turb_tstep = (tnext - r_turb_t) / (r_turb_spancount - 1);
-				}
+	turbspanfunc_t drawspan = D_TurbBegin(opacity);
+	do{
+		D_TurbSpan(pspan, drawspan);
+	}while((pspan = pspan->pnext) != NULL);
+}
+
+Q_SIL void D_CursorBegin(texcursor_t *c, const spanwalk_t *w,
+		const u8 *pdest, s32 dithered)
+{
+	c->pbase = (u8 *)cacheblock;
+	c->width = cachewidth;
+	c->s = w->s;
+	c->t = w->t;
+	c->sstep = w->sstep;
+	c->tstep = w->tstep;
+	c->count = w->len;
+	c->s_max = 0;
+	c->t_max = 0;
+	c->x = 0;
+	c->y = 0;
+	if(dithered){
+		c->s_max = (cachewidth - 1) << 16;
+		c->t_max = (cacheheight - 1) << 16;
+		D_PixelScreenPos(pdest, &c->x, &c->y);
+	}
+}
+
+Q_SIL u8 D_CursorTexel(const texcursor_t *c, s32 dithered)
+{
+	s32 s = c->s;
+	s32 t = c->t;
+	if(dithered){
+		// CyanBun96: dithered sampling from Unreal
+		s32 idx = D_DitherIndex(c->x, c->y);
+		s = D_ClampCoord(s + dither_s[idx], 0, c->s_max);
+		t = D_ClampCoord(t + dither_t[idx], 0, c->t_max);
+	}
+	return c->pbase[(s >> 16) + (t >> 16) * c->width];
+}
+
+Q_SIL void D_CursorAdvance(texcursor_t *c)
+{
+	c->s += c->sstep;
+	c->t += c->tstep;
+	c->x++;
+}
+
+Q_SIL u8 *D_SpanChunkNormal(texcursor_t *c, u8 *pdest, s32 dithered)
+{
+	do{
+		*pdest++ = D_CursorTexel(c, dithered);
+		D_CursorAdvance(c);
+	}while(--c->count > 0);
+	return pdest;
+}
+
+Q_SIL u8 *D_SpanChunkCutout(texcursor_t *c, u8 *pdest, s32 dithered)
+{
+	do{
+		if(D_SpanDepthPass()){
+			u8 pix = D_CursorTexel(c, dithered);
+			cutoutbuf[pdest-d_viewbuffer] = 0;
+			if(pix != 0xff){
+				*pdest = pix;
+				cutoutbuf[pdest-d_viewbuffer] = 1;
 			}
-			r_turb_s = r_turb_s & ((TURB_CYCLE << 16) - 1);
-			r_turb_t = r_turb_t & ((TURB_CYCLE << 16) - 1);
-			if(r_dithertex.value) {
-				s32 pixel_index = (s32)(r_turb_pdest -
-							(u8*)screen->pixels);
-				flt_y = pixel_index / scr_vrect.width;
-				flt_x = pixel_index - flt_y * scr_vrect.width;
-				flt_start_x = flt_x;
-				flt_cur_x = flt_start_x;
-			}
-			pturbdrawfunc();
-			r_turb_s = snext;
-			r_turb_t = tnext;
-		} while (count > 0);
-	} while ((pspan = pspan->pnext) != NULL);
+		}
+		pdest++;
+		D_SpanDepthStep();
+		D_CursorAdvance(c);
+	}while(--c->count > 0);
+	return pdest;
+}
+
+Q_SIL u8 *D_SpanChunkSkybox(texcursor_t *c, u8 *pdest, s32 dithered)
+{
+	s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
+	do{
+		u8 pix = D_CursorTexel(c, dithered);
+		if(fog_density > 0)
+			pix = color_mix_lut[pix][fog_pal_index][foglut];
+		*pdest++ = pix;
+		D_CursorAdvance(c);
+	}while(--c->count > 0);
+	return pdest;
+}
+
+Q_SIL u8 *D_SpanChunkBlend(texcursor_t *c, u8 *pdest, f32 opacity,
+		s32 dithered)
+{
+	s32 foglut = opacity*FOG_LUT_LEVELS;
+	if(!fog_lut_built)
+		R_BuildColorMixLUT(0);
+	do{
+		if(D_SpanDepthPass()){
+			u8 pix = D_CursorTexel(c, dithered);
+			if(pix != 0xff)
+				*pdest = color_mix_lut[pix][*pdest][foglut];
+		}
+		pdest++;
+		D_SpanDepthStep();
+		D_CursorAdvance(c);
+	}while(--c->count > 0);
+	return pdest;
+}
+
+Q_SIL u8 *D_SpanChunkStipple(texcursor_t *c, u8 *pdest, f32 opacity,
+		s32 dithered)
+{
+	do{
+		if(D_SpanDepthPass() && D_Dither(pdest, 1-opacity)){
+			u8 pix = D_CursorTexel(c, dithered);
+			if(pix != 0xff)
+				*pdest = pix;
+		}
+		pdest++;
+		D_SpanDepthStep();
+		D_CursorAdvance(c);
+	}while(--c->count > 0);
+	return pdest;
+}
+
+Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
+		f32 opacity, s32 dithered)
+{
+	texcursor_t c;
+	D_CursorBegin(&c, w, pdest, dithered);
+	if(type == SPAN_NORMAL)
+		return D_SpanChunkNormal(&c, pdest, dithered);
+	if(type == SPAN_CUTOUT)
+		return D_SpanChunkCutout(&c, pdest, dithered);
+	if(type == SPAN_SKYBOX)
+		return D_SpanChunkSkybox(&c, pdest, dithered);
+	if(type == SPAN_TRANS){
+		if(r_alphastyle.value == 0)
+			return D_SpanChunkBlend(&c, pdest, opacity, dithered);
+		return D_SpanChunkStipple(&c, pdest, opacity, dithered);
+	}
+	return pdest;
+}
+
+static void D_AllocLitWater()
+{
+	litwater_base = malloc(vid.width * vid.height);
+	if(!litwater_base)
+		Sys_Error("Not enough memory for lit water");
+}
+
+static u8 *D_SpanDest(const espan_t *pspan)
+{
+	u8 *base = (u8 *)d_viewbuffer;
+	if(lmonly){
+		if(!litwater_base)
+			D_AllocLitWater();
+		base = (u8 *)litwater_base;
+	}
+	return base + (screenwidth * pspan->v) + pspan->u;
+}
+
+Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
+{
+	s32 depthtested = (type == SPAN_TRANS || type == SPAN_CUTOUT);
+	D_SpanDepthSetup();
+	do{
+		spanwalk_t w;
+		u8 *pdest = D_SpanDest(pspan);
+		D_SpanWalkBegin(&w, pspan, 3); // exact coords every 8px
+		if(depthtested)
+			D_SpanDepthBegin(pspan, w.zi);
+		do{
+			D_SpanWalkNextChunk(&w);
+			pdest = D_DrawSpanChunk(&w, pdest, type, opacity,
+					dithered);
+			D_SpanWalkEndChunk(&w);
+		}while(w.count > 0);
+	}while((pspan = pspan->pnext) != NULL);
 }
 
 void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
-{
-	u8 *pbase = (u8 *)cacheblock;
-	f32 sdivz8stepu = d_sdivzstepu * 8;
-	f32 tdivz8stepu = d_tdivzstepu * 8;
-	f32 zi8stepu = d_zistepu * 8;
-	izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do {
-		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +
-				      (screenwidth * pspan->v) + pspan->u);
-		if (lmonly) {
-			if (!litwater_base) {
-				litwater_base = malloc(vid.width * vid.height);
-				if (!litwater_base)
-					Sys_Error("Not enough memory for lit water");
-			}
-			pdest = (u8 *)((u8 *) litwater_base +
-				      (screenwidth * pspan->v) + pspan->u);
-		}
-		s32 count = pspan->count;
-		f32 du = (f32)pspan->u; // calculate the initial s/z, t/z,
-		f32 dv = (f32)pspan->v; // 1/z, s, and t and clamp
-		f32 sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		f32 tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
-		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-		if (type == SPAN_TRANS || type == SPAN_CUTOUT) {
-			pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-			izi = (s32)(zi * 0x8000 * 0x10000);
-		}
-		s32 s = (s32)(sdivz * z) + sadjust;
-		if (s > bbextents)
-			s = bbextents;
-		else if (s < 0)
-			s = 0;
-		s32 t = (s32)(tdivz * z) + tadjust;
-		if (t > bbextentt)
-			t = bbextentt;
-		else if (t < 0)
-			t = 0;
-		do {
-			// calculate s and t at the far end of the span
-			s32 snext, tnext;
-			s32 sstep = 0; // keep compiler happy
-			s32 tstep = 0; // ditto
-			s32 spancount = count;
-			if (count >= 8)
-				spancount = 8;
-			count -= spancount;
-			if (count) {
-				// calculate s/z, t/z, zi->fixed s and t at far end of span,
-				// calculate s and t steps across span by shifting
-				sdivz += sdivz8stepu;
-				tdivz += tdivz8stepu;
-				zi += zi8stepu;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 8)
-					snext = 8; // prevent round-off error on <0 steps from
-				// from causing overstepping & running off the
-				// edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8; // guard against round-off error on <0 steps
-				sstep = (snext - s) >> 3;
-				tstep = (tnext - t) >> 3;
-			} else {
-				// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
-				// can't step off polygon), clamp, calculate s and t steps across
-				// span by division, biasing steps low so we don't run off the
-				// texture
-				f32 spancountminus1 = (f32)(spancount - 1);
-				sdivz += d_sdivzstepu * spancountminus1;
-				tdivz += d_tdivzstepu * spancountminus1;
-				zi += d_zistepu * spancountminus1;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 8)
-					snext = 8; // prevent round-off error on <0 steps from
-				// from causing overstepping & running off the
-				// edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8; // guard against round-off error on <0 steps
-				if (spancount > 1) {
-					sstep = (snext - s) / (spancount - 1);
-					tstep = (tnext - t) / (spancount - 1);
-				}
-			}
-			if (type == SPAN_NORMAL) {
-				do {
-					/*
-					// CyanBun96: this is a working implementation of bilinear texture filtering. Don't use. 
-					s32 sx = s >> 16;
-					s32 sy = t >> 16;
-					s32 fracx = (s >> 8) & 0xFF;
-					s32 fracy = (t >> 8) & 0xFF;
-					// clamp to prevent out-of-bounds
-					if (sx < 0) sx = 0;
-					if (sy < 0) sy = 0;
-					if (sx >= cachewidth - 1) { sx = cachewidth - 2; fracx = 255; }
-					if (sy >= cacheheight - 1) { sy = cacheheight - 2; fracy = 255; }
-					u8 *row0 = pbase + sy * cachewidth;
-					u8 *row1 = row0 + cachewidth;
-					u8 i00 = row0[sx];
-					u8 i10 = row0[sx + 1];
-					u8 i01 = row1[sx];
-					u8 i11 = row1[sx + 1];
-					s32 lutx = fracx >> 3;   // 0..31 to fit in FOG_LUT_LEVELS
-					s32 luty = fracy >> 3;   // 0..31
-					if (!fog_lut_built)
-						R_BuildColorMixLUT(0);
-					// horizontal blends
-					u8 top = color_mix_lut[i00][i10][lutx];
-					u8 bot = color_mix_lut[i01][i11][lutx];
-					// vertical blend
-					u8 result = color_mix_lut[top][bot][luty];
-					*pdest = result;
-					pdest++;
-					s += sstep;
-					t += tstep;
-					*/
-					u8 pix = *(pbase + (s >> 16) +
-							(t >> 16) * cachewidth);
-					*pdest = pix;
-					pdest++;
-					s += sstep;
-					t += tstep;
-				} while (--spancount > 0);
-			} else if (type == SPAN_CUTOUT) {
-				do {
-					if (*pz <= (izi >> 16)) {
-						u8 pix = *(pbase + (s >> 16) +
-							(t >> 16) * cachewidth);
-						cutoutbuf[pdest-d_viewbuffer] = 0;
-						if (pix != 0xff) {
-							*pdest = pix;
-							cutoutbuf[pdest-d_viewbuffer] = 1;
-						}
-					}
-					pdest++;
-					izi += izistep;
-					pz++;
-					s += sstep;
-					t += tstep;
-				} while (--spancount > 0);
-			} else if (type == SPAN_SKYBOX) {
-				s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
-				do {
-					u8 pix = *(pbase + (s >> 16) +
-						(t >> 16) * cachewidth);
-					if (fog_density > 0)
-						pix = color_mix_lut[pix][fog_pal_index][foglut];
-					*pdest = pix;
-					pdest++;
-					s += sstep;
-					t += tstep;
-				} while (--spancount > 0);
-			} else if (type == SPAN_TRANS) {
-				s32 foglut = opacity*FOG_LUT_LEVELS;
-				if (r_alphastyle.value == 0) {
-					if (!fog_lut_built)
-						R_BuildColorMixLUT(0);
-					do {
-						if (*pz <= (izi >> 16)) {
-							u8 pix = *(pbase + (s >> 16) + (t >> 16) * cachewidth);
-							if (pix != 0xff) {
-								pix = color_mix_lut[pix][*pdest][foglut];
-								*pdest = pix;
-							}
-						}
-						pdest++;
-						izi += izistep;
-						pz++;
-						s += sstep;
-						t += tstep;
-					} while (--spancount > 0);
-				} else {
-					do {
-						if (*pz <= (izi >> 16) && D_Dither(pdest, 1-opacity)) {
-							u8 pix = *(pbase + (s >> 16) + (t >> 16) * cachewidth);
-							if (pix != 0xff) *pdest = pix;
-						}
-						pdest++;
-						izi += izistep;
-						pz++;
-						s += sstep;
-						t += tstep;
-					} while (--spancount > 0);
-				}
-			}
-			s = snext;
-			t = tnext;
-		} while (count > 0);
-	} while ((pspan = pspan->pnext) != NULL);
-}
+{ D_DrawSpansImpl(pspan, type, opacity, 0); }
 
 void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
-{ // Separate from the regular function to avoid branching within the loops
-	u8 *pbase = (u8 *)cacheblock;
-	f32 sdivz8stepu = d_sdivzstepu * 8;
-	f32 tdivz8stepu = d_tdivzstepu * 8;
-	f32 zi8stepu = d_zistepu * 8;
-	izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do {
-		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +
-				      (screenwidth * pspan->v) + pspan->u);
-		if (lmonly) {
-			if (!litwater_base) {
-				litwater_base = malloc(vid.width * vid.height);
-				if (!litwater_base)
-					Sys_Error("Not enough memory for lit water");
-			}
-			pdest = (u8 *)((u8 *) litwater_base +
-				      (screenwidth * pspan->v) + pspan->u);
-		}
-		s32 count = pspan->count;
-		f32 du = (f32)pspan->u; // calculate the initial s/z, t/z,
-		f32 dv = (f32)pspan->v; // 1/z, s, and t and clamp
-		f32 sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		f32 tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
-		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-		if (type == SPAN_TRANS || type == SPAN_CUTOUT) {
-			pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-			izi = (s32)(zi * 0x8000 * 0x10000);
-		}
-		s32 s = (s32)(sdivz * z) + sadjust;
-		if (s > bbextents)
-			s = bbextents;
-		else if (s < 0)
-			s = 0;
-		s32 t = (s32)(tdivz * z) + tadjust;
-		if (t > bbextentt)
-			t = bbextentt;
-		else if (t < 0)
-			t = 0;
-		do {
-			// calculate s and t at the far end of the span
-			s32 snext, tnext;
-			s32 sstep = 0; // keep compiler happy
-			s32 tstep = 0; // ditto
-			s32 spancount = count;
-			if (count >= 8)
-				spancount = 8;
-			count -= spancount;
-			if (count) {
-				// calculate s/z, t/z, zi->fixed s and t at far end of span,
-				// calculate s and t steps across span by shifting
-				sdivz += sdivz8stepu;
-				tdivz += tdivz8stepu;
-				zi += zi8stepu;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 8)
-					snext = 8; // prevent round-off error on <0 steps from
-				// from causing overstepping & running off the
-				// edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8; // guard against round-off error on <0 steps
-				sstep = (snext - s) >> 3;
-				tstep = (tnext - t) >> 3;
-			} else {
-				// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
-				// can't step off polygon), clamp, calculate s and t steps across
-				// span by division, biasing steps low so we don't run off the
-				// texture
-				f32 spancountminus1 = (f32)(spancount - 1);
-				sdivz += d_sdivzstepu * spancountminus1;
-				tdivz += d_tdivzstepu * spancountminus1;
-				zi += d_zistepu * spancountminus1;
-				z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 8)
-					snext = 8; // prevent round-off error on <0 steps from
-				// from causing overstepping & running off the
-				// edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8; // guard against round-off error on <0 steps
-				if (spancount > 1) {
-					sstep = (snext - s) / (spancount - 1);
-					tstep = (tnext - t) / (spancount - 1);
-				}
-			}
-			// CyanBun96: dithered sampling from Unreal
-			s32 pixel_index = (s32)(pdest - (u8*)screen->pixels);
-			s32 y = pixel_index / scr_vrect.width;
-			s32 x = pixel_index - y * scr_vrect.width;
-			s32 start_x = x;
-			s32 cur_x = start_x;
-			if (type == SPAN_NORMAL) {
-				do {
-					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
-					// Apply dither offset
-					s32 s_d = s + dither_s[dither_idx];
-					s32 t_d = t + dither_t[dither_idx];
-					// Clamp to valid texel range
-					if (s_d < 0) s_d = 0;
-					if (t_d < 0) t_d = 0;
-					s32 s_max = (cachewidth  - 1) << 16;
-					s32 t_max = (cacheheight - 1) << 16;
-					if (s_d > s_max) s_d = s_max;
-					if (t_d > t_max) t_d = t_max;
-					u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
-					*pdest++ = pix;
-					s += sstep;
-					t += tstep;
-					cur_x++;
-				} while (--spancount > 0);
-			} else if (type == SPAN_CUTOUT) {
-				do {
-					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
-					s32 s_d = s + dither_s[dither_idx];
-					s32 t_d = t + dither_t[dither_idx];
-					if (s_d < 0) s_d = 0;
-					if (t_d < 0) t_d = 0;
-					s32 s_max = (cachewidth  - 1) << 16;
-					s32 t_max = (cacheheight - 1) << 16;
-					if (s_d > s_max) s_d = s_max;
-					if (t_d > t_max) t_d = t_max;
-					if (*pz <= (izi >> 16)) {
-						u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
-						cutoutbuf[pdest-d_viewbuffer] = 0;
-						if (pix != 0xff) {
-							*pdest = pix;
-							cutoutbuf[pdest-d_viewbuffer] = 1;
-						}
-					}
-					pdest++;
-					izi += izistep;
-					pz++;
-					s += sstep;
-					t += tstep;
-					cur_x++;
-				} while (--spancount > 0);
-			} else if (type == SPAN_SKYBOX) {
-				s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
-				do {
-					s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
-					s32 s_d = s + dither_s[dither_idx];
-					s32 t_d = t + dither_t[dither_idx];
-					if (s_d < 0) s_d = 0;
-					if (t_d < 0) t_d = 0;
-					s32 s_max = (cachewidth  - 1) << 16;
-					s32 t_max = (cacheheight - 1) << 16;
-					if (s_d > s_max) s_d = s_max;
-					if (t_d > t_max) t_d = t_max;
-					u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
-					if (fog_density > 0)
-						pix = color_mix_lut[pix][fog_pal_index][foglut];
-					*pdest++ = pix;
-					s += sstep;
-					t += tstep;
-					cur_x++;
-				} while (--spancount > 0);
-			} else if (type == SPAN_TRANS) {
-				s32 foglut = opacity*FOG_LUT_LEVELS;
-				if (r_alphastyle.value == 0) {
-					if (!fog_lut_built)
-						R_BuildColorMixLUT(0);
-					do {
-						s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
-						s32 s_d = s + dither_s[dither_idx];
-						s32 t_d = t + dither_t[dither_idx];
-						if (s_d < 0) s_d = 0;
-						if (t_d < 0) t_d = 0;
-						s32 s_max = (cachewidth  - 1) << 16;
-						s32 t_max = (cacheheight - 1) << 16;
-						if (s_d > s_max) s_d = s_max;
-						if (t_d > t_max) t_d = t_max;
-						if (*pz <= (izi >> 16)) {
-							u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
-							if (pix != 0xff) {
-								pix = color_mix_lut[pix][*pdest][foglut];
-								*pdest = pix;
-							}
-						}
-						pdest++;
-						izi += izistep;
-						pz++;
-						s += sstep;
-						t += tstep;
-						cur_x++;
-					} while (--spancount > 0);
-				} else {
-					do {
-						s32 dither_idx = (cur_x & 1) + ((y & 1) << 1);
-						s32 s_d = s + dither_s[dither_idx];
-						s32 t_d = t + dither_t[dither_idx];
-						if (s_d < 0) s_d = 0;
-						if (t_d < 0) t_d = 0;
-						s32 s_max = (cachewidth  - 1) << 16;
-						s32 t_max = (cacheheight - 1) << 16;
-						if (s_d > s_max) s_d = s_max;
-						if (t_d > t_max) t_d = t_max;
-						if (*pz <= (izi >> 16) && D_Dither(pdest, 1-opacity)) {
-							u8 pix = *(pbase + (s_d >> 16) + ((t_d >> 16) * cachewidth));
-							if (pix != 0xff) *pdest = pix;
-						}
-						pdest++;
-						izi += izistep;
-						pz++;
-						s += sstep;
-						t += tstep;
-						cur_x++;
-					} while (--spancount > 0);
-				}
-			}
-			s = snext;
-			t = tnext;
-		} while (count > 0);
-	} while ((pspan = pspan->pnext) != NULL);
-}
+{ D_DrawSpansImpl(pspan, type, opacity, 1); }
 
 void D_DrawZSpans(espan_t *pspan)
 {
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do {
+	do{
 		s16 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
 		s32 count = pspan->count;
 		f32 du = (f32)pspan->u; // calculate the initial 1/z
 		f32 dv = (f32)pspan->v;
 		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		if ((intptr_t) pdest & 0x02) {
+		if((intptr_t) pdest & 0x02){
 			*pdest++ = (s16)(izi >> 16);
 			izi += izistep;
 			count--;
 		}
 		s32 doublecount = count >> 1;
-		if (doublecount > 0) {
-			do {
+		if(doublecount > 0){
+			do{
 				u32 ltemp = izi >> 16;
 				izi += izistep;
 				ltemp |= izi & 0xFFFF0000;
 				izi += izistep;
 				*(s32 *)pdest = ltemp;
 				pdest += 2;
-			} while (--doublecount > 0);
+			}while(--doublecount > 0);
 		}
-		if (count & 1)
+		if(count & 1)
 			*pdest = (s16)(izi >> 16);
-	} while ((pspan = pspan->pnext) != NULL);
+	}while((pspan = pspan->pnext) != NULL);
 }
 
 void D_DrawZSpansTrans(espan_t *pspan)
 {
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do {
+	do{
 		s16 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
 		s32 count = pspan->count;
 		f32 du = (f32)pspan->u; // calculate the initial 1/z
 		f32 dv = (f32)pspan->v;
 		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		if ((intptr_t) pdest & 0x02) {
+		if((intptr_t) pdest & 0x02){
 			if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
-				*pdest < (s16)(izi >> 16))
+					*pdest < (s16)(izi >> 16))
 				*pdest++ = (s16)(izi >> 16);
 			izi += izistep;
 			count--;
 		}
 		s32 doublecount = count >> 1;
-		if (doublecount > 0) {
-			do {
+		if(doublecount > 0){
+			do{
 				u32 ltemp = izi >> 16;
 				izi += izistep;
 				ltemp |= izi & 0xFFFF0000;
 				izi += izistep;
 				if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
-					*pdest < (s16)ltemp)
+						*pdest < (s16)ltemp)
 					*(s32 *)pdest = ltemp;
 				pdest += 2;
-			} while (--doublecount > 0);
+			}while(--doublecount > 0);
 		}
-		if (count & 1) {
+		if(count & 1){
 			if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
-				*pdest < (s16)(izi >> 16))
+					*pdest < (s16)(izi >> 16))
 				*pdest = (s16)(izi >> 16);
 		}
-	} while ((pspan = pspan->pnext) != NULL);
+	}while((pspan = pspan->pnext) != NULL);
 }
