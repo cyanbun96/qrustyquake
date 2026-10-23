@@ -721,7 +721,7 @@ void R_DrawViewModel()
 {
 	if(!r_drawviewmodel.value || cl.items & IT_INVISIBILITY
 		|| cl.stats[STAT_HEALTH] <= 0 || !cl.viewent.model
-		|| chase_active.value)
+		|| cl.viewent.model->type != mod_alias || chase_active.value)
                 return;
 	currententity = &cl.viewent;
 	R_SetEntityModelOrg(currententity);
