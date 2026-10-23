@@ -209,10 +209,14 @@ void PR_EnableExtensions()
 		Con_DPrintf("not enabling qc extensions\n");
 		return;
 	}
-#define QCEXTFUNC(n,t) qcvm->extfuncs.n = PR_FindExtFunction(#n);
-#define QCEXTGLOBAL_FLOAT(n) qcvm->extglobals.n = PR_FindExtGlobal(ev_float, #n);
-#define QCEXTGLOBAL_INT(n) qcvm->extglobals.n = PR_FindExtGlobal(ev_ext_integer, #n);
-#define QCEXTGLOBAL_VECTOR(n) qcvm->extglobals.n = PR_FindExtGlobal(ev_vector, #n);
+#define QCEXTFUNC(n,t) \
+	qcvm->extfuncs.n = PR_FindExtFunction(#n);
+#define QCEXTGLOBAL_FLOAT(n) \
+	qcvm->extglobals.n = PR_FindExtGlobal(ev_float, #n);
+#define QCEXTGLOBAL_INT(n) \
+	qcvm->extglobals.n = PR_FindExtGlobal(ev_ext_integer, #n);
+#define QCEXTGLOBAL_VECTOR(n) \
+	qcvm->extglobals.n = PR_FindExtGlobal(ev_vector, #n);
 	if(qcvm == &cl.qcvm){//csqc
 		QCEXTFUNCS_CS
 			QCEXTGLOBALS_CSQC
@@ -492,7 +496,7 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 	// .movetype
 	if(ofs==offsetof(entvars_t,movetype)&&val->_float==(s32)val->_float){
 		switch((s32)val->_float){
-#define MOVETYPE_CASE(x)    case x: return #x
+#define MOVETYPE_CASE(x) case x: return #x
 			MOVETYPE_CASE(MOVETYPE_NONE);
 			MOVETYPE_CASE(MOVETYPE_ANGLENOCLIP);
 			MOVETYPE_CASE(MOVETYPE_ANGLECLIP);
@@ -510,11 +514,10 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 			break;
 		}
 	}
-
 	// .solid
 	if(ofs == offsetof(entvars_t, solid) && val->_float ==(s32)val->_float){
 		switch((s32)val->_float){
-#define SOLID_CASE(x)   case x: return #x
+#define SOLID_CASE(x) case x: return #x
 			SOLID_CASE(SOLID_NOT);
 			SOLID_CASE(SOLID_TRIGGER);
 			SOLID_CASE(SOLID_BBOX);
@@ -525,11 +528,10 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 			break;
 		}
 	}
-
 	// .deadflag
 	if(ofs==offsetof(entvars_t, deadflag) && val->_float==(s32)val->_float){
 		switch((s32)val->_float){
-#define DEAD_CASE(x)    case x: return #x
+#define DEAD_CASE(x) case x: return #x
 			DEAD_CASE(DEAD_NO);
 			DEAD_CASE(DEAD_DYING);
 			DEAD_CASE(DEAD_DEAD);
@@ -539,11 +541,10 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 			break;
 		}
 	}
-
 	// .takedamage
 	if(ofs==offsetof(entvars_t,takedamage)&&val->_float==(s32)val->_float){
 		switch((s32)val->_float){
-#define TAKEDAMAGE_CASE(x)  case x: return #x
+#define TAKEDAMAGE_CASE(x) case x: return #x
 			TAKEDAMAGE_CASE(DAMAGE_NO);
 			TAKEDAMAGE_CASE(DAMAGE_YES);
 			TAKEDAMAGE_CASE(DAMAGE_AIM);
@@ -557,7 +558,13 @@ const c8 *ED_FieldValueString(edict_t *ed, ddef_t *d)
 	    ||ofs==offsetof(entvars_t,effects))&&val->_float==(s32)val->_float){
 		s32 bits = (s32)val->_float;
 		str[0] = '\0';
-#define BIT_CASE(f) do{ if(bits & (s32)f){ bits ^= (s32)f; ED_AppendFlagString(str, sizeof(str), #f); } }while(0)
+#define BIT_CASE(f) \
+do{ \
+	if(bits & (s32)f){ \
+		bits ^= (s32)f; \
+		ED_AppendFlagString(str, sizeof(str), #f); \
+	} \
+}while(0)
 		if(ofs == offsetof(entvars_t, flags)){
 			BIT_CASE(FL_FLY);
 			BIT_CASE(FL_CONVEYOR);
@@ -803,9 +810,8 @@ static bool ED_ParseEpair(void *base, ddef_t *key, const c8 *s, bool zoned)
 	ddef_t *def;
 	c8 *v, *w;
 	c8 *end;
-	void *d;
 	dfunction_t *func;
-	d = (void *)((s32 *)base + key->ofs);
+	void *d = (void *)((s32 *)base + key->ofs);
 	switch(key->type & ~DEF_SAVEGLOBAL){
 	case ev_string:
 		if(zoned)//zoned version allows us to change strings more freely
@@ -874,8 +880,8 @@ const c8 *ED_ParseEdict(const c8 *data, edict_t *ent)
 {
 	ddef_t *key;
 	c8 keyname[256];
-	bool anglehack, init;
-	init = false;
+	bool anglehack;
+	bool init = false;
 	// clear it
 	if(ent != qcvm->edicts) // hack
 		memset(&ent->v, 0, qcvm->progs->entityfields * 4);
@@ -1143,35 +1149,26 @@ static void PR_MergeEngineFieldDefs()
 		const c8 *fname;
 		etype_t type;
 		s32 newidx;
-	} extrafields[] =
-	{   //table of engine fields to add. we'll be using ED_FindFieldOffset for these later.
-	    //this is useful for fields that should be defined for mappers which are not defined by the mod.
-	    //future note: mutators will need to edit the mutator's globaldefs table too. remember to handle vectors and their 3 globals too.
-		{"alpha",           ev_float, 0},  //just because we can(though its already handled in a weird hacky way)
-		{"scale",           ev_float, 0},  //hurrah for being able to rescale entities.
-		{"emiteffectnum",   ev_float, 0},  //constantly emitting particles, even without moving.
-		{"traileffectnum",  ev_float, 0},  //custom effect for trails
-		//{"glow_size",     ev_float},  //deprecated particle trail rubbish
-		//{"glow_color",    ev_float},  //deprecated particle trail rubbish
-		{"tag_entity",      ev_float, 0},  //for setattachment to not bug out when omitted.
-		{"tag_index",       ev_float, 0},  //for setattachment to not bug out when omitted.
-		{"modelflags",      ev_float, 0},  //deprecated rubbish to fill the high 8 bits of effects.
-		//{"vw_index",      ev_float},  //modelindex2
-		//{"pflags",        ev_float},  //for rtlights
-		//{"drawflags",     ev_float},  //hexen2 compat
-		//{"abslight",      ev_float},  //hexen2 compat
-		{"colormod",        ev_vector, 0}, //lighting tints
-		//{"glowmod",       ev_vector}, //fullbright tints
-		//{"fatness",       ev_float},  //bloated rendering...
-		//{"gravitydir",    ev_vector}, //says which direction gravity should act for this ent...
-
+	} extrafields[] = {
+//table of engine fields to add. we'll be using ED_FindFieldOffset for these
+//later. this is useful for fields that should be defined for mappers which are
+//not defined by the mod. future note: mutators will need to edit the mutator's
+//globaldefs table too. remember to handle vectors and their 3 globals too.
+{"alpha", ev_float, 0}, //its already handled in a weird hacky way
+{"scale", ev_float, 0}, //hurrah for being able to rescale entities.
+{"emiteffectnum",ev_float,0},//constantly emitting particles,even without moving
+{"traileffectnum", ev_float, 0}, //custom effect for trails
+{"tag_entity", ev_float, 0}, //for setattachment to not bug out when omitted
+{"tag_index", ev_float, 0}, //for setattachment to not bug out when omitted
+{"modelflags",ev_float,0},//deprecated trash to fill the high 8 bits of effects
+{"colormod", ev_vector, 0}, //lighting tints
 	};
 	s32 maxofs = qcvm->progs->entityfields;
 	s32 maxdefs = qcvm->progs->numfielddefs;
 	u32 j, a;
 	//figure out where stuff goes
 	for(j = 0; j < Q_COUNTOF(extrafields); j++){
-		extrafields[j].newidx = ED_FindFieldOffset(extrafields[j].fname);
+		extrafields[j].newidx=ED_FindFieldOffset(extrafields[j].fname);
 		if(extrafields[j].newidx < 0){
 			extrafields[j].newidx = maxofs;
 			maxdefs++;
@@ -1181,29 +1178,36 @@ static void PR_MergeEngineFieldDefs()
 		}
 	}
 	if(maxdefs == qcvm->progs->numfielddefs)return;
-	ddef_t *olddefs = qcvm->fielddefs; //we now know how many entries we need to add...
+	ddef_t *olddefs = qcvm->fielddefs;//we now know how many we need to add
 	qcvm->fielddefs = malloc(maxdefs * sizeof(*qcvm->fielddefs));
 	if(!qcvm->fielddefs)
-		Sys_Error("PR_MergeEngineFieldDefs: out of memory(%d defs)", maxdefs);
-	memcpy(qcvm->fielddefs, olddefs, qcvm->progs->numfielddefs*sizeof(*qcvm->fielddefs));
-	if(olddefs != (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_fielddefs))
+	  Sys_Error("PR_MergeEngineFieldDefs: out of memory(%d defs)", maxdefs);
+	memcpy(qcvm->fielddefs, olddefs,
+			qcvm->progs->numfielddefs*sizeof(*qcvm->fielddefs));
+	if(olddefs != (ddef_t*)((u8*)qcvm->progs + qcvm->progs->ofs_fielddefs))
 		free(olddefs);
 	//allocate the extra defs
 	for(j = 0; j < Q_COUNTOF(extrafields); j++){
-		if(extrafields[j].newidx >= qcvm->progs->entityfields && extrafields[j].newidx < maxofs){
-			//looks like its new. make sure ED_FindField can find it.
-			qcvm->fielddefs[qcvm->progs->numfielddefs].ofs = extrafields[j].newidx;
-			qcvm->fielddefs[qcvm->progs->numfielddefs].type = extrafields[j].type;
-			qcvm->fielddefs[qcvm->progs->numfielddefs].s_name = ED_NewString(extrafields[j].fname);
+		if(extrafields[j].newidx >= qcvm->progs->entityfields 
+				&& extrafields[j].newidx < maxofs){
+			//looks like its new. make sure ED_FindField can find it
+			qcvm->fielddefs[qcvm->progs->numfielddefs].ofs =
+							extrafields[j].newidx;
+			qcvm->fielddefs[qcvm->progs->numfielddefs].type =
+							extrafields[j].type;
+			qcvm->fielddefs[qcvm->progs->numfielddefs].s_name =
+					ED_NewString(extrafields[j].fname);
 			qcvm->progs->numfielddefs++;
-			if(extrafields[j].type == ev_vector){//vectors are weird and annoying.
-				for(a = 0; a < 3; a++){
-					qcvm->fielddefs[qcvm->progs->numfielddefs].ofs = extrafields[j].newidx+a;
-					qcvm->fielddefs[qcvm->progs->numfielddefs].type = ev_float;
-					qcvm->fielddefs[qcvm->progs->numfielddefs].s_name = ED_NewString(va("%s_%c", extrafields[j].fname, 'x'+a));
-					qcvm->progs->numfielddefs++;
-				}
-			}
+			if(extrafields[j].type == ev_vector){
+			for(a = 0; a < 3; a++){
+			    qcvm->fielddefs[qcvm->progs->numfielddefs].ofs =
+						    extrafields[j].newidx+a;
+			    qcvm->fielddefs[qcvm->progs->numfielddefs].type =
+						    ev_float;
+			    qcvm->fielddefs[qcvm->progs->numfielddefs].s_name =
+			   ED_NewString(va("%s_%c",extrafields[j].fname,'x'+a));
+			    qcvm->progs->numfielddefs++;
+			}}
 		}
 	}
 	qcvm->progs->entityfields = maxofs;
@@ -1227,7 +1231,8 @@ void PR_ClearProgs(qcvm_t *vm)
 	if(qcvm->knownstrings)
 		Z_Free((void *)qcvm->knownstrings);
 	free(qcvm->edicts); // ericw -- sv.edicts switched to use malloc()
-	if(qcvm->fielddefs != (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_fielddefs))
+	if(qcvm->fielddefs != (ddef_t *)((u8 *)qcvm->progs
+				+ qcvm->progs->ofs_fielddefs))
 		free(qcvm->fielddefs);
 	memset(qcvm, 0, sizeof(*qcvm));
 	qcvm = NULL;
@@ -1257,10 +1262,11 @@ static void PR_InitHashTables()
 	PR_HashInit(&qcvm->ht_fields, qcvm->progs->numfielddefs, "ht_fields");
 	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++)
 		PR_HashAdd(&qcvm->ht_fields, qcvm->fielddefs[i].s_name, i);
-	PR_HashInit(&qcvm->ht_functions, qcvm->progs->numfunctions, "ht_functions");
+	PR_HashInit(&qcvm->ht_functions, qcvm->progs->numfunctions,
+							"ht_functions");
 	for(s32 i = 0; i < qcvm->progs->numfunctions; i++)
 		PR_HashAdd(&qcvm->ht_functions, qcvm->functions[i].s_name, i);
-	PR_HashInit(&qcvm->ht_globals, qcvm->progs->numglobaldefs, "ht_globals");
+	PR_HashInit(&qcvm->ht_globals, qcvm->progs->numglobaldefs,"ht_globals");
 	for(s32 i = 0; i < qcvm->progs->numglobaldefs; i++)
 		PR_HashAdd(&qcvm->ht_globals, qcvm->globaldefs[i].s_name, i);
 }
@@ -1317,7 +1323,8 @@ static s32 PR_CompareFunction(const void *pa, const void *pb)
 static void PR_FindFunctionRanges()
 {
 	s32 *order;
-	qcvm->functionsizes = (s32 *) Hunk_AllocName(qcvm->progs->numfunctions * sizeof(*order), "func_sizes");
+	qcvm->functionsizes = (s32*)Hunk_AllocName(qcvm->progs->numfunctions 
+					* sizeof(*order), "func_sizes");
 	s32 mark = Hunk_LowMark();
 	order = (s32*)Hunk_Alloc(qcvm->progs->numfunctions*sizeof(*order));
 	for(s32 i = 0; i < qcvm->progs->numfunctions; i++)
@@ -1335,12 +1342,11 @@ static void PR_FindFunctionRanges()
 			qcvm->functionsizes[order[i]] =
 		qcvm->functions[order[i+1]].first_statement- f->first_statement;
 	}
-
 	Hunk_FreeToLowMark(mark);
 }
 
-static void PR_FindEntityFields()
-{ // Finds all the .entity fields(used by r_showbboxes & co for identifying entity links)
+static void PR_FindEntityFields() // Finds all the .entity fields
+{ // (used by r_showbboxes & co for identifying entity links)
 	s32 count = 0;
 	for(s32 i = 1; i < qcvm->progs->numfielddefs; i++){
 		ddef_t *field = &qcvm->fielddefs[i];
@@ -1409,7 +1415,7 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 		((s32*)qcvm->progs)[i] = (s32)( ((s32*)qcvm->progs)[i] );
 	if(qcvm->progs->version != PROG_VERSION){
 		if(fatal)
-			Host_Error("%s has wrong version number(%i should be %i)",
+		    Host_Error("%s has wrong version number(%i should be %i)",
 				filename, qcvm->progs->version, PROG_VERSION);
 		else{
 			Con_Printf("%s ABI set not supported\n", filename);
@@ -1419,38 +1425,40 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 	}
 	if(qcvm->progs->crc != 5927){ // default progheader crc
 		if(fatal)
-			Host_Error("%s system vars have been modified, progdefs.h is out of date", filename);
+Host_Error("%s system vars have been modified, progdefs.h is out of date",
+		filename);
 		else{
-			switch(qcvm->progs->crc){
-			case 22390: //full csqc
-				Con_Printf("%s - full csqc is not supported\n", filename);
-				break;
-			case 52195: //dp csqc
-				Con_Printf("%s - obsolete csqc is not supported\n", filename);
-				break;
-			case 54730: //quakeworld
-				Con_Printf("%s - quakeworld gamecode is not supported\n", filename);
-				break;
-			case 26940: //prerelease
-				Con_Printf("%s - prerelease gamecode is not supported\n", filename);
-				break;
-			case 32401: //tenebrae
-				Con_Printf("%s - tenebrae gamecode is not supported\n", filename);
-				break;
-			case 38488: //hexen2 release
-			case 26905: //hexen2 mission pack
-			case 14046: //hexen2 demo
-				Con_Printf("%s - hexen2 gamecode is not supported\n", filename);
-				break;
-			default:
-				Con_Printf("%s system vars are not supported\n", filename);
-				break;
-			}
+/**/switch(qcvm->progs->crc){
+/**/case 22390: //full csqc
+/**/	Con_Printf("%s - full csqc is not supported\n", filename);
+/**/	break;
+/**/case 52195: //dp csqc
+/**/	Con_Printf("%s - obsolete csqc is not supported\n", filename);
+/**/	break;
+/**/case 54730: //quakeworld
+/**/	Con_Printf("%s - quakeworld gamecode is not supported\n", filename);
+/**/	break;
+/**/case 26940: //prerelease
+/**/	Con_Printf("%s - prerelease gamecode is not supported\n", filename);
+/**/	break;
+/**/case 32401: //tenebrae
+/**/	Con_Printf("%s - tenebrae gamecode is not supported\n", filename);
+/**/	break;
+/**/case 38488: //hexen2 release
+/**/case 26905: //hexen2 mission pack
+/**/case 14046: //hexen2 demo
+/**/	Con_Printf("%s - hexen2 gamecode is not supported\n", filename);
+/**/	break;
+/**/default:
+/**/	Con_Printf("%s system vars are not supported\n", filename);
+/**/	break;
+/**/}
 			qcvm->progs = NULL;
 			return false;
 		}
 	}
-	qcvm->functions = (dfunction_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_functions);
+	qcvm->functions = (dfunction_t *)((u8 *)qcvm->progs
+			+ qcvm->progs->ofs_functions);
 	qcvm->strings = (c8 *)qcvm->progs + qcvm->progs->ofs_strings;
 	if(qcvm->progs->ofs_strings + qcvm->progs->numstrings >= com_filesize)
 		Host_Error("progs.dat strings go past end of file\n");
@@ -1462,9 +1470,12 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 	qcvm->knownstrings = NULL;
 	qcvm->firstfreeknownstring = NULL;
 	PR_SetEngineString("");
-	qcvm->globaldefs = (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_globaldefs);
-	qcvm->fielddefs = (ddef_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_fielddefs);
-	qcvm->statements = (dstatement_t *)((u8 *)qcvm->progs + qcvm->progs->ofs_statements);
+	qcvm->globaldefs = (ddef_t *)((u8 *)qcvm->progs
+			+ qcvm->progs->ofs_globaldefs);
+	qcvm->fielddefs = (ddef_t *)((u8 *)qcvm->progs
+			+ qcvm->progs->ofs_fielddefs);
+	qcvm->statements = (dstatement_t *)((u8 *)qcvm->progs
+			+ qcvm->progs->ofs_statements);
 	qcvm->globals = (f32 *)((u8 *)qcvm->progs + qcvm->progs->ofs_globals);
 	pr_global_struct = (globalvars_t*)qcvm->globals;
 	// byte swap the lumps
@@ -1475,12 +1486,18 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 		qcvm->statements[i].c = (s16)(qcvm->statements[i].c);
 	}
 	for(s32 i = 0; i < qcvm->progs->numfunctions; i++){
-		qcvm->functions[i].first_statement = (s32)(qcvm->functions[i].first_statement);
-		qcvm->functions[i].parm_start = (s32)(qcvm->functions[i].parm_start);
-		qcvm->functions[i].s_name = (s32)(qcvm->functions[i].s_name);
-		qcvm->functions[i].s_file = (s32)(qcvm->functions[i].s_file);
-		qcvm->functions[i].numparms = (s32)(qcvm->functions[i].numparms);
-		qcvm->functions[i].locals = (s32)(qcvm->functions[i].locals);
+		qcvm->functions[i].first_statement =
+			(s32)(qcvm->functions[i].first_statement);
+		qcvm->functions[i].parm_start =
+			(s32)(qcvm->functions[i].parm_start);
+		qcvm->functions[i].s_name =
+			(s32)(qcvm->functions[i].s_name);
+		qcvm->functions[i].s_file =
+			(s32)(qcvm->functions[i].s_file);
+		qcvm->functions[i].numparms =
+			(s32)(qcvm->functions[i].numparms);
+		qcvm->functions[i].locals =
+			(s32)(qcvm->functions[i].locals);
 	}
 	for(s32 i = 0; i < qcvm->progs->numglobaldefs; i++){
 		qcvm->globaldefs[i].type = (s16)(qcvm->globaldefs[i].type);
@@ -1490,7 +1507,7 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++){
 		qcvm->fielddefs[i].type = (s16)(qcvm->fielddefs[i].type);
 		if(qcvm->fielddefs[i].type & DEF_SAVEGLOBAL)
-			Host_Error("PR_LoadProgs: pr_fielddefs[i].type & DEF_SAVEGLOBAL");
+	Host_Error("PR_LoadProgs: pr_fielddefs[i].type & DEF_SAVEGLOBAL");
 		qcvm->fielddefs[i].ofs = (s16)(qcvm->fielddefs[i].ofs);
 		qcvm->fielddefs[i].s_name = (s32)(qcvm->fielddefs[i].s_name);
 	}
@@ -1567,13 +1584,13 @@ const c8 *PR_GetString(s32 num)
 		return qcvm->strings + num;
 	else if(num < 0 && num >= -qcvm->numknownstrings){
 		if(!qcvm->knownstrings[-1 - num]){
-			Host_Error("PR_GetString: attempt to get a non-existant string %d\n", num);
+Host_Error("PR_GetString: attempt to get a non-existant string %d\n", num);
 			return "";
 		}
 		return qcvm->knownstrings[-1 - num];
 	}else{
             if(developer.value){
-                PR_PrintErrorWithStackTrace("PR_GetString: Invalid string offset %d", num);
+PR_PrintErrorWithStackTrace("PR_GetString: Invalid string offset %d", num);
             }
             return qcvm->strings; // from QSS and vkquake
 	}
@@ -1585,14 +1602,20 @@ static s32 PR_AllocStringSlot()
 	if(qcvm->firstfreeknownstring){
 		i = qcvm->firstfreeknownstring - qcvm->knownstrings;
 		if(i < 0 || i >= qcvm->maxknownstrings)
-			Sys_Error("PR_AllocStringSlot failed: invalid free list index %" SDL_PRIs64 "/%i\n", (s64)i, qcvm->maxknownstrings);
-		qcvm->firstfreeknownstring = (const c8 **) *qcvm->firstfreeknownstring;
+			Sys_Error(
+"PR_AllocStringSlot failed: invalid free list index %" SDL_PRIs64 "/%i\n",
+(s64)i, qcvm->maxknownstrings);
+		qcvm->firstfreeknownstring = 
+			(const c8**)*qcvm->firstfreeknownstring;
 	}else{
 		i = qcvm->numknownstrings++;
 		if(i >= qcvm->maxknownstrings){
 			qcvm->maxknownstrings += 256;
-			Con_DPrintf("PR_AllocStringSlot: realloc'ing for %d slots\n", qcvm->maxknownstrings);
-			qcvm->knownstrings = (const c8 **) Z_Realloc((void *)qcvm->knownstrings, qcvm->maxknownstrings * sizeof(c8 *));
+		Con_DPrintf("PR_AllocStringSlot: realloc'ing for %d slots\n",
+				qcvm->maxknownstrings);
+			qcvm->knownstrings = (const c8**)Z_Realloc(
+					(void*)qcvm->knownstrings,
+					qcvm->maxknownstrings * sizeof(c8 *));
 		}
 	}
 	return(s32)i;
