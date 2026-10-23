@@ -453,7 +453,7 @@ void Draw_CharToConbackScaled(s32 num, u8 *dest, s32 scale, s32 width)
 		for(s32 x = 0; x < 8*scale; x++)
 			if(source[x/scale])
 				for(s32 s = 0; s < scale; s++)
-					dest[x+s*width] = 0x60 + source[x/scale];
+					dest[x+s*width] = 0x60+source[x/scale];
 		source += 128;
 		dest += width*scale;
 	}

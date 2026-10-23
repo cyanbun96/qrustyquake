@@ -316,7 +316,7 @@ static model_t *Mod_FindName(const c8 *name)
 void Mod_TouchModel(const c8 *name)
 {
 	model_t *mod = Mod_FindName(name);
-	if(!mod->needload == NL_PRESENT && mod->type == mod_alias)
+	if(!mod->needload == 0 && mod->type == mod_alias)
 		Cache_Check(&mod->cache);
 }
 
@@ -326,11 +326,11 @@ static model_t *Mod_LoadModel(model_t *mod, bool crash)
 	u8 stackbuf[1024]; // avoid dirtying the cache heap
 	if(mod->type == mod_alias){
 		if(Cache_Check(&mod->cache)){
-			mod->needload = NL_PRESENT;
+			mod->needload = 0;
 			return mod;
 		}
 	}
-	else if(mod->needload == NL_PRESENT) return mod;
+	else if(mod->needload == 0) return mod;
 	// because the world is so huge, load it one piece at a time
 	u8 *buf = 
 	COM_LoadStackFile(mod->name, stackbuf, sizeof(stackbuf), &mod->path_id);
