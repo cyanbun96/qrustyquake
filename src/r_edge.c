@@ -25,9 +25,9 @@ static s64 edge_head_u_shift20, edge_tail_u_shift20;
 static edge_t edge_head, edge_tail;
 static edge_t edge_aftertail;
 static f32 fv;
-static void(*pdrawfunc)();
-static void R_GenerateSpans();
-static void R_GenerateSpansBackward();
+static void(*pdrawfunc)(bool step);
+static void R_GenerateSpans(bool step);
+static void R_GenerateSpansBackward(bool step);
 
 // Cutout/skybox bookkeeping. For every such surface we collect the rightmost
 // leading edge and the leftmost trailing edge while walking the active edge
@@ -94,8 +94,6 @@ void R_BeginEdgeFrame()
 	}
 	memset(newedges + r_refdef.vrect.y, 0, (r_refdef.vrectbottom - 
 				r_refdef.vrect.y) * sizeof(*newedges));
-	memset(removeedges + r_refdef.vrect.y, 0, (r_refdef.vrectbottom - 
-				r_refdef.vrect.y) * sizeof(*removeedges));
 	memset(last_pcheck, 0, sizeof(edge_t*)*scr_vrect.height);
 }
 
@@ -131,73 +129,36 @@ addedge: // insert edgestoadd before edgelist
 	}while((edgestoadd = next_edge) != NULL);
 }
 
-static void R_RemoveEdges(edge_t *pedge)
+// Moves one active edge on to the next scanline, or takes it out of the list if
+// this was its last scanline, and keeps the list sorted. Called from the span
+// generation walk right after the edge's spans have been emitted, so the active
+// edge list is only walked once per scanline. prev_u is the (already stepped) u
+// of the edge in front of this one; next is e->next, read before any spans were
+// emitted. Returns the prev_u to use for next.
+static inline s64 R_StepEdge(edge_t *e, edge_t *next, s64 prev_u, s64 iv)
 {
-	do{
-		pedge->next->prev = pedge->prev;
-		pedge->prev->next = pedge->next;
-	}while((pedge = pedge->nextremove) != NULL);
-}
-
-// Steps every active edge to the next scanline and keeps the list sorted.
-// The u of the previous node is carried in a register instead of being
-// reloaded through pedge->prev for every edge.
-static void R_StepActiveU(edge_t *pedge)
-{
-	s64 u, prev_u = pedge->prev->u;
-	while(1){
-nextedge:
-		u = pedge->u + pedge->u_step;
-		pedge->u = u;
-		if(u < prev_u)
-			goto pushback;
-		prev_u = u;
-		pedge = pedge->next;
-		u = pedge->u + pedge->u_step;
-		pedge->u = u;
-		if(u < prev_u)
-			goto pushback;
-		prev_u = u;
-		pedge = pedge->next;
-		u = pedge->u + pedge->u_step;
-		pedge->u = u;
-		if(u < prev_u)
-			goto pushback;
-		prev_u = u;
-		pedge = pedge->next;
-		u = pedge->u + pedge->u_step;
-		pedge->u = u;
-		if(u < prev_u)
-			goto pushback;
-		prev_u = u;
-		pedge = pedge->next;
-		goto nextedge;
-pushback:
-		if(pedge == &edge_aftertail)
-			return;
-		// push it back to keep it sorted               
-		edge_t *pnext_edge = pedge->next;
-		// pull the edge out of the edge list
-		pedge->next->prev = pedge->prev;
-		pedge->prev->next = pedge->next;
-		// find out where the edge goes in the edge list
-		edge_t *pwedge = pedge->prev->prev;
-
-		while(pwedge->u > u){
-			pwedge = pwedge->prev;
-		}
-		// put the edge back into the edge list
-		pedge->next = pwedge->next;
-		pedge->prev = pwedge;
-		pedge->next->prev = pedge;
-		pwedge->next = pedge;
-		pedge = pnext_edge;
-		if(pedge == &edge_tail)
-			return;
-		// pnext_edge's predecessor is now the node that preceded the
-		// one we just moved, which has already been stepped
-		prev_u = pedge->prev->u;
+	if(e->vlast == iv){ // done with this edge
+		next->prev = e->prev;
+		e->prev->next = next;
+		return prev_u;
 	}
+	s64 u = e->u + e->u_step;
+	e->u = u;
+	if(u >= prev_u)
+		return u;
+	// out of order: pull it out of the edge list and put it back where it
+	// belongs. Everything in front of it has already been stepped, and the
+	// one right in front is known to be too far right, so start behind it
+	next->prev = e->prev;
+	e->prev->next = next;
+	edge_t *pwedge = e->prev->prev;
+	while(pwedge->u > u)
+		pwedge = pwedge->prev;
+	e->next = pwedge->next;
+	e->prev = pwedge;
+	e->next->prev = e;
+	pwedge->next = e;
+	return next->prev->u; // the edge that used to be in front of e
 }
 
 static void R_CleanupSpan()
@@ -323,9 +284,24 @@ static inline void R_LeadingEdge(const edge_t *edge, surf_t *surf)
 				surf->d_zistepu >= surf2->d_zistepu)
 					goto newtop;
 		}
+		if(!surf->insubmodel){
+		// The active surface list is sorted by key, with the background
+		// at both ends. Hidden faces tend to have big keys, so when
+		// ours is closer to the far end, search from there instead of
+		// walking the whole stack. Same insertion point as the forward
+		// search below: after every surface whose key is <= ours. (The
+		// top surface is a real one here, since our key is not lower
+		// than its key, so the far end is a real surface too.)
+			surf_t *last = surfaces[1].prev;
+			if((s64)surf->key-surf2->key>(s64)last->key-surf->key){
+				while(last->key > surf->key)
+					last = last->prev;
+				surf2 = last->next;
+				goto gotposition;
+			}
+		}
 continue_search:
-		do
-		{
+		do{
 			surf2 = surf2->next;
 		}while(surf->key > surf2->key);
 		if(surf->key == surf2->key){
@@ -371,7 +347,7 @@ gotposition:
 	}
 }
 
-static void R_GenerateSpans()
+static void R_GenerateSpans(bool step)
 {
 	surf_t *const sbase = surfaces; // the global is reloaded after every
 				        // store through a pointer otherwise
@@ -379,8 +355,10 @@ static void R_GenerateSpans()
 	sbase[1].next = sbase[1].prev = &sbase[1];
 	sbase[1].last_u = edge_head_u_shift20;
 	if(!cut_surfs){ // no cutout or skybox surfaces in this frame
-		for(edge_t *edge=edge_head.next; edge!=&edge_tail;
-							edge=edge->next){
+		s64 prev_u = edge_head.u;
+		for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail;
+								edge=next){
+			next = edge->next;
 			// A shared(cached) edge can carry a trailing surface in
 			// surfs[0] AND a leading one in surfs[1]. Always retire
 			// the trailing surface first.
@@ -389,6 +367,9 @@ static void R_GenerateSpans()
 				R_TrailingEdge(&sbase[s0], edge);
 			if(s1)
 				R_LeadingEdge(edge, &sbase[s1]);
+			if(step)
+				prev_u = R_StepEdge(edge, next, prev_u,
+							current_iv);
 		}
 		R_CleanupSpan();
 		return;
@@ -398,7 +379,9 @@ static void R_GenerateSpans()
 	// leftmost trailing edge, with intentional overdraw. They don't take
 	// part in the active surface stack, so they only need those two
 	// numbers, and we get them as the edges go by.
-	for(edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next){
+	s64 prev_u = edge_head.u;
+	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
+		next = edge->next;
 		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0){
 			surf_t *surf = &sbase[s0];
@@ -433,6 +416,8 @@ static void R_GenerateSpans()
 				R_LeadingEdge(edge, surf);
 			}
 		}
+		if(step)
+			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
 	// every edge has been seen by now. An inverted span(trailing before
 	// leading) gives right <= left and is skipped
@@ -456,19 +441,23 @@ static void R_GenerateSpans()
 	R_CleanupSpan();
 }
 
-static void R_GenerateSpansBackward()
+static void R_GenerateSpansBackward(bool step)
 {
 	surf_t *const sbase = surfaces;
 	// clear active surfaces to just the background surface
 	sbase[1].next = sbase[1].prev = &sbase[1];
 	sbase[1].last_u = edge_head_u_shift20;
 	// generate spans
-	for(edge_t *edge=edge_head.next; edge!=&edge_tail; edge=edge->next){
+	s64 prev_u = edge_head.u;
+	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
+		next = edge->next;
 		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0)
 			R_TrailingEdge(&sbase[s0], edge);
 		if(s1)
 			R_LeadingEdgeBackwards(edge, &sbase[s1]);
+		if(step)
+			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
 	R_CleanupSpan();
 }
@@ -524,15 +513,11 @@ void R_ScanEdges()
 		surfaces[1].spanstate = 1;
 		if(newedges[iv])
 			R_InsertNewEdges(newedges[iv], edge_head.next);
-		(*pdrawfunc) ();
+		(*pdrawfunc)(1); // also steps/removes the edges
 		// flush the span list if we can't be sure we have enough spans
 		// left for the next scan
 		if(span_p >= max_span_p)
 			R_FlushSpans(basespan_p);
-		if(removeedges[iv])
-			R_RemoveEdges(removeedges[iv]);
-		if(edge_head.next != &edge_tail)
-			R_StepActiveU(edge_head.next);
 	}
 	// do the last scan(no need to step or sort or remove on the last scan)
 	current_iv = iv;
@@ -541,7 +526,7 @@ void R_ScanEdges()
 	surfaces[1].spanstate = 1;
 	if(newedges[iv])
 		R_InsertNewEdges(newedges[iv], edge_head.next);
-	(*pdrawfunc)();
+	(*pdrawfunc)(0);
 	if(r_drawflat.value) D_DrawSurfacesFlat();
 	else if(!r_alphapass) D_DrawSurfaces();
 	else D_DrawSurfacesAlpha();

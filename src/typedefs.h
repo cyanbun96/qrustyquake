@@ -530,10 +530,10 @@ typedef struct edge_s {
 	s64 u_step;
 	struct edge_s *prev, *next;
 	u16 surfs[2];
-	struct edge_s *nextremove;
+	s32 vlast; // last scanline this edge is active on
 	f32 nearzi;
-	medge_t *owner;
 	u8 rev; // reverse edge, used for detecting cache conflicts
+	medge_t *owner;
 } edge_t;
 
 typedef struct {                                                    // d_iface.h

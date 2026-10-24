@@ -292,14 +292,10 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				}while(--c);
 			}else if(dot > BACKFACE_EPSILON){
 				do{
-		// hardcoded texture skip fixes the black sky bottom in ad_tears
 					if((surf->flags & SURF_DRAWCUTOUT) ||
-						(!(surf->flags&SURF_PLANEBACK)&&
-						(surf->visframe==r_framecount)&&
-						surf->texinfo &&
-						surf->texinfo->texture &&
-						strncmp(surf->texinfo->texture->
-						name, "bal_pureblack", 13)))
+						(!(surf->flags&(SURF_PLANEBACK|
+						SURF_NODRAWFRONT))&&
+						(surf->visframe==r_framecount)))
 						R_RenderFace(surf, clipflags);
 					surf++;
 				}while(--c);

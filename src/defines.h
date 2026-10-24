@@ -578,6 +578,7 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define SURF_DRAWTELE 0x1000
 #define SURF_DRAWWATER 0x2000
 #define SURF_DRAWSKYBOX 0x80000 // Manoel Kasimier - skyboxes
+#define SURF_NODRAWFRONT 0x100000
 #define SURF_WINQUAKE_DRAWTRANSLUCENT \
 	(SURF_DRAWLAVA | SURF_DRAWSLIME | SURF_DRAWWATER | SURF_DRAWTELE)
 #define EF_ROCKET 1 // leave a trail
@@ -608,6 +609,8 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define COARSE_OCCLUSION_TILE_SIZE 8
 #define COARSE_OCCLUSION_MAX_VERTS 128
 #define COARSE_OCCLUSION_EPSILON 0.001f
+// pixels of slack so float rounding can't make the tile test wrong
+#define COARSE_OCCLUSION_MARGIN 0.01f
 #define BLINK_HZ ((1000 / 70) * 16)                                 // vgatext.c
 #define MAX_BMODEL_VERTS 5000 // CyanBun96: was 500                   // r_bsp.c
 #define MAX_BMODEL_EDGES 10000 // was 1000

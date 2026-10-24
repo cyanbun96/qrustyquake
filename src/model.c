@@ -928,6 +928,9 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		}
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
+		// the hardcoded texture skip fixes black sky bottom in ad_tears
+		if(!strncmp(out->texinfo->texture->name, "bal_pureblack", 13))
+			out->flags |= SURF_NODRAWFRONT;
 		if(!SDL_strncasecmp(out->texinfo->texture->name,"sky",3))
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
 		else if(out->texinfo->texture->name[0] == '*' ||
