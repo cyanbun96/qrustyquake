@@ -2,8 +2,6 @@
 // cl_main.c  -- client main loop
 #include "quakedef.h"
 
-static efrag_t cl_efrags[MAX_EFRAGS];
-
 void CL_SetStat_f()
 {
 	for(s32 i = 1, argc = Cmd_Argc(); i + 1 < argc; i += 2){
@@ -53,6 +51,7 @@ void CL_ClearState()
 	memset(&cl, 0, sizeof(cl)); // wipe the entire cl structure
 	CL_FreeState();
 	SZ_Clear(&cls.message);
+	static efrag_t cl_efrags[MAX_EFRAGS];
 	memset(cl_efrags, 0, sizeof(cl_efrags)); // clear other arrays
 	memset(cl_entities, 0, sizeof(cl_entities));
 	memset(cl_dlights, 0, sizeof(cl_dlights));

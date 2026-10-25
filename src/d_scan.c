@@ -74,7 +74,6 @@ static f32 dist_lut[DIST_LUT_SIZE];
 static f32 cos_lut[COS_LUT_SIZE];
 static f32 dist_lut_max = 8.0f; // max dx*dx + dy*dy
 static f32 cos_lut_period = 2.0f * M_PI;
-static s32 HLWaterLutInited = 0;
 static f32 turb_opacity = 0;
 
 void D_WarpScreen() // this performs a slight compression of the screen at the
@@ -124,6 +123,7 @@ Q_SIL f32 fast_cos(f32 theta)
 
 static void InitHLWaterLUT()
 {
+	static s32 HLWaterLutInited = 0;
 	if(HLWaterLutInited) return;
 	for(s32 i = 0; i < DIST_LUT_SIZE; i++){
 		f32 x = (f32)i * (dist_lut_max / (DIST_LUT_SIZE - 1));

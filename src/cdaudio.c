@@ -46,7 +46,6 @@ static MIX_Track *track = 0;
 static SDL_PropertiesID trackprops = 0;
 static c8 current_name[MAX_OSPATH];
 static u8 *loaded_file = 0;
-static f32 last_volume = -1;
 
 void BGM_Play(c8 *musicname)
 {
@@ -140,6 +139,7 @@ void CDAudio_Update()
 	if(!mixer)return;
 	if(bgmvolume.value < 0) Cvar_SetQuick(&bgmvolume, "0");
 	if(bgmvolume.value > 1) Cvar_SetQuick(&bgmvolume, "1");
+	static f32 last_volume = -1;
 	if(last_volume != bgmvolume.value){
 		last_volume = bgmvolume.value;
 		MIX_SetMixerGain(mixer, bgmvolume.value);

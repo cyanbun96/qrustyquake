@@ -50,8 +50,6 @@ static s32 d_ziextrastep, d_zibasestep;
 static s32 d_pzextrastep, d_pzbasestep;
 static u8 *skintable[MAX_LBM_HEIGHT];
 static s32 skinwidth;
-static u8 *skinstart;
-static s32 ystart;
 static s32 ubasestep, errorterm, erroradjustup, erroradjustdown;
 
 edgetable edgetables[12] = {
@@ -333,6 +331,7 @@ nodraw: // recursively continue
 
 void D_PolysetUpdateTables()
 {
+	static u8 *skinstart;
 	if(r_affinetridesc.skinwidth != skinwidth ||
 			r_affinetridesc.pskin != skinstart){
 		skinwidth = r_affinetridesc.skinwidth;
@@ -594,6 +593,7 @@ void D_RasterizeAliasPolySmooth()
 	// rasterize the polygon
 	// scan out the top(and possibly only) part of the left edge
 	d_pedgespanpackage = a_spans;
+	static s32 ystart;
 	ystart = plefttop[1];
 	d_aspancount = plefttop[0] - prighttop[0];
 	d_ptex = (u8 *) r_affinetridesc.pskin + (plefttop[2] >> 16) +

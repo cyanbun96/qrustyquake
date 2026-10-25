@@ -7,14 +7,11 @@ static f32 fog_red; // CyanBun96: we store the actual RGB values in these,
 static f32 fog_green; // but they get quantized to a single index in the color
 static f32 fog_blue; // palette before use, stored in fog_pal_index
 static f32 *randarr = 0;
-static u32 lfsr = 0x1337; // non-zero seed
 static f32 *fog_factor_lut = 0;
 static f32 old_r_fogscale = -1234;
 static f32 old_fog_density = -1234;
 static f32 old_noisebias = -1234;
 static f32 *zadjarr = 0;
-static s32 zadjarr_w = -1;
-static s32 zadjarr_h = -1;
 
 void Fog_SetPalIndex(SDL_UNUSED cvar_t *cvar)
 {
@@ -115,6 +112,8 @@ void Fog_ParseWorldspawn() // from Quakespasm
 
 static void R_InitDepthCorrection()
 { // the array is normalized to [0.8,1] with 0.8 in center and 1 in corners
+	static s32 zadjarr_w = -1;
+	static s32 zadjarr_h = -1;
 	if(zadjarr_w==scr_vrect.width&&zadjarr_h==scr_vrect.height) return;
 	zadjarr_w = scr_vrect.width; zadjarr_h = scr_vrect.height;
 	zadjarr = realloc(zadjarr, sizeof(f32)*zadjarr_w*zadjarr_h);
@@ -129,6 +128,7 @@ static void R_InitDepthCorrection()
 	}}
 }
 
+static u32 lfsr = 0x1337; // non-zero seed
 u32 lfsr_random(){lfsr^=lfsr>>7; lfsr^=lfsr<<9; lfsr^=lfsr>>13; return lfsr;}
 
 void R_InitFog(f32 noisebias)

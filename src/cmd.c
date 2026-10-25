@@ -12,7 +12,6 @@ typedef struct cmdalias_s {
 } cmdalias_t;
 static s32 cmd_argc;
 static c8 *cmd_argv[MAX_ARGS];
-static c8 *cmd_null_string = "";
 static c8 *cmd_args = NULL;
 static cmdalias_t *cmd_alias; 
 static bool cmd_wait;
@@ -27,6 +26,7 @@ void Cbuf_Init(){ SZ_Alloc(&cmd_text, 1<<18); }
 void Cbuf_Waited(){ cmd_wait = 0; } // Spike: for renderer/server isolation
 s32 Cmd_Argc(){ return cmd_argc; }
 c8 *Cmd_Args(){ return cmd_args; }
+static c8 *cmd_null_string = "";
 c8 *Cmd_Argv(s32 arg){ return arg>=cmd_argc ? cmd_null_string : cmd_argv[arg]; }
 
 void Cbuf_AddText(const c8 *text)
@@ -41,7 +41,7 @@ void Cbuf_AddText(const c8 *text)
 
 void Cbuf_AddTextLen(const c8 *text, s32 l)
 {
-	if(cmd_text.cursize + l >= cmd_text.maxsize) {
+	if(cmd_text.cursize + l >= cmd_text.maxsize){
 		Con_Printf("Cbuf_AddText: overflow\n");
 		return;
 	}
@@ -80,7 +80,7 @@ void Cbuf_Execute()
 		if(i > (s32)sizeof(line) - 1){
 			memcpy(line, text, sizeof(line) - 1);
 			line[sizeof(line) - 1] = 0;
-		} else {
+		}else{
 			memcpy(line, text, i);
 			line[i] = 0;
 		}
@@ -88,7 +88,7 @@ void Cbuf_Execute()
 		// commands down this is necessary because commands(exec, alias)
 		// can insert data at the beginning of the text buffer
 		if(i == cmd_text.cursize) cmd_text.cursize = 0;
-		else {
+		else{
 			i++;
 			cmd_text.cursize -= i;
 			memmove(text, text + i, cmd_text.cursize);
@@ -306,28 +306,27 @@ void Cmd_TokenizeString(const c8 *text)
 cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
 				cmd_source_t srctype, bool qcinterceptable)
 {
-	cmd_function_t *cmd;
-	cmd_function_t *cursor,*prev; //johnfitz -- sorted list insert
 	// fail if the command is a variable name
-	if(Cvar_VariableString(cmd_name)[0]) {
+	if(Cvar_VariableString(cmd_name)[0]){
 	  Con_Printf("Cmd_AddCommand: %s already defined as a var\n", cmd_name);
 		return NULL;
 	}
 	// fail if the command already exists
-	for(cmd=cmd_functions ; cmd ; cmd=cmd->next) {
-		if(!strcmp(cmd_name, cmd->name) && cmd->srctype == srctype) {
+	cmd_function_t *cmd = cmd_functions;
+	for(; cmd; cmd = cmd->next){
+		if(!strcmp(cmd_name, cmd->name) && cmd->srctype == srctype){
 			if(cmd->function != function && function)
 		   Con_Printf("Cmd_AddCommand: %s already defined\n", cmd_name);
 			return NULL;
 		}
 	}
-	if(host_initialized) {
+	if(host_initialized){
 		cmd = (cmd_function_t *)malloc(sizeof(*cmd)+strlen(cmd_name)+1);
 		if(!cmd)
 		    Sys_Error("Cmd_AddCommand2: out of memory(%s)", cmd_name);
 		cmd->name = strcpy((c8*)(cmd + 1), cmd_name);
 		cmd->dynamic = true;
-	} else {
+	}else{
 		cmd = (cmd_function_t *) Hunk_Alloc(sizeof(*cmd));
 		cmd->name = (c8*)cmd_name;
 		cmd->dynamic = false;
@@ -339,7 +338,8 @@ cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
 	if(cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0){
 		cmd->next = cmd_functions; //insert at front
 		cmd_functions = cmd;
-	} else { //insert later
+	}else{ //insert later
+		cmd_function_t *cursor, *prev; //johnfitz -- sorted list insert
 		prev = cmd_functions;
 		cursor = cmd_functions->next;
 		while((cursor != NULL) && (strcmp(cmd->name,cursor->name) > 0)){
@@ -410,7 +410,7 @@ bool Cmd_ExecuteString(const c8 *text, cmd_source_t src)
 			Cbuf_InsertText(a->value);
 			return 1;
 		}
-	if (src != src_command)
+	if(src != src_command)
 		return 0;
 	if(!Cvar_Command()) // check cvars
 		Con_Printf("Unknown command \"%s\"\n", Cmd_Argv(0));
