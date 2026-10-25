@@ -2,11 +2,8 @@
 // cl_parse.c -- parse a message received from the server
 #include "quakedef.h"
 
-static entity_t cl_static_entities[MAX_STATIC_ENTITIES];
-static u8 net_olddata[NET_MAXMESSAGE];
 static c8 model_precache[MAX_MODELS][MAX_QPATH];
 static c8 sound_precache[MAX_SOUNDS][MAX_QPATH];
-static f32 lastmsg;
 
 static c8 *svc_strings[] = {
 	"svc_bad",
@@ -168,6 +165,7 @@ void CL_KeepaliveMessage()
 {
 	if(sv.active) return; // no need if server is local
 	if(cls.demoplayback) return; // read from server, should just be nops
+	static u8 net_olddata[NET_MAXMESSAGE];
 	u8 *olddata = net_olddata;
 	sizebuf_t old = net_message;
 	memcpy(olddata, net_message.data, net_message.cursize);
@@ -189,6 +187,7 @@ void CL_KeepaliveMessage()
 	net_message = old;
 	memcpy(net_message.data, olddata, net_message.cursize);
 	f32 time = Sys_DoubleTime(); // check time
+	static f32 lastmsg;
 	if(time - lastmsg < 5) return;
 	lastmsg = time;
 	Con_Printf("--> client to server keepalive\n"); // write out a nop
@@ -514,6 +513,7 @@ void CL_ParseStatic(s32 version) //johnfitz -- added a parameter
 {
 	s32 i = cl.num_statics;
 	if(i >= MAX_STATIC_ENTITIES) Host_Error("Too many static entities");
+	static entity_t cl_static_entities[MAX_STATIC_ENTITIES];
 	entity_t *ent = &cl_static_entities[i];
 	cl.num_statics++;
 	CL_ParseBaseline(ent, version); //johnfitz -- added second parameter

@@ -44,8 +44,6 @@ typedef struct{
 } localization_t;
 static searchpath_t *com_base_searchpaths;
 static bool com_modified; // set 1 if using non-id files
-static c8 *largv[MAX_NUM_ARGVS + 1];
-static c8 argvdummy[] = " ";
 static u8 *loadbuf;
 static cache_user_t *loadcache;
 static s32 loadsize;
@@ -664,11 +662,13 @@ void COM_InitArgv(s32 argc, c8 **argv)
 	}
 	if(n > 0 && com_cmdline[n-1] == ' ') com_cmdline[n-1] = 0;
 	Con_Printf("Command line: %s\n", com_cmdline);
+	static c8 *largv[MAX_NUM_ARGVS + 1];
 	for(com_argc=0; (com_argc<MAX_NUM_ARGVS)&&(com_argc<argc); com_argc++){
 		largv[com_argc] = argv[com_argc];
 		if(!strcmp("-safe", argv[com_argc]))
 			safemode = 1;
 	}
+	static c8 argvdummy[] = " ";
 	largv[com_argc] = argvdummy;
 	com_argv = largv;
 	if(COM_CheckParm("-rogue")){

@@ -6,7 +6,6 @@ static f32 con_cursorspeed = 4;
 static s32 con_vislines;
 static bool con_debuglog;
 static f32 con_times[NUM_CON_TIMES];
-static c8 con_lastcenterstring[MAXPRINTMSG];
 static s32 con_x; // offset in current line for next print
 
 void Con_ToggleConsole_f()
@@ -111,6 +110,7 @@ const c8 *Con_Quakebar(s32 len)
 
 void Con_LogCenterPrint(const c8 *str)
 {
+	static c8 con_lastcenterstring[MAXPRINTMSG];
 	if(!strcmp(str, con_lastcenterstring))
 		return; //ignore duplicates
 	if(cl.gametype == GAME_DEATHMATCH && con_logcenterprint.value != 2)

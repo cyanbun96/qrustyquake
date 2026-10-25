@@ -13,17 +13,12 @@ typedef struct cachepic_s {
 	c8 name[MAX_QPATH];
 	cache_user_t cache;
 } cachepic_t;
-static s32 d_y_aspect_shift;
 static s32 cliprectx0 = -1;
 static s32 cliprectx1 = -1;
 static s32 cliprecty0 = -1;
 static s32 cliprecty1 = -1;
 static rectdesc_t r_rectdesc;
-static cachepic_t menu_cachepics[MAX_CACHED_PICS];
-static s32 menu_numcachepics;
 static u8 *draw_chars; // 8*8 graphic characters
-static qpic_t *draw_backtile;
-static f32 basemip[NUM_MIPS - 1] = { 1.0, 0.5 * 0.8, 0.25 * 0.8 };
 static u8 dos_brightness_lut[256*3];
 static s32 dos_brightness_lut_init = 0;
 static u8 brightness_lut[256*3];
@@ -62,6 +57,7 @@ void D_SetupFrame()
 	d_initial_rover = sc_rover;
 	d_minmip = d_mipcap.value;
 	d_minmip = CLAMP(0, d_minmip, 3);
+	static f32 basemip[NUM_MIPS - 1] = { 1.0, 0.5 * 0.8, 0.25 * 0.8 };
 	for(s32 i = 0; i < (NUM_MIPS - 1); i++)
 		d_scalemip[i] = basemip[i] * d_mipscale.value;
 }
@@ -80,10 +76,6 @@ void D_ViewChanged()
 	d_pix_shift = 8 - (s32)((f32)r_refdef.vrect.width / 320.0 + 0.5);
 	if(d_pix_max < 1)
 		d_pix_max = 1;
-	if(pixelAspect > 1.4)
-		d_y_aspect_shift = 1;
-	else
-		d_y_aspect_shift = 0;
 	d_vrectx = r_refdef.vrect.x;
 	d_vrecty = r_refdef.vrect.y;
 	for(u32 i = 0; i < vid.height; i++){
@@ -96,8 +88,10 @@ qpic_t *Draw_PicFromWad(c8 *name){ return W_GetLumpName(name); }
 
 qpic_t *Draw_CachePic(c8 *path)
 {
+	static cachepic_t menu_cachepics[MAX_CACHED_PICS];
 	cachepic_t *pic = menu_cachepics;
 	s32 i = 0;
+	static s32 menu_numcachepics;
 	for(; i < menu_numcachepics; pic++, i++)
 		if(!strcmp(path, pic->name))
 			break;
@@ -131,6 +125,7 @@ void Draw_Init()
 {
 	draw_chars = W_GetLumpName("conchars");
 	draw_disc = W_GetLumpName("disc");
+	static qpic_t *draw_backtile;
 	draw_backtile = W_GetLumpName("backtile");
 	r_rectdesc.width = draw_backtile->width;
 	r_rectdesc.height = draw_backtile->height;

@@ -5,8 +5,6 @@
 // cvar.c -- dynamic variable tracking
 #include "quakedef.h"
 
-static c8 cvar_null_string[] = "";
-
 void Cvar_List_f()
 {
 	s32 len = 0, count = 0;
@@ -141,6 +139,7 @@ f32 Cvar_VariableValue(const c8 *var_name)
 
 const c8 *Cvar_VariableString(const c8 *var_name)
 {
+	static c8 cvar_null_string[] = "";
 	cvar_t *var = Cvar_FindVar(var_name);
 	if(!var) return cvar_null_string;
 	return var->string;
