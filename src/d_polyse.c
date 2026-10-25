@@ -79,9 +79,9 @@ void D_PolysetScanLeftEdge(s32 height);
 static inline s32 D_GetRGBPix(s32 pix)
 {
 	if(pix >= 0xFF) return pix;
-	u8 tr = vid_curpal[pix * 3 + 0];
-	u8 tg = vid_curpal[pix * 3 + 1];
-	u8 tb = vid_curpal[pix * 3 + 2];
+	u8 tr = CURWORLDPAL[pix * 3 + 0];
+	u8 tg = CURWORLDPAL[pix * 3 + 1];
+	u8 tb = CURWORLDPAL[pix * 3 + 2];
 	u8 rr = (tr * lightcolor[0]) / 255.0f;
 	u8 gg = (tg * lightcolor[1]) / 255.0f;
 	u8 bb = (tb * lightcolor[2]) / 255.0f;
