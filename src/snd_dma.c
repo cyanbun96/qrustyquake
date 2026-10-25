@@ -294,10 +294,13 @@ static void S_UpdateAmbientSounds()
 	if(cls.state != ca_connected) return; // no ambients when disconnected
 	if(!cl.worldmodel) return; // calc ambient sound levels
 	mleaf_t *l = Mod_PointInLeaf(listener_origin, cl.worldmodel);
-	s32 vol = 0, amb_ch = 0;
+	s32 amb_ch = 0;
+	f32 vol = 0;
+	static f32 levels[NUM_AMBIENTS];
 	if(!l || !ambient_level.value){
 		for(amb_ch = 0; amb_ch < NUM_AMBIENTS; amb_ch++)
 			snd_channels[amb_ch].sfx = NULL;
+		memset(levels, 0, sizeof(levels));
 		return;
 	}
 	for(amb_ch = 0; amb_ch < NUM_AMBIENTS; amb_ch++){
@@ -305,14 +308,15 @@ static void S_UpdateAmbientSounds()
 		chan->sfx = ambient_sfx[amb_ch];
 		vol = (s32)(ambient_level.value*l->ambient_sound_level[amb_ch]);
 		if(vol < 8) vol = 0;
-		if(chan->master_vol < vol){ // don't adjust volume too fast
-		    chan->master_vol+=(s32)(host_frametime*ambient_fade.value);
-		    if(chan->master_vol > vol) chan->master_vol = vol;
-		}else if(chan->master_vol > vol){
-		    chan->master_vol-=(s32)(host_frametime*ambient_fade.value);
-		    if(chan->master_vol < vol) chan->master_vol = vol;
+		if(vol > 255) vol = 255;
+		if(levels[amb_ch] < vol){ // don't adjust volume too fast
+			levels[amb_ch] += host_frametime*ambient_fade.value;
+			if(levels[amb_ch] > vol) levels[amb_ch] = vol;
+		}else if(levels[amb_ch] > vol){
+			levels[amb_ch] -= host_frametime*ambient_fade.value;
+			if(levels[amb_ch] < vol) levels[amb_ch] = vol;
 		}
-		chan->leftvol = chan->rightvol = chan->master_vol;
+		chan->leftvol=chan->rightvol=chan->master_vol=levels[amb_ch];
 	}
 }
 
