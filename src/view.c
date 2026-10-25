@@ -288,39 +288,8 @@ void adjust_vibrance(u8 *r, u8 *g, u8 *b, f32 k)
 	*b = CLAMP(0, fb, 255);
 }
 
-void V_UpdatePalette()
+void V_ModifyPalette(u8 *basepal, u8 *newpal)
 {
-	V_CalcPowerupCshift();
-	f32 frametime = fabs(cl.time - cl.oldtime);
-	bool new = 0;
-	for(s32 i = 0; i < NUM_CSHIFTS; i++){
-		if(cl.cshifts[i].percent != cl.prev_cshifts[i].percent){
-			new = 1;
-			cl.prev_cshifts[i].percent = cl.cshifts[i].percent;
-		}
-		for(s32 j = 0; j < 3; j++)
-			if(cl.cshifts[i].destcolor[j] !=
-					cl.prev_cshifts[i].destcolor[j]){
-				new = 1;
-				cl.prev_cshifts[i].destcolor[j] =
-					cl.cshifts[i].destcolor[j];
-			}
-	}
-	// drop the damage value
-	cl.cshifts[CSHIFT_DAMAGE].percent -= frametime * 150;
-	if(cl.cshifts[CSHIFT_DAMAGE].percent <= 0)
-		cl.cshifts[CSHIFT_DAMAGE].percent = 0;
-	// drop the bonus value
-	cl.cshifts[CSHIFT_BONUS].percent -= frametime * 100;
-	if(cl.cshifts[CSHIFT_BONUS].percent <= 0)
-		cl.cshifts[CSHIFT_BONUS].percent = 0;
-	bool force = V_CheckGamma();
-	if(!new && !force && !refresh_palette)
-		return;
-	refresh_palette--;
-	u8 pal[768];
-	u8 *basepal = CURWORLDPAL;
-	u8 *newpal = pal;
 	for(s32 i = 0; i < 256; i++){
 		s32 r = basepal[0];
 		s32 g = basepal[1];
@@ -365,7 +334,50 @@ void V_UpdatePalette()
 		newpal[2] = b2;
 		newpal += 3;
 	}
+}
+
+void V_UpdatePalette()
+{
+	V_CalcPowerupCshift();
+	f32 frametime = fabs(cl.time - cl.oldtime);
+	bool new = 0;
+	for(s32 i = 0; i < NUM_CSHIFTS; i++){
+		if(cl.cshifts[i].percent != cl.prev_cshifts[i].percent){
+			new = 1;
+			cl.prev_cshifts[i].percent = cl.cshifts[i].percent;
+		}
+		for(s32 j = 0; j < 3; j++)
+			if(cl.cshifts[i].destcolor[j] !=
+					cl.prev_cshifts[i].destcolor[j]){
+				new = 1;
+				cl.prev_cshifts[i].destcolor[j] =
+					cl.cshifts[i].destcolor[j];
+			}
+	}
+	// drop the damage value
+	cl.cshifts[CSHIFT_DAMAGE].percent -= frametime * 150;
+	if(cl.cshifts[CSHIFT_DAMAGE].percent <= 0)
+		cl.cshifts[CSHIFT_DAMAGE].percent = 0;
+	// drop the bonus value
+	cl.cshifts[CSHIFT_BONUS].percent -= frametime * 100;
+	if(cl.cshifts[CSHIFT_BONUS].percent <= 0)
+		cl.cshifts[CSHIFT_BONUS].percent = 0;
+	bool force = V_CheckGamma();
+	if(!new && !force && !refresh_palette)
+		return;
+	refresh_palette--;
+	u8 pal[768];
+	u8 *basepal = CURWORLDPAL;
+	u8 *newpal = pal;
+	V_ModifyPalette(basepal, newpal);
 	VID_SetPalette(pal, screen);
+	if(uipalname[0]){
+		basepal = uipal;
+		newpal = pal;
+		V_ModifyPalette(basepal, newpal);
+	}
+	VID_SetPalette(pal, screenui);
+	VID_SetPalette(pal, screensbar);
 }
 
 f32 angledelta(f32 a) // View rendering 
