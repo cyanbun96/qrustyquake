@@ -2024,6 +2024,23 @@ static void Mod_CalcAliasBounds(aliashdr_t *a) // johnfitz -- calculate bounds
 			if(radius < dist)
 				radius = dist;
 		}
+	// bounds for yaw-only and fully rotated entities (this tail was missing)
+	radius = sqrtf(radius);
+	yawradius = sqrtf(yawradius);
+	// yaw only turns the model around the vertical axis, so x/y reach at most
+	// yawradius and z doesn't change
+	for(s32 i = 0; i < 2; i++){
+		loadmodel->ymins[i] = -yawradius;
+		loadmodel->ymaxs[i] = yawradius;
+	}
+	loadmodel->ymins[2] = loadmodel->mins[2];
+	loadmodel->ymaxs[2] = loadmodel->maxs[2];
+	// pitch or roll can swing any vertex anywhere on the sphere of its
+	// distance from the origin, so every axis needs the full radius
+	for(s32 i = 0; i < 3; i++){
+		loadmodel->rmins[i] = -radius;
+		loadmodel->rmaxs[i] = radius;
+	}
 }
 
 bool nameInList(const c8 *list, const c8 *name)

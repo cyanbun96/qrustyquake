@@ -488,3 +488,121 @@ void R_AliasDrawModel(alight_t *plighting)
 	else
 		R_AliasPreparePoints();
 }
+
+// Entity occlusion against the z-buffer (r_entocclusion)
+// If every pixel of an entity's screen footprint is already covered by 
+// something nearer than the nearest point the entity can have, then the alias
+// rasterizer's own per-pixel test would reject every pixel of it, and we can
+// skip the lighting, vertex transform and triangle setup altogether.
+
+// Safety margins. The rasterizer works in fixed point and may touch a pixel
+// or two outside the projected triangle, so the nearest depth is inflated and
+// the rectangle padded. Both only ever make the test refuse to cull.
+#define ENTOCC_ZMARGIN 1.0625f // nearest 1/z of the bounds, +6.25%
+#define ENTOCC_ZSLACK 2 // plus two z-buffer units
+#define ENTOCC_PAD 2 // pixels
+
+// Is every z-buffer value in this (inclusive) rectangle strictly greater than
+// zbound? The rasterizer draws a pixel when (zi >> 16) >= *pz, so if all
+// stored values are > zbound >= any pixel it could produce, nothing is drawn.
+static bool R_ZBufferRectBehind(s32 x0, s32 y0, s32 x1, s32 y1, s32 zbound)
+{
+	for(s32 y = y0; y <= y1; y++){
+		const s16 *row = d_pzbuffer + (size_t)y * d_zwidth;
+		for(s32 x = x0; x <= x1;){
+			s32 n = x1 - x + 1;
+			if(n > 64) n = 64;
+			s16 m = row[x];
+			for(s32 i = 1; i < n; i++)
+				m = row[x + i] < m ? row[x + i] : m;
+			if(m <= zbound)
+				return 0;
+			x += n;
+		}
+	}
+	return 1;
+}
+
+// Screen rectangle (inclusive, clipped to the view) the entity can touch, and
+// the largest z-buffer value any of its pixels can produce. False when we
+// can't bound it (it reaches the near plane, etc.), meaning "don't cull".
+static bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
+		s32 *rzbound)
+{
+	entity_t *e = currententity;
+	model_t *m = e->model;
+	const f32 *mn, *mx; // bounds over every vertex of every pose, so they
+			    // also hold for interpolated and grouped frames
+	if(e->angles[0] || e->angles[2]){ // pitch or roll
+		mn = m->rmins;
+		mx = m->rmaxs;
+	}else if(e->angles[1]){ // yaw
+		mn = m->ymins;
+		mx = m->ymaxs;
+	}else{
+		mn = m->mins;
+		mx = m->maxs;
+	}
+	f32 zmin = FLT_MAX;
+	f32 minx = FLT_MAX, maxx = -FLT_MAX, miny = FLT_MAX, maxy = -FLT_MAX;
+	f32 tv[8][3];
+	for(s32 i = 0; i < 8; i++){
+		vec3_t corner, local;
+		for(s32 k = 0; k < 3; k++)
+			corner[k] = e->origin[k] + ((i>>k) & 1 ? mx[k] : mn[k]);
+		VectorSubtract(corner, r_origin, local);
+		TransformVector(local, tv[i]);
+		if(tv[i][2] <= ALIAS_Z_CLIP_PLANE)
+			return 0; // reaches the near plane, don't try to clip
+		if(tv[i][2] < zmin)
+			zmin = tv[i][2];
+	}
+	for(s32 i = 0; i < 8; i++){
+		f32 zi = 1.0f / tv[i][2];
+		f32 x = xcenter + xscale * zi * tv[i][0];
+		f32 y = ycenter - yscale * zi * tv[i][1];
+		if(x < minx) minx = x;
+		if(x > maxx) maxx = x;
+		if(y < miny) miny = y;
+		if(y > maxy) maxy = y;
+	}
+	if(!(minx > -1e6f && maxx < 1e6f && miny > -1e6f && maxy < 1e6f))
+		return 0; // absurd projection, let the normal path deal with it
+	// the footprint, padded and clipped to the view
+	s32 vx0 = r_refdef.vrect.x, vy0 = r_refdef.vrect.y;
+	s32 vx1 = vx0 + r_refdef.vrect.width - 1;
+	s32 vy1 = vy0 + r_refdef.vrect.height - 1;
+	s32 x0 = (s32)floorf(minx)-ENTOCC_PAD, x1 = (s32)ceilf(maxx)+ENTOCC_PAD;
+	s32 y0 = (s32)floorf(miny)-ENTOCC_PAD, y1 = (s32)ceilf(maxy)+ENTOCC_PAD;
+	if(x0 < vx0) x0 = vx0;
+	if(y0 < vy0) y0 = vy0;
+	if(x1 > vx1) x1 = vx1;
+	if(y1 > vy1) y1 = vy1;
+	if(x0 > x1 || y0 > y1)
+		return 0;
+	// the stored value is (s16)(zi * 0x8000), same scale as the rasterizer
+	f32 zbound = (1.0f / zmin) * 32768.0f * ENTOCC_ZMARGIN + ENTOCC_ZSLACK;
+	if(zbound >= 32767.0f)
+		return 0; // too close for the s16 buffer to prove anything
+	*rx0 = x0; *ry0 = y0; *rx1 = x1; *ry1 = y1;
+	*rzbound = (s32)zbound;
+	return 1;
+}
+
+bool R_AliasOccluded()
+{
+	s32 x0, y0, x1, y1, zbound;
+	if(!d_pzbuffer || !R_AliasScreenBounds(&x0, &y0, &x1, &y1, &zbound))
+		return 0;
+	return R_ZBufferRectBehind(x0, y0, x1, y1, zbound);
+}
+
+// Drawing an alias entity advances its animation lerp state as a side effect
+// (previouspose/currentpose/lerpstart). An entity we skip must still advance,
+// or it would blend from a stale pose when it comes back into view.
+void R_AliasSyncLerpState()
+{
+	lerpdata_t lerpdata;
+	R_SetupAliasFrame(Mod_Extradata(currententity->model),
+			currententity->frame, &lerpdata);
+}

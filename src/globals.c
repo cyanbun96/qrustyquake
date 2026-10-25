@@ -268,6 +268,7 @@ void *acolormap;
 finalvert_t *pfinalverts;
 auxvert_t *pauxverts;
 s32 r_amodels_drawn;
+s32 r_amodels_occluded;
 f32 r_avertexnormals[NUMVERTEXNORMALS][3] = {
 {-0.525731,0.0,0.850651},{-0.442863,0.238856,0.864188},
 {-0.295242,0.0,0.955423},{-0.309017,0.5,0.809017},

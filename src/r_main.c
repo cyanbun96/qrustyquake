@@ -307,6 +307,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_nofog);
 	Cvar_RegisterVariable(&r_alphastyle);
 	Cvar_RegisterVariable(&r_entalpha);
+	Cvar_RegisterVariable(&r_entocclusion);
 	Cvar_RegisterVariable(&r_labmixpal);
 	Cvar_RegisterVariable(&r_rgblighting);
 	Cvar_RegisterVariable(&r_fogbrightness);
@@ -667,6 +668,13 @@ static void R_DrawAliasEntity()
 	// also sets trivial accept status
 	if(!R_AliasCheckBBox())
 		return;
+	// hidden behind what's already in the z-buffer: skip the lighting,
+	// transform and triangle setup, but keep its animation state current
+	if(r_entocclusion.value && !r_showtris.value && R_AliasOccluded()){
+		R_AliasSyncLerpState();
+		r_amodels_occluded++;
+		return;
+	}
 	alight_t lighting;
 	R_SetupAliasEntityLighting(&lighting);
 	cur_ent_alpha = r_entalpha.value == 1 ? R_EntityAlpha(currententity):1;
@@ -963,4 +971,7 @@ void R_RenderView()
 	}
 	if(coccl_enable && r_speeds.value)
 		Con_Printf("Coarse rejected: %d\n", r_coarse_rejected);
+	if(r_entocclusion.value && r_speeds.value)
+		Con_Printf("Entities occluded: %d (drawn %d)\n",
+				r_amodels_occluded, r_amodels_drawn);
 }

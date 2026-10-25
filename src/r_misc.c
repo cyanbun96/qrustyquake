@@ -250,6 +250,7 @@ void R_SetupFrame()
 	r_polycount = 0;
 	r_drawnpolycount = 0;
 	r_amodels_drawn = 0;
+	r_amodels_occluded = 0;
 	r_outofsurfaces = 0;
 	r_outofedges = 0;
 	D_SetupFrame();
