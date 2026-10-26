@@ -150,7 +150,10 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		if(pn->visframe != r_visframecount)
 			continue;
 		if(pn->contents < 0){
-			if(pn->contents != CONTENTS_SOLID){
+			// no key this pass: the world traversal didn't get to
+			// the leaf, it's off screen or hidden
+			if(pn->contents != CONTENTS_SOLID &&
+				((mleaf_t *)pn)->keypass == r_worldpass){
 				r_currentbkey = ((mleaf_t *) pn)->key;
 				R_RenderBmodelFace(psideedges[i], psurf);
 			}
@@ -260,6 +263,11 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				clipflags &= ~(1 << i);
 		}
 	}
+	// hidden behind the world faces drawn so far
+	if(R_CoarseOcclusionTestNode(node)){
+		r_nodes_occluded++;
+		return;
+	}
 	if(node->contents < 0){ // if a leaf node, draw stuff
 		mleaf_t *pleaf = (mleaf_t *) node;
 		msurface_t **mark = pleaf->firstmarksurface;
@@ -273,6 +281,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 		if(pleaf->efrags) // deal with model fragments in this leaf
 			R_StoreEfrags(&pleaf->efrags);
 		pleaf->key = r_currentkey;
+		pleaf->keypass = r_worldpass;
 		r_currentkey++; // all bmodels in a leaf share the same key
 	}else{
 		// node is just a decision point so go down the apropriate sides
@@ -328,6 +337,7 @@ void R_RenderWorld()
 	VectorCopy(r_origin, modelorg);
 	model_t *clmodel = currententity->model;
 	r_pcurrentvertbase = clmodel->vertexes;
+	r_worldpass++;
 	R_RecursiveWorldNode(clmodel->nodes, 15);
 	if(r_skyframe[0] == r_framecount)
 		R_EmitSkyBox();

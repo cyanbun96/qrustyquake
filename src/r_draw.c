@@ -95,7 +95,7 @@ static void R_CoarseOccClearPixels()
 
 void R_CoarseOcclusionBeginFrame()
 {
-	r_coarse_rejected = 0;
+	r_coarse_rejected = r_nodes_occluded = 0;
 	r_bmodels_occluded = r_bmodel_faces_occluded = 0;
 	coccl_enable = (r_coarseocclusion.value == 1) ||
 		(r_coarseocclusion.value && cl_entities[0].model &&
@@ -559,20 +559,23 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 	// Coarse occlusion is initially restricted to the world.
 	// This also avoids entity ordering complications.
 	if(currententity != &cl_entities[0]) return false;
-	// Never use translucent/sky/cutout geometry as an occluder. The surface
-	// test itself could still safely reject against previous opaque
-	// coverage, but keeping this restricted makes the initial
-	// implementation easier to reason about.
+	// Translucent/sky/cutout geometry is never used as an occluder (see
+	// R_CoarseOccluderEligible), but cutout and translucent faces can
+	// still be rejected here. In the main pass everything comes in BSP
+	// order, so whatever covered the tiles so far is in front. The alpha
+	// pass comes after the whole main pass though, so there the tiles are
+	// also covered by what is behind the face, and only the depth of the
+	// opaque faces that covered them says whether it's hidden (the
+	// z-buffer test that alpha surfaces get).
 	if(fa->flags & SURF_DRAWSKY) return false;
-	if(fa->flags & SURF_DRAWCUTOUT) return false;
-	if(fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return false;
 	s32 count;
 	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly, &count,
 				r_coarse_poly_zi))
 		return false;
 	r_coarse_poly_surf = fa; // R_CoarseOcclusionAddSurface can reuse this
 	r_coarse_poly_count = count;
-	return R_CoarseOccPolyCovered(r_coarse_poly, count, 0, 0.0f);
+	return R_CoarseOccPolyCovered(r_coarse_poly, count, r_alphapass,
+			r_coarse_poly_zi[1]);
 }
 
 static bool R_CoarseOccluderEligible(msurface_t *fa)
@@ -632,12 +635,11 @@ bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa)
 	return R_CoarseOccPolyCovered(r_coarse_poly, count, 1, zi[1]);
 }
 
-// The same for everything inside a world space box, seen from the player's
-// point of view (so before the entity's own rotation is applied).
-bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx)
+// Are all the tiles a world space box touches FULL, as seen from the player's
+// point of view? With depth set, they must also be covered by something nearer
+// than all of the box.
+static bool R_CoarseOccBoxCovered(const f32 *mn, const f32 *mx, bool depth)
 {
-	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
-	if(r_alphapass || cur_ent_alpha < 1.0f) return false;
 	const f32 m = COARSE_OCCLUSION_MARGIN;
 	const f32 invt = 1.0f / (f32)COARSE_OCCLUSION_TILE_SIZE;
 	const s32 tw = r_coarse_occlusion_width, th = r_coarse_occlusion_height;
@@ -676,11 +678,31 @@ bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx)
 		if(!R_CoarseOccRunFull(r_coarse_occlusion_bits +
 				(size_t)r * r_coarse_occlusion_words, tx0, tx1))
 			return false;
-		if(!R_CoarseOccZiInFront(r_coarse_occlusion_zi +
+		if(depth && !R_CoarseOccZiInFront(r_coarse_occlusion_zi +
 				(size_t)r * tw, tx0, tx1, nearzi))
 			return false;
 	}
 	return true;
+}
+
+// The same as for brush faces, for everything inside a world space box (so
+// before the entity's own rotation is applied).
+bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx)
+{
+	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
+	if(r_alphapass || cur_ent_alpha < 1.0f) return false;
+	return R_CoarseOccBoxCovered(mn, mx, 1);
+}
+
+// Can nothing in this world BSP node or leaf show up? Everything in it comes
+// after the world faces drawn so far in the BSP order, so like the faces in
+// R_CoarseOcclusionTestSurface, it's hidden wherever the tiles are FULL, and
+// in the alpha pass only if it's also behind the faces that filled them.
+bool R_CoarseOcclusionTestNode(mnode_t *node)
+{
+	if(!r_coarse_active || !r_coarse_occlusion_bits) return false;
+	return R_CoarseOccBoxCovered(node->minmaxs, node->minmaxs + 3,
+			r_alphapass);
 }
 
 void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)

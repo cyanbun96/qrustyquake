@@ -71,6 +71,8 @@ EX bool coccl_enable;
 EX bool r_bmodel_occ_active; // brush entity occlusion is on this frame
 EX bool r_bmodel_occ_faces; // test the faces of the brush entity being drawn
 EX s32 r_bmodels_occluded, r_bmodel_faces_occluded;
+EX s32 r_nodes_occluded;
+EX s32 r_worldpass; // counts R_RenderWorld calls, see mleaf_t keypass
 EX vec3_t v_punchangles[2];
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY);
@@ -79,6 +81,7 @@ void R_CoarseOcclusionBeginFrame();
 bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa);
 bool R_SurfaceInPass(msurface_t *fa);
 bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx);
+bool R_CoarseOcclusionTestNode(mnode_t *node);
 void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();

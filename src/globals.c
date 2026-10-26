@@ -74,6 +74,8 @@ bool r_bmodel_occ_active = 0;
 bool r_bmodel_occ_faces = 0;
 s32 r_bmodels_occluded;
 s32 r_bmodel_faces_occluded;
+s32 r_nodes_occluded;
+s32 r_worldpass;
 vec3_t v_punchangles[2];
 f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
 f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;

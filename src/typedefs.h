@@ -345,6 +345,7 @@ typedef struct mleaf_s {
 	msurface_t **firstmarksurface;
 	s32 nummarksurfaces;
 	s32 key; // BSP sequence number for leaf's contents
+	s32 keypass; // r_worldpass when key was assigned, else it is stale
 	u8 ambient_sound_level[NUM_AMBIENTS];
 } mleaf_t;
 typedef struct mclipnode_s { //johnfitz -- for clipnodes>32k

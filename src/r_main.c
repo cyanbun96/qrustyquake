@@ -852,9 +852,10 @@ static void R_DrawBmodelPolygons(model_t *clmodel, f32 *minmaxs, s32 clipflags)
 		// not a leaf; has to be clipped to the world BSP
 		r_clipflags = clipflags;
 		R_DrawSolidClippedSubmodelPolygons(clmodel);
-	}else{
+	}else if(((mleaf_t *)r_pefragtopnode)->keypass == r_worldpass){
 // falls entirely in one leaf, so we just put all the edges in the edge list and
-// let 1/z sorting handle drawing order
+// let 1/z sorting handle drawing order. If the leaf has no key, the world
+// traversal didn't get to it: it's off screen or hidden.
 		R_DrawSubmodelPolygons(clmodel, clipflags);
 	}
 	currententity->topnode = NULL;
@@ -1007,7 +1008,8 @@ void R_RenderView()
 		r_numdebuglines = 0;
 	}
 	if(coccl_enable && r_speeds.value)
-		Con_Printf("Coarse rejected: %d\n", r_coarse_rejected);
+		Con_Printf("Coarse rejected: %d (nodes %d)\n",
+				r_coarse_rejected, r_nodes_occluded);
 	if(r_bmodel_occ_active && r_speeds.value)
 		Con_Printf("Brush entities occluded: %d (faces %d)\n",
 				r_bmodels_occluded, r_bmodel_faces_occluded);
