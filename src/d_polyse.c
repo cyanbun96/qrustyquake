@@ -127,7 +127,7 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 				continue;
 			s32 pix = row[s];
 			*zbuf = z;
-			if(!r_rgblighting.value || !colored_aliaslight)
+			if(!r_rgblighting.value||!colored_aliaslight||pix>=0xE0)
 				pix = ((u8*)acolormap)[pix + (fv->v[4]&0xFF00)];
 			else
 				pix = D_GetRGBPix(((u8 *) acolormap)[pix]);
@@ -306,7 +306,7 @@ split: // split this edge
 		if(!row)
 			goto nodraw;
 		s32 pix = row[s];
-		if(!r_rgblighting.value || !colored_aliaslight)
+		if(!r_rgblighting.value || !colored_aliaslight || pix >= 0xE0)
 			pix = d_pcolormap[skintable[t][s]];
 		else
 			pix = D_GetRGBPix(((u8*)acolormap)[skintable[t][s]]);
