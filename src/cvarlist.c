@@ -118,6 +118,7 @@ cvar_t registered=                                      {"registered","1",0,ZR};
 cvar_t r_enableskybox=                            {"r_enableskybox", "1", 1,ZR};
 cvar_t r_entalpha=                                    {"r_entalpha", "1", 1,ZR};
 cvar_t r_entocclusion=                              {"r_entocclusion", "1", 1,ZR};
+cvar_t r_bmodelocclusion=                           {"r_bmodelocclusion", "1", 1,ZR};
 cvar_t r_fogbrightness=                          {"r_fogbrightness", "1", 1,ZR};
 cvar_t r_fogdepthcorrection=                {"r_fogdepthcorrection", "1", 1,ZR};
 cvar_t r_fogfactor=                                {"r_fogfactor", "0.5", 1,ZR};

@@ -5,6 +5,16 @@ typedef struct { f32 x; f32 y; } coarse_occ_vertex_t;
 static f32 winquake_surface_liquid_alpha;
 // One bit per tile, one row of 64-bit words per tile row.
 static u64 *r_coarse_occlusion_bits;
+// For every tile that has its bit set: the lowest 1/z that a world face which
+// covers the whole tile has inside it, the nearest of those if there are more.
+// Only meaningful where the bit is set, so it never needs clearing. Whatever
+// has a higher z than this all over the tile is behind a world face there.
+static f32 *r_coarse_occlusion_zi;
+// The pixels of each tile that opaque world faces cover so far, bit
+// (y & 7) * 8 + (x & 7). A tile is FULL once all 64 are covered.
+static u64 *r_coarse_occ_pixels;
+static f32 *r_coarse_occ_rows; // 2 arrays of one float per viewport row
+static s32 r_coarse_occ_rows_n;
 static s32 r_coarse_occlusion_width;
 static s32 r_coarse_occlusion_height;
 static s32 r_coarse_occlusion_words; // u64 words per tile row
@@ -16,6 +26,7 @@ static bool r_coarse_active; // set once per frame, see BeginFrame
 static msurface_t *r_coarse_poly_surf;
 static coarse_occ_vertex_t r_coarse_poly[COARSE_OCCLUSION_MAX_VERTS];
 static s32 r_coarse_poly_count;
+static f32 r_coarse_poly_zi[2];
 static u32 cacheoffset;
 static medge_t tedge;
 static medge_t *r_pedge;
@@ -34,8 +45,8 @@ static u8 r_edgerev; // direction of the face currently being walked
 // r_coarseocclusion enables conservative coarse screen-space occlusion:
 // - Static tile coverage bitmap, one bit per tile.
 // - Only FULL tiles are recorded.
-// - A tile becomes FULL only if all four of its corners are inside the
-//   projected convex surface polygon.
+// - A tile becomes FULL once every pixel in it is covered by surface
+//   polygons, which may take any number of them.
 // - A surface is rejected only if every tile intersected by its projected
 //   polygon is already FULL.
 // - Faces with any vertex behind NEAR_CLIP are not considered for coarse
@@ -50,21 +61,47 @@ static u8 r_edgerev; // direction of the face currently being walked
 //   tiles in that extent are intersected by the polygon (the polygon is
 //   convex, so it is connected inside the strip), and are checked with a
 //   couple of word operations.
-// - Fill: a tile has all four corners inside a convex polygon exactly when its
-//   left/right sides are inside the polygon's horizontal cross-sections at
-//   both the top and the bottom line of the tile row. Cross-sections are
-//   computed once per tile row boundary, and a whole run of tiles is set at
-//   once.
+// - Fill: the polygon is rasterized the way the edge list does it (pixels are
+//   sampled at whole coordinates, left and top edges inclusive), each pixel
+//   row is set in the 8 pixel bitmasks of the tiles it crosses.
 // COARSE_OCCLUSION_MARGIN makes both operations err on the safe side: the
-// test looks at slightly more tiles, the fill marks slightly fewer.
+// test looks at slightly more tiles, the fill marks slightly fewer pixels.
+
+#if COARSE_OCCLUSION_TILE_SIZE != 8
+#error "r_coarse_occ_pixels holds 8x8 pixels per tile"
+#endif
+
+static void R_CoarseOccClearPixels()
+{
+	const s32 tw = r_coarse_occlusion_width;
+	const s32 th = r_coarse_occlusion_height;
+	memset(r_coarse_occ_pixels, 0, (size_t)tw * th * sizeof(u64));
+	for(s32 i = 0; i < tw * th; i++)
+		r_coarse_occlusion_zi[i] = FLT_MAX;
+	// the pixels of the last tile column and row that are outside the
+	// viewport count as covered, so those tiles can still become FULL
+	s32 xo = r_refdef.vrect.width & 7, yo = r_refdef.vrect.height & 7;
+	if(xo){
+		u64 m = 0;
+		for(s32 y = 0; y < 8; y++)
+			m |= (u64)((0xffu << xo) & 0xffu) << (y * 8);
+		for(s32 t = 0; t < th; t++)
+			r_coarse_occ_pixels[t * tw + tw - 1] |= m;
+	}
+	if(yo)
+		for(s32 t = 0; t < tw; t++)
+			r_coarse_occ_pixels[(th-1) * tw + t] |= ~(u64)0<<(yo*8);
+}
 
 void R_CoarseOcclusionBeginFrame()
 {
 	r_coarse_rejected = 0;
+	r_bmodels_occluded = r_bmodel_faces_occluded = 0;
 	coccl_enable = (r_coarseocclusion.value == 1) ||
 		(r_coarseocclusion.value && cl_entities[0].model &&
 		 cl_entities[0].model->bspversion != BSPVERSION);
 	r_coarse_active = coccl_enable && !r_showtris.value;
+	r_bmodel_occ_active = 0;
 	if(!r_coarse_active)
 		return;
 	s32 width = (r_refdef.vrect.width + COARSE_OCCLUSION_TILE_SIZE - 1) /
@@ -74,38 +111,67 @@ void R_CoarseOcclusionBeginFrame()
 	s32 words = (width + 63) >> 6;
 	if(width != r_coarse_occlusion_width ||
 			height != r_coarse_occlusion_height ||
-			!r_coarse_occlusion_bits || !r_coarse_occ_scratch){
+			r_refdef.vrect.height != r_coarse_occ_rows_n ||
+			!r_coarse_occlusion_bits || !r_coarse_occ_scratch ||
+			!r_coarse_occlusion_zi || !r_coarse_occ_pixels ||
+			!r_coarse_occ_rows){
 		free(r_coarse_occlusion_bits);
 		free(r_coarse_occ_scratch);
+		free(r_coarse_occlusion_zi);
+		free(r_coarse_occ_pixels);
+		free(r_coarse_occ_rows);
 		r_coarse_occlusion_bits = (u64 *)malloc((size_t)words *
 				height * sizeof(u64));
 		r_coarse_occ_scratch = (f32 *)malloc(4 * (size_t)(height + 2) *
 				sizeof(f32));
-		if(!r_coarse_occlusion_bits || !r_coarse_occ_scratch){
+		r_coarse_occlusion_zi = (f32 *)malloc((size_t)width *
+				height * sizeof(f32));
+		r_coarse_occ_pixels = (u64 *)malloc((size_t)width *
+				height * sizeof(u64));
+		r_coarse_occ_rows = (f32 *)malloc(2 *
+				(size_t)r_refdef.vrect.height * sizeof(f32));
+		if(!r_coarse_occlusion_bits || !r_coarse_occ_scratch ||
+			!r_coarse_occlusion_zi || !r_coarse_occ_pixels ||
+				!r_coarse_occ_rows){
 			free(r_coarse_occlusion_bits);
 			free(r_coarse_occ_scratch);
+			free(r_coarse_occlusion_zi);
+			free(r_coarse_occ_pixels);
+			free(r_coarse_occ_rows);
 			r_coarse_occlusion_bits = NULL;
 			r_coarse_occ_scratch = NULL;
+			r_coarse_occlusion_zi = NULL;
+			r_coarse_occ_pixels = NULL;
+			r_coarse_occ_rows = NULL;
 			r_coarse_active = 0;
 		}
 		r_coarse_occlusion_width = width;
 		r_coarse_occlusion_height = height;
 		r_coarse_occlusion_words = words;
+		r_coarse_occ_rows_n = r_refdef.vrect.height;
 	}
 	r_coarse_occ_vw = (f32)r_refdef.vrect.width;
 	r_coarse_occ_vh = (f32)r_refdef.vrect.height;
 	r_coarse_poly_surf = NULL;
-	if(r_coarse_occlusion_bits)
+	if(r_coarse_occlusion_bits){
 		memset(r_coarse_occlusion_bits, 0, (size_t)words * height *
 				sizeof(u64));
+		R_CoarseOccClearPixels();
+	}
+	// r_draworder shows the highest key on top instead of the lowest, which
+	// is the opposite of what the brush entity tests rely on
+	r_bmodel_occ_active = r_coarse_active && r_bmodelocclusion.value &&
+		!r_draworder.value;
 }
 
 void R_CoarseOcclusionClear()
 {
-	if(r_coarse_occlusion_bits)
+	if(r_coarse_occlusion_bits){
 		memset(r_coarse_occlusion_bits, 0, (size_t)
 			r_coarse_occlusion_words * r_coarse_occlusion_height *
 			sizeof(u64));
+		R_CoarseOccClearPixels();
+	}
 }
 
 
@@ -126,25 +192,61 @@ static inline bool R_CoarseOccRunFull(const u64 *row, s32 a, s32 b)
 	return (row[wb] & mb) == mb;
 }
 
-
-static inline void R_CoarseOccRunSet(u64 *row, s32 a, s32 b)
-{ // Set tiles a..b (inclusive) of this row.
-	s32 wa = a >> 6, wb = b >> 6;
-	u64 ma = ~(u64)0 << (a & 63);
-	u64 mb = ~(u64)0 >> (63 - (b & 63));
-	if(wa == wb){
-		row[wa] |= ma & mb;
-		return;
+// Covers pixels x0..x1 (inclusive) of viewport row y. Tiles that get new pixels
+// from it take the lowest 1/z that the face (zi plane of surf, in screen
+// pixels, and minzi or more everywhere) has in them, if it's the lowest yet.
+static inline void R_CoarseOccRowFill(s32 y, s32 x0, s32 x1,
+		const surf_t *surf, f32 minzi)
+{
+	const s32 tw = r_coarse_occlusion_width;
+	const s32 ty = y >> 3;
+	u64 *pix = r_coarse_occ_pixels + (size_t)ty * tw;
+	f32 *zirow = r_coarse_occlusion_zi + (size_t)ty * tw;
+	u64 *bits = r_coarse_occlusion_bits+(size_t)ty*r_coarse_occlusion_words;
+	const u32 shift = (u32)(y & 7) * 8;
+	// 1/z is linear across the screen, so its minimum over the pixels of a
+	// tile is at one of the corner pixels, the u and v parts can be taken
+	// separately
+	f32 sy = (f32)(r_refdef.vrect.y + (ty << 3));
+	f32 zv0 = surf->d_zistepv * sy, zv1 = surf->d_zistepv * (sy + 7.0f);
+	f32 zv = surf->d_ziorigin + (zv0 < zv1 ? zv0 : zv1);
+	f32 du = surf->d_zistepu * 7.0f;
+	s32 t0 = x0 >> 3, t1 = x1 >> 3;
+	for(s32 t = t0; t <= t1; t++){
+		u32 lo = t == t0 ? (u32)(x0 & 7) : 0;
+		u32 hi = t == t1 ? (u32)(x1 & 7) : 7;
+		u64 row = (u64)((0xffu >> (7 - hi)) & (0xffu << lo)) << shift;
+		u64 fresh = row & ~pix[t];
+		if(!fresh)
+			continue; // nearer faces got there first
+		pix[t] |= fresh;
+		f32 zu = surf->d_zistepu * (f32)(r_refdef.vrect.x + (t << 3));
+		f32 zi = zv + (du < 0 ? zu + du : zu);
+		if(zi < minzi) zi = minzi;
+		if(zi < zirow[t])
+			zirow[t] = zi;
+		if(pix[t] == ~(u64)0)
+			bits[t >> 6] |= (u64)1 << (t & 63);
 	}
-	row[wa] |= ma;
-	for(s32 w = wa + 1; w < wb; w++)
-		row[w] = ~(u64)0;
-	row[wb] |= mb;
+}
+
+// Are all tiles a..b (inclusive, all known to be set) covered by something
+// that is in front of 1/z value zi everywhere in them?
+static inline bool R_CoarseOccZiInFront(const f32 *zirow, s32 a, s32 b, f32 zi)
+{
+	zi *= COARSE_OCCLUSION_ZI_MARGIN;
+	for(s32 t = a; t <= b; t++)
+		if(zirow[t] <= zi)
+			return false;
+	return true;
 }
 
 // poly is convex, clipped to the viewport and in viewport-relative pixels.
-// Returns true when every tile the polygon touches is already FULL.
-static bool R_CoarseOccPolyCovered(const coarse_occ_vertex_t *p, s32 n)
+// Returns true when every tile the polygon touches is already FULL. With depth
+// set, the tiles must also be covered by faces that are in front of 1/z value
+// zi, the nearest the tested polygon gets.
+static bool R_CoarseOccPolyCovered(const coarse_occ_vertex_t *p, s32 n,
+		bool depth, f32 zi)
 {
 	const f32 m = COARSE_OCCLUSION_MARGIN;
 	const f32 invt = 1.0f / (f32)COARSE_OCCLUSION_TILE_SIZE;
@@ -161,6 +263,9 @@ static bool R_CoarseOccPolyCovered(const coarse_occ_vertex_t *p, s32 n)
 		if(tx >= tw) tx = tw - 1;
 		if(ty >= th) ty = th - 1;
 		if(!((bits[ty * words + (tx >> 6)] >> (tx & 63)) & 1))
+			return false;
+		if(depth && !R_CoarseOccZiInFront(r_coarse_occlusion_zi +
+				(size_t)ty * tw, tx, tx, zi))
 			return false;
 	}
 	f32 ymin = p[0].y, ymax = p[0].y;
@@ -226,94 +331,76 @@ static bool R_CoarseOccPolyCovered(const coarse_occ_vertex_t *p, s32 n)
 			continue;
 		if(!R_CoarseOccRunFull(bits + (size_t)r * words, a, b))
 			return false;
+		if(depth && !R_CoarseOccZiInFront(r_coarse_occlusion_zi +
+				(size_t)r * tw, a, b, zi))
+			return false;
 		touched = true;
 	}
 	// Degenerate / off-screen polygons are not treated as occluded.
 	return touched;
 }
 
-// Marks the tiles that have all four corners inside the convex polygon (same
-// preconditions as above), erring on the side of marking fewer.
-static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n)
+// Covers the pixels of the convex polygon (same preconditions as above) that
+// the edge list would draw it on, erring on the side of covering fewer. surf is
+// the face in the edge list and minzi the lowest 1/z of the polygon, for depth.
+static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
+		const surf_t *surf, f32 minzi)
 {
 	const f32 m = COARSE_OCCLUSION_MARGIN;
-	const f32 invt = 1.0f / (f32)COARSE_OCCLUSION_TILE_SIZE;
-	const f32 tsz = (f32)COARSE_OCCLUSION_TILE_SIZE;
-	const s32 tw = r_coarse_occlusion_width;
-	const s32 th = r_coarse_occlusion_height;
-	const s32 words = r_coarse_occlusion_words;
-	const f32 vw = r_coarse_occ_vw, vh = r_coarse_occ_vh;
-	f32 *xl = r_coarse_occ_scratch; // per tile row boundary line
-	f32 *xr = xl + (th + 2);
+	const s32 vw = r_refdef.vrect.width, vh = r_refdef.vrect.height;
+	f32 *xl = r_coarse_occ_rows; // per pixel row
+	f32 *xr = xl + vh;
 	f32 ymin = p[0].y, ymax = p[0].y;
 	for(s32 i = 1; i < n; i++){
 		if(p[i].y < ymin) ymin = p[i].y;
 		if(p[i].y > ymax) ymax = p[i].y;
 	}
-	// boundary lines k are at y = min(k * tile, viewport height); those
-	// within [ymin, ymax] cross the polygon
-	s32 k0 = (s32)ceilf(ymin * invt);
-	s32 k1 = (ymax >= vh) ? th : (s32)floorf(ymax * invt);
-	if(k1 > th) k1 = th;
-	if(k1 - k0 < 1)
-		return; // not even one whole tile row
-	for(s32 k = k0; k <= k1; k++){
-		xl[k] = FLT_MAX;
-		xr[k] = -FLT_MAX;
+	// rows from ceil(top) to ceil(bottom) - 1, like R_EmitEdge. The
+	// viewport edges are exact (the polygon was clipped to them),
+	// everything else keeps a safety margin.
+	s32 y0 = ymin <= 0.0f ? 0 : (s32)ceilf(ymin + m);
+	s32 y1 = (s32)ceilf(ymax - m) - 1;
+	if(y1 >= vh) y1 = vh - 1;
+	if(y0 > y1)
+		return;
+	for(s32 y = y0; y <= y1; y++){
+		xl[y] = FLT_MAX;
+		xr[y] = -FLT_MAX;
 	}
 	for(s32 i = 0; i < n; i++){
 		coarse_occ_vertex_t a = p[i], b = p[i + 1 == n ? 0 : i + 1];
-		// same orientation for both faces sharing an edge
-		if(a.y > b.y || (a.y == b.y && a.x > b.x)){
+		if(a.y > b.y){
 			coarse_occ_vertex_t t = a;
 			a = b;
 			b = t;
 		}
 		f32 dy = b.y - a.y;
-		s32 ka = (s32)ceilf(a.y * invt);
-		if(ka < k0) ka = k0;
+		if(dy < 1e-5f)
+			continue; // the edges next to it reach both its ends
+		f32 slope = (b.x - a.x) / dy;
 		f32 xmin = a.x < b.x ? a.x : b.x;
 		f32 xmax = a.x < b.x ? b.x : a.x;
-		f32 slope = 0;
-		if(dy >= 1e-5f)
-			slope = (b.x - a.x) / dy;
-		for(s32 k = ka; k <= k1; k++){
-			f32 yk = (f32)k * tsz;
-			if(yk > vh) yk = vh;
-			if(yk > b.y)
-				break;
-			if(yk < a.y)
-				continue;
-			f32 x0, x1;
-			if(dy == 0){ // lies on the line, covers the whole edge
-				x0 = xmin;
-				x1 = xmax;
-			}else if(dy < 1e-5f){
-			    continue; // near-horizontal: skipping only narrows
-			}else{
-				x0 = yk == a.y ? a.x : yk == b.y ? b.x :
-					a.x + (yk - a.y) * slope;
-				if(x0 < xmin) x0 = xmin;
-				if(x0 > xmax) x0 = xmax;
-				x1 = x0;
-			}
-			if(x0 < xl[k]) xl[k] = x0;
-			if(x1 > xr[k]) xr[k] = x1;
+		s32 ya = (s32)ceilf(a.y), yb = (s32)floorf(b.y);
+		if(ya < y0) ya = y0;
+		if(yb > y1) yb = y1;
+		for(s32 y = ya; y <= yb; y++){
+			f32 x = a.x + ((f32)y - a.y) * slope;
+			if(x < xmin) x = xmin;
+			if(x > xmax) x = xmax;
+			if(x < xl[y]) xl[y] = x;
+			if(x > xr[y]) xr[y] = x;
 		}
 	}
-	for(s32 r = k0; r < k1; r++){ // tile row r lies between lines r, r+1
-		if(xl[r] > xr[r] || xl[r + 1] > xr[r + 1])
+	for(s32 y = y0; y <= y1; y++){
+		if(xl[y] > xr[y])
 			continue;
-		f32 l = xl[r] > xl[r + 1] ? xl[r] : xl[r + 1];
-		f32 rt = xr[r] < xr[r + 1] ? xr[r] : xr[r + 1];
-		// The viewport edges are exact (the polygon was clipped to
-		// them), everything else keeps a safety margin.
-		s32 ta = l <= 0.0f ? 0 : (s32)ceilf((l + m) * invt);
-		s32 tb = rt >= vw ? tw : (s32)((rt - m) * invt);
-		if(tb > tw) tb = tw;
-		if(ta < tb)
-			R_CoarseOccRunSet(r_coarse_occlusion_bits +
-				(size_t)r * words, ta, tb - 1);
+		// columns from ceil(left) to ceil(right) - 1
+		s32 x0 = xl[y] <= 0.0f ? 0 : (s32)ceilf(xl[y] + m);
+		s32 x1 = (s32)ceilf(xr[y] - m) - 1;
+		if(xr[y] >= (f32)vw) x1 = vw - 1;
+		if(x1 >= vw) x1 = vw - 1;
+		if(x0 <= x1)
+			R_CoarseOccRowFill(y, x0, x1, surf, minzi);
 	}
 }
 
@@ -389,21 +476,27 @@ static s32 R_CoarseOccClipHorizontal(const coarse_occ_vertex_t *in, s32 count,
 }
 
 // Build projected, viewport-clipped polygon, in viewport-relative pixels.
-// Returns false when we cannot conservatively construct the polygon.
+// Returns false when we cannot conservatively construct the polygon. If zi
+// isn't NULL it gets the lowest and highest 1/z of the vertices, the farthest
+// and the nearest point.
 // Important:
 // if ANY vertex is behind the near plane, we bail out rather than attempting to
 // perform near-plane clipping. This loses optimization opportunities but cannot
 // produce a false occlusion result.
 static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
-                              coarse_occ_vertex_t *poly, s32 *outcount)
+		coarse_occ_vertex_t *poly, s32 *outcount, f32 *zi)
 {
 	coarse_occ_vertex_t tmp[COARSE_OCCLUSION_MAX_VERTS];
 	if(!fa || fa->numedges < 3) return false;
 	if(fa->numedges > COARSE_OCCLUSION_MAX_VERTS) return false;
 	model_t *model = currententity->model;
 	medge_t *edges = model->edges;
+	// R_EmitEdge projects from modelorg, which is the player's position in
+	// the space of the entity being drawn (r_origin for the world)
+	const f32 *vieworg = currententity == &cl_entities[0]?r_origin:modelorg;
 	s32 count = fa->numedges;
 	f32 minx = FLT_MAX, maxx = -FLT_MAX, miny = FLT_MAX, maxy = -FLT_MAX;
+	f32 nearzi = 0, farzi = FLT_MAX;
 	for(s32 i = 0; i < count; i++){
 		s32 lindex = model->surfedges[fa->firstedge + i];
 		mvertex_t *vert;
@@ -411,14 +504,16 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		vec3_t transformed;
 		if(lindex > 0) vert = &r_pcurrentvertbase[edges[lindex].v[0]];
 		else vert = &r_pcurrentvertbase[edges[-lindex].v[1]];
-		VectorSubtract(vert->position, r_origin, local);
+		VectorSubtract(vert->position, vieworg, local);
 		TransformVector(local, transformed);
 		// Do not try to handle near-plane-crossing faces here.
 		// R_ClipEdge() remains authoritative for those.
 		if(transformed[2] <= NEAR_CLIP) return false;
-		f32 zi = 1.0f / transformed[2];
-		poly[i].x = xcenter + xscale * zi * transformed[0];
-		poly[i].y = ycenter - yscale * zi * transformed[1];
+		f32 vzi = 1.0f / transformed[2];
+		if(vzi > nearzi) nearzi = vzi;
+		if(vzi < farzi) farzi = vzi;
+		poly[i].x = xcenter + xscale * vzi * transformed[0];
+		poly[i].y = ycenter - yscale * vzi * transformed[1];
 		if(poly[i].x < minx) minx = poly[i].x;
 		if(poly[i].x > maxx) maxx = poly[i].x;
 		if(poly[i].y < miny) miny = poly[i].y;
@@ -448,6 +543,10 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		poly[i].y -= top;
 	}
 	*outcount = count;
+	if(zi){
+		zi[0] = farzi;
+		zi[1] = nearzi;
+	}
 	return true;
 }
 
@@ -468,11 +567,12 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 	if(fa->flags & SURF_DRAWCUTOUT) return false;
 	if(fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return false;
 	s32 count;
-	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly, &count))
+	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly, &count,
+				r_coarse_poly_zi))
 		return false;
 	r_coarse_poly_surf = fa; // R_CoarseOcclusionAddSurface can reuse this
 	r_coarse_poly_count = count;
-	return R_CoarseOccPolyCovered(r_coarse_poly, count);
+	return R_CoarseOccPolyCovered(r_coarse_poly, count, 0, 0.0f);
 }
 
 static bool R_CoarseOccluderEligible(msurface_t *fa)
@@ -480,29 +580,107 @@ static bool R_CoarseOccluderEligible(msurface_t *fa)
 	if(!fa) return 0;
 	if(currententity != &cl_entities[0]) return 0;
 	if(fa->flags & SURF_DRAWSKY) return 0;
+	// the skybox is drawn close by, but sorts behind everything else
+	if(fa->flags & SURF_DRAWSKYBOX) return 0;
 	if(fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return 0;
 	if(fa->flags & SURF_DRAWCUTOUT) return 0;
 	if(winquake_surface_liquid_alpha < 1.0f) return 0;
 	return 1;
 }
 
-void R_CoarseOcclusionAddSurface(msurface_t *fa)
-{ // Marks only tiles which are COMPLETELY contained by the projected surface
-  // polygon. This is intentionally conservative.
+void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf)
+{ // Covers the pixels of the projected surface polygon, a tile is FULL once
+  // they're all covered. This is intentionally conservative. surf is the one
+  // the face got in the edge list, its 1/z is remembered for the brush entity
+  // tests.
 	coarse_occ_vertex_t local[COARSE_OCCLUSION_MAX_VERTS];
 	coarse_occ_vertex_t *poly;
 	s32 count;
+	f32 localzi[2], *zi;
 	if(!r_coarse_occlusion_bits) return;
 	if(!R_CoarseOccluderEligible(fa)) return;
 	if(r_coarse_poly_surf == fa){ // built by the test a moment ago
 		poly = r_coarse_poly;
 		count = r_coarse_poly_count;
+		zi = r_coarse_poly_zi;
 	}else{
 		poly = local;
-		if(!R_CoarseOcclusionBuildPolygon(fa, poly, &count)) return;
+		zi = localzi;
+		if(!R_CoarseOcclusionBuildPolygon(fa, poly, &count, zi))
+			return;
 	}
 	r_coarse_poly_surf = NULL;
-	R_CoarseOccPolyFill(poly, count);
+	R_CoarseOccPolyFill(poly, count, surf, zi[0]);
+}
+
+// Brush entities go into the edge list with the key of the BSP leaf they are
+// in, and the edge scanner shows whichever surface has the lowest key. Along
+// any line of sight the BSP order is the depth order, so where a world face is
+// nearer than a brush face, its key is lower too and the brush face can't show
+// up there. Only valid in the main pass: the alpha pass draws its surfaces over
+// the finished frame instead.
+bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa)
+{
+	r_coarse_poly_surf = NULL;
+	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
+	if(r_alphapass || cur_ent_alpha < 1.0f) return false;
+	if(currententity == &cl_entities[0]) return false;
+	s32 count;
+	f32 zi[2];
+	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly, &count, zi))
+		return false;
+	return R_CoarseOccPolyCovered(r_coarse_poly, count, 1, zi[1]);
+}
+
+// The same for everything inside a world space box, seen from the player's
+// point of view (so before the entity's own rotation is applied).
+bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx)
+{
+	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
+	if(r_alphapass || cur_ent_alpha < 1.0f) return false;
+	const f32 m = COARSE_OCCLUSION_MARGIN;
+	const f32 invt = 1.0f / (f32)COARSE_OCCLUSION_TILE_SIZE;
+	const s32 tw = r_coarse_occlusion_width, th = r_coarse_occlusion_height;
+	f32 minx = FLT_MAX, maxx = -FLT_MAX, miny = FLT_MAX, maxy = -FLT_MAX;
+	f32 nearzi = 0;
+	for(s32 i = 0; i < 8; i++){
+		vec3_t corner, local, t;
+		for(s32 k = 0; k < 3; k++)
+			corner[k] = (i >> k) & 1 ? mx[k] : mn[k];
+		VectorSubtract(corner, r_origin, local);
+		TransformVector(local, t);
+		if(t[2] <= NEAR_CLIP) return false; // reaches the near plane
+		f32 zi = 1.0f / t[2];
+		if(zi > nearzi) nearzi = zi;
+		f32 x = xcenter + xscale * zi * t[0];
+		f32 y = ycenter - yscale * zi * t[1];
+		if(x < minx) minx = x;
+		if(x > maxx) maxx = x;
+		if(y < miny) miny = y;
+		if(y > maxy) maxy = y;
+	}
+	minx -= (f32)r_refdef.vrect.x; maxx -= (f32)r_refdef.vrect.x;
+	miny -= (f32)r_refdef.vrect.y; maxy -= (f32)r_refdef.vrect.y;
+	if(!(maxx >= 0 && minx <= r_coarse_occ_vw && maxy >= 0 &&
+			miny <= r_coarse_occ_vh))
+		return false; // not on screen at all, nothing to say about it
+	if(minx < 0) minx = 0;
+	if(miny < 0) miny = 0;
+	if(maxx > r_coarse_occ_vw) maxx = r_coarse_occ_vw;
+	if(maxy > r_coarse_occ_vh) maxy = r_coarse_occ_vh;
+	s32 tx0 = (s32)((minx - m) * invt), tx1 = (s32)((maxx + m) * invt);
+	s32 ty0 = (s32)((miny - m) * invt), ty1 = (s32)((maxy + m) * invt);
+	if(tx1 >= tw) tx1 = tw - 1;
+	if(ty1 >= th) ty1 = th - 1;
+	for(s32 r = ty0; r <= ty1; r++){
+		if(!R_CoarseOccRunFull(r_coarse_occlusion_bits +
+				(size_t)r * r_coarse_occlusion_words, tx0, tx1))
+			return false;
+		if(!R_CoarseOccZiInFront(r_coarse_occlusion_zi +
+				(size_t)r * tw, tx0, tx1, nearzi))
+			return false;
+	}
+	return true;
 }
 
 void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
@@ -708,6 +886,27 @@ void R_EmitCachedEdge(edge_t *pedge_t)
 	r_emitted = 1;
 }
 
+// Does the face get drawn in this pass? Sets winquake_surface_liquid_alpha.
+bool R_SurfaceInPass(msurface_t *fa)
+{
+	if(fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT && !currententity->alpha){
+		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(fa->flags);
+	}else if(cur_ent_alpha < 1 && r_entalpha.value == 1)
+		winquake_surface_liquid_alpha = cur_ent_alpha;
+	else winquake_surface_liquid_alpha = 1;
+	// Baker: Fully transparent = invisible = don't render
+	if(!winquake_surface_liquid_alpha)
+		return 0;
+// Baker: If this is the alpha water pass and we aren't alpha water, get out!
+	if(r_alphapass && winquake_surface_liquid_alpha == 1)
+		return 0;
+	if(!r_alphapass && winquake_surface_liquid_alpha < 1){
+		r_foundtranswater = 1;
+		return 0;
+	}
+	return 1;
+}
+
 void R_RenderFace(msurface_t *fa, s32 clipflags)
 {
 	// Manoel Kasimier - skyboxes - begin
@@ -717,21 +916,8 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	if((fa->flags & SURF_DRAWSKY) && skybox_name[0])
 		r_skyframe[0] = r_framecount;
 	// Manoel Kasimier - skyboxes - end
-	if(fa->flags&SURF_WINQUAKE_DRAWTRANSLUCENT && !currententity->alpha){
-		winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(fa->flags);
-	}else if(cur_ent_alpha < 1 && r_entalpha.value == 1)
-		winquake_surface_liquid_alpha = cur_ent_alpha;
-	else winquake_surface_liquid_alpha = 1;
-	// Baker: Fully transparent = invisible = don't render
-	if(!winquake_surface_liquid_alpha)
+	if(!R_SurfaceInPass(fa))
 		return;
-// Baker: If this is the alpha water pass and we aren't alpha water, get out!
-	if(r_alphapass && winquake_surface_liquid_alpha == 1)
-		return;
-	if(!r_alphapass && winquake_surface_liquid_alpha < 1){
-		r_foundtranswater = 1;
-		return;
-	}
 	if((surface_p) >= surf_max){ // skip out if no more surfs
 		r_outofsurfaces++;
 		return;
@@ -869,26 +1055,13 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 		xcenter * surface_p->d_zistepu - ycenter * surface_p->d_zistepv;
 	surface_p++;
 	if(r_coarse_active)
-		R_CoarseOcclusionAddSurface(fa);
+		R_CoarseOcclusionAddSurface(fa, surface_p - 1);
 }
 
 void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 {
-	if(psurf->flags&SURF_WINQUAKE_DRAWTRANSLUCENT && !currententity->alpha){
-	      winquake_surface_liquid_alpha=R_LiquidAlphaForFlags(psurf->flags);
-	}else if(cur_ent_alpha < 1 && r_entalpha.value == 1)
-		winquake_surface_liquid_alpha = cur_ent_alpha;
-	else winquake_surface_liquid_alpha = 1;
-	// Baker: Fully transparent = invisible = don't render
-	if(!winquake_surface_liquid_alpha)
+	if(!R_SurfaceInPass(psurf))
 		return;
-// Baker: If this is the alpha water pass and we aren't alpha water, get out!
-	if(r_alphapass && winquake_surface_liquid_alpha == 1)
-		return;
-	if(!r_alphapass && winquake_surface_liquid_alpha < 1){
-		r_foundtranswater = 1;
-		return;
-	}
 	if(surface_p >= surf_max){ // skip out if no more surfs
 		r_outofsurfaces++;
 		return;

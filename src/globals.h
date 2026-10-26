@@ -68,11 +68,17 @@ EX s32 colored_aliaslight;
 EX s32 r_numdebuglines;
 EX s32 r_numdebugpoints;
 EX bool coccl_enable;
+EX bool r_bmodel_occ_active; // brush entity occlusion is on this frame
+EX bool r_bmodel_occ_faces; // test the faces of the brush entity being drawn
+EX s32 r_bmodels_occluded, r_bmodel_faces_occluded;
 EX vec3_t v_punchangles[2];
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY);
 void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color);
 void R_CoarseOcclusionBeginFrame();
+bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa);
+bool R_SurfaceInPass(msurface_t *fa);
+bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx);
 void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();

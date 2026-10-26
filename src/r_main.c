@@ -308,6 +308,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_alphastyle);
 	Cvar_RegisterVariable(&r_entalpha);
 	Cvar_RegisterVariable(&r_entocclusion);
+	Cvar_RegisterVariable(&r_bmodelocclusion);
 	Cvar_RegisterVariable(&r_labmixpal);
 	Cvar_RegisterVariable(&r_rgblighting);
 	Cvar_RegisterVariable(&r_fogbrightness);
@@ -858,7 +859,35 @@ static void R_DrawBmodelPolygons(model_t *clmodel, f32 *minmaxs, s32 clipflags)
 	}
 	currententity->topnode = NULL;
 }
- 
+
+// Can nothing of this entity show up, because opaque world faces nearer than
+// all of it cover everything it could be drawn on?
+static bool R_BmodelOccluded(model_t *clmodel, f32 *minmaxs)
+{
+	vec3_t mn, mx;
+	if(currententity->angles[0] || currententity->angles[1] ||
+			currententity->angles[2]){
+		// it turns around its origin, so anything in the box can end up
+		// anywhere within its distance from the origin
+		f32 r2 = 0;
+		for(s32 k = 0; k < 3; k++){
+			f32 a=fabsf(clmodel->mins[k]),b=fabsf(clmodel->maxs[k]);
+			f32 e = a > b ? a : b;
+			r2 += e * e;
+		}
+		f32 r = sqrtf(r2);
+		for(s32 k = 0; k < 3; k++){
+			mn[k] = currententity->origin[k] - r;
+			mx[k] = currententity->origin[k] + r;
+		}
+	}else{
+		for(s32 k = 0; k < 3; k++){
+			mn[k] = minmaxs[k];
+			mx[k] = minmaxs[3 + k];
+		}
+	}
+	return R_CoarseOcclusionTestBox(mn, mx);
+}
 
 static void R_RestoreWorldView(vec3_t oldorigin)
 {
@@ -882,11 +911,19 @@ static void R_DrawBrushEntity(vec3_t oldorigin)
 	s32 clipflags = R_BmodelCheckBBox(clmodel, minmaxs);
 	if(clipflags == BMODEL_FULLY_CLIPPED)
 		return;
+	r_bmodel_occ_faces = r_bmodel_occ_active && !r_alphapass &&
+		cur_ent_alpha >= 1;
+	if(r_bmodel_occ_faces && R_BmodelOccluded(clmodel, minmaxs)){
+		r_bmodels_occluded++; // skips everything below
+		r_bmodel_occ_faces = 0;
+		return;
+	}
 	R_SetEntityModelOrg(currententity);
 	r_pcurrentvertbase = clmodel->vertexes;
 	R_RotateBmodel();
 	R_MarkBmodelDlights(clmodel);
 	R_DrawBmodelPolygons(clmodel, minmaxs, clipflags);
+	r_bmodel_occ_faces = 0;
 	R_RestoreWorldView(oldorigin);
 }
  
@@ -971,6 +1008,9 @@ void R_RenderView()
 	}
 	if(coccl_enable && r_speeds.value)
 		Con_Printf("Coarse rejected: %d\n", r_coarse_rejected);
+	if(r_bmodel_occ_active && r_speeds.value)
+		Con_Printf("Brush entities occluded: %d (faces %d)\n",
+				r_bmodels_occluded, r_bmodel_faces_occluded);
 	if(r_entocclusion.value && r_speeds.value)
 		Con_Printf("Entities occluded: %d (drawn %d)\n",
 				r_amodels_occluded, r_amodels_drawn);

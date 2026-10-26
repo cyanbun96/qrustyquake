@@ -611,6 +611,8 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define COARSE_OCCLUSION_EPSILON 0.001f
 // pixels of slack so float rounding can't make the tile test wrong
 #define COARSE_OCCLUSION_MARGIN 0.01f
+// a brush face is only taken as hidden if it's at least this much further away
+#define COARSE_OCCLUSION_ZI_MARGIN 1.01f
 #define BLINK_HZ ((1000 / 70) * 16)                                 // vgatext.c
 #define MAX_BMODEL_VERTS 5000 // CyanBun96: was 500                   // r_bsp.c
 #define MAX_BMODEL_EDGES 10000 // was 1000

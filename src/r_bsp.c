@@ -177,6 +177,14 @@ void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel)
 		if(!(((psurf->flags&SURF_PLANEBACK)&&(dot<-BACKFACE_EPSILON))|| 
 		     (!(psurf->flags&SURF_PLANEBACK)&&(dot>BACKFACE_EPSILON))))
 			continue;
+		// would be thrown away after clipping it against the BSP anyway
+		if(!R_SurfaceInPass(psurf))
+			continue;
+		// hidden behind world faces: no need to clip it against the BSP
+		if(r_bmodel_occ_faces&&R_CoarseOcclusionTestBmodelFace(psurf)){
+			r_bmodel_faces_occluded++;
+			continue;
+		}
 		pbverts = bverts;
 		pbedges = bedges;
 		numbverts = numbedges = 0;
@@ -217,6 +225,10 @@ void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags)
 		     (!(psurf->flags&SURF_PLANEBACK)&&(dot>BACKFACE_EPSILON))))
 			continue;
 		r_currentkey = ((mleaf_t *) currententity->topnode)->key;
+		if(r_bmodel_occ_faces&&R_CoarseOcclusionTestBmodelFace(psurf)){
+			r_bmodel_faces_occluded++;
+			continue;
+		}
 		R_RenderFace(psurf, clipflags);
 	}
 }
