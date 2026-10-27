@@ -2137,10 +2137,15 @@ bool nameInList(const c8 *list, const c8 *name)
 void *Mod_LoadAliasSkin(void *pin, s32 *pskinindex, s32 skinsize,
 		aliashdr_t *pheader)
 {
-	u8 *pskin = Hunk_AllocName(skinsize, loadname);
+	// one padding row on each side, copied from the edge rows, absorbs the
+	// rasterizer stepping a texel past the skin (it doesn't clamp s/t)
+	s32 w = pheader->skinwidth;
+	u8 *pskin = (u8 *)Hunk_AllocName(skinsize + 2 * w, loadname) + w;
 	u8 *pinskin = (u8 *)pin;
 	*pskinindex = (u8 *)pskin - (u8 *)pheader;
 	memcpy(pskin, pinskin, skinsize);
+	memcpy(pskin - w, pskin, w);
+	memcpy(pskin + skinsize, pskin + skinsize - w, w);
 	pinskin += skinsize;
 	return((void *)pinskin);
 }

@@ -618,6 +618,7 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define MAX_BMODEL_EDGES 10000 // was 1000
 #define NUMVERTEXNORMALS 162                                        // r_alias.c
 #define LIGHT_MIN 5
+#define LIGHT_MAX ((VID_GRADES << 8) - 1) // last colormap row
 #define GUARDSIZE 4                                                  // d_surf.c
 #define ANIM_CYCLE 2                                                  // model.c
 #define MOD_NOLERP 256

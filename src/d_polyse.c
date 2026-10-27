@@ -534,6 +534,21 @@ Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
 	*pz = zi >> 16;
 }
  
+Q_SIL void D_PolysetClampSpanLight(s32 *light, s32 *lstep, s32 count)
+{ // light is linear across the span, so keeping both ends inside the colormap
+  // keeps every pixel inside it. The rounded-up gradients can overshoot by
+  // ~1 per step, which adds up on long spans at high resolutions
+	if(*light < 0) *light = 0;
+	else if(*light > LIGHT_MAX) *light = LIGHT_MAX;
+	if(count < 2)
+		return;
+	s32 end = *light + *lstep * (count - 1);
+	if(end > LIGHT_MAX)
+		*lstep = (LIGHT_MAX - *light) / (count - 1);
+	else if(end < 0)
+		*lstep = -*light / (count - 1);
+}
+
 Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 		const polysetstyle_t *st, s32 sample)
 {
@@ -543,7 +558,9 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	s32 sfrac = span->sfrac;
 	s32 tfrac = span->tfrac;
 	s32 light = span->light;
+	s32 lstep = r_lstepx;
 	s32 zi = span->zi;
+	D_PolysetClampSpanLight(&light, &lstep, count);
 	do{
 		if((zi >> 16) >= *pz){
 			u8 texel = sample == TEXSAMPLE_DITHERED ?
@@ -553,7 +570,7 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 		pdest++;
 		pz++;
 		zi += r_zistepx;
-		light += r_lstepx;
+		light += lstep;
 		ptex += a_ststepxwhole;
 		sfrac += a_sstepxfrac;
 		ptex += sfrac >> 16;
@@ -640,7 +657,6 @@ void D_RasterizeAliasPolySmooth()
 		d_pedgespanpackage->ptex = d_ptex;
 		d_pedgespanpackage->sfrac = d_sfrac;
 		d_pedgespanpackage->tfrac = d_tfrac;
-		// FIXME: need to clamp l, s, t, at both ends?
 		d_pedgespanpackage->light = d_light;
 		d_pedgespanpackage->zi = d_zi;
 		d_pedgespanpackage++;
@@ -700,7 +716,6 @@ void D_RasterizeAliasPolySmooth()
 			d_pedgespanpackage->ptex = d_ptex;
 			d_pedgespanpackage->sfrac = d_sfrac;
 			d_pedgespanpackage->tfrac = d_tfrac;
-			// FIXME: need to clamp l, s, t, at both ends?
 			d_pedgespanpackage->light = d_light;
 			d_pedgespanpackage->zi = d_zi;
 			d_pedgespanpackage++;
