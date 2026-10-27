@@ -162,23 +162,6 @@ c8 *Z_Strdup(const c8 *s)
 	return ptr;
 }
 
-void Z_Print(memzone_t *zone)
-{
-	Con_Printf("zone size: %i location: %p\n",mainzone->size,mainzone);
-	for(memblock_t *block = zone->blocklist.next;; block = block->next) {
-		Con_Printf("block:%p size:%7i tag:%3i\n",
-				block, block->size, block->tag);
-		if(block->next == &zone->blocklist)
-			break; // all blocks have been hit
-		if( (u8 *)block + block->size != (u8 *)block->next)
-		Con_Printf("ERROR: block size does not touch the next block\n");
-		if( block->next->prev != block)
-		Con_Printf("ERROR: next block doesn't have proper back link\n");
-		if(!block->tag && !block->next->tag)
-			Con_Printf("ERROR: two consecutive free blocks\n");
-	}
-}
-
 void Hunk_Check()
 { // Run consistancy and sentinel trahing checks
 	for(hunk_t *h=(hunk_t *)hunk_base; (u8 *)h != hunk_base+hunk_low_used;){
@@ -327,14 +310,6 @@ void *Hunk_TempAlloc(s32 size) // Return space from the top of the hunk
 	void *buf = Hunk_HighAllocName(size, "temp");
 	hunk_tempactive = 1;
 	return buf;
-}
-
-c8 *Hunk_Strdup(const c8 *s, const c8 *name)
-{
-	size_t sz = strlen(s) + 1;
-	c8 *ptr = (c8 *) Hunk_AllocName(sz, name);
-	memcpy(ptr, s, sz);
-	return ptr;
 }
 
 void Cache_Move( cache_system_t *c)

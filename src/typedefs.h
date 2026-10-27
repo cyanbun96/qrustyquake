@@ -27,7 +27,6 @@ typedef struct { // specified by the host system                   // quakedef.h
 
 typedef f32 vec_t;                                                 // q_stdinc.h
 typedef vec_t vec3_t[3];
-typedef vec_t vec4_t[4];
 typedef vec_t vec5_t[5];
 
 typedef struct sizebuf_s {                                           // common.h
@@ -60,13 +59,6 @@ typedef struct searchpath_s {
 	pack_t *pack; // only one of filename / pack will be used
 	struct searchpath_s *next;
 } searchpath_t;
-typedef struct _fshandle_t {
-	FILE *file;
-	bool pak; /* is the file read from a pak */
-	s64 start; /* file or data start position */
-	s64 length; /* file or data size */
-	s64 pos; /* current position relative to start */
-} fshandle_t;
 typedef struct filelist_item_s {
 	c8 name[32];
 	c8 desc[128];

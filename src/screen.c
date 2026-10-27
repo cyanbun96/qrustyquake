@@ -116,7 +116,6 @@ f32 CalcFov(f32 fov_x, f32 width, f32 height)
 static void SCR_CalcRefdef() // Must be called whenever vid changes
 { // Internal use only
 	fog_initialized = 0;
-	scr_fullupdate = 0; // force a background redraw
 	vid.recalc_refdef = 0;
 	Sbar_CalcPos();
 	Sbar_Changed(); // force the status bar to redraw
@@ -361,19 +360,16 @@ void SCR_BeginLoadingPlaque()
 	scr_centertime_off = 0;
 	scr_con_current = 0;
 	scr_drawloading = 1;
-	scr_fullupdate = 0;
 	Sbar_Changed();
 	SCR_UpdateScreen();
 	scr_drawloading = 0;
 	scr_disabled_for_loading = 1;
 	scr_disabled_time = realtime;
-	scr_fullupdate = 0;
 }
 
 void SCR_EndLoadingPlaque()
 {
 	scr_disabled_for_loading = 0;
-	scr_fullupdate = 0;
 	Con_ClearNotify();
 }
 
@@ -403,7 +399,6 @@ s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 	if(cls.state == ca_dedicated)
 		return 1;
 	scr_notifystring = text;
-	scr_fullupdate = 0; // draw a fresh screen
 	scr_drawdialog = 1;
 	f32 oldcvar = lyr_centerprint.value; // so that the message gets drawn
 	Cvar_SetValue("lyr_centerprint", 2); // over the menu backgroung
@@ -428,7 +423,6 @@ s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 	}while(key_lastpress != 'y' && key_lastpress != 'n'
 		&& key_lastpress != K_ESCAPE && pressedEnter < 3 && pressedM1<3
 		&& !(key_lastpress == K_MOUSE2 && ui_mouse.value));
-	scr_fullupdate = 0;
 	SCR_UpdateScreen();
 	return key_lastpress == 'y' || key_lastpress == K_ENTER
 		|| (key_lastpress == K_MOUSE1 && ui_mouse.value);

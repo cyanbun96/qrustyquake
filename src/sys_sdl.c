@@ -119,23 +119,11 @@ void Sys_FileSeek(s32 handle, s32 position)
 s32 Sys_FileRead(s32 handle, void *dst, s32 count)
 { return fread(dst, 1, count, sys_handles[handle]); }
 
-s32 Sys_FileWrite(s32 handle, const void *src, s32 count)
-{ return fwrite(src, 1, count, sys_handles[handle]); }
-
 s32 Sys_FileTime(const c8 *path)
 {
 	FILE *f = fopen(path, "rb");
 	if(f){ fclose(f); return 1; }
 	return -1;
-}
-
-s32 Sys_FileOpenWrite(const c8 *path)
-{
-	s32 i = findhandle();
-	FILE *f = fopen(path, "wb");
-	if(!f) Sys_Error("Error opening %s: %s", path, strerror(errno));
-	sys_handles[i] = f;
-	return i;
 }
 
 f64 Sys_DoubleTime()
@@ -156,10 +144,6 @@ s32 Sys_FileType(const c8* path)
 		}
 	}
 	return 0;
-}
-
-void Sys_mkdir(const c8* path){
-	SDL_CreateDirectory(path);
 }
 
 #ifdef __EMSCRIPTEN__

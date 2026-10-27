@@ -256,7 +256,6 @@ void VID_Init(SDL_UNUSED u8 *palette)
 			vid.height * renderscale);
 	if(!texture){printf("%s\n", SDL_GetError());}
 	SDL_SetTextureScaleMode(texture, scalemode);
-	windowSurface = SDL_GetWindowSurface(window);
 	sprintf(caption, "QrustyQuake - Version %4.2f", VERSION);
 	SDL_SetWindowTitle(window, (const c8 *)&caption);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);

@@ -713,21 +713,6 @@ static void COM_Path_f()
 }
 
 
-void COM_WriteFile(const c8 *filename, const void *data, s32 len)
-{ // The filename will be prefixed by the current game directory
-	c8 name[MAX_OSPATH];
-	Sys_mkdir(com_gamedir); // create if nonexistant gamedir to avoid crash
-	snprintf(name, sizeof(name), "%s/%s", com_gamedir, filename);
-	s32 handle = Sys_FileOpenWrite(name);
-	if(handle == -1){
-		Sys_Printf("COM_WriteFile: failed on %s\n", name);
-		return;
-	}
-	Sys_Printf("COM_WriteFile: %s\n", name);
-	Sys_FileWrite(handle, data, len);
-	Sys_FileClose(handle);
-}
-
 s64 COM_filelength(FILE *f)
 {
 	s64 pos = ftell(f);
@@ -745,7 +730,6 @@ static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file,
 {
 	c8 netpath[MAX_OSPATH];
 	if(file && handle) Sys_Error("COM_FindFile: both handle and file set");
-	file_from_pak = 0;
 	s32 i;
 	// search through the path, one element at a time
 	for(searchpath_t *search=com_searchpaths; search; search=search->next){
@@ -755,7 +739,6 @@ static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file,
 				if(strcmp(pak->files[i].name, name) != 0)
 					continue;
 				com_filesize = pak->files[i].filelen;//found it!
-				file_from_pak = 1;
 				if(path_id) *path_id = search->path_id;
 				if(handle){
 					*handle = pak->handle;
@@ -865,8 +848,6 @@ u8 *COM_LoadFile(const c8 *path, s32 usehunk, u32 *path_id)
 	COM_FileBase(path, base, sizeof(base));
 	switch(usehunk){
 	case LOADFILE_HUNK: buf = (u8 *) Hunk_AllocName(len+1, base); break;
-	case LOADFILE_TEMPHUNK: buf = (u8 *) Hunk_TempAlloc(len+1); break;
-	case LOADFILE_ZONE: buf = (u8 *) Z_Malloc(len+1); break;
 	case LOADFILE_CACHE: buf = (u8*)Cache_Alloc(loadcache,len+1,base);break;
 	case LOADFILE_STACK: if(len < loadsize) buf = loadbuf;
 			else buf = (u8 *) Hunk_TempAlloc(len+1);
@@ -884,12 +865,6 @@ u8 *COM_LoadFile(const c8 *path, s32 usehunk, u32 *path_id)
 
 u8 *COM_LoadHunkFile(const c8 *path, u32 *path_id)
 { return COM_LoadFile(path, LOADFILE_HUNK, path_id); }
-
-u8 *COM_LoadZoneFile(const c8 *path, u32 *path_id)
-{ return COM_LoadFile(path, LOADFILE_ZONE, path_id); }
-
-u8 *COM_LoadTempFile(const c8 *path, u32 *path_id)
-{ return COM_LoadFile(path, LOADFILE_TEMPHUNK, path_id); }
 
 void COM_LoadCacheFile(const c8 *path, struct cache_user_s *cu, u32 *path_id)
 {
@@ -909,28 +884,6 @@ u8 *COM_LoadStackFile(const c8 *path, void *buffer, s32 bufsize, u32 *path_id)
 
 u8 *COM_LoadMallocFile(const c8 *path, u32 *path_id) // returns malloc'd memory
 { return COM_LoadFile(path, LOADFILE_MALLOC, path_id); }
-
-const c8 *COM_ParseIntNewline(const c8 *buffer, s32 *value)
-{
-	s32 consumed = 0;
-	sscanf(buffer, "%i\n%n", value, &consumed);
-	return buffer + consumed;
-}
-
-const c8 *COM_ParseFloatNewline(const c8 *buffer, f32 *value)
-{
-	s32 consumed = 0;
-	sscanf(buffer, "%f\n%n", value, &consumed);
-	return buffer + consumed;
-}
-
-const c8 *COM_ParseStringNewline(const c8 *buffer)
-{
-	s32 consumed = 0;
-	com_token[0] = '\0';
-	sscanf(buffer, "%1023s\n%n", com_token, &consumed);
-	return buffer + consumed;
-}
 
 // Takes an explicit(not game tree related) path to a pak file.
 // Loads the header and directory, adding the files at the beginning
@@ -1263,71 +1216,6 @@ void COM_InitFilesystem()
 		}
 	}
 	COM_CheckRegistered();
-}
-
-// The following FS_*() stdio replacements are needed to perform non-sequential
-// reads on files reopened on pak files because we need the bookkeeping about
-// file start/end positions. Allocating and filling in the fshandle_t structure
-// is the users' responsibility when the file is initially opened.
-size_t FS_fread(void *ptr, size_t size, size_t nmemb, fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return 0; }
-	if(!ptr){ errno = EFAULT; return 0; }
-	if(!size || !nmemb){ // no error, just zero bytes wanted
-		errno = 0;
-		return 0;
-	}
-	s64 byte_size = nmemb * size;
-	if(byte_size > fh->length - fh->pos) // just read to end
-		byte_size = fh->length - fh->pos;
-	s64 bytes_read = fread(ptr, 1, byte_size, fh->file);
-	fh->pos += bytes_read;
-	//fread() must return number of elements read, not total number of bytes
-	s64 nmemb_read = bytes_read / size;
-	// even if the last member is only read partially
-	// it is counted as a whole in the return value.
-	if(bytes_read % size) nmemb_read++;
-	return nmemb_read;
-}
-
-s32 FS_fseek(fshandle_t *fh, s64 offset, s32 whence)
-{
-	if(!fh){ errno = EBADF; return -1; }
-	switch(whence){
-	case SEEK_SET: break;
-	case SEEK_CUR: offset += fh->pos; break;
-	case SEEK_END: offset = fh->length + offset; break;
-	default: errno = EINVAL; return -1;
-	}
-	if(offset < 0){ errno = EINVAL; return -1; }
-	if(offset > fh->length) offset = fh->length; // just seek to end
-	s32 ret = fseek(fh->file, fh->start + offset, SEEK_SET);
-	if(ret < 0) return ret;
-	fh->pos = offset;
-	return 0;
-}
-
-s32 FS_fclose(fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return -1; }
-	return fclose(fh->file);
-}
-
-s32 FS_feof(fshandle_t *fh)
-{
-	if(!fh){ errno = EBADF; return -1; }
-	if(fh->pos >= fh->length) return -1;
-	return 0;
-}
-
-c8 *FS_fgets(c8 *s, s32 size, fshandle_t *fh)
-{
-	if(FS_feof(fh)) return NULL;
-	if(size > (fh->length - fh->pos) + 1)
-		size = (fh->length - fh->pos) + 1;
-	c8 *ret = fgets(s, size, fh->file);
-	fh->pos = ftell(fh->file) - fh->start;
-	return ret;
 }
 
 u32 COM_HashString(const c8 *str)

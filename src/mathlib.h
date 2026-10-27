@@ -1,5 +1,4 @@
 #include "quakedef.h"
-#define EQUAL_EPSILON 0.001
 Q_SIL bool GetBit (const u32 *arr, u32 i)
 	{ return (arr[i/32u] & (1u<<(i%32u))) != 0u; }
 Q_SIL void SetBit (u32 *arr, u32 i)
@@ -10,8 +9,6 @@ Q_SIL f32 DotProduct(const f32 *restrict a, const f32 *restrict b)
 	{f32 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
 Q_SIL f64 DotProductF64(const f32 *a, const f32 *b)
 	{f64 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
-Q_SIL f32 DotProductU8(const u8 *a, const f32 *b)
-	{f32 sum=0.0f;for(s32 i=0;i<3;++i)sum+=a[i]*b[i];return sum;}
 Q_SIL void VectorSubtract(const f32 *a, const f32 *b, f32 *c)
 	{c[0] = a[0] - b[0]; c[1] = a[1] - b[1]; c[2] = a[2] - b[2];}
 Q_SIL void VectorAdd(const f32 *a, const f32 *b, f32 *c)
@@ -53,19 +50,6 @@ Q_SIL f32 VectorNormalize(vec3_t v)
 		v[2] *= ilength;
 	}
 	return length;
-}
-
-Q_SIL void ProjectPointOnPlane(vec3_t dst, const vec3_t p, const vec3_t normal)
-{
-	vec3_t n;
-	f32 inv_denom = 1.0F / DotProduct(normal, normal);
-	f32 d = DotProduct(normal, p) * inv_denom;
-	n[0] = normal[0] * inv_denom;
-	n[1] = normal[1] * inv_denom;
-	n[2] = normal[2] * inv_denom;
-	dst[0] = p[0] - d * n[0];
-	dst[1] = p[1] - d * n[1];
-	dst[2] = p[2] - d * n[2];
 }
 
 // johnfitz -- the opposite of AngleVectors.

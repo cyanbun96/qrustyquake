@@ -14,7 +14,6 @@ u32 oldmodes[NUM_OLDMODES * 2] = {                                  // vid_sdl.c
 	640, 400,       640, 480,       800, 600 };
 SDL_FRect destRect;
 SDL_Window *window;
-SDL_Surface *windowSurface;
 // scrbuffs[0] = screen; 1 = screentop; 2 = screenui; 3 = screensbar;
 SDL_Surface *screen; // custom world palette, not scaled
 SDL_Surface *screentop; // default palette, not scaled
@@ -35,7 +34,6 @@ s32 fadescreen;
 u64 d_pzbuffer_size;
 c8 scrshot_name[MAX_OSPATH*2];
 u8 r_foundtranswater, r_alphapass;                                   // r_main.c
-void *colormap;
 s32 r_outofsurfaces;
 s32 r_outofedges;
 s32 r_coarse_rejected;
@@ -122,10 +120,6 @@ bool msg_badread;
 s32 com_filesize;
 c8 com_gamedir[MAX_OSPATH];
 c8 com_basedir[MAX_OSPATH];
-s32 file_from_pak;
-s16 (*BigShort) (s16 l);
-s32 (*BigLong) (s32 l);
-f32 (*BigFloat) (f32 l);
 bool con_forcedup; // because no entities to refresh                // console.c
 s32 con_totallines; // total lines in console scrollback
 s32 con_backscroll; // lines up from bottom to display
@@ -187,7 +181,6 @@ s32 r_lsurfs_size = 0;
 edge_t *r_edges, *edge_p, *edge_max;
 surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
 edge_t *newedges[MAXHEIGHT];
-edge_t *removeedges[MAXHEIGHT];
 s32 r_currentkey;
 s32 net_driverlevel;                                               // net_main.c
 f64 net_time;
@@ -208,8 +201,7 @@ s32 messagesSent = 0;
 s32 messagesReceived = 0;
 s32 unreliableMessagesSent = 0;
 s32 unreliableMessagesReceived = 0;
-u32 scr_fullupdate;                                                  // screen.c
-u32 clearnotify;
+u32 clearnotify;                                                     // screen.c
 vrect_t scr_vrect;
 bool scr_disabled_for_loading;
 f32 scr_centertime_off;
@@ -269,8 +261,7 @@ const s32 dither_t[4] = {
 	(s32)(-0.50 * 65536.0f),
 	(s32)(-0.25 * 65536.0f)
 };
-mtriangle_t *ptriangles;                                            // r_alias.c
-affinetridesc_t r_affinetridesc;
+affinetridesc_t r_affinetridesc;                                    // r_alias.c
 void *acolormap;
 finalvert_t *pfinalverts;
 auxvert_t *pauxverts;

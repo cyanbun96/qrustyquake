@@ -280,7 +280,6 @@ s32 slist_cursor;
 bool slist_sorted;
 bool m_entersound; // after drawing a frame so caching won't disrupt the sound
 bool m_recursiveDraw;
-s32 m_return_state;
 bool m_return_onerror;
 c8 m_return_reason[32];
 
@@ -3764,7 +3763,6 @@ void M_LanConfig_Key(s32 key)
 			break;
 		}
 		else if(lanConfig_cursor == 2){
-			m_return_state = m_state;
 			m_return_onerror = 1;
 			key_dest = key_game;
 			m_state = m_none;
@@ -4207,7 +4205,6 @@ void M_ServerList_Key(s32 k)
 		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu2.wav");
-		m_return_state = m_state;
 		m_return_onerror = 1;
 		slist_sorted = 0;
 		key_dest = key_game;
@@ -4254,7 +4251,6 @@ void M_Draw()
 		if(scr_con_current) Draw_ConsoleBackground(vid.height);
 		else if(lyr_menu.value != 0) fadescreen = 1;
 		else Draw_FadeScreen();
-		scr_fullupdate = 0;
 	}else{
 		m_recursiveDraw = 0;
 	}

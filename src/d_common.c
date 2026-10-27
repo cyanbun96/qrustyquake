@@ -423,21 +423,6 @@ void Draw_Pic_Ex(f32 *pos, f32 *sz, qpic_t *pic, f32 *srcpos, f32 *srcsz,
 	}
 }
 
-void Draw_CharToConback(s32 num, u8 *dest)
-{
-	s32 row = num >> 4;
-	s32 col = num & 15;
-	u8 *source = draw_chars + (row << 10) + (col << 3);
-	s32 drawline = 8;
-	while(drawline--){
-		for(s32 x = 0; x < 8; x++)
-			if(source[x])
-				dest[x] = 0x60 + source[x];
-		source += 128;
-		dest += 320;
-	}
-}
-
 void Draw_CharToConbackScaled(s32 num, u8 *dest, s32 scale, s32 width)
 {
 	s32 row = num >> 4;

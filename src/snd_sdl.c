@@ -102,15 +102,4 @@ bool SNDDMA_Init(dma_t *dma)
 	return 1;
 }
 
-void SNDDMA_Shutdown()
-{
-	if(shm){
-		Con_Printf("Shutting down SDL sound\n");
-		SDL_QuitSubSystem(SDL_INIT_AUDIO);
-		if(shm->buffer) free(shm->buffer);
-		shm->buffer = NULL;
-		shm = NULL;
-	}
-}
-
 s32 SNDDMA_GetDMAPos(){ return shm->samplepos; }

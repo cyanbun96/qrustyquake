@@ -161,16 +161,6 @@ void R_CoarseOcclusionBeginFrame()
 		!r_draworder.value;
 }
 
-void R_CoarseOcclusionClear()
-{
-	if(r_coarse_occlusion_bits){
-		memset(r_coarse_occlusion_bits, 0, (size_t)
-			r_coarse_occlusion_words * r_coarse_occlusion_height *
-			sizeof(u64));
-		R_CoarseOccClearPixels();
-	}
-}
-
 
 static inline bool R_CoarseOccRunFull(const u64 *row, s32 a, s32 b)
 { // Are all tiles a..b (inclusive) of this row set?

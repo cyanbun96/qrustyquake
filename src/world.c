@@ -22,10 +22,6 @@ typedef struct areanode_s {
 	link_t trigger_edicts;
 	link_t solid_edicts;
 } areanode_t;
-typedef struct {
-	s32 planenum;
-	s16 children[2]; // negative numbers are contents
-} dclipnode_t;
 // entities never clip against themselves, or their owner
 // line of sight checks trace->crosscontent, but bullets don't
 static hull_t box_hull;

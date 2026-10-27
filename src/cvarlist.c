@@ -191,7 +191,6 @@ cvar_t scr_qchudscale=                            {"scr_qchudscale", "1", 1,ZR};
 cvar_t scr_saturntext=                              {"scr_saturntext","0",1,ZR};
 cvar_t scr_sbaralpha=                              {"scr_sbaralpha", "1", 1,ZR};
 cvar_t scr_sbarscale=                              {"scr_sbarscale", "2", 1,ZR};
-cvar_t scr_screensize=                                 {"screensize","1", 1,ZR};
 cvar_t scr_showfps=                                  {"scr_showfps", "0", 1,ZR};
 cvar_t scr_showpause=                                  {"showpause", "1", 0,ZR};
 cvar_t scr_showram=                                      {"showram", "1", 0,ZR};

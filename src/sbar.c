@@ -815,7 +815,6 @@ void Sbar_DrawFrags()
 
 void Sbar_IntermissionOverlay()
 {
-	scr_fullupdate = 0;
 	if(cl.gametype == GAME_DEATHMATCH){
 		Sbar_DeathmatchOverlay();
 		return;
