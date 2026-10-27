@@ -126,8 +126,18 @@ static void D_DrawBackground(surf_t *s)
 	D_DrawZSpans(s->spans);
 }
 
+// Faces too big for a surface cache block at the requested mip level
+// (vanilla limits them to 256, GL ports to 2000) use a coarser mip instead
+static void D_FitMipLevel(msurface_t *pface)
+{
+	while(miplevel < MIPLEVELS-1 && ((pface->extents[0] >> miplevel) > 256
+			|| (pface->extents[1] >> miplevel) > 256))
+		miplevel++;
+}
+
 static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 {
+	D_FitMipLevel(pface);
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
@@ -159,6 +169,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
 			* pface->texinfo->mipadjust);
 	lmonly = 1; // this is how we know it's lit water that we're drawing
+	D_FitMipLevel(pface);
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
@@ -180,6 +191,7 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 
 static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 {
+	D_FitMipLevel(pface);
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
@@ -196,6 +208,7 @@ static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
 
 static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
 {
+	D_FitMipLevel(pface);
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;

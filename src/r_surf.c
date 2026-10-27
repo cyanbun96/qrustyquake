@@ -15,9 +15,10 @@ static s32 r_stepback;
 static s32 r_lightwidth;
 static s32 r_numhblocks, r_numvblocks;
 static u8 *r_source, *r_sourcemax;
-static u32 blocklights[18 * 18];
-static u32 blocklights_g[18 * 18];
-static u32 blocklights_b[18 * 18];
+#define BLOCKLIGHTS_SIZE (2000 / 16 + 1) // fits surface extents up to 2000
+static u32 blocklights[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
+static u32 blocklights_g[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
+static u32 blocklights_b[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
 
 void R_DrawSurfaceBlock();
 void R_DrawSurfaceBlockRGB();
