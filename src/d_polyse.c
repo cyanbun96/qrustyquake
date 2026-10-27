@@ -369,18 +369,23 @@ void D_PolysetUpdateTables()
 	}
 }
 
+Q_SIL void D_PolysetStoreSpanPackage()
+{
+	d_pedgespanpackage->pdest = d_pdest;
+	d_pedgespanpackage->pz = d_pz;
+	d_pedgespanpackage->count = d_aspancount;
+	d_pedgespanpackage->ptex = d_ptex;
+	d_pedgespanpackage->sfrac = d_sfrac;
+	d_pedgespanpackage->tfrac = d_tfrac;
+	d_pedgespanpackage->light = d_light;
+	d_pedgespanpackage->zi = d_zi;
+	d_pedgespanpackage++;
+}
+
 void D_PolysetScanLeftEdge(s32 height)
 {
 	do{
-		d_pedgespanpackage->pdest = d_pdest;
-		d_pedgespanpackage->pz = d_pz;
-		d_pedgespanpackage->count = d_aspancount;
-		d_pedgespanpackage->ptex = d_ptex;
-		d_pedgespanpackage->sfrac = d_sfrac;
-		d_pedgespanpackage->tfrac = d_tfrac;
-		d_pedgespanpackage->light = d_light;
-		d_pedgespanpackage->zi = d_zi;
-		d_pedgespanpackage++;
+		D_PolysetStoreSpanPackage();
 		errorterm += erroradjustup;
 		if(errorterm >= 0){
 			d_pdest += d_pdestextrastep;
@@ -622,6 +627,61 @@ void D_PolysetDrawSpans(spanpackage_t *pspanpackage)
 void D_PolysetDrawSpansDithered(spanpackage_t *pspanpackage)
 { D_PolysetDrawSpansImpl(pspanpackage, TEXSAMPLE_DITHERED); }
 
+// sets up the stepping for a left edge of at least two scanlines
+Q_SIL void D_PolysetSetUpLeftEdgeSteps()
+{
+	d_pdestbasestep = screenwidth + ubasestep;
+	d_pdestextrastep = d_pdestbasestep + 1;
+	d_pzbasestep = d_zwidth + ubasestep;
+	d_pzextrastep = d_pzbasestep + 1;
+	d_countextrastep = ubasestep + 1;
+	// for negative steps in x along left edge, bias toward overflow
+	// rather than underflow(sort of turning the floor() we did in
+	// the gradient calcs into ceil(), but plus a little bit)
+	s32 working_lstepx = ubasestep < 0 ? r_lstepx - 1 : r_lstepx;
+	// the extra step is the base step plus one more x step
+	s32 sbase = r_sstepy + r_sstepx * ubasestep;
+	s32 tbase = r_tstepy + r_tstepx * ubasestep;
+	s32 sextra = sbase + r_sstepx;
+	s32 textra = tbase + r_tstepx;
+	s32 skinwidth = r_affinetridesc.skinwidth;
+	d_ptexbasestep = (sbase >> 16) + (tbase >> 16) * skinwidth;
+	d_sfracbasestep = sbase & 0xFFFF;
+	d_tfracbasestep = tbase & 0xFFFF;
+	d_lightbasestep = r_lstepy + working_lstepx * ubasestep;
+	d_zibasestep = r_zistepy + r_zistepx * ubasestep;
+	d_ptexextrastep = (sextra >> 16) + (textra >> 16) * skinwidth;
+	d_sfracextrastep = sextra & 0xFFFF;
+	d_tfracextrastep = textra & 0xFFFF;
+	d_lightextrastep = d_lightbasestep + working_lstepx;
+	d_ziextrastep = d_zibasestep + r_zistepx;
+}
+
+// scans out one left edge into span packages; fracmask is 0xFFFF to start
+// from the top vertex's s/t fractions, or 0 to drop them like the original
+// code does for the bottom edge
+Q_SIL void D_PolysetLeftEdge(const s32 *ptop, const s32 *pbottom,
+		s32 rightx, s32 height, s32 fracmask)
+{
+	s32 ystart = ptop[1];
+	d_aspancount = ptop[0] - rightx;
+	d_ptex = (u8 *) r_affinetridesc.pskin + (ptop[2] >> 16) +
+		(ptop[3] >> 16) * r_affinetridesc.skinwidth;
+	d_sfrac = ptop[2] & fracmask;
+	d_tfrac = ptop[3] & fracmask;
+	d_light = ptop[4];
+	d_zi = ptop[5];
+	d_pdest = (u8 *) d_viewbuffer + ystart * screenwidth + ptop[0];
+	d_pz = d_pzbuffer + ystart * d_zwidth + ptop[0];
+	if(height == 1){
+		D_PolysetStoreSpanPackage();
+		return;
+	}
+	D_PolysetSetUpForLineScan(ptop[0], ptop[1], pbottom[0], pbottom[1]);
+	D_PolysetSetUpLeftEdgeSteps();
+	D_PolysetScanLeftEdge(height);
+}
+
 void D_RasterizeAliasPolySmooth()
 {
 	s32 *plefttop = pedgetable->pleftedgevert0;
@@ -638,114 +698,14 @@ void D_RasterizeAliasPolySmooth()
 	// rasterize the polygon
 	// scan out the top(and possibly only) part of the left edge
 	d_pedgespanpackage = a_spans;
-	static s32 ystart;
-	ystart = plefttop[1];
-	d_aspancount = plefttop[0] - prighttop[0];
-	d_ptex = (u8 *) r_affinetridesc.pskin + (plefttop[2] >> 16) +
-		(plefttop[3] >> 16) * r_affinetridesc.skinwidth;
-	d_sfrac = plefttop[2] & 0xFFFF;
-	d_tfrac = plefttop[3] & 0xFFFF;
-	d_light = plefttop[4];
-	d_zi = plefttop[5];
-	d_pdest = (u8 *) d_viewbuffer + ystart * screenwidth + plefttop[0];
-	d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
-	s32 working_lstepx, originalcount;
-	if(initialleftheight == 1){
-		d_pedgespanpackage->pdest = d_pdest;
-		d_pedgespanpackage->pz = d_pz;
-		d_pedgespanpackage->count = d_aspancount;
-		d_pedgespanpackage->ptex = d_ptex;
-		d_pedgespanpackage->sfrac = d_sfrac;
-		d_pedgespanpackage->tfrac = d_tfrac;
-		d_pedgespanpackage->light = d_light;
-		d_pedgespanpackage->zi = d_zi;
-		d_pedgespanpackage++;
-	}else{
-		D_PolysetSetUpForLineScan(plefttop[0], plefttop[1],
-				pleftbottom[0], pleftbottom[1]);
-		d_pzbasestep = d_zwidth + ubasestep;
-		d_pzextrastep = d_pzbasestep + 1;
-		d_pdestbasestep = screenwidth + ubasestep;
-		d_pdestextrastep = d_pdestbasestep + 1;
-		// TODO: can reuse partial expressions here
-		// for negative steps in x along left edge, bias toward overflow
-		// rather than underflow(sort of turning the floor() we did in
-		// the gradient calcs into ceil(), but plus a little bit)
-		if(ubasestep < 0)
-			working_lstepx = r_lstepx - 1;
-		else
-			working_lstepx = r_lstepx;
-		d_countextrastep = ubasestep + 1;
-		d_ptexbasestep = ((r_sstepy + r_sstepx * ubasestep) >> 16) +
-			((r_tstepy + r_tstepx * ubasestep) >> 16) *
-			r_affinetridesc.skinwidth;
-		d_sfracbasestep = (r_sstepy + r_sstepx * ubasestep) & 0xFFFF;
-		d_tfracbasestep = (r_tstepy + r_tstepx * ubasestep) & 0xFFFF;
-		d_lightbasestep = r_lstepy + working_lstepx * ubasestep;
-		d_zibasestep = r_zistepy + r_zistepx * ubasestep;
-		d_ptexextrastep = ((r_sstepy + r_sstepx * d_countextrastep) >>
-			16) + ((r_tstepy + r_tstepx * d_countextrastep) >> 16)
-			* r_affinetridesc.skinwidth;
-		d_sfracextrastep = (r_sstepy+r_sstepx*d_countextrastep)&0xFFFF;
-		d_tfracextrastep = (r_tstepy+r_tstepx*d_countextrastep)&0xFFFF;
-		d_lightextrastep = d_lightbasestep + working_lstepx;
-		d_ziextrastep = d_zibasestep + r_zistepx;
-		D_PolysetScanLeftEdge(initialleftheight);
-	}
+	D_PolysetLeftEdge(plefttop, pleftbottom, prighttop[0],
+			initialleftheight, 0xFFFF);
 	// scan out the bottom part of the left edge, if it exists
 	if(pedgetable->numleftedges == 2){
-		s32 height;
 		plefttop = pleftbottom;
 		pleftbottom = pedgetable->pleftedgevert2;
-		height = pleftbottom[1] - plefttop[1];
-		//TODO make this a function; modularize this function in general
-		ystart = plefttop[1];
-		d_aspancount = plefttop[0] - prighttop[0];
-		d_ptex = (u8 *) r_affinetridesc.pskin + (plefttop[2] >> 16) +
-			(plefttop[3] >> 16) * r_affinetridesc.skinwidth;
-		d_sfrac = 0;
-		d_tfrac = 0;
-		d_light = plefttop[4];
-		d_zi = plefttop[5];
-		d_pdest = (u8*)d_viewbuffer+ystart*screenwidth+plefttop[0];
-		d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
-		if(height == 1){
-			d_pedgespanpackage->pdest = d_pdest;
-			d_pedgespanpackage->pz = d_pz;
-			d_pedgespanpackage->count = d_aspancount;
-			d_pedgespanpackage->ptex = d_ptex;
-			d_pedgespanpackage->sfrac = d_sfrac;
-			d_pedgespanpackage->tfrac = d_tfrac;
-			d_pedgespanpackage->light = d_light;
-			d_pedgespanpackage->zi = d_zi;
-			d_pedgespanpackage++;
-		}else{
-			D_PolysetSetUpForLineScan(plefttop[0], plefttop[1],
-					pleftbottom[0], pleftbottom[1]);
-			d_pdestbasestep = screenwidth + ubasestep;
-			d_pdestextrastep = d_pdestbasestep + 1;
-			d_pzbasestep = d_zwidth + ubasestep;
-			d_pzextrastep = d_pzbasestep + 1;
-			working_lstepx = ubasestep < 0? r_lstepx - 1 : r_lstepx;
-			d_countextrastep = ubasestep + 1;
-			d_ptexbasestep=((r_sstepy+r_sstepx*ubasestep)>>16)+
-				((r_tstepy+r_tstepx*ubasestep)>>16)*
-				r_affinetridesc.skinwidth;
-			d_sfracbasestep=(r_sstepy+r_sstepx*ubasestep)&0xFFFF;
-			d_tfracbasestep=(r_tstepy+r_tstepx*ubasestep)&0xFFFF;
-			d_lightbasestep = r_lstepy + working_lstepx * ubasestep;
-			d_zibasestep = r_zistepy + r_zistepx * ubasestep;
-			d_ptexextrastep=((r_sstepy+r_sstepx*d_countextrastep)>>
-				16)+((r_tstepy+r_tstepx*d_countextrastep)>>16)*
-				r_affinetridesc.skinwidth;
-			d_sfracextrastep=
-				(r_sstepy+r_sstepx*d_countextrastep)&0xFFFF;
-			d_tfracextrastep=
-				(r_tstepy+r_tstepx*d_countextrastep)&0xFFFF;
-			d_lightextrastep = d_lightbasestep + working_lstepx;
-			d_ziextrastep = d_zibasestep + r_zistepx;
-			D_PolysetScanLeftEdge(height);
-		}
+		D_PolysetLeftEdge(plefttop, pleftbottom, prighttop[0],
+				pleftbottom[1] - plefttop[1], 0);
 	}
 	// scan out the top(and possibly only) part of the right edge, updating
 	// the count field
@@ -754,7 +714,7 @@ void D_RasterizeAliasPolySmooth()
 			prightbottom[0], prightbottom[1]);
 	d_aspancount = 0;
 	d_countextrastep = ubasestep + 1;
-	originalcount = a_spans[initialrightheight].count;
+	s32 originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of spanpackages
 	if(r_dithertex.value) D_PolysetDrawSpansDithered(a_spans);
 	else D_PolysetDrawSpans(a_spans);
