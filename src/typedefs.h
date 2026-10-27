@@ -279,7 +279,6 @@ typedef struct efrag_s {
 } efrag_t;
 typedef struct {
 	vrect_t vrect; // subwindow in video for refresh
-		       // FIXME: not need vrect next field here?
 	vrect_t aliasvrect; // scaled Alias version
 	s64 vrectright, vrectbottom; // right & bottom screen coords
 	s64 aliasvrectright, aliasvrectbottom; // scaled Alias versions

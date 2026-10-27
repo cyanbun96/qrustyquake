@@ -1964,7 +1964,6 @@ visdone:
 	Mod_MakeHull0();
 	mod->numframes = 2; // regular and alternate animation
 	Mod_CheckWaterVis();
-	// set up the submodels (FIXME: this is confusing)
 // johnfitz -- okay, so that i stop getting confused every time i look at this 
 // loop, here's how it works: we're looping through the submodels starting at 0.
 // Submodel 0 is the main model, so we don't have to worry about clobbering data

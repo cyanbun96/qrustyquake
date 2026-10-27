@@ -711,7 +711,6 @@ static void PF_traceline()
 	f32 *v2 = G_VECTOR(OFS_PARM1);
 	s32 nomonsters = G_FLOAT(OFS_PARM2);
 	edict_t *ent = G_EDICT(OFS_PARM3);
-	// FIXME: Why do we hit this with certain progs.dat?
 	if(developer.value){
 		if(isnan(v1[0]) || isnan(v1[1]) || isnan(v1[2]) ||
 			isnan(v2[0]) || isnan(v2[1]) || isnan(v2[2])){
@@ -1407,7 +1406,7 @@ static void PF_checkextension()
 }
 
 static void PF_strlen()
-{ //FIXME: doesn't try to handle utf-8
+{
 	const c8 *s = G_STRING(OFS_PARM0);
 	G_FLOAT(OFS_RETURN) = strlen(s);
 }

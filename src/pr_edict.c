@@ -892,17 +892,14 @@ const c8 *ED_ParseEdict(const c8 *data, edict_t *ent)
 			break;
 		if(!data)
 			Host_Error("ED_ParseEntity: EOF without closing brace");
-		// anglehack is to allow QuakeEd to write single scalar angles
-		// and allow them to be turned into vectors. (FIXME...)
 		if(!strcmp(com_token, "angle")){
 			strcpy(com_token, "angles");
 			anglehack = true;
 		}
 		else
 			anglehack = false;
-		// FIXME: change light to _light to get rid of this hack
 		if(!strcmp(com_token, "light"))
-		    strcpy(com_token, "light_lev");//hack for single light def
+		    strcpy(com_token, "light_lev"); // hack for single light def
 		SDL_strlcpy(keyname, com_token, sizeof(keyname));
 		// another hack to fix keynames with trailing spaces
 		s32 n = strlen(keyname);

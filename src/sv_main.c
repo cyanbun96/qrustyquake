@@ -13,15 +13,11 @@ static u8 *fatpvs;
 void SV_CalcStats(client_t *client, s32 *statsi, f32 *statsf, const c8 **statss)
 {
 	edict_t *ent = client->edict;
-	//FIXME: string stats!
 	memset(statsi, 0, sizeof(*statsi)*MAX_CL_STATS);
 	memset(statsf, 0, sizeof(*statsf)*MAX_CL_STATS);
 	memset((void*)statss, 0, sizeof(*statss)*MAX_CL_STATS);
 	statsf[STAT_HEALTH] = ent->v.health;
-	//  statsf[STAT_FRAGS] = ent->v.frags;  //obsolete
 	statsi[STAT_WEAPON] = SV_ModelIndex(PR_GetString(ent->v.weaponmodel));
-	//if((unsigned int)statsi[STAT_WEAPON] >= client->limit_models)
-	//  statsi[STAT_WEAPON] = 0;
 	statsf[STAT_AMMO] = ent->v.currentammo;
 	statsf[STAT_ARMOR] = ent->v.armorvalue;
 	statsf[STAT_WEAPONFRAME] = ent->v.weaponframe;
@@ -31,7 +27,6 @@ void SV_CalcStats(client_t *client, s32 *statsi, f32 *statsf, const c8 **statss)
 	statsf[STAT_CELLS] = ent->v.ammo_cells;
 	statsf[STAT_ACTIVEWEAPON] = ent->v.weapon; //sent in a way that does NOT
 						//depend upon the current mod...
-	//FIXME: add support for clientstat/globalstat qc builtins.
 	for(size_t i = 0; i < sv.numcustomstats; i++){
 		eval_t *eval = sv.customstats[i].ptr;
 		if(!eval)

@@ -54,7 +54,6 @@ Q_SIL f32 VectorNormalize(vec3_t v)
 
 // johnfitz -- the opposite of AngleVectors.
 // this takes forward and generates pitch yaw roll
-// TODO: take right and up vectors to properly set yaw and roll
 Q_SIL void VectorAngles(const vec3_t forward, vec3_t angles)
 {
     vec3_t temp;
