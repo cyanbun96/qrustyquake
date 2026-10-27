@@ -69,6 +69,7 @@ f32 r_aliastransition, r_resfudge;
 s32 d_lightstylevalue[256]; // 8.8 fraction of base light value
 f64 d_times[15];
 s32 colored_aliaslight;
+s32 alias_tint[3];
 s32 r_numdebuglines = 0; // r_showtris
 s32 r_numdebugpoints = 0;
 bool coccl_enable = 0;

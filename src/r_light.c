@@ -189,6 +189,7 @@ s32 R_LightPoint(vec3_t p, f32 ofs)
 {
 	if(!cl.worldmodel->lightdata){
 		lightcolor[0] = lightcolor[1] = lightcolor[2] = 255;
+		colored_aliaslight = 0;
 		return 255;
 	}
 	f32 maxdist = 8192; //johnfitz -- was 2048

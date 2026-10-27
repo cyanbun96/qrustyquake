@@ -68,6 +68,7 @@ EX refdef_t r_refdef;
 EX s64 r_framecount;
 EX texture_t *r_notexture_mip;
 EX s32 colored_aliaslight;
+EX s32 alias_tint[3];
 EX s32 r_numdebuglines;
 EX s32 r_numdebugpoints;
 EX bool coccl_enable;

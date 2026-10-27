@@ -628,9 +628,8 @@ static void R_ClampAliasLighting(alight_t *light)
 		light->shadelight = 192 - light->ambientlight;
 }
  
-static s32 R_AddDlightsToAliasLight(alight_t *light, vec3_t origin)
+static void R_AddDlightsToAliasLight(alight_t *light, vec3_t origin)
 {
-	s32 muzzleflash = 0;
 	for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++){
 		dlight_t *dl = &cl_dlights[lnum];
 		if(!dl->radius || dl->die < cl.time)
@@ -639,24 +638,40 @@ static s32 R_AddDlightsToAliasLight(alight_t *light, vec3_t origin)
 		VectorSubtract(origin, dl->origin, dist);
 		f32 len = VectorLength(dist);
 		f32 add = dl->radius - len;
-		if(add > 150 && len < 50)
-			muzzleflash = 1;
 		if(add > 0)
 			light->ambientlight += add;
 	}
-	return muzzleflash;
+}
+
+// Hue of the coloured light at unit brightness. The brightness itself comes
+// from the colormap like with uncoloured lighting, so ambient/shade/clamps/
+// dlights apply. lit is the R_LightPoint() level the light started from,
+// anything added on top of it is white.
+static void R_SetupAliasTint(alight_t *light, s32 lit)
+{
+	f32 white = light->ambientlight - lit;
+	if(white < 0)
+		white = 0;
+	f32 sum = lightcolor[0] + lightcolor[1] + lightcolor[2] + 3 * white;
+	if(!r_rgblighting.value || sum <= 0){
+		colored_aliaslight = 0;
+		return;
+	}
+	for(s32 i = 0; i < 3; i++)
+		alias_tint[i] = (lightcolor[i] + white) * (3 * 256) / sum;
 }
  
 static void R_SetupAliasEntityLighting(alight_t *lighting)
 {
 	s32 j = R_LightPoint(currententity->origin, 0.f);
 	if(!j)
-		R_LightPoint(currententity->origin,
+		j = R_LightPoint(currententity->origin,
 				currententity->model->maxs[2]*0.5f);
 	lighting->ambientlight = j;
 	lighting->shadelight = j;
 	lighting->plightvec = aliaslightvec;
 	R_AddDlightsToAliasLight(lighting, currententity->origin);
+	R_SetupAliasTint(lighting, j);
 	R_ClampAliasLighting(lighting);
 }
  
@@ -719,10 +734,8 @@ static void R_SetupViewModelLighting()
 	r_viewlighting.ambientlight = j;
 	r_viewlighting.shadelight = j;
 	r_viewlighting.plightvec = aliaslightvec;
-	colored_aliaslight = r_rgblighting.value && lit_loaded ? 1 : 0;
-	// add dynamic lights
-	if(R_AddDlightsToAliasLight(&r_viewlighting, currententity->origin))
-		colored_aliaslight = 0; // hack in the muzzleflash
+	R_AddDlightsToAliasLight(&r_viewlighting, currententity->origin);
+	R_SetupAliasTint(&r_viewlighting, j);
 	R_ClampAliasLighting(&r_viewlighting);
 }
  

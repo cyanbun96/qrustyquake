@@ -10,6 +10,7 @@ typedef struct {
 	s32 blend; // BLEND_*
 	s32 mixlevel; // color_mix_lut level, for BLEND_MIX
 	s32 rgblight; // per-channel coloured lighting instead of the colormap
+	const u8 *rgbpix; // D_GetRGBPix of every color, with rgblight
 } polysetstyle_t;
 typedef struct {
 	void *pdest;
@@ -76,16 +77,41 @@ void D_PolysetSetEdgeTable();
 void D_RasterizeAliasPolySmooth();
 void D_PolysetScanLeftEdge(s32 height);
 
+// pix is already lit by the colormap, this only tints it with alias_tint
 static inline s32 D_GetRGBPix(s32 pix)
 {
 	if(pix >= 0xFF) return pix;
-	u8 tr = CURWORLDPAL[pix * 3 + 0];
-	u8 tg = CURWORLDPAL[pix * 3 + 1];
-	u8 tb = CURWORLDPAL[pix * 3 + 2];
-	u8 rr = (tr * lightcolor[0]) / 255.0f;
-	u8 gg = (tg * lightcolor[1]) / 255.0f;
-	u8 bb = (tb * lightcolor[2]) / 255.0f;
+	const u8 *c = &CURWORLDPAL[pix * 3];
+	s32 rr = (c[0] * alias_tint[0]) >> 8;
+	s32 gg = (c[1] * alias_tint[1]) >> 8;
+	s32 bb = (c[2] * alias_tint[2]) >> 8;
+	if(rr > 255) rr = 255;
+	if(gg > 255) gg = 255;
+	if(bb > 255) bb = 255;
 	return lit_lut[QUANT(rr)][QUANT(gg)][QUANT(bb)];
+}
+
+// D_GetRGBPix of all the colors for the current alias_tint, built again when
+// that or the palette changes, and once a frame in case the palette was loaded
+// again in the same place
+static const u8 *D_RGBPixTable()
+{
+	static u8 tab[256];
+	static s32 tint[3];
+	static const u8 *pal;
+	static s64 frame = -1;
+	if(frame != r_framecount || pal != CURWORLDPAL ||
+			tint[0] != alias_tint[0] || tint[1] != alias_tint[1] ||
+			tint[2] != alias_tint[2]){
+		for(s32 i = 0; i < 256; i++)
+			tab[i] = D_GetRGBPix(i);
+		frame = r_framecount;
+		pal = CURWORLDPAL;
+		tint[0] = alias_tint[0];
+		tint[1] = alias_tint[1];
+		tint[2] = alias_tint[2];
+	}
+	return tab;
 }
 
 void D_PolysetDraw()
@@ -127,10 +153,11 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 				continue;
 			s32 pix = row[s];
 			*zbuf = z;
-			if(!r_rgblighting.value||!colored_aliaslight||pix>=0xE0)
-				pix = ((u8*)acolormap)[pix + (fv->v[4]&0xFF00)];
-			else
-				pix = D_GetRGBPix(((u8 *) acolormap)[pix]);
+			s32 texel = pix;
+			pix = ((u8*)acolormap)[texel + (fv->v[4]&0xFF00)];
+			if(r_rgblighting.value && colored_aliaslight
+					&& texel < 0xE0)
+				pix = D_GetRGBPix(pix);
 			if(pix == 0xFF) continue;
 			if(r_alphastyle.value == 0 && cur_ent_alpha != 1){
 				s32 curpix = d_viewbuffer[d_scantable[fv->v[1]]
@@ -306,10 +333,10 @@ split: // split this edge
 		if(!row)
 			goto nodraw;
 		s32 pix = row[s];
-		if(!r_rgblighting.value || !colored_aliaslight || pix >= 0xE0)
-			pix = d_pcolormap[skintable[t][s]];
-		else
-			pix = D_GetRGBPix(((u8*)acolormap)[skintable[t][s]]);
+		s32 texel = pix;
+		pix = d_pcolormap[texel];
+		if(r_rgblighting.value && colored_aliaslight && texel < 0xE0)
+			pix = D_GetRGBPix(pix);
 		if(pix == 0xFF) goto nodraw;
 		if(r_alphastyle.value == 0 && cur_ent_alpha != 1){
 			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
@@ -439,6 +466,7 @@ static polysetstyle_t D_PolysetPixelStyle()
 	polysetstyle_t st;
 	st.colormap = (u8 *)acolormap;
 	st.rgblight = r_rgblighting.value && colored_aliaslight;
+	st.rgbpix = st.rgblight ? D_RGBPixTable() : NULL;
 	st.mixlevel = 0;
 	if(cur_ent_alpha == 1)
 		st.blend = BLEND_OPAQUE;
@@ -491,7 +519,7 @@ Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
 	if(pix == 0xFF)
 		return;
 	if(st->rgblight && texel < 0xE0)
-		pix = D_GetRGBPix(st->colormap[texel]);
+		pix = st->rgbpix[pix];
 	switch(st->blend){
 	case BLEND_MIX:
 		*pdest = color_mix_lut[*pdest][pix][st->mixlevel];
