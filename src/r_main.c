@@ -680,6 +680,7 @@ static void R_DrawAliasEntity()
 	if(r_lerpmove.value && !(cls.demoplayback && (cl.paused & 2)))
 		R_SetupEntityTransform(currententity); // move lerp
 	R_SetEntityModelOrg(currententity);
+	R_AliasValidateFrame();
 	// see if the bounding box lets us trivially reject
 	// also sets trivial accept status
 	if(!R_AliasCheckBBox())
@@ -747,6 +748,7 @@ void R_DrawViewModel()
                 return;
 	currententity = &cl.viewent;
 	R_SetEntityModelOrg(currententity);
+	R_AliasValidateFrame();
 	VectorCopy(vup, viewlightvec);
 	VectorInverse(viewlightvec);
 	R_SetupViewModelLighting();

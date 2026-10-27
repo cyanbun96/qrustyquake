@@ -513,6 +513,7 @@ void R_ScanEdges();
 void D_DrawSurfaces();
 void D_DrawSurfacesFlat();
 void R_RotateBmodel();
+void R_AliasValidateFrame();
 bool R_AliasCheckBBox();
 bool R_AliasOccluded();
 void R_AliasSyncLerpState();

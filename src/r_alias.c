@@ -33,6 +33,16 @@ void R_AliasSetUpTransform(s32 trivial_accept);
 void R_AliasTransformVector(vec3_t in, vec3_t out);
 void R_AliasProjectFinalVert(finalvert_t *fv, auxvert_t *av);
 
+
+void R_AliasValidateFrame() // Clamp an out-of-range frame (it comes straight
+{ // off the network) once, before anything indexes the frame table with it
+	entity_t *e = currententity;
+	if(e->frame >= e->model->numframes || e->frame < 0){
+		Con_DPrintf("No such frame %d %s\n", e->frame, e->model->name);
+		e->frame = 0;
+	}
+}
+
 bool R_AliasCheckBBox()
 {
 	// expand, rotate, and translate points into worldspace
@@ -42,12 +52,7 @@ bool R_AliasCheckBBox()
 	pmdl = (mdl_t *) ((u8 *) pahdr + pahdr->model);
 	R_AliasSetUpTransform(0);
 	// construct the base bounding box for this frame
-	s32 frame = currententity->frame;
-	// TODO: don't repeat this check when drawing?
-	if((frame >= pmdl->numframes) || (frame < 0)){
-		Con_DPrintf("No such frame %d %s\n", frame, pmodel->name);
-		frame = 0;
-	}
+	s32 frame = currententity->frame; // validated by R_AliasValidateFrame
 	maliasframedesc_t *pframedesc = &pahdr->frames[frame];
 	f32 bp[8][3]; // basepts
 	// x worldspace coordinates
@@ -424,11 +429,7 @@ void R_BoundPoseSingle(mdl_t *m, lerpdata_t *lerpdata)
 
 void R_AliasSetupFrameMH(entity_t *ent)
 {
-	s32 frame = ent->frame;
-	if((frame >= pmdl->numframes) || (frame < 0)){
-		Con_DPrintf("R_AliasSetupFrame: no such frame %d", frame);
-		frame = 0;
-	}
+	s32 frame = ent->frame; // validated by R_AliasValidateFrame
 	maliasgroup_t *paliasgroup = (maliasgroup_t*)((u8*)paliashdr+
 			paliashdr->frames[frame].frame);
 	lerpdata_t lerpdata;
