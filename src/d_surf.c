@@ -2,9 +2,15 @@
 // d_surf.c: rasterization driver surface heap manager
 #include "quakedef.h"
 
-static f32 surfscale;                                           
+// A cache that gets recycled faster than this many frames rebuilds most
+// surfaces before they get a chance to be reused, so it grows
+#define SC_MINTURNOVER 30
+#define SC_MAXSIZE (256 * 1024 * 1024)
+
+static f32 surfscale;
 static u64 sc_size;
 static surfcache_t *sc_base;
+static s64 sc_wrapframe; // when the rover last went back to the start
 s32 D_SurfaceCacheForRes(s32 width, s32 height)
 {
 	s32 size;
@@ -35,6 +41,7 @@ void D_InitCaches(void *buffer, s32 size)
 	sc_base->next = NULL;
 	sc_base->owner = NULL;
 	sc_base->size = sc_size;
+	sc_wrapframe = r_framecount;
 	D_ClearCacheGuard();
 	d_pzbuffer_size = size;
 }
@@ -57,13 +64,20 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 	sc_base->next = NULL;
 	sc_base->owner = NULL;
 	sc_base->size = sc_size;
+	sc_wrapframe = r_framecount;
 }
 
 void D_AllocCaches() // allocate z buffer and surface cache
 { // CyanBun96: reallocs the cache if it's too small
 	s32 chunk = vid.width * vid.height * sizeof(*d_pzbuffer);
-	s32 cachesize = d_pzbuffer_size + 
-		D_SurfaceCacheForRes(vid.width, vid.height);
+	s32 cachesize = D_SurfaceCacheForRes(vid.width, vid.height);
+	if(d_pzbuffer_size){ // thrashing, double it
+		if(d_pzbuffer_size >= SC_MAXSIZE)
+			return;
+		cachesize = d_pzbuffer_size * 2;
+		if(cachesize > SC_MAXSIZE)
+			cachesize = SC_MAXSIZE;
+	}
 	chunk += cachesize;
 	D_FlushCaches(0);
 	d_pzbuffer = realloc(d_pzbuffer, chunk);
@@ -96,6 +110,9 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 			> sc_size - size){
 		if(sc_rover){
 			wrapped_this_time = 1;
+			if(r_framecount - sc_wrapframe < SC_MINTURNOVER)
+				r_cache_thrash = 1;
+			sc_wrapframe = r_framecount;
 		}
 		sc_rover = sc_base;
 	}
