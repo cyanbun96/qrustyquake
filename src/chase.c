@@ -16,12 +16,22 @@ void TraceLine(vec3_t start, vec3_t end, vec3_t impact)
 {
 	trace_t tr;
 	memset(&tr, 0, sizeof(tr));
+	VectorCopy(end, tr.endpos); // stays at end if nothing is hit
 	SV_RecursiveHullCheck(cl.worldmodel->hulls, 0, 0, 1, start, end, &tr);
 	VectorCopy(tr.endpos, impact);
 }
 
+static f32 Chase_Probe(vec3_t org, s32 axis, f32 dist)
+{ // how far org can move along axis (up to |dist|) before hitting a wall
+	vec3_t end, impact;
+	VectorCopy(org, end);
+	end[axis] += dist;
+	TraceLine(org, end, impact);
+	return fabsf(impact[axis] - org[axis]);
+}
+
 void Chase_Update()
-{ // TODO: stay at least 8 units away from all walls in this leaf
+{
 	vec3_t forward, up, right;
 	vec3_t ideal, crosshair, temp;
 	AngleVectors(cl.viewangles, forward, right, up);
@@ -32,8 +42,15 @@ void Chase_Update()
 			+ right[i]*chase_right.value;
 	ideal[2] = cl.viewent.origin[2] + chase_up.value;
 	// make sure camera is not in or behind a wall
-	TraceLine(r_refdef.vieworg, ideal, temp);
-	if(VectorLength(temp)) VectorCopy(temp, ideal);
+	TraceLine(r_refdef.vieworg, ideal, ideal);
+	// stay at least 8 units away from walls along each axis
+	for(s32 i = 0; i < 3; i++){
+		f32 lo = Chase_Probe(ideal, i, -8);
+		f32 hi = Chase_Probe(ideal, i, 8);
+		f32 shift = hi - lo; // never moves past the free space
+		if(lo < 8 && hi < 8) shift *= 0.5f; // too narrow, center
+		ideal[i] += shift;
+	}
 	// place camera
 	VectorCopy(ideal, r_refdef.vieworg);
 	// find the spot the player is looking at
