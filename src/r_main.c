@@ -860,15 +860,17 @@ static void R_DrawBmodelPolygons(model_t *clmodel, f32 *minmaxs, s32 clipflags)
 	R_SplitEntityOnNode2(cl.worldmodel->nodes);
 	if(!r_pefragtopnode)
 		return;
+	// the world traversal didn't get to it: it's off screen or hidden
+	if(r_pefragtopnode->keypass != r_worldpass)
+		return;
 	currententity->topnode = r_pefragtopnode;
 	if(r_pefragtopnode->contents >= 0){
 		// not a leaf; has to be clipped to the world BSP
 		r_clipflags = clipflags;
 		R_DrawSolidClippedSubmodelPolygons(clmodel);
-	}else if(((mleaf_t *)r_pefragtopnode)->keypass == r_worldpass){
+	}else{
 // falls entirely in one leaf, so we just put all the edges in the edge list and
-// let 1/z sorting handle drawing order. If the leaf has no key, the world
-// traversal didn't get to it: it's off screen or hidden.
+// let 1/z sorting handle drawing order
 		R_DrawSubmodelPolygons(clmodel, clipflags);
 	}
 	currententity->topnode = NULL;

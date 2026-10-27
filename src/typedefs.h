@@ -328,6 +328,7 @@ typedef struct {
 typedef struct mnode_s {
 	s32 contents; // common with leaf. 0, to differentiate from leafs
 	s32 visframe; // node needs to be traversed if current
+	s32 keypass; // r_worldpass when the world traversal went into it
 	f32 minmaxs[6]; // for bounding box culling
 	struct mnode_s *parent;
 	mplane_t *plane; // node specific
@@ -338,6 +339,7 @@ typedef struct mnode_s {
 typedef struct mleaf_s {
 	s32 contents; // common with node. Will be a negative contents number
 	s32 visframe; // node needs to be traversed if current
+	s32 keypass; // r_worldpass when key was assigned, else it is stale
 	f32 minmaxs[6]; // for bounding box culling
 	struct mnode_s *parent;
 	u8 *compressed_vis; // leaf specific
@@ -345,7 +347,6 @@ typedef struct mleaf_s {
 	msurface_t **firstmarksurface;
 	s32 nummarksurfaces;
 	s32 key; // BSP sequence number for leaf's contents
-	s32 keypass; // r_worldpass when key was assigned, else it is stale
 	u8 ambient_sound_level[NUM_AMBIENTS];
 } mleaf_t;
 typedef struct mclipnode_s { //johnfitz -- for clipnodes>32k

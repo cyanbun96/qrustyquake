@@ -146,14 +146,13 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		// draw if we reached a non-solid leaf, done if all that's left
 		// is a solid leaf and continue down the tree if it's not a leaf
 		mnode_t *pn = pnode->children[i];
-		// done with this branch if the node or leaf isn't in the PVS
-		if(pn->visframe != r_visframecount)
+		// done with this branch if the world traversal didn't get to
+		// the node or leaf this pass: it's not in the PVS, off screen
+		// or hidden
+		if(pn->keypass != r_worldpass)
 			continue;
 		if(pn->contents < 0){
-			// no key this pass: the world traversal didn't get to
-			// the leaf, it's off screen or hidden
-			if(pn->contents != CONTENTS_SOLID &&
-				((mleaf_t *)pn)->keypass == r_worldpass){
+			if(pn->contents != CONTENTS_SOLID){
 				r_currentbkey = ((mleaf_t *) pn)->key;
 				R_RenderBmodelFace(psideedges[i], psurf);
 			}
@@ -268,6 +267,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 		r_nodes_occluded++;
 		return;
 	}
+	node->keypass = r_worldpass;
 	if(node->contents < 0){ // if a leaf node, draw stuff
 		mleaf_t *pleaf = (mleaf_t *) node;
 		msurface_t **mark = pleaf->firstmarksurface;
@@ -281,7 +281,6 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 		if(pleaf->efrags) // deal with model fragments in this leaf
 			R_StoreEfrags(&pleaf->efrags);
 		pleaf->key = r_currentkey;
-		pleaf->keypass = r_worldpass;
 		r_currentkey++; // all bmodels in a leaf share the same key
 	}else{
 		// node is just a decision point so go down the apropriate sides
