@@ -94,7 +94,83 @@ void R_BeginEdgeFrame()
 	}
 	memset(newedges + r_refdef.vrect.y, 0, (r_refdef.vrectbottom - 
 				r_refdef.vrect.y) * sizeof(*newedges));
-	memset(last_pcheck, 0, sizeof(edge_t*)*scr_vrect.height);
+}
+
+// R_EmitEdge just pushes the new edges of a row onto newedges[v]. This puts
+// them in the order that inserting them one by one into a list sorted on u
+// gives (each one before the first with u >= its own, plus one for trailing
+// edges): on u, then leading edges before trailing ones, the leading ones
+// newest first and the trailing ones oldest first. Every edge gets one key
+// that sorts that way, with its index in r_edges in the low bits.
+#define NE_IDXBITS 29 // u takes 34 bits at MAXWIDTH 15360
+#define NE_IDXMASK (((u64)1 << NE_IDXBITS) - 1)
+static u64 *ne_keys; // ne_cap keys, then ne_cap more for merging
+static s64 ne_cap;
+
+static void R_SortKeys(u64 *a, u64 *tmp, s64 n)
+{
+	const s64 run = 16;
+	for(s64 r0 = 0; r0 < n; r0 += run){ // insertion sort short runs
+		s64 r1 = r0 + run < n ? r0 + run : n;
+		for(s64 i = r0 + 1; i < r1; i++){
+			u64 k = a[i];
+			s64 j = i;
+			for(; j > r0 && a[j - 1] > k; j--)
+				a[j] = a[j - 1];
+			a[j] = k;
+		}
+	}
+	u64 *src = a, *dst = tmp;
+	for(s64 w = run; w < n; w *= 2){ // then merge them
+		for(s64 l = 0; l < n; l += 2 * w){
+			s64 m = l + w < n ? l + w : n;
+			s64 r = l + 2 * w < n ? l + 2 * w : n;
+			s64 i = l, j = m, o = l;
+			while(i < m && j < r)
+				dst[o++] = src[i] < src[j] ?
+					src[i++] : src[j++];
+			while(i < m) dst[o++] = src[i++];
+			while(j < r) dst[o++] = src[j++];
+		}
+		u64 *t = src; src = dst; dst = t;
+	}
+	if(src != a)
+		memcpy(a, src, n * sizeof(*a));
+}
+
+static edge_t *R_SortNewEdges(edge_t *list)
+{
+	if(!list->next)
+		return list;
+	s64 n = 0;
+	for(edge_t *e = list; e; e = e->next){
+		if(n == ne_cap){
+			s64 cap = ne_cap ? ne_cap * 2 : 1024;
+			u64 *k = malloc(2 * cap * sizeof(*k));
+			if(!k)
+				Sys_Error("R_SortNewEdges: out of memory");
+			memcpy(k, ne_keys, n * sizeof(*k));
+			free(ne_keys);
+			ne_keys = k;
+			ne_cap = cap;
+		}
+		u64 idx = (u64)(e - r_edges);
+		u64 trail = e->surfs[0] != 0;
+		ne_keys[n++] = (u64)e->u << (NE_IDXBITS + 1) |
+			trail << NE_IDXBITS |
+			(trail ? idx : NE_IDXMASK - idx);
+	}
+	R_SortKeys(ne_keys, ne_keys + ne_cap, n);
+	edge_t *head = NULL, **link = &head;
+	for(s64 i = 0; i < n; i++){
+		u64 low = ne_keys[i] & NE_IDXMASK;
+		bool trail = (ne_keys[i] >> NE_IDXBITS) & 1;
+		edge_t *e = r_edges + (trail ? low : NE_IDXMASK - low);
+		*link = e;
+		link = &e->next;
+	}
+	*link = NULL;
+	return head;
 }
 
 // Adds the edges in the linked list edgestoadd, adding them to the edges in the
@@ -512,7 +588,8 @@ void R_ScanEdges()
 		// mark that the head(background start) span is pre-included
 		surfaces[1].spanstate = 1;
 		if(newedges[iv])
-			R_InsertNewEdges(newedges[iv], edge_head.next);
+			R_InsertNewEdges(R_SortNewEdges(newedges[iv]),
+					edge_head.next);
 		(*pdrawfunc)(1); // also steps/removes the edges
 		// flush the span list if we can't be sure we have enough spans
 		// left for the next scan
@@ -525,7 +602,7 @@ void R_ScanEdges()
 	// mark that the head(background start) span is pre-included
 	surfaces[1].spanstate = 1;
 	if(newedges[iv])
-		R_InsertNewEdges(newedges[iv], edge_head.next);
+		R_InsertNewEdges(R_SortNewEdges(newedges[iv]), edge_head.next);
 	(*pdrawfunc)(0);
 	if(r_drawflat.value) D_DrawSurfacesFlat();
 	else if(!r_alphapass) D_DrawSurfaces();

@@ -843,33 +843,9 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 		edge->u = r_refdef.vrect_x_adj_shift20;
 	if(edge->u > r_refdef.vrectright_adj_shift20)
 		edge->u = r_refdef.vrectright_adj_shift20;
-	s64 u_check = edge->u; // sort the edge in normally
-	if(edge->surfs[0])
-		u_check++; // sort trailers after leaders
-	// CyanBun96: denser maps like mg1 start begin to chug on the linear
-	// edge list traversal as it gets longer. Remembering the last insert
-	// point and checking if it fits helps a lot in the best case, and hurts
-	// very little in the worst(where performance improvements aren't
-	// needed anyway).
-	edge_t *pcheck = last_pcheck[v];
-	if(!newedges[v] || newedges[v]->u >= u_check){ // Insert at the head
-		edge->next = newedges[v];
-		newedges[v] = edge;
-		last_pcheck[v] = newedges[v]; // cache new head
-	}else if(pcheck && pcheck->u < u_check){ // Use cached position
-		while(pcheck->next && pcheck->next->u < u_check)
-			pcheck = pcheck->next;
-		edge->next = pcheck->next;
-		pcheck->next = edge;
-		last_pcheck[v] = edge; // cache last inserted edge
-	}else{ // Fallback to normal head traversal
-		pcheck = newedges[v];
-		while(pcheck->next && pcheck->next->u < u_check)
-			pcheck = pcheck->next;
-		edge->next = pcheck->next;
-		pcheck->next = edge;
-		last_pcheck[v] = edge;
-	}
+	// R_ScanEdges sorts each row once it gets to it
+	edge->next = newedges[v];
+	newedges[v] = edge;
 	edge->vlast = (s32)v2;
 }
 

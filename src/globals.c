@@ -180,7 +180,6 @@ s32 c_faceclip; // number of faces clipped                           // r_draw.c
 clipplane_t view_clipplanes[4];
 s32 sintable[SIN_BUFFER_SIZE];
 s32 intsintable[SIN_BUFFER_SIZE];
-edge_t *last_pcheck[MAXHEIGHT]; // indexed by scanline v
 edge_t *ledges;                                                      // r_edge.c
 surf_t *lsurfs;
 s32 r_ledges_size = 0;
