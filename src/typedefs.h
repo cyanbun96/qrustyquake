@@ -335,6 +335,7 @@ typedef struct mnode_s {
 	struct mnode_s *children[2];
 	u32 firstsurface;
 	u32 numsurfaces;
+	f32 facebounds[6]; // of the faces on it and below, brush models only
 } mnode_t;
 typedef struct mleaf_s {
 	s32 contents; // common with node. Will be a negative contents number
@@ -465,6 +466,7 @@ typedef struct model_s {
 	bool clipbox; // solid volume for clipping
 	vec3_t clipmins, clipmaxs;
 	s32 firstmodelsurface, nummodelsurfaces; // brush model
+	bool facetree; // each face is on exactly one of its nodes, see model.c
 	s32 numsubmodels;
 	dmodel_t *submodels;
 	s32 numplanes;

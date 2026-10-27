@@ -1276,6 +1276,70 @@ static void Mod_SetParent(mnode_t *node, mnode_t *parent)
 	Mod_SetParent(node->children[1], node);
 }
 
+// Sets the facebounds of node and of the nodes below it. Fails if a face on
+// them isn't one of the model's own or is on more than one node.
+static bool Mod_FaceTreeBounds(model_t *mod, mnode_t *node, u8 *seen)
+{
+	for(s32 k = 0; k < 3; k++){
+		node->facebounds[k] = FLT_MAX;
+		node->facebounds[3 + k] = -FLT_MAX;
+	}
+	for(u32 i = 0; i < node->numsurfaces; i++){
+		s32 f = (s32)(node->firstsurface + i) - mod->firstmodelsurface;
+		if(f < 0 || f >= mod->nummodelsurfaces || seen[f])
+			return false;
+		seen[f] = 1;
+		msurface_t *surf = &mod->surfaces[node->firstsurface + i];
+		for(s32 j = 0; j < surf->numedges; j++){
+			s32 e = mod->surfedges[surf->firstedge + j];
+			medge_t *edge = &mod->edges[e > 0 ? e : -e];
+			s32 vi = edge->v[e > 0 ? 0 : 1];
+			f32 *v = mod->vertexes[vi].position;
+			for(s32 k = 0; k < 3; k++){
+				if(v[k] < node->facebounds[k])
+					node->facebounds[k] = v[k];
+				if(v[k] > node->facebounds[3 + k])
+					node->facebounds[3 + k] = v[k];
+			}
+		}
+	}
+	for(s32 c = 0; c < 2; c++){
+		mnode_t *child = node->children[c];
+		if(child->contents < 0)
+			continue;
+		if(!Mod_FaceTreeBounds(mod, child, seen))
+			return false;
+		for(s32 k = 0; k < 3; k++){
+			if(child->facebounds[k] < node->facebounds[k])
+				node->facebounds[k] = child->facebounds[k];
+			if(child->facebounds[3+k] > node->facebounds[3+k])
+				node->facebounds[3+k] = child->facebounds[3+k];
+		}
+	}
+	return true;
+}
+
+// Brush entities can find their faces through their own BSP tree instead of
+// going through all of them, and skip the parts of it that are off screen or
+// hidden. The compilers put every face on one node of the model's tree.
+static void Mod_SetupFaceTree(model_t *mod)
+{
+	mod->facetree = 0;
+	s32 head = mod->hulls[0].firstclipnode;
+	if(head < 0 || head >= mod->numnodes || mod->nummodelsurfaces <= 0)
+		return;
+	u8 *seen = calloc(mod->nummodelsurfaces, 1);
+	if(!seen)
+		return;
+	if(Mod_FaceTreeBounds(mod, mod->nodes + head, seen)){
+		s32 i = 0;
+		while(i < mod->nummodelsurfaces && seen[i])
+			i++;
+		mod->facetree = i == mod->nummodelsurfaces;
+	}
+	free(seen);
+}
+
 static void Mod_LoadNodes_S(lump_t *l)
 {
 	dnode_t *in = (dnode_t *)(mod_base + l->fileofs);
@@ -1912,6 +1976,7 @@ visdone:
 		}
 		mod->firstmodelsurface = bm->firstface;
 		mod->nummodelsurfaces = bm->numfaces;
+		Mod_SetupFaceTree(mod);
 		VectorCopy(bm->maxs, mod->maxs);
 		VectorCopy(bm->mins, mod->mins);
 		//johnfitz -- calculate rotate bounds and yaw bounds

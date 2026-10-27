@@ -167,78 +167,136 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	}
 }
 
+static mvertex_t r_bmodel_bverts[MAX_BMODEL_VERTS];
+static bedge_t r_bmodel_bedges[MAX_BMODEL_EDGES];
+
+static bool R_BmodelFaceFront(msurface_t *psurf)
+{
+	mplane_t *pplane = psurf->plane; // find which node side we are on
+	vec_t dot = DotProduct(modelorg, pplane->normal) - pplane->dist;
+	return ((psurf->flags&SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
+		(!(psurf->flags&SURF_PLANEBACK) && (dot > BACKFACE_EPSILON));
+}
+
+static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
+		SDL_UNUSED s32 clipflags)
+{
+	if(!R_BmodelFaceFront(psurf))
+		return;
+	// would be thrown away after clipping it against the BSP anyway
+	if(!R_SurfaceInPass(psurf))
+		return;
+	// hidden behind world faces: no need to clip it against the BSP
+	if(r_bmodel_occ_faces && R_CoarseOcclusionTestBmodelFace(psurf)){
+		r_bmodel_faces_occluded++;
+		return;
+	}
+	pbverts = r_bmodel_bverts;
+	pbedges = r_bmodel_bedges;
+	numbverts = numbedges = 0;
+	if(psurf->numedges <= 0)
+		Sys_Error("no edges in bmodel");
+	bedge_t *pbedge = &pbedges[numbedges];
+	numbedges += psurf->numedges;
+	medge_t *pedges = pmodel->edges;
+	s32 j = 0;
+	for(; j < psurf->numedges; j++){
+		s32 lindex = pmodel->surfedges[psurf->firstedge + j];
+		if(lindex > 0){
+			medge_t *pedge = &pedges[lindex];
+			pbedge[j].v[0]=&r_pcurrentvertbase[pedge->v[0]];
+			pbedge[j].v[1]=&r_pcurrentvertbase[pedge->v[1]];
+		}else{
+			lindex = -lindex;
+			medge_t *pedge = &pedges[lindex];
+			pbedge[j].v[0]=&r_pcurrentvertbase[pedge->v[1]];
+			pbedge[j].v[1]=&r_pcurrentvertbase[pedge->v[0]];
+		}
+		pbedge[j].pnext = &pbedge[j + 1];
+	}
+	pbedge[j - 1].pnext = NULL; // mark end of edges
+	R_RecursiveClipBPoly(pbedge, currententity->topnode, psurf);
+}
+
+static void R_UnclippedBmodelFace(SDL_UNUSED model_t *pmodel,
+		msurface_t *psurf, s32 clipflags)
+{
+	if(!R_BmodelFaceFront(psurf))
+		return;
+	r_currentkey = ((mleaf_t *) currententity->topnode)->key;
+	if(r_bmodel_occ_faces && R_CoarseOcclusionTestBmodelFace(psurf)){
+		r_bmodel_faces_occluded++;
+		return;
+	}
+	R_RenderFace(psurf, clipflags);
+}
+
+typedef void (*bmodelface_f)(model_t *pmodel, msurface_t *psurf,
+		s32 clipflags);
+
+// Goes through the faces on the brush model's own BSP tree, skipping the nodes
+// whose faces are all off screen or, if the entity isn't rotated, hidden
+// behind world faces. The clip planes are in the entity's space, like the
+// facebounds.
+static void R_BmodelFaceNode(model_t *pmodel, mnode_t *node, s32 clipflags,
+		bool occlusion, bmodelface_f face)
+{
+	const f32 *b = node->facebounds;
+	for(s32 i = 0; i < 4; i++){
+		if(!(clipflags & (1 << i)))
+			continue;
+		f32 *n = view_clipplanes[i].normal;
+		f32 d = -view_clipplanes[i].dist;
+		for(s32 k = 0; k < 3; k++)
+			d += n[k] * (n[k] < 0 ? b[k] : b[3 + k]);
+		if(d <= 0)
+			return; // all on the outside of this plane
+	}
+	if(occlusion){
+		vec3_t mn, mx;
+		for(s32 k = 0; k < 3; k++){
+			mn[k] = b[k] + currententity->origin[k];
+			mx[k] = b[3 + k] + currententity->origin[k];
+		}
+		if(R_CoarseOcclusionTestBox(mn, mx))
+			return;
+	}
+	msurface_t *psurf = pmodel->surfaces + node->firstsurface;
+	for(u32 i = 0; i < node->numsurfaces; i++, psurf++)
+		face(pmodel, psurf, clipflags);
+	for(s32 c = 0; c < 2; c++)
+		if(node->children[c]->contents >= 0)
+			R_BmodelFaceNode(pmodel, node->children[c], clipflags,
+					occlusion, face);
+}
+
+static void R_BmodelFaces(model_t *pmodel, s32 clipflags, bmodelface_f face)
+{
+	if(pmodel->facetree){
+		bool occlusion = r_bmodel_occ_faces &&
+			!currententity->angles[0] &&
+			!currententity->angles[1] && !currententity->angles[2];
+		R_BmodelFaceNode(pmodel, pmodel->nodes +
+				pmodel->hulls[0].firstclipnode, clipflags,
+				occlusion, face);
+		return;
+	}
+	msurface_t *psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
+	for(s32 i = 0; i < pmodel->nummodelsurfaces; i++, psurf++)
+		face(pmodel, psurf, clipflags);
+}
+
 void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel)
 {
-	mvertex_t bverts[MAX_BMODEL_VERTS];
-	bedge_t bedges[MAX_BMODEL_EDGES], *pbedge;
 	msurface_t *psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
-	if((psurf->flags&SURF_DRAWSKY) && 
-	    (psurf->texinfo->texture->width/psurf->texinfo->texture->height!=2))
+	texture_t *tex = psurf->texinfo->texture;
+	if((psurf->flags&SURF_DRAWSKY) && (tex->width/tex->height != 2))
 		return; // avoid drawing broken skies
-	s32 numsurfaces = pmodel->nummodelsurfaces;
-	medge_t *pedges = pmodel->edges;
-	for(s32 i = 0; i < numsurfaces; i++, psurf++){
-		mplane_t *pplane = psurf->plane;//find which node side we are on
-		vec_t dot = DotProduct(modelorg, pplane->normal) - pplane->dist;
-		// draw the polygon
-		if(!(((psurf->flags&SURF_PLANEBACK)&&(dot<-BACKFACE_EPSILON))|| 
-		     (!(psurf->flags&SURF_PLANEBACK)&&(dot>BACKFACE_EPSILON))))
-			continue;
-		// would be thrown away after clipping it against the BSP anyway
-		if(!R_SurfaceInPass(psurf))
-			continue;
-		// hidden behind world faces: no need to clip it against the BSP
-		if(r_bmodel_occ_faces&&R_CoarseOcclusionTestBmodelFace(psurf)){
-			r_bmodel_faces_occluded++;
-			continue;
-		}
-		pbverts = bverts;
-		pbedges = bedges;
-		numbverts = numbedges = 0;
-		if(psurf->numedges <= 0)
-			Sys_Error("no edges in bmodel");
-		pbedge = &bedges[numbedges];
-		numbedges += psurf->numedges;
-		s32 j = 0;
-		for(; j < psurf->numedges; j++){
-			s32 lindex = pmodel->surfedges[psurf->firstedge + j];
-			if(lindex > 0){
-				medge_t *pedge = &pedges[lindex];
-				pbedge[j].v[0]=&r_pcurrentvertbase[pedge->v[0]];
-				pbedge[j].v[1]=&r_pcurrentvertbase[pedge->v[1]];
-			}else{
-				lindex = -lindex;
-				medge_t *pedge = &pedges[lindex];
-				pbedge[j].v[0]=&r_pcurrentvertbase[pedge->v[1]];
-				pbedge[j].v[1]=&r_pcurrentvertbase[pedge->v[0]];
-			}
-			pbedge[j].pnext = &pbedge[j + 1];
-		}
-		pbedge[j - 1].pnext = NULL; // mark end of edges
-		R_RecursiveClipBPoly(pbedge, currententity->topnode, psurf);
-	}
+	R_BmodelFaces(pmodel, r_clipflags, R_ClipBmodelFace);
 }
 
 void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags)
-{
-	msurface_t *psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
-	s32 numsurfaces = pmodel->nummodelsurfaces;
-	for(s32 i = 0; i < numsurfaces; i++, psurf++){
-		// find which side of the node we are on
-		mplane_t *pplane = psurf->plane;
-		vec_t dot = DotProduct(modelorg, pplane->normal) - pplane->dist;
-		// draw the polygon
-		if(!(((psurf->flags&SURF_PLANEBACK)&&(dot<-BACKFACE_EPSILON))||
-		     (!(psurf->flags&SURF_PLANEBACK)&&(dot>BACKFACE_EPSILON))))
-			continue;
-		r_currentkey = ((mleaf_t *) currententity->topnode)->key;
-		if(r_bmodel_occ_faces&&R_CoarseOcclusionTestBmodelFace(psurf)){
-			r_bmodel_faces_occluded++;
-			continue;
-		}
-		R_RenderFace(psurf, clipflags);
-	}
-}
+{ R_BmodelFaces(pmodel, clipflags, R_UnclippedBmodelFace); }
 
 void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 {
