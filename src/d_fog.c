@@ -6,8 +6,10 @@
 static f32 fog_red; // CyanBun96: we store the actual RGB values in these,
 static f32 fog_green; // but they get quantized to a single index in the color
 static f32 fog_blue; // palette before use, stored in fog_pal_index
-static f32 *randarr = 0;
+static s32 *randarr = 0; // the bias is only ever used as a whole number
 static f32 *fog_factor_lut = 0;
+static f32 *fog_mix_lut = 0; // fog_factor_lut * r_fogfactor, for mix styles
+static f32 old_r_fogfactor = -1234;
 static f32 old_r_fogscale = -1234;
 static f32 old_fog_density = -1234;
 static f32 old_noisebias = -1234;
@@ -133,10 +135,10 @@ u32 lfsr_random(){lfsr^=lfsr>>7; lfsr^=lfsr<<9; lfsr^=lfsr>>13; return lfsr;}
 
 void R_InitFog(f32 noisebias)
 {
-	if(!randarr)randarr = malloc(RANDARR_SIZE*sizeof(f32));
+	if(!randarr)randarr = malloc(RANDARR_SIZE*sizeof(s32));
 	for(s32 i = 0; i < RANDARR_SIZE; ++i){ // fog bias array
-		randarr[i] = (lfsr_random() & 0xFFFF) / 65535.0f; // == [0,1]
-		randarr[i] *= noisebias;
+		f32 r = (lfsr_random() & 0xFFFF) / 65535.0f; // == [0,1]
+		randarr[i] = r * noisebias;
 	}
 	old_noisebias = noisebias;
 	if(!fog_lut_built) R_BuildColorMixLUT(0);
@@ -148,6 +150,8 @@ void R_InitFogLUT()
 {
 	if(!fog_factor_lut)
 		fog_factor_lut = malloc(FOG_FACTOR_LUT_SIZE*sizeof(f32));
+	if(!fog_mix_lut)
+		fog_mix_lut = malloc(FOG_FACTOR_LUT_SIZE*sizeof(f32));
 	f32 fog_scale = 32.0f * r_fogscale.value;
 	f32 fog_scale_inv = 1.0f / fog_scale;
 	f32 fd_sq = (1.0f - fog_density) * (1.0f - fog_density);
@@ -156,7 +160,15 @@ void R_InitFogLUT()
 		s32 z_clamped = (z < fog_scale) ? fog_scale : z;
 		f32 z_norm = z_clamped * fog_scale_inv;
 		fog_factor_lut[i] = expf(-fd_sq * (z_norm * z_norm));
+		// the tail of expf goes through denormals, which are very slow
+		// to multiply, and is far below anything visible anyway
+		if(fog_factor_lut[i] < 1e-6f)
+			fog_factor_lut[i] = 0;
+		fog_mix_lut[i] = fog_factor_lut[i] * r_fogfactor.value;
+		if(fog_mix_lut[i] < 1e-6f)
+			fog_mix_lut[i] = 0;
 	}
+	old_r_fogfactor = r_fogfactor.value;
 	old_r_fogscale = r_fogscale.value;
 	old_fog_density = fog_density;
 }
@@ -171,12 +183,31 @@ static inline f32 compute_fog_lut(s32 z)
 	return fog_factor_lut[idx];
 }
 
+static void R_FogMix(u8 *pdest, const s16 *zb, s32 area, const f32 *zadj)
+{
+	const s32 *bias = randarr;
+	const f32 *lut = fog_mix_lut;
+	const u8 *mix = &color_mix_lut[0][fog_pal_index][0];
+	const s32 stride = sizeof(color_mix_lut[0]);
+	for(s32 i = 0; i < area; ++i){
+		s32 z = zb[i] + bias[(area - i) & (RANDARR_SIZE - 1)] + 32768;
+		if(z < 0) z = 0;
+		if(z > 65535) z = 65535;
+		f32 ffactor = lut[z / FOG_FACTOR_LUT_DOWNSAMPLE];
+		if(zadj)
+			ffactor *= zadj[i];
+		s32 lut_idx = (s32)(ffactor * FOG_LUT_LEVELS);
+		pdest[i] = mix[pdest[i] * stride + lut_idx];
+	}
+}
+
 void R_DrawFog()
 {
 	if(!fog_density || r_nofog.value) return;
 	f32 noisebias = 10 * r_fognoise.value;
 	if(!fog_initialized || old_noisebias!=noisebias)R_InitFog(noisebias);
-	if(old_r_fogscale!=r_fogscale.value||old_fog_density!=fog_density)
+	if(old_r_fogscale!=r_fogscale.value || old_fog_density!=fog_density
+			|| old_r_fogfactor != r_fogfactor.value)
 		R_InitFogLUT();
 	if(r_fogdepthcorrection.value) R_InitDepthCorrection();
 	sb_updates = 0; // draw sbar over fog
@@ -209,14 +240,8 @@ void R_DrawFog()
 			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
 		} break;
 	default: case 3: // mix
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-							*r_fogfactor.value;
-			u8 pix = pdest[i];
-			s32 lut_idx = (s32)(ffactor * FOG_LUT_LEVELS);
-			pdest[i] = color_mix_lut[pix][fog_pal_index][lut_idx];
-		} break;
+		R_FogMix(pdest, d_pzbuffer, area, NULL);
+		break;
 	case 10: // depth-corrected, noisy
 		for(s32 i = 0; i < area; ++i){
 			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
@@ -242,13 +267,7 @@ void R_DrawFog()
 			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
 		} break;
 	case 13: // depth-corrected, mix
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-						*r_fogfactor.value*zadjarr[i];
-			u8 pix = pdest[i];
-			s32 lut_idx = (s32)(ffactor * FOG_LUT_LEVELS);
-			pdest[i] = color_mix_lut[pix][fog_pal_index][lut_idx];
-		} break;
+		R_FogMix(pdest, d_pzbuffer, area, zadjarr);
+		break;
 	}
 }
