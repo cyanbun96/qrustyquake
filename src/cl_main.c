@@ -146,7 +146,7 @@ void CL_NextDemo()
 	if(!cls.demos[cls.demonum][0] || cls.demonum == MAX_DEMOS){
 		cls.demonum = 0;
 		if(!cls.demos[cls.demonum][0]){
-			Con_Printf("No demos listed with startdemos\n");
+			Host_Error("No demos listed with startdemos\n");
 			cls.demonum = -1;
 			return;
 		}
