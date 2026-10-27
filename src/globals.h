@@ -520,6 +520,7 @@ void R_ClearParticles();
 void R_ReadPointFile_f();
 void R_AliasClipTriangle(mtriangle_t *ptri);
 void R_RenderWorld();
+void R_RecordAlphaFace(msurface_t *surf, s32 clipflags);
 void R_StoreEfrags(efrag_t **ppefrag);
 void R_TimeRefresh_f();
 void R_AnimateLight();

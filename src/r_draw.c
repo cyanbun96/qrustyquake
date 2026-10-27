@@ -974,8 +974,13 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	if((fa->flags & SURF_DRAWSKY) && skybox_name[0])
 		r_skyframe[0] = r_framecount;
 	// Manoel Kasimier - skyboxes - end
-	if(!R_SurfaceInPass(fa))
+	if(!R_SurfaceInPass(fa)){
+		if(!r_alphapass && winquake_surface_liquid_alpha > 0 &&
+				currententity == &cl_entities[0] &&
+				!insubmodel)
+			R_RecordAlphaFace(fa, clipflags);
 		return;
+	}
 	if((surface_p) >= surf_max){ // skip out if no more surfs
 		r_outofsurfaces++;
 		return;

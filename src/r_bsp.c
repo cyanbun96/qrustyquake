@@ -12,6 +12,11 @@ static mvertex_t *pfrontenter, *pfrontexit;
 static bool makeclippededge;
 static f32 entity_rotation[3][3];
 static btofpoly_t *pbtofpolys;
+// The world faces the main pass left for the alpha pass, in BSP order
+typedef struct { msurface_t *surf; s32 key, clipflags; } alphaface_t;
+static alphaface_t *r_alphafaces;
+static s32 r_numalphafaces, r_maxalphafaces;
+static bool r_alphafaces_lost; // ran out of memory, traverse instead
 
 void R_EntityRotate(vec3_t vec)
 {
@@ -328,6 +333,26 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 	}
 }
 
+// Called by R_RenderFace in the main pass for world faces that belong in the
+// alpha pass. Each gets a key of its own, to be drawn with later.
+void R_RecordAlphaFace(msurface_t *surf, s32 clipflags)
+{
+	if(r_numalphafaces == r_maxalphafaces){
+		s32 n = r_maxalphafaces ? r_maxalphafaces * 2 : 1024;
+		alphaface_t *p = realloc(r_alphafaces, n * sizeof(*p));
+		if(!p){
+			r_alphafaces_lost = 1;
+			return;
+		}
+		r_alphafaces = p;
+		r_maxalphafaces = n;
+	}
+	alphaface_t *f = &r_alphafaces[r_numalphafaces++];
+	f->surf = surf;
+	f->key = r_currentkey++;
+	f->clipflags = clipflags;
+}
+
 void R_RenderWorld()
 {
 	btofpoly_t btofpolys[MAX_BTOFPOLYS];
@@ -336,8 +361,24 @@ void R_RenderWorld()
 	VectorCopy(r_origin, modelorg);
 	model_t *clmodel = currententity->model;
 	r_pcurrentvertbase = clmodel->vertexes;
-	r_worldpass++;
-	R_RecursiveWorldNode(clmodel->nodes, 15);
+	if(r_alphapass && !r_alphafaces_lost){
+		// Walking the tree again would only find the faces the main
+		// pass recorded. The node and leaf keys it left stay valid for
+		// the brush entities: whatever it skipped is hidden behind
+		// opaque world faces.
+		s32 endkey = r_currentkey;
+		for(s32 i = 0; i < r_numalphafaces; i++){
+			r_currentkey = r_alphafaces[i].key;
+			R_RenderFace(r_alphafaces[i].surf,
+					r_alphafaces[i].clipflags);
+		}
+		r_currentkey = endkey;
+	}else{
+		r_numalphafaces = 0;
+		r_alphafaces_lost = 0;
+		r_worldpass++;
+		R_RecursiveWorldNode(clmodel->nodes, 15);
+	}
 	if(r_skyframe[0] == r_framecount)
 		R_EmitSkyBox();
 }
