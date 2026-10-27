@@ -1,21 +1,14 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-typedef struct btofpoly_s {
-	s32 clipflags;
-	msurface_t *psurf;
-} btofpoly_t;
 static mvertex_t *pbverts;
 static bedge_t *pbedges;
 static s32 numbverts, numbedges;
-static mvertex_t *pfrontenter, *pfrontexit;
-static bool makeclippededge;
 static f32 entity_rotation[3][3];
-static btofpoly_t *pbtofpolys;
 // The world faces the main pass left for the alpha pass, in BSP order
 typedef struct { msurface_t *surf; s32 key, clipflags; } alphaface_t;
 static alphaface_t *r_alphafaces;
-static s32 r_numalphafaces, r_maxalphafaces;
+static s32 r_numalphafaces;
 static bool r_alphafaces_lost; // ran out of memory, traverse instead
 
 void R_EntityRotate(vec3_t vec)
@@ -64,6 +57,7 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 {
 	bedge_t *psideedges[2], *pnextedge, *ptedge;
 	psideedges[0] = psideedges[1] = NULL;
+	static bool makeclippededge;
 	makeclippededge = 0;
 	// transform the BSP plane into model space
 	mplane_t *splitplane = pnode->plane;
@@ -72,6 +66,7 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	tplane.normal[0] = DotProduct(entity_rotation[0], splitplane->normal);
 	tplane.normal[1] = DotProduct(entity_rotation[1], splitplane->normal);
 	tplane.normal[2] = DotProduct(entity_rotation[2], splitplane->normal);
+	static mvertex_t *pfrontenter, *pfrontexit;
 	for(; pedges; pedges = pnextedge){ // clip edges to BSP plane
 		pnextedge = pedges->pnext;
 		// set the status for the last point as the previous point
@@ -167,9 +162,6 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	}
 }
 
-static mvertex_t r_bmodel_bverts[MAX_BMODEL_VERTS];
-static bedge_t r_bmodel_bedges[MAX_BMODEL_EDGES];
-
 static bool R_BmodelFaceFront(msurface_t *psurf)
 {
 	mplane_t *pplane = psurf->plane; // find which node side we are on
@@ -191,7 +183,9 @@ static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 		r_bmodel_faces_occluded++;
 		return;
 	}
+	static mvertex_t r_bmodel_bverts[MAX_BMODEL_VERTS];
 	pbverts = r_bmodel_bverts;
+	static bedge_t r_bmodel_bedges[MAX_BMODEL_EDGES];
 	pbedges = r_bmodel_bedges;
 	numbverts = numbedges = 0;
 	if(psurf->numedges <= 0)
@@ -395,6 +389,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 // alpha pass. Each gets a key of its own, to be drawn with later.
 void R_RecordAlphaFace(msurface_t *surf, s32 clipflags)
 {
+	static s32 r_maxalphafaces;
 	if(r_numalphafaces == r_maxalphafaces){
 		s32 n = r_maxalphafaces ? r_maxalphafaces * 2 : 1024;
 		alphaface_t *p = realloc(r_alphafaces, n * sizeof(*p));
@@ -413,8 +408,6 @@ void R_RecordAlphaFace(msurface_t *surf, s32 clipflags)
 
 void R_RenderWorld()
 {
-	btofpoly_t btofpolys[MAX_BTOFPOLYS];
-	pbtofpolys = btofpolys;
 	currententity = &cl_entities[0];
 	VectorCopy(r_origin, modelorg);
 	model_t *clmodel = currententity->model;

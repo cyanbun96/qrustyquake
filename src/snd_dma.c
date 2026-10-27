@@ -14,11 +14,8 @@ static void S_Update_();
 static void S_StopAllSoundsC();
 static s32 snd_blocked = 0;
 static bool snd_initialized = 0;
-static dma_t sn;
 static vec3_t listener_origin;
-static vec3_t listener_forward;
 static vec3_t listener_right;
-static vec3_t listener_up;
 static sfx_t *known_sfx = NULL; // hunk allocated [MAX_SFX]
 static s32 num_sfx;
 static sfx_t *ambient_sfx[NUM_AMBIENTS];
@@ -53,6 +50,7 @@ static void SND_Callback_snd_filterquality(SDL_UNUSED cvar_t *cvar)
 void S_Startup()
 {
 	if(!snd_initialized) return;
+	static dma_t sn;
 	sound_started = SNDDMA_Init(&sn);
 	if(!sound_started) Con_Printf("Failed initializing sound\n");
 	else Con_Printf("Audio: %d bit, %s, %d Hz\n", shm->samplebits,
@@ -325,8 +323,10 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 	s32 i, j;
 	if(!sound_started || (snd_blocked > 0)) return;
 	VectorCopy(origin, listener_origin);
+	static vec3_t listener_forward;
 	VectorCopy(forward, listener_forward);
 	VectorCopy(right, listener_right);
+	static vec3_t listener_up;
 	VectorCopy(up, listener_up);
 	S_UpdateAmbientSounds(); // update general area ambient sound sources
 	channel_t *combine = NULL;

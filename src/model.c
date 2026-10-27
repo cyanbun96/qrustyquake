@@ -167,13 +167,8 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer);
 static void Mod_LoadAliasModel(model_t *mod, void *buffer);
 static model_t *Mod_LoadModel(model_t *mod, bool crash);
 static void Mod_Print();
-static u8 *mod_novis;
-static s32 mod_novis_capacity;
-static u8 *mod_decompressed;
-static s32 mod_decompressed_capacity;
 static model_t mod_known[MAX_MOD_KNOWN];
 static s32 mod_numknown;
-static texture_t *r_notexture_mip2; //non-lightmapped surfs without a texture
 
 u8 *Mod_NoVisPVS(model_t *model);
 
@@ -185,6 +180,8 @@ void Mod_Init()
 	r_notexture_mip = Hunk_AllocName(sizeof(texture_t), "r_notexture_mip");
 	strcpy(r_notexture_mip->name, "notexture");
 	r_notexture_mip->height = r_notexture_mip->width = 32;
+	//non-lightmapped surfs without a texture
+	static texture_t *r_notexture_mip2;
 	r_notexture_mip2 = Hunk_AllocName(sizeof(texture_t),"r_notexture_mip2");
 	strcpy(r_notexture_mip2->name, "notexture2");
 	r_notexture_mip2->height = r_notexture_mip2->width = 32;
@@ -215,6 +212,8 @@ mleaf_t *Mod_PointInLeaf(vec3_t p, model_t *model)
 static u8 *Mod_DecompressVis(u8 *in, model_t *model)
 {
 	s32 row = (model->numleafs+7)>>3;
+	static u8 *mod_decompressed;
+	static s32 mod_decompressed_capacity;
 	if(mod_decompressed == NULL || row > mod_decompressed_capacity){
 		mod_decompressed_capacity = row;
 		mod_decompressed = (u8 *) realloc(mod_decompressed,
@@ -267,6 +266,8 @@ u8 *Mod_LeafPVS(mleaf_t *leaf, model_t *model)
 u8 *Mod_NoVisPVS(model_t *model)
 {
 	s32 pvsbytes = (model->numleafs+7)>>3;
+	static u8 *mod_novis;
+	static s32 mod_novis_capacity;
 	if(mod_novis == NULL || pvsbytes > mod_novis_capacity){
 		mod_novis_capacity = pvsbytes;
 		mod_novis = (u8 *) realloc(mod_novis, mod_novis_capacity);

@@ -14,20 +14,13 @@ static aliaslerp_t r_aliaslerpverts[MAXALIASVERTS];
 static aliaslerp_t *lerpverts;
 static mdl_t *pmdl;
 static aliashdr_t *paliashdr;
-static s32 a_skinwidth;
 static vec3_t r_plightvec;
 static s32 r_ambientlight;
 static f32 r_shadelight;
 static s32 r_anumverts;
 static f32 aliastransform[3][4];
 static f32 ziscale;
-static model_t *pmodel;
 static vec3_t alias_forward, alias_right, alias_up;
-static maliasskindesc_t *pskindesc;
-static aedge_t aedges[12] = {
-	{0,1},{1,2},{2,3},{3,0},
-	{4,5},{5,6},{6,7},{7,4},
-	{0,5},{1,4},{2,7},{3,6}};
 
 void R_AliasSetUpTransform(s32 trivial_accept);
 void R_AliasTransformVector(vec3_t in, vec3_t out);
@@ -47,6 +40,7 @@ bool R_AliasCheckBBox()
 {
 	// expand, rotate, and translate points into worldspace
 	currententity->trivial_accept = 0;
+	static model_t *pmodel;
 	pmodel = currententity->model;
 	aliashdr_t *pahdr = Mod_Extradata(pmodel);
 	pmdl = (mdl_t *) ((u8 *) pahdr + pahdr->model);
@@ -87,6 +81,10 @@ bool R_AliasCheckBBox()
 	s32 numv = 8;
 	// organize points by edges, use edges to get new points
 	for(s32 i = 0; zclipped && i < 12; i++){ // (possible trivial reject)
+		static aedge_t aedges[12] = {
+			{0,1},{1,2},{2,3},{3,0},
+			{4,5},{5,6},{6,7},{7,4},
+			{0,5},{1,4},{2,7},{3,6}};
 		// edge endpoints
 		pv0 = &viewpts[aedges[i].index0];
 		pv1 = &viewpts[aedges[i].index1];
@@ -326,8 +324,10 @@ void R_AliasSetupSkin()
 		Con_DPrintf("R_AliasSetupSkin: no such skin # %d\n", skinnum);
 		skinnum = 0;
 	}
+	static maliasskindesc_t *pskindesc;
 	pskindesc = ((maliasskindesc_t *)((u8 *) paliashdr +
 				paliashdr->skindesc)) + skinnum;
+	static s32 a_skinwidth;
 	a_skinwidth = pmdl->skinwidth;
 	if(pskindesc->type == ALIAS_SKIN_GROUP){
 		maliasskingroup_t *paliasskingroup = (maliasskingroup_t *)

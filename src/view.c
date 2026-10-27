@@ -8,14 +8,11 @@
 
 static u8 gammatable[256];
 static f32 v_dmg_time, v_dmg_roll, v_dmg_pitch;
-static vec3_t forward, right, up;
 static cshift_t cshift_empty = { { 130, 80, 50 }, 0 }; // Palette flashes 
-static cshift_t cshift_water = { { 130, 80, 50 }, 128 };
-static cshift_t cshift_slime = { { 0, 25, 5 }, 150 };
-static cshift_t cshift_lava = { { 255, 80, 0 }, 150 };
 
 f32 V_CalcRoll(vec3_t angles, vec3_t velocity)
 { // Used by view and sv_user
+	static vec3_t forward, right, up;
 	AngleVectors(angles, forward, right, up);
 	f32 side = DotProduct(velocity, right);
 	f32 sign = side < 0 ? -1 : 1;
@@ -185,6 +182,9 @@ void V_BonusFlash_f()
 
 void V_SetContentsColor(s32 contents)
 { // Underwater, lava, etc each has a color shift
+	static cshift_t cshift_water = { { 130, 80, 50 }, 128 };
+	static cshift_t cshift_slime = { { 0, 25, 5 }, 150 };
+	static cshift_t cshift_lava = { { 255, 80, 0 }, 150 };
 	switch(contents){
 	case CONTENTS_EMPTY:
 	case CONTENTS_SOLID: cl.cshifts[CSHIFT_CONTENTS] = cshift_empty; break;

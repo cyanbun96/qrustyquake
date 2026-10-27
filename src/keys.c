@@ -2,13 +2,10 @@
 #include "quakedef.h"
 // key up events are sent even if in console mode
 
-static s32 shift_down = 0;
-static s32 history_line = 0;
 static bool consolekeys[256]; // if 1, can't be rebound while in console
 static bool menubound[256]; // if 1, can't be rebound while in menu
 static s32 keyshift[256]; // key to map to if shift held down in console
 static bool keydown[256];
-static s32 key_repeats[256]; // if > 1, it is autorepeating
 
 keyname_t keynames[] = {
 	{ "TAB", K_TAB }, { "ENTER", K_ENTER }, { "ESCAPE", K_ESCAPE },
@@ -130,6 +127,7 @@ static bool Con_LineIsEmpty(int line)
 void Key_Console(s32 key) // Line typing into the console
 { // Interactive line editing and console scrollback
 	s32 con_bottom = con_totallines - ((vid.height/uiscale)/8) - 1;
+	static s32 history_line = 0;
 	if(key == K_ENTER){
 		Cbuf_AddText(key_lines[edit_line] + 1);	// skip the >
 		Cbuf_AddText("\n");
@@ -502,6 +500,7 @@ void Key_Init()
 void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 { // Called by the system between frames for both key up and key down events
 	keydown[key] = down;
+	static s32 key_repeats[256]; // if > 1, it is autorepeating
 	if(!down) key_repeats[key] = 0;
 	key_lastpress = key;
 	key_count++;
@@ -517,6 +516,7 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 			Con_Printf("%s is unbound, hit F4 to set.\n",
 				   Key_KeynumToString(key));
 	}
+	static s32 shift_down = 0;
 	if(key == K_SHIFT) shift_down = down;
 	if(key == K_ESCAPE){ // handle specialy so the user can never unbind it
 		if(!down) return;

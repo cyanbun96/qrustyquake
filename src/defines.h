@@ -427,7 +427,6 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define BACKFACE_EPSILON 0.01
 #define NEAR_CLIP 0.01
 #define ALIAS_Z_CLIP_PLANE 0.1 // CyanBun96: was 5, lowered for high FOV guns
-#define MAX_BTOFPOLYS 5000
 #define LIT_LUT_RES 64
 #define QUANT(x) (((x) * (LIT_LUT_RES - 1)) / 255)
 #define VERSION 0.90                                               // quakedef.h

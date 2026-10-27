@@ -62,9 +62,6 @@ TURB_VARIANTS(TURB_DEFINE_CHUNKFUNC)
 #define TURB_TABLE_ENTRY(tr, filtered, lit, hl) \
 		[TURBFUNC_INDEX(TURBTRANS_##tr, filtered, lit, hl)] = \
 	D_TurbChunk_##tr##_##filtered##_##lit##_##hl,
-	static turbspanfunc_t turbdrawfunc[36] = {
-		TURB_VARIANTS(TURB_TABLE_ENTRY)
-	};
 
 static u8 *r_turb_pbase;
 static struct {
@@ -406,6 +403,9 @@ static s32 D_TurbFuncIndex()
 static turbspanfunc_t D_TurbBegin(f32 opacity)
 {
 	turb_opacity = opacity;
+	static turbspanfunc_t turbdrawfunc[36] = {
+		TURB_VARIANTS(TURB_TABLE_ENTRY)
+	};
 	turbspanfunc_t drawspan = turbdrawfunc[D_TurbFuncIndex()];
 	if(r_hlwater.value)
 		InitHLWaterLUT();

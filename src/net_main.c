@@ -7,8 +7,6 @@
 #define sfunc net_drivers[sock->driver] // readability macros
 #define dfunc net_drivers[net_driverlevel]
 
-static s32 net_numsockets = 0;
-static c8 my_ipx_address[NET_NAMELEN];
 static bool listening = 0;
 static f64 slistStartTime;
 static s32 slistLastShown;
@@ -434,6 +432,7 @@ void NET_Init()
 			    ("NET_Init: you must specify a number after -port");
 	}
 	net_hostport = default_net_hostport;
+	static s32 net_numsockets = 0;
 	net_numsockets = svs.maxclientslimit;
 	if(cls.state != ca_dedicated)
 		net_numsockets++;
@@ -468,6 +467,7 @@ void NET_Init()
 	// therefore the i == 0 check is correct
 	if(i == 0 && cls.state == ca_dedicated)
 		Sys_Error("Network not available!");
+	static c8 my_ipx_address[NET_NAMELEN];
 	if(*my_ipx_address)
 		Con_DPrintf("IPX address %s\n", my_ipx_address);
 	if(*my_tcpip_address)

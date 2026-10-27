@@ -2,7 +2,6 @@
 
 typedef struct { f32 l, a, b; } lab_t;
 static f32 gamma_lut[256];
-static s32 color_conv_initialized = 0;
 static lab_t lab_palette[256];
 
 f32 lab_f(f32 t) // cube-root if > epsilon, linear otherwise
@@ -24,6 +23,7 @@ lab_t rgb_lin_to_lab(f32 r, f32 g, f32 b)
 
 void init_color_conv()
 {
+	static s32 color_conv_initialized = 0;
 	if(color_conv_initialized) return;
 	color_conv_initialized = 1;
 	for(s32 i = 0; i < 256; ++i){

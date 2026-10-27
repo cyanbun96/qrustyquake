@@ -5,26 +5,15 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static s32 iskyspeed = 8;
-static s32 iskyspeed2 = 2;
 static u8 bottomsky[MAXSKIES][128 * 131];
 static u8 bottommask[MAXSKIES][128 * 131];
-static s32 xlast[MAXSKIES] = {-1}, ylast[8] = {-1};
 static msurface_t *r_skyfaces;
 static mplane_t r_skyplanes[6]; // Manoel Kasimier - edited
 static mtexinfo_t r_skytexinfo[6];
 static mvertex_t *r_skyverts;
-static medge_t *r_skyedges;
-static s32 *r_skysurfedges;
-static texture_t r_skytextures[6];
-static c8 last_skybox_name[1024];
 static u8 rgb_lut[RGB_LUT_SIZE];
 static s32 rgb_lut_built = 0;
 static s32 skybox_planes[12] = {2,-128, 0,-128, 2,128, 1,128, 0,128, 1,-128};
-static s32 box_surfedges[24] = { 1,2,3,4,  -1,5,6,7,  8,9,-6,10,  -2,-7,-9,11,
-				 12,-3,-11,-8,     -12,-10,-5,-4};
-static s32 box_edges[24] = {1,2,2,3,3,4,4,1,1,5,5,6,6,2,7,8,8,6,5,7,8,3,7,4};
-static s32 box_faces[6] = {0,0,2,2,2,0};
 static vec3_t box_vecs[6][2] = { {{0,-1,0}, {-1,0,0} }, { {0,1,0}, {0,0,-1} },
 				{ {0,-1,0}, {1,0,0} },  { {1,0,0}, {0,0,-1} },
 				{ {0,-1,0}, {0,0,-1} }, { {-1,0,0}, {0,0,-1}}};
@@ -34,8 +23,6 @@ static vec3_t box_bigvecs[6][2] = { {{0,-2,0}, {-2,0,0} }, {{0,2,0}, {0,0,-2} },
 static vec3_t box_bigbigvecs[6][2] = {{{0,-4,0},{-4,0,0} },{{0,4,0}, {0,0,-4}},
 				     { {0,-4,0},{4,0,0} }, {{4,0,0}, {0,0,-4}},
 				     { {0,-4,0},{0,0,-4} },{{-4,0,0},{0,0,-4}}};
-static f32 box_verts[8][3] = { {-1,-1,-1}, {-1,1,-1}, {1,1,-1}, {1,-1,-1},
-				{-1,-1,1}, {-1,1,1}, {1,-1,1}, {1,1,1} };
 
 s32 R_LoadSkybox(const c8 *name);
 
@@ -48,6 +35,7 @@ void Sky_LoadSkyBox(const c8 *name)
 		skybox_name[0] = 0;
 		return;
 	}
+	static c8 last_skybox_name[1024];
 	// Baker: If name matches, we already have the pixels loaded and we
 	// don't actually need to reload
 	if(strcmp(name, last_skybox_name)){
@@ -194,6 +182,7 @@ Con_Printf("skybox height(%d) for %s must be 256, 512, 1024", height, pathname);
 					free(final_pic);
 				return 0;
 		}
+		static texture_t r_skytextures[6];
 		r_skytexinfo[i].texture = &r_skytextures[i];
 		r_skytexinfo[i].texture->width = width;
 		r_skytexinfo[i].texture->height = height;
@@ -247,8 +236,10 @@ void R_InitSkyBox()
 	loadmodel->numsurfaces += 6;
 	r_skyverts = loadmodel->vertexes + loadmodel->numvertexes;
 	loadmodel->numvertexes += 8;
+	static medge_t *r_skyedges;
 	r_skyedges = loadmodel->edges + loadmodel->numedges;
 	loadmodel->numedges += 12;
+	static s32 *r_skysurfedges;
 	r_skysurfedges = loadmodel->surfedges + loadmodel->numsurfedges;
 	loadmodel->numsurfedges += 24;
 	memset(r_skyfaces, 0, 6 * sizeof(*r_skyfaces));
@@ -257,6 +248,7 @@ void R_InitSkyBox()
 		r_skyplanes[i].dist = skybox_planes[i*2+1];
 		r_skyfaces[i].plane = &r_skyplanes[i];
 		r_skyfaces[i].numedges = 4;
+		static s32 box_faces[6] = {0,0,2,2,2,0};
 		r_skyfaces[i].flags = box_faces[i] | SURF_DRAWSKYBOX;
 		r_skyfaces[i].firstedge = loadmodel->numsurfedges-24+i*4;
 		r_skyfaces[i].texinfo = &r_skytexinfo[i];
@@ -295,6 +287,9 @@ void R_InitSkyBox()
 		r_skyfaces[i].extents[1] = height;
 		// Manoel Kasimier - hi-res skyboxes - end
 	}
+	static s32 box_surfedges[24] = {
+		1,2,3,4,  -1,5,6,7,  8,9,-6,10,  -2,-7,-9,11,
+		12,-3,-11,-8,     -12,-10,-5,-4};
 	for(s32 i = 0; i < 24; i++)
 		if(box_surfedges[i] > 0)
 			r_skysurfedges[i] = loadmodel->numedges-13
@@ -303,6 +298,8 @@ void R_InitSkyBox()
 			r_skysurfedges[i] = - (loadmodel->numedges-13
 						+ -box_surfedges[i]);
 	for(s32 i = 0; i < 12; i++){
+		static s32 box_edges[24] =
+			{1,2,2,3,3,4,4,1,1,5,5,6,6,2,7,8,8,6,5,7,8,3,7,4};
 		r_skyedges[i].v[0] = loadmodel->numvertexes-9+box_edges[i*2+0];
 		r_skyedges[i].v[1] = loadmodel->numvertexes-9+box_edges[i*2+1];
 		r_skyedges[i].cachededgeoffset = 0;
@@ -311,6 +308,9 @@ void R_InitSkyBox()
 
 void R_EmitSkyBox()
 {
+	static f32 box_verts[8][3] = {
+		{-1,-1,-1}, {-1,1,-1}, {1,1,-1}, {1,-1,-1},
+		{-1,-1,1}, {-1,1,1}, {1,-1,1}, {1,1,1} };
 	for(s32 i = 0 ; i < 8 ; i++) // set the eight fake vertexes
 		for(s32 j = 0 ; j < 3 ; j++)
 		  r_skyverts[i].position[j] = r_origin[j] + box_verts[i][j]*128;
@@ -434,6 +434,7 @@ void R_MakeSky(texture_t *mt)
 	s32 skyi = R_SkyIndexForTexture(mt);
 	s32 xshift = skytime * skyspeed;
 	s32 yshift = skytime * skyspeed;
+	static s32 xlast[MAXSKIES] = {-1}, ylast[8] = {-1};
 	if((xshift == xlast[skyi]) && (yshift == ylast[skyi]))
 		return;
 	xlast[skyi] = xshift;
@@ -455,7 +456,9 @@ void R_MakeSky(texture_t *mt)
 
 void R_SetSkyFrame()
 {
+	static s32 iskyspeed = 8;
 	skyspeed = iskyspeed;
+	static s32 iskyspeed2 = 2;
 	s32 g = GreatestCommonDivisor(iskyspeed, iskyspeed2);
 	s32 s1 = iskyspeed / g;
 	s32 s2 = iskyspeed2 / g;

@@ -2,13 +2,10 @@
 #include "quakedef.h"
 
 static s32 ramp1[8] = { 0x6f, 0x6d, 0x6b, 0x69, 0x67, 0x65, 0x63, 0x61 };
-static s32 ramp2[8] = { 0x6f, 0x6e, 0x6d, 0x6c, 0x6b, 0x6a, 0x68, 0x66 };
 static s32 ramp3[8] = { 0x6d, 0x6b, 6, 5, 4, 3 };
-static f32 beamlength = 16;
 static particle_t *active_particles, *free_particles;
 static particle_t *particles;
 static s32 r_numparticles;
-static vec3_t avelocities[NUMVERTEXNORMALS];
 
 void R_InitParticles()
 {
@@ -26,6 +23,7 @@ void R_InitParticles()
 void R_EntityParticles(entity_t *ent)
 {
 	f32 dist = 64;
+	static vec3_t avelocities[NUMVERTEXNORMALS];
 	if(!avelocities[0][0]){
 		for(s32 i = 0; i < NUMVERTEXNORMALS; i++){
 			avelocities[i][0] = (rand() & 255) * 0.01;
@@ -54,6 +52,7 @@ void R_EntityParticles(entity_t *ent)
 		p->die = cl.time + 0.01;
 		p->color = 0x6f;
 		p->type = pt_explode;
+		static f32 beamlength = 16;
 		p->org[0] = ent->origin[0] + r_avertexnormals[i][0] * dist
 			+ forward[0] * beamlength;
 		p->org[1] = ent->origin[1] + r_avertexnormals[i][1] * dist
@@ -383,6 +382,8 @@ void R_DrawParticles()
 		p->org[0] += p->vel[0] * frametime;
 		p->org[1] += p->vel[1] * frametime;
 		p->org[2] += p->vel[2] * frametime;
+		static s32 ramp2[8] =
+			{ 0x6f, 0x6e, 0x6d, 0x6c, 0x6b, 0x6a, 0x68, 0x66 };
 		switch(p->type){
 		case pt_static:
 			break;

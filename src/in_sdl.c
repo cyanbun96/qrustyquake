@@ -3,7 +3,6 @@
 static bool mouse_avail;
 static f32 mouse_x;
 static f32 mouse_y;
-static s32 buttonremap[] = { K_MOUSE1, K_MOUSE3, K_MOUSE2, K_MOUSE4, K_MOUSE5 };
 static f64 jhatup=0, jhatright=0, jhatleft=0, jhatdown=0; // last pressed time
 
 void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
@@ -89,6 +88,8 @@ void Sys_SendKeyEvents()
 		SDL_SetWindowRelativeMouseMode(window, 1);
 	}
 	while(SDL_PollEvent(&event)){
+		static s32 buttonremap[] = {
+			K_MOUSE1, K_MOUSE3, K_MOUSE2, K_MOUSE4, K_MOUSE5 };
 		switch(event.type){
 		case SDL_EVENT_KEY_DOWN:
 		case SDL_EVENT_KEY_UP:

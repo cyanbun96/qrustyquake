@@ -1,7 +1,6 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static efrag_t **lastlink;
 static entity_t *r_addent;
 
 void R_RemoveEfrags(entity_t *ent)
@@ -105,7 +104,6 @@ void R_AddEfrags(entity_t *ent)
 	if(!ent->model || ent == cl_entities)
 		return; // never add the world
 	r_addent = ent;
-	lastlink = &ent->efrag;
 	r_pefragtopnode = NULL;
 	model_t *entmodel = ent->model;
 	for(s32 i = 0; i < 3; i++){

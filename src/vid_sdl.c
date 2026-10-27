@@ -4,8 +4,6 @@ static SDL_Renderer *renderer;
 static SDL_Surface *argbbuffer;
 static SDL_Texture *texture;
 static SDL_Rect blitRect;
-static SDL_Rect scRect;
-static SDL_Rect scRect2;
 static u8 *screenpixels;
 static u8 *toppixels;
 static u8 *uipixels;
@@ -340,10 +338,12 @@ void VID_Update()
 		lyr_centerprint.value==3||lyr_console.value==3||
 		lyr_notify.value==3||lyr_crosshair.value==3)blitscreensbar=true;
 	SDL_Rect dst = {0, 0, vid.width*renderscale, vid.height*renderscale};
+	static SDL_Rect scRect;
 	scRect.w = vid.width * (scr_uixscale.value>0 ? scr_uixscale.value : 1);
 	scRect.h = vid.height * (scr_uiyscale.value>0 ? scr_uiyscale.value : 1);
 	scRect.x = (vid.width - scRect.w) / 2;
 	scRect.y = (vid.height - scRect.h) / 2;
+	static SDL_Rect scRect2;
 	scRect2.w = vid.width * renderscale * (scr_uixscale.value>0 ?
 			scr_uixscale.value : 1);
 	scRect2.h = vid.height * renderscale * (scr_uiyscale.value>0 ?

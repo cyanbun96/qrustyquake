@@ -9,7 +9,6 @@ static c8 localmodels[MAX_MODELS][8]; // inline model names for precache
 static s32 sv_protocol = PROTOCOL_RMQ;
 static s32 fatbytes;
 static u8 *fatpvs;
-static s32 fatpvs_capacity;
 
 void SV_CalcStats(client_t *client, s32 *statsi, f32 *statsf, const c8 **statss)
 {
@@ -360,6 +359,7 @@ void SV_AddToFatPVS(vec3_t org, mnode_t *node, model_t *worldmodel)
 u8 *SV_FatPVS(vec3_t org, model_t *worldmodel) // Calculates a PVS that is the
 { // inclusive or of all leafs within 8 pixels of the given point.
 	fatbytes = (worldmodel->numleafs+7)>>3; // ericw - was +31, assumed typo
+	static s32 fatpvs_capacity;
 	if(fatpvs == NULL || fatbytes > fatpvs_capacity){
 		fatpvs_capacity = fatbytes;
 		fatpvs = (u8 *) realloc(fatpvs, fatpvs_capacity);

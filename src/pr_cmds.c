@@ -6,11 +6,7 @@
 #include "quakedef.h"
 
 #define MAXQCTOKENS 64
-static c8 pr_string_temp[STRINGTEMP_BUFFERS][STRINGTEMP_LENGTH];
-static u8 pr_string_tempindex = 0;
 static u8 *checkpvs; //ericw -- changed to malloc
-static s32 checkpvs_capacity;
-static s32 c_invis, c_notvis;
 static s32 numqcpics;
 static s32 maxqcpics;
 static u32 qctoken_count;
@@ -88,7 +84,11 @@ void PR_ReloadPics(SDL_UNUSED bool purge)
 }
 
 static c8 *PR_GetTempString()
-{ return pr_string_temp[(STRINGTEMP_BUFFERS-1) & ++pr_string_tempindex]; }
+{
+	static c8 pr_string_temp[STRINGTEMP_BUFFERS][STRINGTEMP_LENGTH];
+	static u8 pr_string_tempindex = 0;
+	return pr_string_temp[(STRINGTEMP_BUFFERS-1) & ++pr_string_tempindex];
+}
 
 static const c8* PF_GetStringArg(s32 idx, void* userdata)
 {
@@ -758,6 +758,7 @@ static s32 PF_newcheckclient(s32 check)
 	mleaf_t *leaf = Mod_PointInLeaf(org, sv.worldmodel);
 	u8 *pvs = Mod_LeafPVS(leaf, sv.worldmodel);
 	s32 pvsbytes = (sv.worldmodel->numleafs+7)>>3;
+	static s32 checkpvs_capacity;
 	if(checkpvs == NULL || pvsbytes > checkpvs_capacity){
 		checkpvs_capacity = pvsbytes;
 		checkpvs = (u8 *) realloc(checkpvs, checkpvs_capacity);
@@ -792,11 +793,9 @@ static void PF_checkclient()
 	mleaf_t *leaf = Mod_PointInLeaf(view, sv.worldmodel);
 	s32 l = (leaf - sv.worldmodel->leafs) - 1;
 	if((l < 0) || !(checkpvs[l>>3] & (1 << (l & 7)))){
-		c_notvis++;
 		RETURN_EDICT(qcvm->edicts);
 		return;
 	}
-	c_invis++; // might be able to see it
 	RETURN_EDICT(ent);
 }
 
@@ -1319,7 +1318,7 @@ static void PF_stov()
 static void PF_etos()
 { //yes, this is lame
 	c8 *result = PR_GetTempString();
-	snprintf(result,STRINGTEMP_LENGTH,"entity %i",G_EDICTNUM(OFS_PARM0));
+	snprintf(result, STRINGTEMP_LENGTH, "entity %i", G_EDICTNUM(OFS_PARM0));
 	G_INT(OFS_RETURN) = PR_SetEngineString(result);
 }
 

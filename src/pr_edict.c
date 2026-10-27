@@ -1111,7 +1111,6 @@ static const exbuiltin_t exbuiltins[] = { // for 2021 re-release
 	{ "ex_bot_followentity", 0, -92 },
 	{ NULL, 0, 0 } // end-of-list
 };
-
 static void PR_PatchRereleaseBuiltins()
 {
 	const exbuiltin_t *ex = exbuiltins;

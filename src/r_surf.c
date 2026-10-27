@@ -2,9 +2,7 @@
 // r_surf.c: surface-related refresh code
 #include "quakedef.h"
 
-static s32 lightleft, blocksize, sourcetstep;
-static s32 lightright, lightleftstep, lightrightstep, blockdivshift;
-static unsigned blockdivmask;
+static s32 blocksize, sourcetstep, blockdivshift;
 static void *prowdestbase;
 static u8 *pbasesource;
 static s32 surfrowbytes; // used by ASM files
@@ -13,8 +11,8 @@ static unsigned *r_lightptr_g;
 static unsigned *r_lightptr_b;
 static s32 r_stepback;
 static s32 r_lightwidth;
-static s32 r_numhblocks, r_numvblocks;
-static u8 *r_source, *r_sourcemax;
+static s32 r_numvblocks;
+static u8 *r_sourcemax;
 #define BLOCKLIGHTS_SIZE (2000 / 16 + 1) // fits surface extents up to 2000
 static u32 blocklights[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
 static u32 blocklights_g[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
@@ -213,20 +211,20 @@ s32 R_DrawSurface()
 	}
 	surfrowbytes = r_drawsurf.rowbytes;
 	texture_t *mt = r_drawsurf.texture;
+	static u8 *r_source;
 	r_source = (u8 *) mt + mt->offsets[r_drawsurf.surfmip];
 	// the fractional light values should range from 0 to(VID_GRADES - 1)
 	// << 16 from a source range of 0 - 255
 	s32 texwidth = mt->width >> r_drawsurf.surfmip;
+	static s32 r_numhblocks;
 	if((mt->width & 15) || (mt->height & 15)){
 		blocksize = 8 >> r_drawsurf.surfmip;
 		blockdivshift = 3 - r_drawsurf.surfmip;
-		blockdivmask = (1 << blockdivshift) - 1;
 		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
 		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
 	}else{
 		blocksize = 16 >> r_drawsurf.surfmip;
 		blockdivshift = 4 - r_drawsurf.surfmip;
-		blockdivmask = (1 << blockdivshift) - 1;
 		r_lightwidth = (r_drawsurf.surf->extents[0] >> 4) + 1;
 		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
 		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
@@ -270,6 +268,8 @@ void R_DrawSurfaceBlock()
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
 	for(s32 v = 0; v < r_numvblocks; v++){
+		static s32 lightleft, lightright;
+		static s32 lightleftstep, lightrightstep;
 		lightleft = r_lightptr[0];
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;

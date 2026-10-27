@@ -5,8 +5,6 @@
 // sv_move.c -- monster movement
 #include "quakedef.h"
 
-static s32 c_yes, c_no;
-
 bool SV_CheckBottom(edict_t *ent) // Returns 0 if any part of the bottom of the
 { // entity is off an edge that is not a staircase.
 	vec3_t mins, maxs, start, stop;
@@ -22,10 +20,8 @@ bool SV_CheckBottom(edict_t *ent) // Returns 0 if any part of the bottom of the
 		start[1] = y ? maxs[1] : mins[1];
 		if(SV_PointContents(start) != CONTENTS_SOLID) goto realcheck;
 	}
-	c_yes++;
 	return 1; // we got out easy
 realcheck:
-	c_no++;
 	start[2] = mins[2]; // check it for real...
 	start[0] = stop[0] = (mins[0] + maxs[0])*0.5; // the midpoint must be
 	start[1] = stop[1] = (mins[1] + maxs[1])*0.5; // within 16 of the bottom
@@ -43,7 +39,6 @@ realcheck:
 		if(trace.fraction == 1.0 || mid - trace.endpos[2] > STEPSIZE)
 			return 0;
 	}
-	c_yes++;
 	return 1;
 }
 

@@ -7,9 +7,6 @@ static debugline_t *r_debuglines = 0;
 static debugpoint_t *r_debugpoints = 0;
 static vec3_t viewlightvec;
 static alight_t r_viewlighting = { 128, 192, viewlightvec };
-static f32 verticalFieldOfView;
-static f32 xOrigin, yOrigin;
-static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 static f32 aliaslightvec[3] = { -1, 0, 0 };
 
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
@@ -270,6 +267,7 @@ void R_InitTurb()
 		sintable[i] = amp + sin(i * 3.14159 * 2 / TURB_CYCLE) * amp;
 		intsintable[i]=TURB_AMP2+sin(i*3.14159*2/TURB_CYCLE)*TURB_AMP2;
 	}
+	static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 	r_warpbuffer = warpbuffer;
 }
 
@@ -488,10 +486,12 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	r_refdef.aliasvrectbottom =
 		r_refdef.aliasvrect.y + r_refdef.aliasvrect.height;
 	pixelAspect = aspect;
+	static f32 xOrigin, yOrigin;
 	xOrigin = r_refdef.xOrigin;
 	yOrigin = r_refdef.yOrigin;
 	f32 screenAspect = r_refdef.vrect.width * pixelAspect /
 		r_refdef.vrect.height;
+	static f32 verticalFieldOfView;
 	// 320*200 1.0 pixelAspect = 1.6 screenAspect
 	// 320*240 1.0 pixelAspect = 1.3333 screenAspect
 	// proper 320*200 pixelAspect = 0.8333333

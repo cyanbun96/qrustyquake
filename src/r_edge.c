@@ -18,12 +18,10 @@
 #define CUT_IDLE (-2) // left: not touched on this scanline, not in cut_list
 #define CUT_NOLEAD (-1) // left: in cut_list, only trailing edges seen so far
 
-static espan_t *span_p, *max_span_p;
-static edge_t edge_sentinel;
+static espan_t *span_p;
 static s32 current_iv;
 static s64 edge_head_u_shift20, edge_tail_u_shift20;
 static edge_t edge_head, edge_tail;
-static edge_t edge_aftertail;
 static f32 fv;
 static void(*pdrawfunc)(bool step);
 static void R_GenerateSpans(bool step);
@@ -36,7 +34,6 @@ static void R_GenerateSpansBackward(bool step);
 typedef struct { s32 left, right; } cutspan_t;
 static cutspan_t *cut_acc; // indexed by surface number
 static u16 *cut_list; // surfaces with any edge on this scanline
-static s32 cut_cap; // entries allocated in cut_acc and cut_list
 static s32 cut_count; // valid entries in cut_list
 static s32 cut_surfs; // cutout/skybox surfaces in this frame
 static s32 cut_right0; // reset value of cutspan_t.right
@@ -53,6 +50,7 @@ static void R_CutoutBeginFrame()
 	if(!cut_surfs)
 		return;
 	s32 need = r_lsurfs_size + 2;
+	static s32 cut_cap; // entries allocated in cut_acc and cut_list
 	if(cut_cap < need){
 		free(cut_acc);
 		free(cut_list);
@@ -104,8 +102,6 @@ void R_BeginEdgeFrame()
 // that sorts that way, with its index in r_edges in the low bits.
 #define NE_IDXBITS 29 // u takes 34 bits at MAXWIDTH 15360
 #define NE_IDXMASK (((u64)1 << NE_IDXBITS) - 1)
-static u64 *ne_keys; // ne_cap keys, then ne_cap more for merging
-static s64 ne_cap;
 
 static void R_SortKeys(u64 *a, u64 *tmp, s64 n)
 {
@@ -143,6 +139,8 @@ static edge_t *R_SortNewEdges(edge_t *list)
 	if(!list->next)
 		return list;
 	s64 n = 0;
+	static u64 *ne_keys; // ne_cap keys, then ne_cap more for merging
+	static s64 ne_cap;
 	for(edge_t *e = list; e; e = e->next){
 		if(n == ne_cap){
 			s64 cap = ne_cap ? ne_cap * 2 : 1024;
@@ -554,6 +552,7 @@ void R_ScanEdges()
 	static u8 basespans[MAXSPANS * sizeof(espan_t)];
 	espan_t *basespan_p = (espan_t *) basespans;
 	R_CutoutBeginFrame();
+	static espan_t *max_span_p;
 	// Leave room for one full scanline of spans: at most one per pixel for
 	// the visible surfaces, plus at most one per cutout/skybox surface
 	max_span_p = &basespan_p[MAXSPANS - r_refdef.vrect.width - cut_surfs];
@@ -571,11 +570,13 @@ void R_ScanEdges()
 	edge_tail_u_shift20 = edge_tail.u >> 20;
 	edge_tail.u_step = 0;
 	edge_tail.prev = &edge_head;
+	static edge_t edge_aftertail;
 	edge_tail.next = &edge_aftertail;
 	edge_tail.surfs[0] = 1;
 	edge_tail.surfs[1] = 0;
 	edge_aftertail.u = -1; // force a move
 	edge_aftertail.u_step = 0;
+	static edge_t edge_sentinel;
 	edge_aftertail.next = &edge_sentinel;
 	edge_aftertail.prev = &edge_tail;
 	edge_sentinel.u = ((u64)2000) << 24;// make sure nothing sorts past this

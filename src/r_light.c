@@ -1,8 +1,6 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static vec3_t lightspot;
-
 void R_AnimateLight() // light animations
 { // 'm' is normal light, 'a' is no light, 'z' is f64 bright
 	s32 i = (s32)(cl.time * 10);
@@ -88,6 +86,7 @@ loc0:
 	else{
 		s32 ds, dt;
 		msurface_t *surf;
+		static vec3_t lightspot;
 		VectorCopy(mid, lightspot); // check for impact on this node
 		surf = cl.worldmodel->surfaces + node->firstsurface;
 		for(u32 i = 0;i < node->numsurfaces;i++, surf++)

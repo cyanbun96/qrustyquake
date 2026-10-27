@@ -15,7 +15,6 @@ static c8 m_filenames[MAX_SAVEGAMES][MAX_OSPATH*2 + 1];
 static s32 loadable[MAX_SAVEGAMES];
 static s32 m_multiplayer_cursor;
 static s32 setup_cursor = 4;
-static s32 setup_cursor_table[] = { 40, 56, 80, 104, 140 };
 static c8 setup_hostname[16];
 static c8 setup_myname[16];
 static s32 setup_oldtop;
@@ -40,12 +39,6 @@ static s32 maps_total;
 static s32 maps_sortby;
 static filelist_item_t **maps_items = NULL;
 static filelist_item_t **mods_items = NULL;
-static s32 maps_items_cap = 0;
-static s32 mods_items_cap = 0;
-static s32 mod_list_built = 0;
-static s32 maps_list_sorted_by = -1;
-static s32 maps_list_skill = -1;
-static c8 maps_game[64];
 static s32 gamepad_cursor;
 static s32 display_cursor;
 static s32 graphics_cursor;
@@ -59,20 +52,15 @@ static s32 lanConfig_port;
 static c8 lanConfig_portname[6];
 static c8 lanConfig_joinname[22];
 static s32 lanConfig_cursor = -1;
-static s32 lanConfig_cursor_table[] = { 72, 92, 124 };
 static s32 startepisode;
 static s32 startlevel;
 static s32 maxplayers;
 static bool m_serverInfoMessage = 0;
 static f64 m_serverInfoMessageTime;
-static s32 gameoptions_cursor_table[] = {40,56,64,72,80,88,96,112,120,128,136};
 static s32 gameoptions_cursor;
-static u8 identityTable[256];
 static u8 translationTable[256];
-static s32 fpslimits[]={30,60,72,100,120,144,165,180,200,240,300,360,500,99999};
 static s32 moden = -1;
 static s32 display_sel_moden = 0;
-static SDL_DisplayMode **modes = 0;
 static SDL_DisplayMode *mode = 0;
 
 level_t levels[] = {
@@ -340,6 +328,7 @@ void M_DrawTransPic(s32 x, s32 y, qpic_t *pic)
 
 void M_BuildTranslationTable(s32 top, s32 bottom)
 {
+	static u8 identityTable[256];
 	for(s32 j = 0; j < 256; j++)
 		identityTable[j] = j;
 	u8 *dest = translationTable;
@@ -813,6 +802,7 @@ void M_Setup_Draw()
 	p = Draw_CachePic("gfx/menuplyr.lmp");
 	M_BuildTranslationTable(setup_top * 16, setup_bottom * 16);
 	M_DrawTransPicTranslate(172, 72, p);
+	static s32 setup_cursor_table[] = { 40, 56, 80, 104, 140 };
 	M_DrawCharacter(56, setup_cursor_table[setup_cursor],
 			12 + ((s32)(realtime * 4) & 1));
 	if(setup_cursor == 0)
@@ -1545,6 +1535,9 @@ s32 Maps_SortByMonsters(const void *a, const void *b)
 
 void M_Maps_List_Update()
 {
+	static s32 maps_list_sorted_by = -1;
+	static s32 maps_list_skill = -1;
+	static c8 maps_game[64];
 	if(!strncmp(COM_SkipPath(com_gamedir), maps_game, sizeof(maps_game))
 		&& maps_list_sorted_by == maps_sortby
 		&& maps_list_skill == (s32)skill.value)
@@ -1561,6 +1554,7 @@ void M_Maps_List_Update()
 		level = extralevels_mod;
 	for(filelist_item_t *l = level; l; l = l->next)
 		maps_total++;
+	static s32 maps_items_cap = 0;
 	if(maps_total > maps_items_cap){
 		maps_items_cap = maps_total;
 		maps_items = realloc(maps_items,
@@ -1765,12 +1759,14 @@ void M_Maps_Key(s32 k)
 
 void M_Mods_List_Update()
 {
+	static s32 mod_list_built = 0;
 	if(mod_list_built) return;
 	mod_list_built = 1;
 	filelist_item_t *mod = modlist;
 	mods_total = 0;
 	for(filelist_item_t *l = mod; l; l = l->next)
 		mods_total++;
+	static s32 mods_items_cap = 0;
 	if(mods_total > mods_items_cap){
 		mods_items_cap = mods_total;
 		mods_items = realloc(mods_items,
@@ -2114,6 +2110,8 @@ void M_Mods_Key(s32 k)
 
 void M_Display_Key(s32 k)
 {
+	static s32 fpslimits[] =
+		{30,60,72,100,120,144,165,180,200,240,300,360,500,99999};
 	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
@@ -2435,6 +2433,7 @@ void M_Display_Draw()
 		M_PrintWhite(64, 174, "               72");
 	}
 	if(newwinmode == 1){
+		static SDL_DisplayMode **modes = 0;
 		if(!modes){ 
 			modes = SDL_GetFullscreenDisplayModes(1, &moden);
 			if(modes) mode = modes[0];
@@ -3701,6 +3700,7 @@ void M_LanConfig_Draw()
 	basex += 8;
 	M_Print(basex, 52, "Address:");
 	M_Print(basex + 9 * 8, 52, my_tcpip_address);
+	static s32 lanConfig_cursor_table[] = { 72, 92, 124 };
 	M_Print(basex, lanConfig_cursor_table[0], "Port");
 	M_DrawTextBox(basex + 8 * 8, lanConfig_cursor_table[0] - 8, 6, 1);
 	M_Print(basex + 9 * 8, lanConfig_cursor_table[0], lanConfig_portname);
@@ -3906,6 +3906,8 @@ void M_GameOptions_Draw()
 			levels[episodes[startepisode].firstLevel +
 			       startlevel].name);
 	}
+	static s32 gameoptions_cursor_table[] =
+		{40,56,64,72,80,88,96,112,120,128,136};
 	M_DrawCursor(144, gameoptions_cursor_table[gameoptions_cursor]);
 	if(m_serverInfoMessage){
 		if((realtime - m_serverInfoMessageTime) < 5.0){

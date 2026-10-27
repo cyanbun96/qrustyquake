@@ -14,7 +14,6 @@ static f32 *r_coarse_occlusion_zi;
 // (y & 7) * 8 + (x & 7). A tile is FULL once all 64 are covered.
 static u64 *r_coarse_occ_pixels;
 static f32 *r_coarse_occ_rows; // 2 arrays of one float per viewport row
-static s32 r_coarse_occ_rows_n;
 static s32 r_coarse_occlusion_width;
 static s32 r_coarse_occlusion_height;
 static s32 r_coarse_occlusion_words; // u64 words per tile row
@@ -28,7 +27,6 @@ static coarse_occ_vertex_t r_coarse_poly[COARSE_OCCLUSION_MAX_VERTS];
 static s32 r_coarse_poly_count;
 static f32 r_coarse_poly_zi[2];
 static u32 cacheoffset;
-static medge_t tedge;
 static medge_t *r_pedge;
 static bool r_leftclipped, r_rightclipped;
 static bool r_nearzionly;
@@ -36,8 +34,6 @@ static mvertex_t r_leftenter, r_leftexit;
 static mvertex_t r_rightenter, r_rightexit;
 static s32 r_emitted;
 static f32 r_nearzi;
-static f32 r_u1, r_v1, r_lzi1;
-static s32 r_ceilv1;
 static bool r_lastvertvalid;
 static bool makeleftedge, makerightedge;
 static u8 r_edgerev; // direction of the face currently being walked
@@ -109,6 +105,7 @@ void R_CoarseOcclusionBeginFrame()
 	s32 height = (r_refdef.vrect.height + COARSE_OCCLUSION_TILE_SIZE - 1) /
 		COARSE_OCCLUSION_TILE_SIZE;
 	s32 words = (width + 63) >> 6;
+	static s32 r_coarse_occ_rows_n;
 	if(width != r_coarse_occlusion_width ||
 			height != r_coarse_occlusion_height ||
 			r_refdef.vrect.height != r_coarse_occ_rows_n ||
@@ -751,6 +748,8 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	f32 *world;
 	f32 scale, lzi0, u0, v0;
 	s64 ceilv0;
+	static f32 r_u1, r_v1, r_lzi1;
+	static s32 r_ceilv1;
 	if(r_lastvertvalid){
 		u0 = r_u1;
 		v0 = r_v1;
@@ -1115,6 +1114,7 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 		return;
 	}
 	c_faceclip++;
+	static medge_t tedge;
 	// this is a dummy to give the caching mechanism someplace to write to
 	r_pedge = &tedge;
 	clipplane_t *pclip = NULL; // set up clip planes

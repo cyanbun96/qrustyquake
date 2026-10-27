@@ -14,8 +14,6 @@ static f32 scr_centertime_start; // for slow victory printing
 static s32 scr_center_lines;
 static s32 scr_erase_lines;
 static u32 scr_erase_center;
-static f32 oldscreensize, oldfov;
-static f32 scr_conlines; // lines of console to display
 static c8 *scr_notifystring;
 static bool scr_drawdialog;
 
@@ -294,6 +292,7 @@ void SCR_SetUpToDrawConsole()
 	if(scr_drawloading)
 		return;	// never a console with loading plaque
 	con_forcedup = !cl.worldmodel || cls.signon != SIGNONS; // height
+	static f32 scr_conlines; // lines of console to display
 	if(con_forcedup){
 		scr_conlines = vid.height; // full screen
 		scr_con_current = scr_conlines;
@@ -451,6 +450,7 @@ void SCR_UpdateScreen() // This is called every frame,
 		oldscr_viewsize = scr_viewsize.value;
 		vid.recalc_refdef = 1;
 	}
+	static f32 oldscreensize, oldfov;
 	if(oldfov != scr_fov.value){ // check for vid changes
 		oldfov = scr_fov.value;
 		vid.recalc_refdef = 1;

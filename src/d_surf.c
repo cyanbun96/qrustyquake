@@ -7,7 +7,6 @@
 #define SC_MINTURNOVER 30
 #define SC_MAXSIZE (256 * 1024 * 1024)
 
-static f32 surfscale;
 static u64 sc_size;
 static surfcache_t *sc_base;
 static s64 sc_wrapframe; // when the rover last went back to the start
@@ -195,6 +194,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	    && cache->lightadj[2] == r_drawsurf.lightadj[2]
 	    && cache->lightadj[3] == r_drawsurf.lightadj[3])
 		return cache;
+	static f32 surfscale;
 	surfscale = 1.0 / (1 << miplevel); // determine shape of surface
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;

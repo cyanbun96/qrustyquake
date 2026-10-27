@@ -6,7 +6,6 @@ static f32 map_wateralpha;
 static f32 map_lavaalpha;
 static f32 map_telealpha;
 static f32 map_slimealpha;
-static s32 r_frustum_indexes[4 * 6];
 
 void R_ParseWorldspawn()
 {
@@ -144,6 +143,7 @@ void R_TransformFrustum()
 
 void R_SetUpFrustumIndexes()
 {
+	static s32 r_frustum_indexes[4 * 6];
 	s32 *pindex = r_frustum_indexes;
 	for(s32 i = 0; i < 4; i++){
 		for(s32 j = 0; j < 3; j++){

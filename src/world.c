@@ -29,7 +29,6 @@ typedef struct {
 // entities never clip against themselves, or their owner
 // line of sight checks trace->crosscontent, but bullets don't
 static hull_t box_hull;
-static mclipnode_t box_clipnodes[6]; //johnfitz -- was dclipnode_t
 static mplane_t box_planes[6];
 static areanode_t sv_areanodes[32];
 static s32 sv_numareanodes;
@@ -40,6 +39,7 @@ s32 SV_HullPointContents(hull_t *hull, s32 num, vec3_t p);
 //can just be stored out and get a proper hull_t structure.
 void SV_InitBoxHull()
 {
+	static mclipnode_t box_clipnodes[6]; //johnfitz -- was dclipnode_t
 	box_hull.clipnodes = box_clipnodes;
 	box_hull.planes = box_planes;
 	box_hull.firstclipnode = 0;

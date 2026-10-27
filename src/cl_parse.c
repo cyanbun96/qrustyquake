@@ -2,51 +2,6 @@
 // cl_parse.c -- parse a message received from the server
 #include "quakedef.h"
 
-static c8 model_precache[MAX_MODELS][MAX_QPATH];
-static c8 sound_precache[MAX_SOUNDS][MAX_QPATH];
-
-static c8 *svc_strings[] = {
-	"svc_bad",
-	"svc_nop",
-	"svc_disconnect",
-	"svc_updatestat",
-	"svc_version", // [s64] server version
-	"svc_setview", // [s16] entity number
-	"svc_sound", // <see code>
-	"svc_time", // [f32] server time
-	"svc_print", // [string] null terminated string
-	"svc_stufftext", // [string] stuffed into client's console buffer
-			 // the string should be \n terminated
-	"svc_setangle", // [vec3] set the view angle to this absolute value
-	"svc_serverinfo", // [s64] version
-			  // [string] signon string
-			  // [string]..[0]model cache [string]...[0]sounds cache
-			  // [string]..[0]item cache
-	"svc_lightstyle", // [u8] [string]
-	"svc_updatename", // [u8] [string]
-	"svc_updatefrags", // [u8] [s16]
-	"svc_clientdata", // <shortbits + data>
-	"svc_stopsound", // <see code>
-	"svc_updatecolors", // [u8] [u8]
-	"svc_particle", // [vec3] <variable>
-	"svc_damage", // [u8] impact [u8] blood [vec3] from
-	"svc_spawnstatic",
-	"OBSOLETE svc_spawnbinary",
-	"svc_spawnbaseline",
-	"svc_temp_entity", // <variable>
-	"svc_setpause",
-	"svc_signonnum",
-	"svc_centerprint",
-	"svc_killedmonster",
-	"svc_foundsecret",
-	"svc_spawnstaticsound",
-	"svc_intermission",
-	"svc_finale", // [string] music [string] text
-	"svc_cdtrack", // [u8] track [u8] looptrack
-	"svc_sellscreen",
-	"svc_cutscene"
-};
-
 //mods and servers might not send the \n instantly.
 //some mods bug out and omit the \n entirely, this function helps prevent the
 //damage from spreading too much.
@@ -237,6 +192,7 @@ void CL_ParseServerInfo()
 	// needlessly purge it
 	memset(cl.model_precache, 0, sizeof(cl.model_precache));
 	s32 nummodels = 1;
+	static c8 model_precache[MAX_MODELS][MAX_QPATH];
 	for(;; nummodels++){ // precache models
 		str = MSG_ReadString();
 		if(!str[0]) break;
@@ -250,6 +206,7 @@ void CL_ParseServerInfo()
 			nummodels, MAX_MODELS);
 	memset(cl.sound_precache, 0, sizeof(cl.sound_precache));//precache sound
 	s32 numsounds = 1;
+	static c8 sound_precache[MAX_SOUNDS][MAX_QPATH];
 	for(;; numsounds++){
 		str = MSG_ReadString();
 		if(!str[0]) break;
@@ -541,6 +498,50 @@ void CL_ParseStaticSound(s32 version) //johnfitz -- added argument
 	s32 atten = MSG_ReadByte();
 	S_StaticSound(cl.sound_precache[sound_num], org, vol, atten);
 }
+
+static c8 *svc_strings[] = {
+	"svc_bad",
+	"svc_nop",
+	"svc_disconnect",
+	"svc_updatestat",
+	"svc_version", // [s64] server version
+	"svc_setview", // [s16] entity number
+	"svc_sound", // <see code>
+	"svc_time", // [f32] server time
+	"svc_print", // [string] null terminated string
+	"svc_stufftext", // [string] stuffed into client's console
+			 // buffer, the string should be \n terminated
+	"svc_setangle", // [vec3] set the view angle to this
+			// absolute value
+	"svc_serverinfo", // [s64] version
+			  // [string] signon string
+			  // [string]..[0]model cache
+			  // [string]...[0]sounds cache
+			  // [string]..[0]item cache
+	"svc_lightstyle", // [u8] [string]
+	"svc_updatename", // [u8] [string]
+	"svc_updatefrags", // [u8] [s16]
+	"svc_clientdata", // <shortbits + data>
+	"svc_stopsound", // <see code>
+	"svc_updatecolors", // [u8] [u8]
+	"svc_particle", // [vec3] <variable>
+	"svc_damage", // [u8] impact [u8] blood [vec3] from
+	"svc_spawnstatic",
+	"OBSOLETE svc_spawnbinary",
+	"svc_spawnbaseline",
+	"svc_temp_entity", // <variable>
+	"svc_setpause",
+	"svc_signonnum",
+	"svc_centerprint",
+	"svc_killedmonster",
+	"svc_foundsecret",
+	"svc_spawnstaticsound",
+	"svc_intermission",
+	"svc_finale", // [string] music [string] text
+	"svc_cdtrack", // [u8] track [u8] looptrack
+	"svc_sellscreen",
+	"svc_cutscene"
+};
 
 void CL_ParseServerMessage()
 { // if recording demos, copy the message out

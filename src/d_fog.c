@@ -130,8 +130,14 @@ static void R_InitDepthCorrection()
 	}}
 }
 
-static u32 lfsr = 0x1337; // non-zero seed
-u32 lfsr_random(){lfsr^=lfsr>>7; lfsr^=lfsr<<9; lfsr^=lfsr>>13; return lfsr;}
+u32 lfsr_random()
+{
+	static u32 lfsr = 0x1337; // non-zero seed
+	lfsr^=lfsr>>7;
+	lfsr^=lfsr<<9;
+	lfsr^=lfsr>>13;
+	return lfsr;
+}
 
 void R_InitFog(f32 noisebias)
 {

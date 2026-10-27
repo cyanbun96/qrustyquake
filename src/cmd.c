@@ -26,8 +26,11 @@ void Cbuf_Init(){ SZ_Alloc(&cmd_text, 1<<18); }
 void Cbuf_Waited(){ cmd_wait = 0; } // Spike: for renderer/server isolation
 s32 Cmd_Argc(){ return cmd_argc; }
 c8 *Cmd_Args(){ return cmd_args; }
-static c8 *cmd_null_string = "";
-c8 *Cmd_Argv(s32 arg){ return arg>=cmd_argc ? cmd_null_string : cmd_argv[arg]; }
+c8 *Cmd_Argv(s32 arg)
+{
+	static c8 *cmd_null_string = "";
+	return arg>=cmd_argc ? cmd_null_string : cmd_argv[arg];
+}
 
 void Cbuf_AddText(const c8 *text)
 { // Adds command text at the end of the buffer

@@ -7,6 +7,22 @@
 const c8 *PR_GlobalString(s32 ofs);
 const c8 *PR_GlobalStringNoContents(s32 ofs);
 
+static const c8 *const pr_extnames[QCEXT_COUNT] =
+{
+	"STD_QC",
+	#define QCEXTENSION(name) #name,
+	QCEXTENSIONS_ALL
+	#undef QCEXTENSION
+};
+
+s32 PR_FindExtensionByName(const c8 *name)
+{
+	for(s32 i = 1; i < QCEXT_COUNT; i++)
+		if(!strcmp(name, pr_extnames[i]))
+			return i;
+	return 0;
+}
+
 static const c8 *pr_opnames[] = {
 	"DONE",
 	"MUL_F", "MUL_V", "MUL_FV", "MUL_VF", "DIV",
@@ -26,22 +42,6 @@ static const c8 *pr_opnames[] = {
 	"STATE", "GOTO",
 	"AND", "OR", "BITAND", "BITOR"
 };
-
-static const c8 *const pr_extnames[QCEXT_COUNT] =
-{
-	"STD_QC",
-	#define QCEXTENSION(name) #name,
-	QCEXTENSIONS_ALL
-	#undef QCEXTENSION
-};
-
-s32 PR_FindExtensionByName(const c8 *name)
-{
-	for(s32 i = 1; i < QCEXT_COUNT; i++)
-		if(!strcmp(name, pr_extnames[i]))
-			return i;
-	return 0;
-}
 
 static void PR_PrintStatement(dstatement_t *s)
 {

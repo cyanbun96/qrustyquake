@@ -2,9 +2,6 @@
 // host.c -- coordinates spawning and killing of local servers
 #include "quakedef.h"
 
-static f64 host_rawframetime;
-static f64 host_time;
-static f64 oldrealtime; // last frame run
 static s32 host_hunklevel;
 static jmp_buf host_abortserver;
 
@@ -116,7 +113,6 @@ void Host_InitLocal()
 	Cvar_RegisterVariable(&cl_nocsqc);
 	Cvar_RegisterVariable(&exitstyle);
 	Host_FindMaxClients();
-	host_time = 1.0; // so a think at time 0 won't get called
 }
 
 void Host_WriteConfiguration()
@@ -303,6 +299,8 @@ f64 Host_GetFrameInterval()
 static void Host_AdvanceTime(f64 dt)
 {
 	realtime += dt;
+	static f64 host_rawframetime;
+	static f64 oldrealtime; // last frame run
 	host_frametime = host_rawframetime = realtime - oldrealtime;
 	oldrealtime = realtime;
 	if(host_timescale.value > 0)

@@ -16,7 +16,6 @@ static u8 *data_p;
 static u8 *iff_end;
 static u8 *last_chunk;
 static u8 *iff_data;
-static s32 iff_chunk_len;
 wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength);
 
 static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
@@ -119,6 +118,7 @@ static void FindNextChunk(const c8 *name)
 			return;
 		}
 		data_p = last_chunk + 4;
+		static s32 iff_chunk_len;
 		iff_chunk_len = GetLittleLong();
 		if(iff_chunk_len < 0 || iff_chunk_len > iff_end - data_p){
 			data_p = NULL;

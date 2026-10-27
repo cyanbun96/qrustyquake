@@ -50,7 +50,6 @@ static s32 d_sfracbasestep, d_tfracbasestep;
 static s32 d_ziextrastep, d_zibasestep;
 static s32 d_pzextrastep, d_pzbasestep;
 static u8 *skintable[MAX_LBM_HEIGHT];
-static s32 skinwidth;
 static s32 ubasestep, errorterm, erroradjustup, erroradjustdown;
 
 edgetable edgetables[12] = {
@@ -359,6 +358,7 @@ nodraw: // recursively continue
 void D_PolysetUpdateTables()
 {
 	static u8 *skinstart;
+	static s32 skinwidth;
 	if(r_affinetridesc.skinwidth != skinwidth ||
 			r_affinetridesc.pskin != skinstart){
 		skinwidth = r_affinetridesc.skinwidth;

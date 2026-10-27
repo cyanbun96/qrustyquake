@@ -6,25 +6,6 @@
 
 static s32 maxlevelnamelen = 0;
 static s32 maxmodnamelen = 0;
-static const c8* const knownmods[][2] = {
-	{"id1",         "Quake"},
-	{"hipnotic",    "Scourge of Armagon"},
-	{"rogue",       "Dissolution of Eternity"},
-	{"dopa",        "Dimension of the Past"},
-	{"mg1",         "Dimension of the Machine"},
-	{"mg3",         "Dawn of the Machine"},
-	{"q64",         "Quake(Nintendo 64)"},
-	{"ctf",         "Capture The Flag"},
-	{"udob",        "Underdark Overbright"},
-	{"ad",          "Arcane Dimensions"},
-	{"quoth",       "Quoth"},
-	{"impel",       "Abyss of Pandemonium"},
-	{"alk1.2",      "Alkaline 1.2"},
-	{"rubicon2",    "Rubicon 2"},
-	{"zer",         "Zerstorer - Testament of the Destroyer"},
-	{"copper",      "Copper"},
-	{"pun",         "The Punishment Due"},
-};
 
 
 void Host_Quit_f()
@@ -1240,6 +1221,26 @@ host_maps_f_fin:
 
 void Modlist_Add(const c8 *name, const c8 *desc)
 { FileList_Add(name, desc, &modlist); }
+
+static const c8* const knownmods[][2] = {
+	{"id1",         "Quake"},
+	{"hipnotic",    "Scourge of Armagon"},
+	{"rogue",       "Dissolution of Eternity"},
+	{"dopa",        "Dimension of the Past"},
+	{"mg1",         "Dimension of the Machine"},
+	{"mg3",         "Dawn of the Machine"},
+	{"q64",         "Quake(Nintendo 64)"},
+	{"ctf",         "Capture The Flag"},
+	{"udob",        "Underdark Overbright"},
+	{"ad",          "Arcane Dimensions"},
+	{"quoth",       "Quoth"},
+	{"impel",       "Abyss of Pandemonium"},
+	{"alk1.2",      "Alkaline 1.2"},
+	{"rubicon2",    "Rubicon 2"},
+	{"zer",         "Zerstorer - Testament of the Destroyer"},
+	{"copper",      "Copper"},
+	{"pun",         "The Punishment Due"},
+};
 
 static const c8 *Modlist_KnownDescription(const c8 *modname)
 {

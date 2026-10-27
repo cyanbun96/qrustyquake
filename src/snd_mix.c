@@ -13,7 +13,6 @@ typedef struct {
 	s32 parity; // 0-3
 	f32 f_c; // cutoff frequency, [0..1], fraction of sample rate
 } filter_t;
-static portable_samplepair_t s_rawsamples[MAX_RAW_SAMPLES];
 static portable_samplepair_t paintbuffer[PAINTBUFFER_SIZE];
 static s32 snd_scaletable[32][256];
 static s32 *snd_p, snd_linear_count;
@@ -263,6 +262,8 @@ void S_PaintChannels(s32 endtime)
 			s32 stop = (end < s_rawend) ? end : s_rawend;
 			for(s32 i = paintedtime; i < stop; i++){
 				s32 s = i & (MAX_RAW_SAMPLES - 1);
+				static portable_samplepair_t
+					s_rawsamples[MAX_RAW_SAMPLES];
 				// lower music by 6db to match sfx
 				paintbuffer[i - paintedtime].left +=
 					s_rawsamples[s].left / 2;
