@@ -8,6 +8,8 @@ typedef struct {
 	s32 iz;
 	s32 s, t;
 	s32 sstep, tstep;
+	s32 ls, lt; // lit water: lightmap cache coords
+	s32 lsstep, ltstep;
 	s32 count;
 } turbchunk_t;
 typedef struct {
@@ -35,22 +37,21 @@ typedef void(*turbspanfunc_t)(turbchunk_t *);
 #define DIST_LUT_SIZE 1024
 #define COS_LUT_SIZE 2048
 enum { TURBTRANS_OPAQUE, TURBTRANS_MIXED, TURBTRANS_DITHERED };
+enum { TURBLIT_NONE, TURBLIT_MONO, TURBLIT_RGB };
 #define TURBFUNC_FILTERED 3
 #define TURBFUNC_LIT 6
-#define TURBFUNC_HL 12
+#define TURBFUNC_HL 18
 
 #define TURBFUNC_INDEX(trans, filtered, lit, hl) \
 ((trans)+TURBFUNC_FILTERED*(filtered)+TURBFUNC_LIT*(lit)+TURBFUNC_HL*(hl))
 
-#define TURB_VARIANTS(X) \
-	X(OPAQUE, 0, 0, 0) X(MIXED, 0, 0, 0) X(DITHERED, 0, 0, 0) \
-	X(OPAQUE, 1, 0, 0) X(MIXED, 1, 0, 0) X(DITHERED, 1, 0, 0) \
-	X(OPAQUE, 0, 1, 0) X(MIXED, 0, 1, 0) X(DITHERED, 0, 1, 0) \
-	X(OPAQUE, 1, 1, 0) X(MIXED, 1, 1, 0) X(DITHERED, 1, 1, 0) \
-	X(OPAQUE, 0, 0, 1) X(MIXED, 0, 0, 1) X(DITHERED, 0, 0, 1) \
-	X(OPAQUE, 1, 0, 1) X(MIXED, 1, 0, 1) X(DITHERED, 1, 0, 1) \
-	X(OPAQUE, 0, 1, 1) X(MIXED, 0, 1, 1) X(DITHERED, 0, 1, 1) \
-	X(OPAQUE, 1, 1, 1) X(MIXED, 1, 1, 1) X(DITHERED, 1, 1, 1)
+#define TURB_VARIANTS_TR(X, f, l, h) \
+	X(OPAQUE, f, l, h) X(MIXED, f, l, h) X(DITHERED, f, l, h)
+#define TURB_VARIANTS_F(X, l, h) \
+	TURB_VARIANTS_TR(X, 0, l, h) TURB_VARIANTS_TR(X, 1, l, h)
+#define TURB_VARIANTS_L(X, h) TURB_VARIANTS_F(X, 0, h) \
+	TURB_VARIANTS_F(X, 1, h) TURB_VARIANTS_F(X, 2, h)
+#define TURB_VARIANTS(X) TURB_VARIANTS_L(X, 0) TURB_VARIANTS_L(X, 1)
 
 #define TURB_DEFINE_CHUNKFUNC(tr, filtered, lit, hl) \
 	Q_SIL void D_TurbChunk_##tr##_##filtered##_##lit##_##hl(turbchunk_t *c)\
@@ -61,11 +62,19 @@ TURB_VARIANTS(TURB_DEFINE_CHUNKFUNC)
 #define TURB_TABLE_ENTRY(tr, filtered, lit, hl) \
 		[TURBFUNC_INDEX(TURBTRANS_##tr, filtered, lit, hl)] = \
 	D_TurbChunk_##tr##_##filtered##_##lit##_##hl,
-	static turbspanfunc_t turbdrawfunc[24] = {
+	static turbspanfunc_t turbdrawfunc[36] = {
 		TURB_VARIANTS(TURB_TABLE_ENTRY)
 	};
 
 static u8 *r_turb_pbase;
+static struct {
+	const u8 *base; // light rows from the lit water surface cache
+	s32 width; // in texels
+	s32 mip;
+	s32 soff, toff; // turb coords minus these = lightmap coords, 16.16
+	s32 smax, tmax;
+	s32 mode;
+} turblight;
 static s32 *r_turb_turb;
 static s16 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
@@ -199,20 +208,6 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 	*v = basev + oy;
 }
 
-static inline u8 D_TurbMixLit(u8 pix, u8 lit)
-{
-	u8 rp = CURWORLDPAL[pix * 3 + 0];
-	u8 gp = CURWORLDPAL[pix * 3 + 1];
-	u8 bp = CURWORLDPAL[pix * 3 + 2];
-	u8 rl = CURWORLDPAL[lit * 3 + 0];
-	u8 gl = CURWORLDPAL[lit * 3 + 1];
-	u8 bl = CURWORLDPAL[lit * 3 + 2];
-	s32 r = rp * rl / 255;
-	s32 g = gp * gl / 255;
-	s32 b = bp * bl / 255;
-	return lit_lut[QUANT(r)][QUANT(g)][QUANT(b)];
-}
-
 static inline s32 D_ClampCoord(s32 v, s32 lo, s32 hi)
 { if(v > hi) return hi; if(v < lo) return lo; return v; }
 
@@ -337,12 +332,20 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	s32 count = c->count;
 	s32 x = 0;
 	s32 y = 0;
+	s32 ls = c->ls;
+	s32 lt = c->lt;
 	const s32 sstep = c->sstep;
 	const s32 tstep = c->tstep;
+	const s32 lsstep = c->lsstep;
+	const s32 ltstep = c->ltstep;
 	const s32 izstep = izistep;
 	const u8 *pbase = r_turb_pbase;
 	const s32 *turb = r_turb_turb;
-	const u8 *litbase = (u8 *)litwater_base;
+	const u8 *lmbase = turblight.base;
+	const s32 lmwidth = turblight.width;
+	const u8 *cmap = CURWORLDCMAP;
+	const s32 *chr = lit_chan[0], *chg = lit_chan[1], *chb = lit_chan[2];
+	const u8 *lut = &lit_lut[0][0][0];
 	const f32 time = cl.time;
 	const f32 ditherthresh = 1 - turb_opacity;
 	const s32 foglut = (trans == TURBTRANS_MIXED) ?
@@ -359,8 +362,16 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 		if(draw){
 			u8 pix = D_TurbSample(pbase, turb, time, s, t, x, y,
 					filtered, hl);
-			if(lit)
-			    pix = D_TurbMixLit(pix,litbase[pdest-d_viewbuffer]);
+			s32 li = (lt >> 16) * lmwidth + (ls >> 16);
+			if(lit == TURBLIT_MONO)
+				pix = cmap[(lmbase[li] << 8) + pix];
+			else if(lit == TURBLIT_RGB){
+				const u8 *l = lmbase + li * 4;
+				u8 ir = cmap[(l[0] << 8) + pix];
+				u8 ig = cmap[(l[1] << 8) + pix];
+				u8 ib = cmap[(l[2] << 8) + pix];
+				pix = lut[chr[ir] + chg[ig] + chb[ib]];
+			}
 			if(trans == TURBTRANS_MIXED)
 				pix = color_mix_lut[pix][*pdest][foglut];
 			*pdest = pix;
@@ -372,6 +383,10 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 		}
 		s += sstep;
 		t += tstep;
+		if(lit){
+			ls += lsstep;
+			lt += ltstep;
+		}
 		x++;
 	}while(--count > 0);
 	c->pdest = pdest;
@@ -384,7 +399,7 @@ static s32 D_TurbFuncIndex()
 	s32 trans = TURBTRANS_OPAQUE;
 	if(r_alphapass)
 		trans = r_alphastyle.value ? TURBTRANS_DITHERED:TURBTRANS_MIXED;
-	return TURBFUNC_INDEX(trans, r_dithertex.value != 0, lmonly != 0,
+	return TURBFUNC_INDEX(trans, r_dithertex.value != 0, turblight.mode,
 			r_hlwater.value != 0);
 }
 
@@ -394,8 +409,10 @@ static turbspanfunc_t D_TurbBegin(f32 opacity)
 	turbspanfunc_t drawspan = turbdrawfunc[D_TurbFuncIndex()];
 	if(r_hlwater.value)
 		InitHLWaterLUT();
-	if(lmonly)
+	if(turblight.mode == TURBLIT_RGB){
 		R_BuildLitLUT();
+		if(lit_chan_pal != CURWORLDPAL) R_BuildLitChan();
+	}
 	if(r_alphastyle.value == 0 && opacity != 1 && opacity)
 		R_BuildColorMixLUT(0);
 	r_turb_turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
@@ -413,6 +430,44 @@ Q_SIL void D_TurbSetChunk(turbchunk_t *c, const spanwalk_t *w)
 	c->count = w->len;
 }
 
+void D_TurbSetLight(const surfcache_t *cache, const msurface_t *pface,
+		s32 mip)
+{ // light rows built by R_DrawSurfaceLight, NULL for unlit water
+	turblight.mode = TURBLIT_NONE;
+	if(!cache)
+		return;
+	turblight.mode = R_LitWaterRGB() ? TURBLIT_RGB : TURBLIT_MONO;
+	turblight.base = cache->data;
+	turblight.width = cache->width;
+	turblight.mip = mip;
+	// tiled gradients offset s and t by 0x20000000 instead of texturemins
+	turblight.soff = 0x20000000 + (pface->texturemins[0] << 16);
+	turblight.toff = 0x20000000 + (pface->texturemins[1] << 16);
+	turblight.smax = ((pface->extents[0] << 16) >> mip) - 1;
+	turblight.tmax = ((pface->extents[1] << 16) >> mip) - 1;
+}
+
+Q_SIL void D_TurbSetLightChunk(turbchunk_t *c, const spanwalk_t *w)
+{ // lightmap coords follow the unwarped texture coords, clamped like them
+	s32 lo = 1 << w->shift;
+	s32 mip = turblight.mip;
+	s32 smax = turblight.smax;
+	s32 tmax = turblight.tmax;
+	c->ls = D_ClampCoord((w->s - turblight.soff) >> mip, 0, smax);
+	c->lt = D_ClampCoord((w->t - turblight.toff) >> mip, 0, tmax);
+	s32 snext = D_ClampCoord((w->snext - turblight.soff) >> mip, lo, smax);
+	s32 tnext = D_ClampCoord((w->tnext - turblight.toff) >> mip, lo, tmax);
+	c->lsstep = 0;
+	c->ltstep = 0;
+	if(w->count){
+		c->lsstep = (snext - c->ls) >> w->shift;
+		c->ltstep = (tnext - c->lt) >> w->shift;
+	}else if(w->len > 1){
+		c->lsstep = (snext - c->ls) / (w->len - 1);
+		c->ltstep = (tnext - c->lt) / (w->len - 1);
+	}
+}
+
 static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 {
 	spanwalk_t w;
@@ -424,6 +479,8 @@ static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 	do{
 		D_SpanWalkNextChunk(&w);
 		D_TurbSetChunk(&c, &w);
+		if(turblight.mode)
+			D_TurbSetLightChunk(&c, &w);
 		drawspan(&c);
 		D_SpanWalkEndChunk(&w);
 	}while(w.count > 0);
@@ -598,23 +655,8 @@ Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
 	return pdest;
 }
 
-static void D_AllocLitWater()
-{
-	litwater_base = malloc(vid.width * vid.height);
-	if(!litwater_base)
-		Sys_Error("Not enough memory for lit water");
-}
-
 static u8 *D_SpanDest(const espan_t *pspan)
-{
-	u8 *base = (u8 *)d_viewbuffer;
-	if(lmonly){
-		if(!litwater_base)
-			D_AllocLitWater();
-		base = (u8 *)litwater_base;
-	}
-	return base + (screenwidth * pspan->v) + pspan->u;
-}
+{ return (u8 *)d_viewbuffer + (screenwidth * pspan->v) + pspan->u; }
 
 Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 {

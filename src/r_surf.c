@@ -158,9 +158,59 @@ texture_t *R_TextureAnimation(texture_t *base)
 	return base;
 }
 
+s32 R_LitWaterRGB()
+{ // lit water caches 4 bytes per texel (r, g, b rows, padding) or 1
+	return lit_loaded && r_rgblighting.value;
+}
+
+static void R_DrawLightChannel(const u32 *lights, u8 *dest, s32 stride)
+{ // R_DrawSurfaceBlock's light interpolation, storing colormap rows
+	s32 bshift = 4 - r_drawsurf.surfmip;
+	s32 bsize = 1 << bshift;
+	s32 lwidth = (r_drawsurf.surf->extents[0] >> 4) + 1;
+	s32 rowbytes = r_drawsurf.rowbytes;
+	s32 hblocks = r_drawsurf.surfwidth >> bshift;
+	s32 vblocks = r_drawsurf.surfheight >> bshift;
+	for(s32 v = 0; v < vblocks; v++)
+	for(s32 u = 0; u < hblocks; u++){
+		const u32 *lp = lights + v * lwidth + u;
+		u8 *pdest = dest + ((v * rowbytes + u * stride) << bshift);
+		s32 ll = lp[0], lr = lp[1];
+		s32 llstep = ((s32)lp[lwidth] - ll) >> bshift;
+		s32 lrstep = ((s32)lp[lwidth + 1] - lr) >> bshift;
+		for(s32 i = 0; i < bsize; i++){
+			s32 lightstep = (ll - lr) >> bshift;
+			s32 light = lr;
+			for(s32 b = bsize - 1; b >= 0; b--){
+				pdest[b * stride] = light >> 8;
+				light += lightstep;
+			}
+			ll += llstep;
+			lr += lrstep;
+			pdest += rowbytes;
+		}
+	}
+}
+
+static void R_DrawSurfaceLight()
+{ // lit water: the texture gets warped and lit per pixel in Turbulent
+	u8 *dest = r_drawsurf.surfdat;
+	if(!R_LitWaterRGB()){
+		R_DrawLightChannel(blocklights, dest, 1);
+		return;
+	}
+	R_DrawLightChannel(blocklights, dest, 4);
+	R_DrawLightChannel(blocklights_g, dest + 1, 4);
+	R_DrawLightChannel(blocklights_b, dest + 2, 4);
+}
+
 s32 R_DrawSurface()
 { // Reworked to support 8-aligned textures by Izhido
 	R_BuildLightMap(); // calculate the lightings
+	if(r_lightonly){
+		R_DrawSurfaceLight();
+		return 0;
+	}
 	surfrowbytes = r_drawsurf.rowbytes;
 	texture_t *mt = r_drawsurf.texture;
 	r_source = (u8 *) mt + mt->offsets[r_drawsurf.surfmip];
@@ -204,7 +254,7 @@ s32 R_DrawSurface()
 		r_lightptr_b = blocklights_b + u;
 		prowdestbase = pcolumndest;
 		pbasesource = basetptr + soffset;
-		if((!lit_loaded && !lmonly) || !r_rgblighting.value)
+		if(!lit_loaded || !r_rgblighting.value)
 			R_DrawSurfaceBlock();
 		else R_DrawSurfaceBlockRGB();
 		soffset = soffset + blocksize;
@@ -255,7 +305,6 @@ void R_DrawSurfaceBlockRGB()
 	const s32 bsize = blocksize, bshift = blockdivshift;
 	const s32 tstep = sourcetstep, rowbytes = surfrowbytes;
 	const s32 lwidth = r_lightwidth;
-	const bool lmo = lmonly;
 	const u32 *lp = r_lightptr, *lp_g = r_lightptr_g, *lp_b = r_lightptr_b;
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
@@ -278,7 +327,7 @@ void R_DrawSurfaceBlockRGB()
 			s32 lightstep_b = (ll_b - lr_b) >> bshift;
 			s32 light = lr, light_g = lr_g, light_b = lr_b;
 			for(s32 b = bsize - 1; b >= 0; b--){
-				u8 tex = lmo ? 15 : psource[b];
+				u8 tex = psource[b];
 				u8 ir = cmap[(light   & 0xFF00) + tex];
 				u8 ig = cmap[(light_g & 0xFF00) + tex];
 				u8 ib = cmap[(light_b & 0xFF00) + tex];

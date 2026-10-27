@@ -329,6 +329,8 @@ void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
 void Turbulent(espan_t *pspan, f32 opacity);
+void D_TurbSetLight(const surfcache_t *cache, const msurface_t *pface, s32 mip);
+s32 R_LitWaterRGB();
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface);
 void D_DrawSkyScansOnlyFog(espan_t *pspan);
 void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface);
@@ -717,7 +719,7 @@ EX s32 d_scantable[MAXHEIGHT];
 EX s16 *zspantable[MAXHEIGHT];
 EX bool r_cache_thrash;                                              // d_surf.c
 EX surfcache_t *sc_rover;
-EX s32 lmonly;
+EX s32 r_lightonly;
 EX s32 drawlayer;                                                      // draw.c
 EX edge_t *last_pcheck[MAXHEIGHT];
 EX quakeparms_t host_parms;                                            // host.c
@@ -750,7 +752,6 @@ EX s32 key_lastpress;                                                  // keys.c
 EX s32 key_count;
 EX c8 *keybindings[256];
 EX c8 chat_buffer[32];
-EX u8 *litwater_base;                                                // d_scan.c
 void R_SetWateralpha_f(cvar_t *var);                                 // r_misc.c
 void R_SetLavaalpha_f(cvar_t *var);
 void R_SetTelealpha_f(cvar_t *var);

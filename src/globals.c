@@ -146,7 +146,7 @@ u32 sb_updates; // if >= vid.numpages, no update needed                // sbar.c
 s32 sb_lines; // scan lines to draw
 bool r_cache_thrash; // set if surface cache is thrashing            // d_surf.c
 surfcache_t *sc_rover;
-s32 lmonly; // render lightmap only, for lit water
+s32 r_lightonly; // cache light rows only, for lit water
 s32 drawlayer = 0;                                                     // draw.c
 qpic_t *draw_disc;
 quakeparms_t host_parms;                                               // host.c
@@ -171,7 +171,6 @@ s32 key_count; // incremented every key event
 c8 *keybindings[256];
 c8 chat_buffer[32];
 bool team_message = 0;
-u8 *litwater_base;                                                   // d_scan.c
 bool insubmodel; // current entity info                               // r_bsp.c
 entity_t *currententity;
 vec3_t modelorg, base_modelorg; // viewpoint reletive to currently rendering ent

@@ -152,7 +152,7 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 		D_DrawSpans(s->spans, SPAN_TRANS, opacity);
 }
 
-static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
+static void D_DrawWater(surf_t *s, msurface_t *pface, f32 opacity)
 { // Manoel Kasimier
 	r_drawnpolycount++;
 	cacheblock = (u8*)((u8*)pface->texinfo->texture
@@ -164,29 +164,28 @@ static void D_DrawUnlitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	if(!r_alphapass) D_DrawZSpans(s->spans);
 }
 
+static void D_FitLitWaterMip(msurface_t *pface)
+{ // RGB light rows take 4 bytes per texel, D_SCAlloc caps a block at 64k
+	s32 bpp = R_LitWaterRGB() ? 4 : 1;
+	D_FitMipLevel(pface);
+	while(miplevel < MIPLEVELS-1 && (pface->extents[0] >> miplevel)
+			* (pface->extents[1] >> miplevel) * bpp > 0x10000)
+		miplevel++;
+}
+
 static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
-{ // FIXME this is horrible.
+{ // the cache holds only light rows, Turbulent applies them per pixel
 	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
 			* pface->texinfo->mipadjust);
-	lmonly = 1; // this is how we know it's lit water that we're drawing
-	D_FitMipLevel(pface);
+	D_FitLitWaterMip(pface);
+	r_lightonly = 1; // tells D_CacheSurface it's caching lit water
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if(pcurrentcache == NULL){ s->spans = 0; return; }
-	r_drawnpolycount++;
-	cacheblock = (u8*) pcurrentcache->data;
-	cachewidth = pcurrentcache->width;
-	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface, 0);
-	D_DrawSpans(s->spans, SPAN_NORMAL, 0);//draw lightmap to separate buffer
-	miplevel = 0;
-	cacheblock = (u8*)pface->texinfo->texture
-		+ pface->texinfo->texture->offsets[0];
-	cachewidth = 64;
-	cacheheight = 64;
-	D_CalcGradients(pface, 1);
-	Turbulent(s->spans, opacity);
-	if(!r_alphapass) D_DrawZSpans(s->spans);
-	lmonly = 0;
+	r_lightonly = 0;
+	s32 lightmip = miplevel;
+	miplevel = 0; // the water texture itself is tiled at full res
+	D_TurbSetLight(pcurrentcache, pface, lightmip); // unlit if NULL
+	D_DrawWater(s, pface, opacity);
+	D_TurbSetLight(NULL, NULL, 0);
 }
 
 static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
@@ -305,7 +304,7 @@ void D_DrawSurfaces()
 			}
 			if(!s->entity->model->haslitwater || !r_litwater.value
 				|| !pface->samples) // lit water has samples
-				D_DrawUnlitWater(s, pface, opacity);
+				D_DrawWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
 			s->spans = NULL;
@@ -365,7 +364,7 @@ void D_DrawSurfacesAlpha()
 				opacity -= R_LiquidAlphaForFlags(s->flags);
 			if(!s->entity->model->haslitwater || !r_litwater.value
 				|| !pface->samples) // lit water has samples
-				D_DrawUnlitWater(s, pface, opacity);
+				D_DrawWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
 		}else if(is_ent && s->entity->alpha && r_entalpha.value == 1)

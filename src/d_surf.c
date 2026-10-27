@@ -182,11 +182,13 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
+	if(r_lightonly && R_LitWaterRGB())
+		r_drawsurf.rowbytes *= 4;
 	r_drawsurf.surfheight = surface->extents[1] >> miplevel;
 	// allocate memory if needed
 	if(!cache){ // if a texture just animated, don't reallocate it
 		cache = D_SCAlloc(r_drawsurf.surfwidth,
-				  r_drawsurf.surfwidth * r_drawsurf.surfheight);
+				  r_drawsurf.rowbytes * r_drawsurf.surfheight);
 		if(cache == NULL) return NULL;
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
