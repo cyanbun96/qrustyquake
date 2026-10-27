@@ -230,6 +230,10 @@ static inline void R_CoarseOccRowFill(s32 y, s32 x0, s32 x1,
 	}
 }
 
+// ceilf and floorf without the libm call
+Q_SIL s32 R_CoarseOccCeil(f32 x)  { s32 i = (s32)x; return i + ((f32)i < x); }
+Q_SIL s32 R_CoarseOccFloor(f32 x) { s32 i = (s32)x; return i - ((f32)i > x); }
+
 // Are all tiles a..b (inclusive, all known to be set) covered by something
 // that is in front of 1/z value zi everywhere in them?
 static inline bool R_CoarseOccZiInFront(const f32 *zirow, s32 a, s32 b, f32 zi)
@@ -358,8 +362,8 @@ static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
 	// rows from ceil(top) to ceil(bottom) - 1, like R_EmitEdge. The
 	// viewport edges are exact (the polygon was clipped to them),
 	// everything else keeps a safety margin.
-	s32 y0 = ymin <= 0.0f ? 0 : (s32)ceilf(ymin + m);
-	s32 y1 = (s32)ceilf(ymax - m) - 1;
+	s32 y0 = ymin <= 0.0f ? 0 : R_CoarseOccCeil(ymin + m);
+	s32 y1 = R_CoarseOccCeil(ymax - m) - 1;
 	if(y1 >= vh) y1 = vh - 1;
 	if(y0 > y1)
 		return;
@@ -380,7 +384,7 @@ static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
 		f32 slope = (b.x - a.x) / dy;
 		f32 xmin = a.x < b.x ? a.x : b.x;
 		f32 xmax = a.x < b.x ? b.x : a.x;
-		s32 ya = (s32)ceilf(a.y), yb = (s32)floorf(b.y);
+		s32 ya = R_CoarseOccCeil(a.y), yb = R_CoarseOccFloor(b.y);
 		if(ya < y0) ya = y0;
 		if(yb > y1) yb = y1;
 		for(s32 y = ya; y <= yb; y++){
@@ -395,8 +399,8 @@ static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
 		if(xl[y] > xr[y])
 			continue;
 		// columns from ceil(left) to ceil(right) - 1
-		s32 x0 = xl[y] <= 0.0f ? 0 : (s32)ceilf(xl[y] + m);
-		s32 x1 = (s32)ceilf(xr[y] - m) - 1;
+		s32 x0 = xl[y] <= 0.0f ? 0 : R_CoarseOccCeil(xl[y] + m);
+		s32 x1 = R_CoarseOccCeil(xr[y] - m) - 1;
 		if(xr[y] >= (f32)vw) x1 = vw - 1;
 		if(x1 >= vw) x1 = vw - 1;
 		if(x0 <= x1)
