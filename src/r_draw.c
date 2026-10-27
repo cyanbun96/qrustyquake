@@ -643,23 +643,59 @@ static bool R_CoarseOccBoxCovered(const f32 *mn, const f32 *mx, bool depth)
 	const f32 m = COARSE_OCCLUSION_MARGIN;
 	const f32 invt = 1.0f / (f32)COARSE_OCCLUSION_TILE_SIZE;
 	const s32 tw = r_coarse_occlusion_width, th = r_coarse_occlusion_height;
+	// The view space corners are the transformed min corner plus some of
+	// the transformed box edges along each axis
+	vec3_t base, ax[3], t;
+	VectorSubtract(mn, r_origin, t);
+	TransformVector(t, base);
+	f32 minz = base[2];
+	for(s32 k = 0; k < 3; k++){
+		f32 d = mx[k] - mn[k];
+		ax[k][0] = d * vright[k];
+		ax[k][1] = d * vup[k];
+		ax[k][2] = d * vpn[k];
+		if(ax[k][2] < 0) minz += ax[k][2];
+	}
+	if(minz <= NEAR_CLIP) return false; // reaches the near plane
+	// The center is inside the box, so the tile it's on is touched: a
+	// cheap early out for the common "visible" case, as in PolyCovered.
+	for(s32 j = 0; j < 3; j++)
+		t[j] = base[j] + 0.5f * (ax[0][j] + ax[1][j] + ax[2][j]);
+	f32 zi = 1.0f / t[2];
+	f32 x = xcenter + xscale * zi * t[0] - (f32)r_refdef.vrect.x;
+	f32 y = ycenter - yscale * zi * t[1] - (f32)r_refdef.vrect.y;
+	if(x >= 0 && x < r_coarse_occ_vw && y >= 0 && y < r_coarse_occ_vh){
+		s32 tx = (s32)(x * invt), ty = (s32)(y * invt);
+		const u64 *row = r_coarse_occlusion_bits +
+			(size_t)ty * r_coarse_occlusion_words;
+		if(!((row[tx >> 6] >> (tx & 63)) & 1))
+			return false;
+		// the box's nearest point is at least as near
+		if(depth && !R_CoarseOccZiInFront(r_coarse_occlusion_zi
+				+ (size_t)ty * tw, tx, tx, zi))
+			return false;
+	}
+	f32 cx[8], cy[8], cz[8];
+	for(s32 i = 0; i < 8; i++){
+		cx[i] = base[0], cy[i] = base[1], cz[i] = base[2];
+		for(s32 k = 0; k < 3; k++)
+			if((i >> k) & 1){
+				cx[i] += ax[k][0];
+				cy[i] += ax[k][1];
+				cz[i] += ax[k][2];
+			}
+	}
 	f32 minx = FLT_MAX, maxx = -FLT_MAX, miny = FLT_MAX, maxy = -FLT_MAX;
 	f32 nearzi = 0;
 	for(s32 i = 0; i < 8; i++){
-		vec3_t corner, local, t;
-		for(s32 k = 0; k < 3; k++)
-			corner[k] = (i >> k) & 1 ? mx[k] : mn[k];
-		VectorSubtract(corner, r_origin, local);
-		TransformVector(local, t);
-		if(t[2] <= NEAR_CLIP) return false; // reaches the near plane
-		f32 zi = 1.0f / t[2];
-		if(zi > nearzi) nearzi = zi;
-		f32 x = xcenter + xscale * zi * t[0];
-		f32 y = ycenter - yscale * zi * t[1];
-		if(x < minx) minx = x;
-		if(x > maxx) maxx = x;
-		if(y < miny) miny = y;
-		if(y > maxy) maxy = y;
+		f32 zi = 1.0f / cz[i];
+		f32 x = xcenter + xscale * zi * cx[i];
+		f32 y = ycenter - yscale * zi * cy[i];
+		nearzi = zi > nearzi ? zi : nearzi;
+		minx = x < minx ? x : minx;
+		maxx = x > maxx ? x : maxx;
+		miny = y < miny ? y : miny;
+		maxy = y > maxy ? y : maxy;
 	}
 	minx -= (f32)r_refdef.vrect.x; maxx -= (f32)r_refdef.vrect.x;
 	miny -= (f32)r_refdef.vrect.y; maxy -= (f32)r_refdef.vrect.y;
