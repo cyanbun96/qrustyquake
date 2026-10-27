@@ -3,11 +3,7 @@
 #include "quakedef.h"
 
 static s32 lightleft, blocksize, sourcetstep;
-static s32 lightleft_g;
-static s32 lightleft_b;
 static s32 lightright, lightleftstep, lightrightstep, blockdivshift;
-static s32 lightright_g, lightleftstep_g, lightrightstep_g;
-static s32 lightright_b, lightleftstep_b, lightrightstep_b;
 static unsigned blockdivmask;
 static void *prowdestbase;
 static u8 *pbasesource;
@@ -24,7 +20,6 @@ static u32 blocklights_g[18 * 18];
 static u32 blocklights_b[18 * 18];
 
 void R_DrawSurfaceBlock();
-void R_DrawSurfaceBlockRGBMono();
 void R_DrawSurfaceBlockRGB();
 
 void R_AddDynamicLights()
@@ -138,6 +133,10 @@ void R_BuildLightMap()
 			t = 64;
 		blocklights_b[i] = t;
 	}
+	if(!r_rgblighting.value) // mono: average the channels per sample
+		for(s32 i = 0; i < size; i++)
+			blocklights[i] = (blocklights[i] + blocklights_g[i]
+					+ blocklights_b[i]) / 3;
 }
 
 texture_t *R_TextureAnimation(texture_t *base)
@@ -204,8 +203,8 @@ s32 R_DrawSurface()
 		r_lightptr_b = blocklights_b + u;
 		prowdestbase = pcolumndest;
 		pbasesource = basetptr + soffset;
-		if(!lit_loaded&&!lmonly) R_DrawSurfaceBlock();
-		else if(!r_rgblighting.value) R_DrawSurfaceBlockRGBMono();
+		if((!lit_loaded && !lmonly) || !r_rgblighting.value)
+			R_DrawSurfaceBlock();
 		else R_DrawSurfaceBlockRGB();
 		soffset = soffset + blocksize;
 		if(soffset >= smax)
@@ -237,55 +236,6 @@ void R_DrawSurfaceBlock()
 			psource += sourcetstep;
 			lightright += lightrightstep;
 			lightleft += lightleftstep;
-			prowdest += surfrowbytes;
-		}
-		if(psource >= r_sourcemax)
-			psource -= r_stepback;
-	}
-}
-
-void R_DrawSurfaceBlockRGBMono()
-{
-	u8 *psource = pbasesource;
-	u8 *prowdest = prowdestbase;
-	for(s32 v = 0; v < r_numvblocks; v++){
-		// FIXME: make these locals?
-		// FIXME: use delta rather than both right and left, like ASM?
-		lightleft = r_lightptr[0]; // Red
-		lightright = r_lightptr[1];
-		r_lightptr += r_lightwidth;
-		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
-		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
-		lightleft_g = r_lightptr_g[0]; // Green
-		lightright_g = r_lightptr_g[1];
-		r_lightptr_g += r_lightwidth;
-		lightleftstep_g=(r_lightptr_g[0]-lightleft_g)>>blockdivshift;
-		lightrightstep_g =(r_lightptr_g[1]-lightright_g)>>blockdivshift;
-		lightleft_b = r_lightptr_b[0]; // Blue
-		lightright_b = r_lightptr_b[1];
-		r_lightptr_b += r_lightwidth;
-		lightleftstep_b=(r_lightptr_b[0]-lightleft_b)>>blockdivshift;
-		lightrightstep_b=(r_lightptr_b[1]-lightright_b)>>blockdivshift;
-		for(s32 i = 0; i < blocksize; i++){
-			s32 lighttemp = lightleft - lightright; // Red
-			s32 lightstep = lighttemp >> blockdivshift;
-			s32 light = lightright;
-			s32 light_g = lightright_g;
-			s32 light_b = lightright_b;
-			for(s32 b = blocksize - 1; b >= 0; b--){
-				u8 pix = psource[b];
-				s32 lightavg = ((light&0xFF00) +
-					(light_g&0xFF00) + (light_b&0xFF00))/3;
-				prowdest[b]=CURWORLDCMAP[(lightavg&0xFF00)+pix];
-				light += lightstep;
-			}
-			psource += sourcetstep;
-			lightright += lightrightstep;
-			lightleft += lightleftstep;
-			lightright_g += lightrightstep_g;
-			lightleft_g += lightleftstep_g;
-			lightright_b += lightrightstep_b;
-			lightleft_b += lightleftstep_b;
 			prowdest += surfrowbytes;
 		}
 		if(psource >= r_sourcemax)
