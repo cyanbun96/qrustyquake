@@ -467,6 +467,7 @@ typedef struct model_s {
 	vec3_t clipmins, clipmaxs;
 	s32 firstmodelsurface, nummodelsurfaces; // brush model
 	bool facetree; // each face is on exactly one of its nodes, see model.c
+	bool translucentfaces; // has SURF_WINQUAKE_DRAWTRANSLUCENT faces
 	s32 numsubmodels;
 	dmodel_t *submodels;
 	s32 numplanes;

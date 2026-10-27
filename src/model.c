@@ -1977,6 +1977,11 @@ visdone:
 		mod->firstmodelsurface = bm->firstface;
 		mod->nummodelsurfaces = bm->numfaces;
 		Mod_SetupFaceTree(mod);
+		mod->translucentfaces = 0;
+		for(s32 j = 0; j < mod->nummodelsurfaces; j++)
+			if(mod->surfaces[mod->firstmodelsurface + j].flags &
+					SURF_WINQUAKE_DRAWTRANSLUCENT)
+				mod->translucentfaces = 1;
 		VectorCopy(bm->maxs, mod->maxs);
 		VectorCopy(bm->mins, mod->mins);
 		//johnfitz -- calculate rotate bounds and yaw bounds

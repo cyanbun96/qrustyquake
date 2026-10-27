@@ -921,6 +921,10 @@ static void R_DrawBrushEntity(vec3_t oldorigin)
 	f32 minmaxs[6];
 	if(!R_SetupBmodelAlpha(currententity))
 		return;
+	// none of its faces get drawn in the alpha pass, see R_SurfaceInPass
+	if(r_alphapass && !(cur_ent_alpha < 1 && r_entalpha.value == 1) &&
+			(currententity->alpha || !clmodel->translucentfaces))
+		return;
 	// see if the bounding box lets us trivially reject
 	// also sets trivial accept status
 	R_BmodelWorldBounds(currententity, minmaxs);
