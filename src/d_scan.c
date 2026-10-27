@@ -505,16 +505,42 @@ Q_SIL u8 *D_SpanChunkCutout(texcursor_t *c, u8 *pdest, s32 dithered)
 	return pdest;
 }
 
+// The skybox texels with the sky fog applied, NULL without fog
+static const u8 *d_skyfog;
+
+static void D_SkyFogSetup()
+{
+	static u8 tab[256];
+	static s64 frame = -1;
+	static s32 pal = -1, lut = -1;
+	s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
+	d_skyfog = NULL;
+	if(!(fog_density > 0))
+		return;
+	if(frame != r_framecount || pal != fog_pal_index || lut != foglut){
+		for(s32 i = 0; i < 256; i++)
+			tab[i] = color_mix_lut[i][fog_pal_index][foglut];
+		frame = r_framecount;
+		pal = fog_pal_index;
+		lut = foglut;
+	}
+	d_skyfog = tab;
+}
+
 Q_SIL u8 *D_SpanChunkSkybox(texcursor_t *c, u8 *pdest, s32 dithered)
 {
-	s32 foglut = r_skyfog.value*FOG_LUT_LEVELS;
-	do{
-		u8 pix = D_CursorTexel(c, dithered);
-		if(fog_density > 0)
-			pix = color_mix_lut[pix][fog_pal_index][foglut];
-		*pdest++ = pix;
-		D_CursorAdvance(c);
-	}while(--c->count > 0);
+	const u8 *fog = d_skyfog;
+	if(fog){
+		do{
+			*pdest++ = fog[D_CursorTexel(c, dithered)];
+			D_CursorAdvance(c);
+		}while(--c->count > 0);
+	}else{
+		do{
+			*pdest++ = D_CursorTexel(c, dithered);
+			D_CursorAdvance(c);
+		}while(--c->count > 0);
+	}
 	return pdest;
 }
 
@@ -594,6 +620,8 @@ Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 {
 	s32 depthtested = (type == SPAN_TRANS || type == SPAN_CUTOUT);
 	D_SpanDepthSetup();
+	if(type == SPAN_SKYBOX)
+		D_SkyFogSetup();
 	do{
 		spanwalk_t w;
 		u8 *pdest = D_SpanDest(pspan);
