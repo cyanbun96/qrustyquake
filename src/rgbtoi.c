@@ -101,9 +101,21 @@ void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 	fog_lut_built = 1;
 }
 
+void R_BuildLitChan()
+{
+	u8 *pal = CURWORLDPAL;
+	for(s32 i = 0; i < 256; ++i){
+		lit_chan[0][i] = QUANT(pal[i*3+0]) * LIT_LUT_RES * LIT_LUT_RES;
+		lit_chan[1][i] = QUANT(pal[i*3+1]) * LIT_LUT_RES;
+		lit_chan[2][i] = QUANT(pal[i*3+2]);
+	}
+	lit_chan_pal = pal;
+}
+
 void R_BuildLitLUT()
 {
 	if(lit_lut_initialized) return;
+	R_BuildLitChan();
 	u8(*convfunc)(u8,u8,u8) = r_labmixpal.value == 1 ? rgbtoi_lab : rgbtoi;
 	for(s32 r = 0; r < LIT_LUT_RES; ++r){
 	for(s32 g = 0; g < LIT_LUT_RES; ++g){

@@ -3,6 +3,8 @@ u8 color_mix_lut[256][256][FOG_LUT_LEVELS];                          // rgbtoi.c
 s32 fog_lut_built = 0;
 u8 lit_lut[LIT_LUT_RES][LIT_LUT_RES][LIT_LUT_RES];
 u8 lit_lut_initialized = 0;
+s32 lit_chan[3][256];
+u8 *lit_chan_pal;
 s32 fog_initialized = 0;                                              // d_fog.c
 f32 fog_density;
 u8 fog_pal_index;

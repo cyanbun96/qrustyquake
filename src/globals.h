@@ -5,6 +5,9 @@
 EX u8 color_mix_lut[256][256][FOG_LUT_LEVELS];                       // rgbtoi.c
 EX u8 lit_lut[LIT_LUT_RES][LIT_LUT_RES][LIT_LUT_RES];
 EX u8 lit_lut_initialized;
+// QUANT of each channel of each CURWORLDPAL color, times its lit_lut stride
+EX s32 lit_chan[3][256];
+EX u8 *lit_chan_pal; // the palette lit_chan was built from
 EX s32 fog_lut_built;
 void R_BuildColorMixLUT(cvar_t *cvar);
 u32 lfsr_random();
@@ -526,6 +529,7 @@ void R_MarkLights(dlight_t *light, s32 bit, mnode_t *node);
 u8 rgbtoi_lab(u8 r, u8 g, u8 b);
 u8 rgbtoi(u8 r, u8 g, u8 b);
 void R_BuildLitLUT();
+void R_BuildLitChan();
 f32 R_LiquidAlphaForFlags(s32 flags);
 void R_PrintDSpeeds();
 EX client_state_t cl;                                                // client.h

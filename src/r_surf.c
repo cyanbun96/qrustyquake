@@ -296,71 +296,59 @@ void R_DrawSurfaceBlockRGBMono()
 void R_DrawSurfaceBlockRGB()
 {
 	if(!lit_lut_initialized) R_BuildLitLUT();
+	if(lit_chan_pal != CURWORLDPAL) R_BuildLitChan();
+	// locals, as the stores to prowdest could alias any global
+	const u8 *cmap = CURWORLDCMAP;
+	const s32 *chr = lit_chan[0], *chg = lit_chan[1], *chb = lit_chan[2];
+	const u8 *lut = &lit_lut[0][0][0];
+	const s32 bsize = blocksize, bshift = blockdivshift;
+	const s32 tstep = sourcetstep, rowbytes = surfrowbytes;
+	const s32 lwidth = r_lightwidth;
+	const bool lmo = lmonly;
+	const u32 *lp = r_lightptr, *lp_g = r_lightptr_g, *lp_b = r_lightptr_b;
 	u8 *psource = pbasesource;
 	u8 *prowdest = prowdestbase;
 	for(s32 v = 0; v < r_numvblocks; v++){
-		lightleft = r_lightptr[0]; // Red
-		lightright = r_lightptr[1];
-		r_lightptr += r_lightwidth;
-		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
-		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
-		lightleft_g = r_lightptr_g[0]; // Green
-		lightright_g = r_lightptr_g[1];
-		r_lightptr_g += r_lightwidth;
-		lightleftstep_g=(r_lightptr_g[0]-lightleft_g)>>blockdivshift;
-		lightrightstep_g=(r_lightptr_g[1]-lightright_g)>>blockdivshift;
-		lightleft_b = r_lightptr_b[0]; // Blue
-		lightright_b = r_lightptr_b[1];
-		r_lightptr_b += r_lightwidth;
-		lightleftstep_b=(r_lightptr_b[0]-lightleft_b)>>blockdivshift;
-		lightrightstep_b=(r_lightptr_b[1]-lightright_b)>>blockdivshift;
-		for(s32 i = 0; i < blocksize; i++){
-			s32 lighttemp = lightleft - lightright; // Red
-			s32 lightstep = lighttemp >> blockdivshift;
-			s32 light = lightright;
-			s32 lighttemp_g = lightleft_g - lightright_g; // Green
-			s32 lightstep_g = lighttemp_g >> blockdivshift;
-			s32 light_g = lightright_g;
-			s32 lighttemp_b = lightleft_b - lightright_b; // Blue
-			s32 lightstep_b = lighttemp_b >> blockdivshift;
-			s32 light_b = lightright_b;
-			for(s32 b = blocksize - 1; !lmonly && b >= 0; b--){
-				u8 tex = psource[b];
-				u8 ir = CURWORLDCMAP[(light   & 0xFF00) + tex];
-				u8 ig = CURWORLDCMAP[(light_g & 0xFF00) + tex];
-				u8 ib = CURWORLDCMAP[(light_b & 0xFF00) + tex];
-				u8 r_ = CURWORLDPAL[ir * 3 + 0];
-				u8 g_ = CURWORLDPAL[ig * 3 + 1];
-				u8 b_ = CURWORLDPAL[ib * 3 + 2];
-				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)]
-								[QUANT(b_)];
+		s32 ll = lp[0], lr = lp[1]; // Red
+		s32 ll_g = lp_g[0], lr_g = lp_g[1]; // Green
+		s32 ll_b = lp_b[0], lr_b = lp_b[1]; // Blue
+		lp += lwidth;
+		lp_g += lwidth;
+		lp_b += lwidth;
+		s32 llstep = ((s32)lp[0] - ll) >> bshift;
+		s32 lrstep = ((s32)lp[1] - lr) >> bshift;
+		s32 llstep_g = ((s32)lp_g[0] - ll_g) >> bshift;
+		s32 lrstep_g = ((s32)lp_g[1] - lr_g) >> bshift;
+		s32 llstep_b = ((s32)lp_b[0] - ll_b) >> bshift;
+		s32 lrstep_b = ((s32)lp_b[1] - lr_b) >> bshift;
+		for(s32 i = 0; i < bsize; i++){
+			s32 lightstep = (ll - lr) >> bshift;
+			s32 lightstep_g = (ll_g - lr_g) >> bshift;
+			s32 lightstep_b = (ll_b - lr_b) >> bshift;
+			s32 light = lr, light_g = lr_g, light_b = lr_b;
+			for(s32 b = bsize - 1; b >= 0; b--){
+				u8 tex = lmo ? 15 : psource[b];
+				u8 ir = cmap[(light   & 0xFF00) + tex];
+				u8 ig = cmap[(light_g & 0xFF00) + tex];
+				u8 ib = cmap[(light_b & 0xFF00) + tex];
+				prowdest[b] = lut[chr[ir] + chg[ig] + chb[ib]];
 				light += lightstep;
 				light_g += lightstep_g;
 				light_b += lightstep_b;
 			}
-			for(s32 b = blocksize - 1; lmonly && b >= 0; b--){
-				u8 ir = CURWORLDCMAP[(light   & 0xFF00)+15];
-				u8 ig = CURWORLDCMAP[(light_g & 0xFF00)+15];
-				u8 ib = CURWORLDCMAP[(light_b & 0xFF00)+15];
-				u8 r_ = CURWORLDPAL[ir * 3 + 0];
-				u8 g_ = CURWORLDPAL[ig * 3 + 1];
-				u8 b_ = CURWORLDPAL[ib * 3 + 2];
-				prowdest[b] = lit_lut[QUANT(r_)][QUANT(g_)]
-								[QUANT(b_)];
-				light += lightstep;
-				light_g += lightstep_g;
-				light_b += lightstep_b;
-			}
-			psource += sourcetstep;
-			lightright += lightrightstep;
-			lightleft += lightleftstep;
-			lightright_g += lightrightstep_g;
-			lightleft_g += lightleftstep_g;
-			lightright_b += lightrightstep_b;
-			lightleft_b += lightleftstep_b;
-			prowdest += surfrowbytes;
+			psource += tstep;
+			lr += lrstep;
+			ll += llstep;
+			lr_g += lrstep_g;
+			ll_g += llstep_g;
+			lr_b += lrstep_b;
+			ll_b += llstep_b;
+			prowdest += rowbytes;
 		}
 		if(psource >= r_sourcemax)
 			psource -= r_stepback;
 	}
+	r_lightptr = (unsigned *)lp;
+	r_lightptr_g = (unsigned *)lp_g;
+	r_lightptr_b = (unsigned *)lp_b;
 }
