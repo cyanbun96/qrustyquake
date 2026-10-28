@@ -412,21 +412,33 @@ void R_InitSky(texture_t *mt)
 			break;
 		}
 	}
+	// skies of any other size get sampled down or up to it
 	u8 *src = (u8 *) mt + mt->offsets[0];
+	s32 w = mt->width, h = mt->height, half = w / 2;
+	if(half < 1){
+		Con_Printf("Sky %.16s is too small (%dx%d)\n", mt->name, w, h);
+		memset(r_skysource[newi], 0, sizeof(r_skysource[newi]));
+		memset(bottomsky[newi], 0, sizeof(bottomsky[newi]));
+		memset(bottommask[newi], 0xff, sizeof(bottommask[newi]));
+		return;
+	}
+	// row i, column j of a 128x128 layer; the left half is the front
+#define SKYSRC(i, j, left) src[(i) * h / 128 * w + (left) + (j) * half / 128]
 	for(s32 i = 0; i < 128; i++)
 		for(s32 j = 0; j < 128; j++)
-			r_skysource[newi][(i*256)+j+128] = src[i*256+j+128];
+			r_skysource[newi][(i*256)+j+128] = SKYSRC(i, j, half);
 	for(s32 i = 0; i < 128; i++)
 		for(s32 j = 0; j < 131; j++){
-			if(src[i * 256 + (j & 0x7F)]){
+			if(SKYSRC(i, j & 0x7F, 0)){
 				bottomsky[newi][(i * 131) + j] =
-				    src[i * 256 + (j & 0x7F)];
+				    SKYSRC(i, j & 0x7F, 0);
 				bottommask[newi][(i * 131) + j] = 0;
 			}else{
 				bottomsky[newi][(i * 131) + j] = 0;
 				bottommask[newi][(i * 131) + j] = 0xff;
 			}
 		}
+#undef SKYSRC
 }
 
 void R_MakeSky(texture_t *mt)
