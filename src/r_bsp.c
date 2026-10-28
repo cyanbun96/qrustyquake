@@ -430,6 +430,7 @@ void R_RenderWorld()
 		r_worldpass++;
 		R_RecursiveWorldNode(clmodel->nodes, 15);
 	}
-	if(r_skyframe == r_framecount)
+	// the alpha pass draws no sky, its z-buffer is already in place
+	if(r_skyframe == r_framecount && !r_alphapass)
 		R_EmitSkyBox();
 }

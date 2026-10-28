@@ -340,13 +340,41 @@ void D_DrawSurfaces()
 	}
 }
 
+// Translucent surfaces get all of their pixels, so they have to be blended
+// back to front. A lower key is nearer, faces with keys of their own sort
+// exactly. Brush entity faces share the key of their leaf, between those the
+// one with the farther nearest point goes first.
+static s32 D_AlphaSurfCmp(const void *pa, const void *pb)
+{
+	const surf_t *a = *(surf_t *const *)pa, *b = *(surf_t *const *)pb;
+	if(a->key != b->key)
+		return (a->key < b->key) == !r_draworder.value ? 1 : -1;
+	if(a->nearzi != b->nearzi)
+		return a->nearzi > b->nearzi ? 1 : -1;
+	return a < b ? -1 : a > b; // keep the emission order
+}
+
 void D_DrawSurfacesAlpha()
 {
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
-	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
-		if(!s->spans) continue;
+	static surf_t **order;
+	static s32 order_cap;
+	if(order_cap < r_lsurfs_size){
+		free(order);
+		order = malloc(r_lsurfs_size * sizeof(*order));
+		if(!order)
+			Sys_Error("D_DrawSurfacesAlpha: out of memory");
+		order_cap = r_lsurfs_size;
+	}
+	s32 count = 0;
+	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
+		if(s->spans)
+			order[count++] = s;
+	qsort(order, count, sizeof(*order), D_AlphaSurfCmp);
+	for(s32 i = 0; i < count; i++){
+		surf_t *s = order[i];
 		msurface_t *pface = s->data;
 		u64 is_ent = (u64)s->entity & 0xffff000ull;
 		if(!(s->flags&SURF_DRAWTURB) && !is_ent) continue;

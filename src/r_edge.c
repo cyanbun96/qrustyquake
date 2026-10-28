@@ -26,6 +26,7 @@ static f32 fv;
 static void(*pdrawfunc)(bool step);
 static void R_GenerateSpans(bool step);
 static void R_GenerateSpansBackward(bool step);
+static void R_GenerateSpansAlpha(bool step);
 
 // Cutout/skybox bookkeeping. For every such surface we collect the rightmost
 // leading edge and the leftmost trailing edge while walking the active edge
@@ -38,6 +39,10 @@ static s32 cut_count; // valid entries in cut_list
 static s32 cut_surfs; // cutout/skybox surfaces in this frame
 static s32 cut_right0; // reset value of cutspan_t.right
 
+// In the alpha pass every surface but the background is drawn like a cutout
+static bool R_IsCutSurf(const surf_t *s)
+{ return r_alphapass ? s != &surfaces[1] : (s->flags & SURF_CUTMASK) != 0; }
+
 // Decides whether this frame has any cutout/skybox surfaces at all and, if so,
 // resets their accumulators. Must run after the surfaces have been emitted.
 static void R_CutoutBeginFrame()
@@ -45,7 +50,7 @@ static void R_CutoutBeginFrame()
 	cut_surfs = 0;
 	cut_count = 0;
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
-		if(s->flags & SURF_CUTMASK)
+		if(R_IsCutSurf(s))
 			cut_surfs++;
 	if(!cut_surfs)
 		return;
@@ -62,7 +67,7 @@ static void R_CutoutBeginFrame()
 	}
 	cut_right0 = (s32)r_refdef.vrectright;
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
-		if(!(s->flags & SURF_CUTMASK))
+		if(!R_IsCutSurf(s))
 			continue;
 		cut_acc[s - surfaces].left = CUT_IDLE;
 		cut_acc[s - surfaces].right = cut_right0;
@@ -90,6 +95,8 @@ void R_BeginEdgeFrame()
 		surfaces[1].key = 0x7FFFFFFF;
 		r_currentkey = 0;
 	}
+	if(r_alphapass)
+		pdrawfunc = R_GenerateSpansAlpha;
 	memset(newedges + r_refdef.vrect.y, 0, (r_refdef.vrectbottom - 
 				r_refdef.vrect.y) * sizeof(*newedges));
 }
@@ -421,6 +428,56 @@ gotposition:
 	}
 }
 
+static inline void R_CutTrailing(u16 sn, const edge_t *edge)
+{
+	cutspan_t *acc = &cut_acc[sn];
+	s64 iu = edge->u >> 20;
+	if(acc->left == CUT_IDLE){
+		acc->left = CUT_NOLEAD;
+		cut_list[cut_count++] = sn;
+	}
+	if(iu < acc->right)
+		acc->right = iu;
+}
+
+static inline void R_CutLeading(u16 sn, const edge_t *edge)
+{
+	cutspan_t *acc = &cut_acc[sn];
+	s64 iu = edge->u >> 20;
+	if(iu < 0)
+		iu = 0;
+	if(acc->left < 0){ // first leading edge
+		if(acc->left == CUT_IDLE)
+			cut_list[cut_count++] = sn;
+		acc->left = iu;
+	}else if(iu > acc->left){
+		acc->left = iu;
+	}
+}
+
+// every edge has been seen by now. An inverted span(trailing before
+// leading) gives right <= left and is skipped
+static void R_EmitCutSpans()
+{
+	for(s32 i = 0; i < cut_count; i++){
+		s32 sn = cut_list[i];
+		cutspan_t *acc = &cut_acc[sn];
+		// left < 0: only trailing edges seen, nothing to draw
+		if(acc->left >= 0 && acc->right > acc->left){
+			surf_t *surf = &surfaces[sn];
+			espan_t *span = span_p++;
+			span->u = acc->left;
+			span->count = acc->right - acc->left;
+			span->v = current_iv;
+			span->pnext = surf->spans;
+			surf->spans = span;
+		}
+		acc->left = CUT_IDLE;
+		acc->right = cut_right0;
+	}
+	cut_count = 0;
+}
+
 static void R_GenerateSpans(bool step)
 {
 	surf_t *const sbase = surfaces; // the global is reloaded after every
@@ -459,60 +516,42 @@ static void R_GenerateSpans(bool step)
 		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0){
 			surf_t *surf = &sbase[s0];
-			if(surf->flags & SURF_CUTMASK){
-				cutspan_t *acc = &cut_acc[s0];
-				s64 iu = edge->u >> 20;
-				if(acc->left == CUT_IDLE){
-					acc->left = CUT_NOLEAD;
-					cut_list[cut_count++] = s0;
-				}
-				if(iu < acc->right)
-					acc->right = iu;
-			}else{
+			if(surf->flags & SURF_CUTMASK)
+				R_CutTrailing(s0, edge);
+			else
 				R_TrailingEdge(surf, edge);
-			}
 		}
 		if(s1){
 			surf_t *surf = &sbase[s1];
-			if(surf->flags & SURF_CUTMASK){
-				cutspan_t *acc = &cut_acc[s1];
-				s64 iu = edge->u >> 20;
-				if(iu < 0)
-					iu = 0;
-				if(acc->left < 0){ // first leading edge
-					if(acc->left == CUT_IDLE)
-						cut_list[cut_count++] = s1;
-					acc->left = iu;
-				}else if(iu > acc->left){
-					acc->left = iu;
-				}
-			}else{
+			if(surf->flags & SURF_CUTMASK)
+				R_CutLeading(s1, edge);
+			else
 				R_LeadingEdge(edge, surf);
-			}
 		}
 		if(step)
 			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
-	// every edge has been seen by now. An inverted span(trailing before
-	// leading) gives right <= left and is skipped
-	for(s32 i = 0; i < cut_count; i++){
-		s32 sn = cut_list[i];
-		cutspan_t *acc = &cut_acc[sn];
-		// left < 0: only trailing edges seen, nothing to draw
-		if(acc->left >= 0 && acc->right > acc->left){
-			surf_t *surf = &sbase[sn];
-			espan_t *span = span_p++;
-			span->u = acc->left;
-			span->count = acc->right - acc->left;
-			span->v = current_iv;
-			span->pnext = surf->spans;
-			surf->spans = span;
-		}
-		acc->left = CUT_IDLE;
-		acc->right = cut_right0;
-	}
-	cut_count = 0;
+	R_EmitCutSpans();
 	R_CleanupSpan();
+}
+
+// The alpha pass: every surface is translucent, so none of them may hide
+// another. They all get whole spans like cutouts, the z-buffer of the opaque
+// pass does the occlusion and D_DrawSurfacesAlpha() draws them back to front.
+static void R_GenerateSpansAlpha(bool step)
+{
+	s64 prev_u = edge_head.u;
+	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
+		next = edge->next;
+		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
+		if(s0)
+			R_CutTrailing(s0, edge);
+		if(s1)
+			R_CutLeading(s1, edge);
+		if(step)
+			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
+	}
+	R_EmitCutSpans();
 }
 
 static void R_GenerateSpansBackward(bool step)
