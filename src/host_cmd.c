@@ -290,7 +290,6 @@ void Host_Savegame_f()
 {//CyanBun96: send 3 arguments for a quiet save
 	c8 name[256];
 	c8 orgname[256];
-	strncpy(orgname, name, sizeof(name));
 	c8 comment[SAVEGAME_COMMENT_LENGTH + 1];
 	if(cmd_source != src_command) return;
 if(!sv.active){ Con_Printf("Not playing a local game.\n"); return; }
@@ -300,6 +299,7 @@ if(svs.maxclients != 1){ Con_Printf("Can't save multiplayer games.\n"); return;}
 		Con_Printf("save <savename> : save a game\n");
 		return;
 	}
+	SDL_strlcpy(orgname, Cmd_Argv(1), sizeof(orgname));
 	if(strstr(Cmd_Argv(1), "..")){
 		Con_Printf("Relative pathnames are not allowed.\n");
 		return;
@@ -377,9 +377,9 @@ void Host_Loadgame_f()
 {
 	c8 name[MAX_OSPATH+2];
 	c8 orgname[MAX_OSPATH+2];
-	strncpy(orgname, name, sizeof(name));
 	if(cmd_source != src_command) return;
 if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
+	SDL_strlcpy(orgname, Cmd_Argv(1), sizeof(orgname));
 	cls.demonum = -1; // stop demo loop in case this fails
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_AddExtension(name, ".sav", sizeof(name));
@@ -394,7 +394,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	FILE *f = fopen(name, "r");
 	if(!f){
 		Con_Printf("ERROR: couldn't open.\n");
-		Host_InvalidateSave(name);
+		Host_InvalidateSave(orgname);
 		return;
 	}
 	s32 version;
@@ -402,7 +402,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	if(version != SAVEGAME_VERSION){
 		fclose(f);
       Con_Printf("Savegame is version %i, not %i\n", version, SAVEGAME_VERSION);
-		Host_InvalidateSave(name);
+		Host_InvalidateSave(orgname);
 		return;
 	}
 	c8 str[32768];
