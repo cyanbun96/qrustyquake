@@ -430,11 +430,23 @@ static s32 Mod_MiptexAvail(lump_t *l, miptex_t *mt, u32 ofs)
 	return end - ((u8 *)mt + ofs);
 }
 
+static bool Mod_MiptexClobbered(u8 *tail)
+{ // some wad tools stored lump sizes without the header, so textures
+  // extracted from them end with the next lump's header instead of pixels
+	miptex_t mt;
+	memcpy(&mt, tail, sizeof(mt));
+	u32 size = mt.width * mt.height;
+	return mt.width && mt.height && mt.width <= 8192 &&
+		mt.height <= 8192 && mt.offsets[0] == sizeof(miptex_t) &&
+		mt.offsets[1] == mt.offsets[0] + size &&
+		mt.offsets[2] == mt.offsets[1] + size / 4 &&
+		mt.offsets[3] == mt.offsets[2] + size / 16;
+}
+
 void Mod_LoadTextures(lump_t *l)
 {
 	texture_t *anims[10];
 	texture_t *altanims[10];
-	u8 *mip1, *mip2, *mip3;
 	if(!l->filelen){
 		loadmodel->textures = NULL;
 		return;
@@ -602,24 +614,28 @@ void Mod_LoadTextures(lump_t *l)
 		}
 		if(!SDL_strncasecmp(mt->name, "sky", 3))
 			R_InitSky(tx);
-		if(!r_rebuildmips.value) continue;
 		u8 *base = (u8 *)tx + (s32)(tx->offsets[0]);
-		if(r_rebuildmips.value == 2){ // only cutouts and fullbrights
-			for(u32 h = 0; h < tx->height; ++h)
-			for(u32 w = 0; w < tx->width; ++w)
-				if(base[w + h*tx->width] >= 0xE0) goto rebuild;
-			continue;
+		bool rebuild[MIPLEVELS] = {0};
+		s32 bad = pixels - sizeof(miptex_t);
+		if(bad >= (s32)sizeof(miptex_t) &&
+				Mod_MiptexClobbered((u8 *)(tx + 1) + bad)){
+			Con_DPrintf("Texture %.16s has clobbered mips\n",
+					mt->name);
+			for(s32 j = 1; j < MIPLEVELS; j++){
+				s32 ofs = tx->offsets[j] - sizeof(texture_t);
+				s32 size = (tx->width>>j) * (tx->height>>j);
+				rebuild[j] = ofs + size > bad;
+			}
 		}
-rebuild:
-		mip1 = (u8 *)tx + (s32)(tx->offsets[1]);
-		mip2 = (u8 *)tx + (s32)(tx->offsets[2]);
-		mip3 = (u8 *)tx + (s32)(tx->offsets[3]);
-		bilinear_u8(base, mip1, tx->width, tx->height,
-				tx->width/2, tx->height/2);
-		bilinear_u8(base, mip2, tx->width, tx->height,
-				tx->width/4, tx->height/4);
-		bilinear_u8(base, mip3, tx->width, tx->height,
-				tx->width/8, tx->height/8);
+		bool all = r_rebuildmips.value == 1;
+		if(r_rebuildmips.value == 2) // only cutouts and fullbrights
+			for(u32 j = 0; j < tx->width * tx->height && !all; ++j)
+				all = base[j] >= 0xE0;
+		for(s32 j = 1; j < MIPLEVELS; j++)
+			if(all || rebuild[j])
+				bilinear_u8(base, (u8 *)tx + tx->offsets[j],
+					tx->width, tx->height,
+					tx->width >> j, tx->height >> j);
 	}
 	for(s32 i = 0; i < m->nummiptex; i++){ // sequence the animations
 		texture_t *tx = loadmodel->textures[i];
