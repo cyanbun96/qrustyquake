@@ -1137,6 +1137,10 @@ static void ExtraMaps_Init_SearchPak(searchpath_t *search)
 		return;
 	s32 i = 0;
 	for(pack_t *pak = search->pack; i < pak->numfiles; i++){
+		const c8 *fname = pak->files[i].name;
+		// don't list files outside of maps/ or in its subdirectories
+		if(strncmp(fname, "maps/", 5) || strchr(fname + 5, '/'))
+			continue;
 		if(!strcmp(COM_FileGetExtension(pak->files[i].name), "bsp") &&
 		    pak->files[i].filelen > 32*1024){
 			// don't list files under 32k(ammo boxes etc)
