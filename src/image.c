@@ -49,20 +49,35 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 		fgetLittleShort(fin),fgetc(fin),fgetc(fin)};
 	if(targa_header.image_type==1){
 		if(targa_header.pixel_size!=8||targa_header.colormap_size!=24||
-				targa_header.colormap_length>256)
-			Sys_Error("Image_LoadTGA: %s has an %ibit palette",
-				loadfilename, targa_header.colormap_type);
+				targa_header.colormap_length>256){
+			Con_Printf("Image_LoadTGA: %s has an %ibit palette\n",
+				loadfilename, targa_header.colormap_size);
+			fclose(fin);
+			return NULL;
+		}
 	}else{
-		if(targa_header.image_type!=2 && targa_header.image_type!=10)
-	Sys_Error("Image_LoadTGA: %s is not a type 2 or type 10 targa(%i)",
+		if(targa_header.image_type!=2 && targa_header.image_type!=10){
+	Con_Printf("Image_LoadTGA: %s is not a type 2 or type 10 targa(%i)\n",
 			loadfilename, targa_header.image_type);
+			fclose(fin);
+			return NULL;
+		}
 		if(targa_header.colormap_type!=0||(targa_header.pixel_size!=32&&
-					targa_header.pixel_size!=24))
-	Sys_Error("Image_LoadTGA: %s is not a 24bit or 32bit targa",
+					targa_header.pixel_size!=24)){
+	Con_Printf("Image_LoadTGA: %s is not a 24bit or 32bit targa\n",
 			loadfilename);
+			fclose(fin);
+			return NULL;
+		}
 	}
 	s32 columns = targa_header.width;
 	s32 rows = targa_header.height;
+	if(columns <= 0 || rows <= 0){
+		Con_Printf("Image_LoadTGA: %s has a bad size %ix%i\n",
+				loadfilename, columns, rows);
+		fclose(fin);
+		return NULL;
+	}
 	s32 numPixels = columns * rows;
 	bool upside_down = !(targa_header.attributes & 0x20); //johnfitz -- fix
 	u8 *targa_rgba = (u8*)Hunk_Alloc(numPixels*4);

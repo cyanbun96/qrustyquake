@@ -150,7 +150,7 @@ wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 	}
 	iff_data = data_p + 12;
 	FindChunk("fmt ");
-	if(!data_p){
+	if(!data_p || data_p + 24 > iff_end){
 		Con_Printf("%s is missing fmt chunk\n", name);
 		return info;
 	}
@@ -167,12 +167,12 @@ wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 	if(i != 8 && i != 16) return info;
 	info.width = i / 8;
 	FindChunk("cue ");
-	if(data_p){
+	if(data_p && data_p + 36 <= iff_end){
 		data_p += 32;
 		info.loopstart = GetLittleLong();
 		//if the next chunk is a LIST chunk look for a cue length marker
 		FindNextChunk("LIST");
-		if(data_p){
+		if(data_p && data_p + 32 <= iff_end){
 			if(!strncmp((c8 *)data_p + 28, "mark", 4)){
 				data_p += 24;
 				i = GetLittleLong(); // samples in loop
@@ -188,8 +188,10 @@ wavinfo_t GetWavinfo(const c8 *name, u8 *wav, s32 wavlength)
 	data_p += 4;
 	s32 samples = GetLittleLong() / info.width;
 	if(info.samples){
-		if(samples < info.samples)
-			Sys_Error("%s has a bad loop length", name);
+		if(samples < info.samples){
+			Con_Printf("%s has a bad loop length\n", name);
+			info.samples = samples;
+		}
 	}else info.samples = samples;
 	if(info.loopstart >= info.samples){
 		printf("%s has loop start >= end\n", name);
