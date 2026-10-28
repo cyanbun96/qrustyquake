@@ -60,7 +60,7 @@ s64 r_visframecount; // refresh flags
 s64 r_framecount = 1; // so frame counts initialized to 0 don't match
 s32 r_polycount;
 s32 r_drawnpolycount;
-s32 *pfrustum_indexes[4];
+s32 frustum_indexes[4][6];
 mleaf_t *r_viewleaf, *r_oldviewleaf;
 texture_t *r_notexture_mip;
 f32 r_aliastransition, r_resfudge;

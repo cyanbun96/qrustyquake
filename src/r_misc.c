@@ -143,9 +143,8 @@ void R_TransformFrustum()
 
 void R_SetUpFrustumIndexes()
 {
-	static s32 r_frustum_indexes[4 * 6];
-	s32 *pindex = r_frustum_indexes;
 	for(s32 i = 0; i < 4; i++){
+		s32 *pindex = frustum_indexes[i];
 		for(s32 j = 0; j < 3; j++){
 			if(view_clipplanes[i].normal[j] < 0){
 				pindex[j] = j;
@@ -155,8 +154,6 @@ void R_SetUpFrustumIndexes()
 				pindex[j + 3] = j;
 			}
 		}
-		pfrustum_indexes[i] = pindex; // FIXME: do just once at start
-		pindex += 6;
 	}
 }
 

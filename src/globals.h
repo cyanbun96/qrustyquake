@@ -463,7 +463,7 @@ EX s64 r_visframecount;
 EX bool insubmodel;
 EX s32 c_faceclip;
 EX s32 r_polycount;
-EX s32 *pfrustum_indexes[4];
+EX s32 frustum_indexes[4][6];
 EX s32 sadjust, tadjust;
 EX s32 bbextents, bbextentt;
 EX s32 r_currentkey;

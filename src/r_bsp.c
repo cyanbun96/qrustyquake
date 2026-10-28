@@ -301,7 +301,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 			if(!(clipflags & (1 << i)))
 				continue; // don't need to clip against it
 			// generate accept and reject points
-			s32 *pindex = pfrustum_indexes[i];
+			s32 *pindex = frustum_indexes[i];
 			vec3_t acceptpt, rejectpt;
 			rejectpt[0] = (f32)node->minmaxs[pindex[0]];
 			rejectpt[1] = (f32)node->minmaxs[pindex[1]];

@@ -789,7 +789,7 @@ static s32 R_BmodelCheckAxisAligned(f32 *minmaxs)
 {
 	s32 clipflags = 0;
 	for(s32 i = 0; i < 4; i++){
-		s32 *pindex = pfrustum_indexes[i];
+		s32 *pindex = frustum_indexes[i];
 		vec3_t acceptpt, rejectpt;
 		rejectpt[0] = minmaxs[pindex[0]];
 		rejectpt[1] = minmaxs[pindex[1]];
