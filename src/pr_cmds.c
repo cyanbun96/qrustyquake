@@ -1777,15 +1777,16 @@ void PF_cl_playerkey_internal(s32 player, const c8 *key, bool retfloat)
 		ret = NULL; //unknown
 	else if(!strcmp(key, "entertime"))
 		snprintf(buf, sizeof(buf), "%g", cl.scores[player].entertime);
-	else if(!strcmp(key, "topcolor_rgb")){
-		s32 c = (cl.scores[player].colors & 0xf0) >> 4;
-		snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
-			host_basepal[c+1]/255.0, host_basepal[c]+2/255.0);
+	else if(!strcmp(key, "topcolor_rgb")){ // middle of the color's row
+		u8 *pal = CURWORLDPAL+((cl.scores[player].colors&0xf0)+8)*3;
+		snprintf(buf, sizeof(buf), "%g %g %g", pal[0]/255.0,
+			pal[1]/255.0, pal[2]/255.0);
 	}
 	else if(!strcmp(key, "bottomcolor_rgb")){
-		s32 c = cl.scores[player].colors & 0x0f;
-		snprintf(buf, sizeof(buf), "%g %g %g", host_basepal[c]/255.0,
-			host_basepal[c+1]/255.0, host_basepal[c+2]/255.0);
+		u8 *pal = CURWORLDPAL
+			+ (((cl.scores[player].colors&0x0f)<<4)+8)*3;
+		snprintf(buf, sizeof(buf), "%g %g %g", pal[0]/255.0,
+			pal[1]/255.0, pal[2]/255.0);
 	}
 	else if(!strcmp(key, "topcolor"))
 	    snprintf(buf,sizeof(buf),"%i",(cl.scores[player].colors&0xf0)>>4);
