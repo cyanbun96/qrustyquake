@@ -27,6 +27,8 @@ void R_AddDynamicLights()
 	msurface_t *surf = r_drawsurf.surf;
 	s32 smax = (surf->extents[0] >> 4) + 1;
 	s32 tmax = (surf->extents[1] >> 4) + 1;
+	if(smax * tmax > BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE)
+		return; // R_BuildLightMap only fills that much
 	mtexinfo_t *tex = surf->texinfo;
 	for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++){
 		if(!(surf->dlightbits & (1 << lnum)))

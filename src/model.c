@@ -1005,14 +1005,14 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		out->plane = loadmodel->planes + planenum;
 		out->texinfo = loadmodel->texinfo + texinfon;
 		CalcSurfaceExtents(out);
+		if(lofs == -1) out->samples = NULL; // lighting info
+		else out->samples = loadmodel->lightdata + (lofs * 3);
 		if((out->extents[0] > 2000 || out->extents[1] > 2000) &&
 				!(out->texinfo->flags & TEX_SPECIAL)){
 Con_DPrintf("Unreasonably big surfaces not supported, drawn as solid black\n");
 			out->flags |= SURF_NOTEXTURE;
-			out->samples = NULL;
+			out->samples = NULL; // too big for blocklights
 		}
-		if(lofs == -1) out->samples = NULL; // lighting info
-		else out->samples = loadmodel->lightdata + (lofs * 3);
 		// the hardcoded texture skip fixes black sky bottom in ad_tears
 		if(!strncmp(out->texinfo->texture->name, "bal_pureblack", 13))
 			out->flags |= SURF_NODRAWFRONT;
