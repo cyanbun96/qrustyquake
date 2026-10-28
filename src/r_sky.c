@@ -72,13 +72,13 @@ u8 *Upscale_NearestNeighbor(u8 *src, s32 width, s32 height, s32 *new_width,
 	*new_height = (height < 256) ? 256 : height;
 	if(*new_width == width && *new_height == height)
 		return src;
-	s32 scale_x = *new_width / width;
-	s32 scale_y = *new_height / height;
 	u8 *dest = malloc((*new_width) * (*new_height));
 	if(!dest) return 0;
-	for(s32 y = 0; y < *new_height; ++y){
+	for(s32 y = 0; y < *new_height; ++y){ // sizes that don't divide 256
+		s32 sy = y * height / *new_height; // need a fractional step
 		for(s32 x = 0; x < *new_width; ++x){
-			dest[y*(*new_width)+x] = src[y/scale_y*width+x/scale_x];
+			s32 sx = x * width / *new_width;
+			dest[y*(*new_width)+x] = src[sy*width+sx];
 		}
 	}
 	return dest;
