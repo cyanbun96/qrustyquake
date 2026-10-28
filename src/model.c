@@ -779,6 +779,10 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 		for(s32 i = 0; i < count; i++, in++, out++){
 			out->v[0] = (s32)(in->v[0]);
 			out->v[1] = (s32)(in->v[1]);
+			if(out->v[0] >= (u32)loadmodel->numvertexes ||
+				out->v[1] >= (u32)loadmodel->numvertexes)
+				Host_Error("Mod_LoadEdges: bad vertex in %s",
+						loadmodel->name);
 		}
 	}else{
 		dedge_t *in = (dedge_t *)(mod_base + l->fileofs);
@@ -792,6 +796,10 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 		for(s32 i = 0; i<count; i++, in++, out++){
 			out->v[0] = (u16)(s16)(in->v[0]);
 			out->v[1] = (u16)(s16)(in->v[1]);
+			if(out->v[0] >= (u32)loadmodel->numvertexes ||
+				out->v[1] >= (u32)loadmodel->numvertexes)
+				Host_Error("Mod_LoadEdges: bad vertex in %s",
+						loadmodel->name);
 		}
 	}
 }
@@ -956,6 +964,8 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		count = l->filelen / sizeof(*ins);
 	}
 	msurface_t *out = Hunk_AllocName((count+6)*sizeof(*out), loadname);
+	// the lit or expanded data has 3 bytes for each byte of this lump
+	s32 lightlen = ((dheader_t *)mod_base)->lumps[8].filelen;
 	if(count > 32767 && !bsp2)
 	      Con_DPrintf("%i faces exceeds standard limit of 32767.\n", count);
 	loadmodel->surfaces = out;
@@ -997,6 +1007,15 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 				planenum = 0;
 			if(texinfon < 0 || texinfon >= loadmodel->numtexinfo)
 				texinfon = 0;
+		}
+		if(out->firstedge < 0 || out->numedges < 0 || out->firstedge >
+				loadmodel->numsurfedges - out->numedges)
+			Host_Error("Mod_LoadFaces: face %d of %s has bad"
+				" edges", surfnum, loadmodel->name);
+		if(lofs < -1 || lofs >= lightlen){
+			Con_DPrintf("Mod_LoadFaces: face %d has a bad"
+				" lightofs\n", surfnum);
+			lofs = -1;
 		}
 		out->flags = 0;
 		if(out->numedges < 3)
@@ -1864,8 +1883,13 @@ static void Mod_LoadSurfedges(lump_t *l)
 	s32 *out = (s32 *) Hunk_AllocName( (count+24)*sizeof(*out), loadname);
 	loadmodel->surfedges = out;
 	loadmodel->numsurfedges = count;
-	for(s32 i = 0; i < count; i++)
+	for(s32 i = 0; i < count; i++){
 		out[i] = (s32)(in[i]);
+		if(out[i] <= -loadmodel->numedges ||
+				out[i] >= loadmodel->numedges)
+			Host_Error("Mod_LoadSurfedges: bad edge in %s",
+					loadmodel->name);
+	}
 }
 
 
@@ -2009,9 +2033,18 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 			mod->name, mod->bspversion);
 			break;
 	}
+	if(com_filesize < (s32)sizeof(dheader_t))
+		Host_Error("Mod_LoadBrushModel: %s is too short", mod->name);
 	mod_base = (u8 *)header; // swap all the lumps
 	for(s32 i = 0; i < (s32)sizeof(dheader_t) / 4; i++)
 		((s32 *)header)[i] = (s32)( ((s32 *)header)[i]);
+	for(s32 i = 0; i < 15; i++){ // the loaders trust these
+		lump_t *l = &header->lumps[i];
+		if(l->filelen < 0 || (l->filelen && (l->fileofs < 0 ||
+				l->fileofs > com_filesize - l->filelen)))
+			Host_Error("Mod_LoadBrushModel: lump %d of %s is "
+				"outside the file", i, mod->name);
+	}
 	Mod_LoadVertexes(&header->lumps[3]); // load into heap
 	Mod_LoadEdges(&header->lumps[12], bsp2);
 	Mod_LoadSurfedges(&header->lumps[13]);
