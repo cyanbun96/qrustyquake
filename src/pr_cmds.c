@@ -508,6 +508,7 @@ nolength:
 /**/			strchr(quotedarg,'\r')||l+3>=sizeof(quotedbuf)){
 /**/		Con_DPrintf("PF_sprintf: unable to safely escape arg: %s\n",s0);
 /**/		quotedarg="";
+/**/		l = 0;
 /**/	}
 /**/	quotedbuf[0] = '\"';
 /**/	memcpy(quotedbuf+1, quotedarg, l);
