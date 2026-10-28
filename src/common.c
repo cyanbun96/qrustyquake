@@ -722,11 +722,74 @@ s64 COM_filelength(FILE *f)
 	return end;
 }
 
+typedef struct{
+	c8 *path, *comp, *end;
+	size_t len;
+	c8 orig[MAX_OSPATH];
+	bool found;
+} casesearch_t;
+
+static bool COM_FixPathCaseFrom(c8 *path, c8 *comp);
+
+static SDL_EnumerationResult COM_FixPathCase_CB(void *userdata,
+		SDL_UNUSED const c8 *dirname, const c8 *fname)
+{
+	casesearch_t *cs = (casesearch_t *)userdata;
+	if(strlen(fname) != cs->len || SDL_strncasecmp(fname,cs->orig,cs->len))
+		return SDL_ENUM_CONTINUE;
+	if(!memcmp(fname, cs->orig, cs->len)) // the exact one was already tried
+		return SDL_ENUM_CONTINUE;
+	memcpy(cs->comp, fname, cs->len);
+	if(!COM_FixPathCaseFrom(cs->path, cs->end)) return SDL_ENUM_CONTINUE;
+	cs->found = 1;
+	return SDL_ENUM_SUCCESS;
+}
+
+// Resolves the components of path from comp onwards, backtracking because
+// there may be several directories that only differ in case, e.g. a mod that
+// has both sound/markiev1/ and sound/MarkieV1/ with different files in them
+static bool COM_FixPathCaseFrom(c8 *path, c8 *comp)
+{
+	while(*comp == '/' || *comp == '\\') comp++;
+	if(!*comp) return Sys_FileType(path) != 0;
+	c8 *end = comp;
+	while(*end && *end != '/' && *end != '\\') end++;
+	c8 sep = *end;
+	*end = 0;
+	bool exists = Sys_FileType(path) != 0;
+	*end = sep;
+	if(exists && COM_FixPathCaseFrom(path, end)) return 1;
+	casesearch_t cs;
+	cs.path = path; cs.comp = comp; cs.end = end;
+	cs.len = end - comp;
+	cs.found = 0;
+	if(cs.len >= sizeof(cs.orig)) return 0;
+	memcpy(cs.orig, comp, cs.len);
+	c8 dir[MAX_OSPATH] = ".";
+	size_t dlen = comp - path;
+	while(dlen > 1 && (path[dlen-1] == '/' || path[dlen-1] == '\\'))
+		dlen--; // parent dir, keep the root's slash
+	if(dlen >= sizeof(dir)) return 0;
+	if(dlen){ memcpy(dir, path, dlen); dir[dlen] = 0; }
+	SDL_EnumerateDirectory(dir, COM_FixPathCase_CB, &cs);
+	if(!cs.found) memcpy(comp, cs.orig, cs.len);
+	return cs.found;
+}
+
+// CyanBun96: mods made on case-insensitive filesystems may refer to files with
+// the wrong case. Rewrites the path components after the first skip chars to
+// the case-insensitive match found on disk. Returns false if there's no match.
+static bool COM_FixPathCase(c8 *path, size_t skip)
+{
+	if(Sys_FileType(path)) return 1; // exact match, the common case
+	if(skip > strlen(path)) return 0;
+	return COM_FixPathCaseFrom(path, path + skip);
+}
+
 //Finds the file in the search path. Sets com_filesize and one of handle or file
 //If neither of file or handle is set, this can be used for detecting a file's
 //presence.
-static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file,
-		u32 *path_id)
+static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 {
 	c8 netpath[MAX_OSPATH];
 	if(file && handle) Sys_Error("COM_FindFile: both handle and file set");
@@ -736,7 +799,7 @@ static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file,
 		if(search->pack){ // look through all the pak file elements
 			pack_t *pak = search->pack;
 			for(i = 0; i < pak->numfiles; i++){
-				if(strcmp(pak->files[i].name, name) != 0)
+				if(SDL_strcasecmp(pak->files[i].name, name))
 					continue;
 				com_filesize = pak->files[i].filelen;//found it!
 				if(path_id) *path_id = search->path_id;
@@ -762,7 +825,9 @@ static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file,
 					continue;
 			snprintf(netpath, sizeof(netpath),
 					"%s/%s",search->filename, name);
-			if(!(Sys_FileType(netpath) & FS_ENT_FILE)) continue;
+			if(!COM_FixPathCase(netpath, strlen(search->filename))
+				|| !(Sys_FileType(netpath) & FS_ENT_FILE))
+				continue;
 			if(path_id) *path_id = search->path_id;
 			if(handle){
 				com_filesize = Sys_FileOpenRead(netpath, &i);
@@ -789,29 +854,6 @@ static s32 COM_FindFileInternal(const c8 *name, s32 *handle, FILE **file,
 	if(file) *file = NULL;
 	com_filesize = -1;
 	return com_filesize;
-}
-
-// CyanBun96: a wrapper that tries lowercase and uppercase names for systems
-// with case-sensitive filesystems for mods designed in non-case-sensitive ones
-static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
-{
-	s32 result = COM_FindFileInternal(name, handle, file, path_id);
-	if(result >= 0) return result;
-	c8 altname[MAX_OSPATH];
-	size_t i, len = strlen(name);
-	for(i = 0; i <= len; i++) // lowercase retry
-		altname[i] = (c8)tolower(name[i]);
-	if(strcmp(altname, name) != 0){
-		result = COM_FindFileInternal(altname, handle, file, path_id);
-		if(result >= 0) return result;
-	}
-	for(i = 0; i <= len; i++) // uppercase retry
-		altname[i] = (c8)toupper(name[i]);
-	if(strcmp(altname, name) != 0){
-		result = COM_FindFileInternal(altname, handle, file, path_id);
-		if(result >= 0) return result;
-	}
-	return result;
 }
 
 bool COM_FileExists(const c8 *filename, u32 *path_id)
@@ -940,6 +982,7 @@ static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 	c8 pakfile[MAX_OSPATH+32];
 	bool been_here = 0;
 	SDL_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
+	COM_FixPathCase(com_gamedir, strlen(base));
 	u32 path_id = com_searchpaths ? com_searchpaths->path_id << 1 : 1U;
 	searchpath_t *search = (searchpath_t *) Z_Malloc(sizeof(searchpath_t));
 	search->path_id = path_id;
@@ -948,6 +991,7 @@ static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 	com_searchpaths = search;
 	for(s32 i=0;;i++){//add any pak files in the format pak0.pak pak1.pak...
 		snprintf(pakfile,sizeof(pakfile),"%s/pak%i.pak",com_gamedir,i);
+		COM_FixPathCase(pakfile, strlen(com_gamedir));
 		pack_t *pak = COM_LoadPackFile(pakfile);
 		pack_t *qspak;
 		if(i != 0 || path_id != 1 || fitzmode) qspak = NULL;
@@ -956,6 +1000,7 @@ static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 			if(been_here) base = host_parms.userdir;
 			snprintf(pakfile, sizeof(pakfile),
 					"%s/quakespasm.pak", base);
+			COM_FixPathCase(pakfile, strlen(base));
 			qspak = COM_LoadPackFile(pakfile);
 			com_modified = old;
 		}
@@ -1077,10 +1122,16 @@ Con_Printf("You must have the registered version to use modified games\n");
 			return;
 		}
 	}
-	if(Sys_FileType(va("%s/%s", com_basedir, p)) != FS_ENT_DIRECTORY){
+	c8 gpath[MAX_OSPATH];
+	SDL_strlcpy(gpath, va("%s/%s", com_basedir, p), sizeof(gpath));
+	if(!COM_FixPathCase(gpath, strlen(com_basedir))
+			|| Sys_FileType(gpath) != FS_ENT_DIRECTORY){
+		SDL_strlcpy(gpath, va("%s/%s", host_parms.userdir, p),
+				sizeof(gpath));
 		if(host_parms.userdir == host_parms.basedir ||
-				(Sys_FileType(va("%s/%s",host_parms.userdir,p))
-				 != FS_ENT_DIRECTORY)){
+				!COM_FixPathCase(gpath,
+					strlen(host_parms.userdir)) ||
+				Sys_FileType(gpath) != FS_ENT_DIRECTORY){
 			Con_Printf("No such game directory \"%s\"\n", p);
 			return;
 		}
