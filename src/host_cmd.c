@@ -1222,7 +1222,7 @@ void Host_Maps_f()
 		++tot;
 	}
 host_maps_f_fin:
-	if(tot>1) Con_Printf("%i maps\n", i);
+	if(tot>1) Con_Printf("%i maps\n", tot);
 	else if(tot) Con_Printf("1 map\n");
 	else Con_Printf("no maps found\n");
 }
@@ -1315,7 +1315,7 @@ void Host_Mods_f()
 		Con_Printf("   %s%c%s\n", RightPad(mod->name,
 			maxmodnamelen, padchar), padchar, mod->desc);
 	if(i == 1) Con_Printf("1 mod\n");
-	if(i) Con_Printf("%i mods\n", i);
+	else if(i) Con_Printf("%i mods\n", i);
 	else Con_Printf("no mods found\n");
 }
 
