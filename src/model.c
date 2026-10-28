@@ -960,6 +960,10 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	      Con_DPrintf("%i faces exceeds standard limit of 32767.\n", count);
 	loadmodel->surfaces = out;
 	loadmodel->numsurfaces = count;
+	if(count && (!loadmodel->numplanes || !loadmodel->numtexinfo))
+		Host_Error("Mod_LoadFaces: %s has faces but no planes or "
+			"texinfo", loadmodel->name); // nothing to fall back on
+	s32 badfaces = 0;
 	for(s32 surfnum = 0; surfnum < count; surfnum++, out++){
 		if(bsp2){
 			out->firstedge = (s32)(inl->firstedge);
@@ -974,13 +978,25 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		}else{
 			out->firstedge = (s32)(ins->firstedge);
 			out->numedges = (s16)(ins->numedges);
-			planenum = (s16)(ins->planenum);
+			planenum = (u16)(ins->planenum); // can be past 32767
 			side = (s16)(ins->side);
-			texinfon = (s16)(ins->texinfo);
+			texinfon = (u16)(ins->texinfo);
 			for(i=0 ; i<MAXLIGHTMAPS ; i++)
 				out->styles[i] = ins->styles[i];
 			lofs = (s32)(ins->lightofs);
 			ins++;
+		}
+		// other engines just read past the arrays and load the map
+		// anyway, so do the same, minus the garbage
+		if(planenum < 0 || planenum >= loadmodel->numplanes ||
+			texinfon < 0 || texinfon >= loadmodel->numtexinfo){
+			if(!badfaces++) Con_Printf("Mod_LoadFaces: face %d of"
+				" %s has a bad plane (%d) or texinfo (%d)\n",
+				surfnum, loadmodel->name, planenum, texinfon);
+			if(planenum < 0 || planenum >= loadmodel->numplanes)
+				planenum = 0;
+			if(texinfon < 0 || texinfon >= loadmodel->numtexinfo)
+				texinfon = 0;
 		}
 		out->flags = 0;
 		if(out->numedges < 3)
@@ -1025,6 +1041,9 @@ Con_DPrintf("Unreasonably big surfaces not supported, drawn as solid black\n");
 			else out->flags|=(SURF_NOTEXTURE|SURF_DRAWTILED);//not.
 		}
 	}
+	if(badfaces > 1)
+		Con_Printf("Mod_LoadFaces: %d bad faces in %s in total\n",
+				badfaces, loadmodel->name);
 
 }
 
