@@ -407,6 +407,8 @@ void R_InitSky(texture_t *mt)
 			Host_Error("No space for sky: %s\n", mt->name);
 			return;
 		}
+		if(!strncmp(r_skyname[newi], mt->name, 16))
+			break; // reloaded model, reuse its slot
 		if(r_skyname[newi][0] == 0){
 			strncpy(r_skyname[newi], mt->name, 16);
 			break;
