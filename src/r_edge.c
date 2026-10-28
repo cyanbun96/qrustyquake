@@ -334,6 +334,21 @@ static inline void R_TrailingEdge(surf_t *surf, const edge_t *edge)
 	}
 }
 
+// Is surf, whose leading edge this is, in front of surf2 on the pixels it
+// starts covering? They're two planes, so compare 1/z a pixel to the right of
+// the edge: this gives the gap between parallel faces, and the slopes decide
+// for faces that meet at the edge. WinQuake took faces within 1% of 1/z as
+// meeting and went by the slopes alone, which for parallel faces only depends
+// on which side they're seen from, so the far one could win.
+static inline bool R_BmodelSurfInFront(const edge_t *edge, const surf_t *surf,
+		const surf_t *surf2)
+{
+	f64 fu = (f32)(edge->u - 0xFFFFF) * (1.0 / 0x100000) + 1;
+	f64 newzi = surf->d_ziorigin + fv*surf->d_zistepv + fu*surf->d_zistepu;
+	f64 testzi=surf2->d_ziorigin+fv*surf2->d_zistepv+fu*surf2->d_zistepu;
+	return newzi >= testzi;
+}
+
 // surf is &surfaces[edge->surfs[1]], which the caller has already checked is
 // not the "no surface" index 0
 static inline void R_LeadingEdge(const edge_t *edge, surf_t *surf)
@@ -350,21 +365,10 @@ static inline void R_LeadingEdge(const edge_t *edge, surf_t *surf)
 			goto newtop;
 	//if it's two surfaces on the same plane, the one that's already
 	//active is in front, so keep going unless it's a bmodel
-		if(surf->insubmodel && (surf->key == surf2->key)){
 		// must be two bmodels in the same leaf; sort on 1/z
-			f64 fu = (f32)(edge->u-0xFFFFF) * (1.0/0x100000);
-			f64 newzi = surf->d_ziorigin +
-				fv*surf->d_zistepv + fu*surf->d_zistepu;
-			f64 newzibottom = newzi * 0.99;
-			f64 testzi = surf2->d_ziorigin +
-				fv*surf2->d_zistepv+fu*surf2->d_zistepu;
-			if(newzibottom >= testzi)
-				goto newtop;
-			f64 newzitop = newzi * 1.01;
-			if(newzitop >= testzi &&
-				surf->d_zistepu >= surf2->d_zistepu)
-					goto newtop;
-		}
+		if(surf->insubmodel && (surf->key == surf2->key) &&
+				R_BmodelSurfInFront(edge, surf, surf2))
+			goto newtop;
 		if(!surf->insubmodel){
 		// The active surface list is sorted by key, with the background
 		// at both ends. Hidden faces tend to have big keys, so when
@@ -391,18 +395,8 @@ continue_search:
 			if(!surf->insubmodel)
 				goto continue_search;
 		// must be two bmodels in the same leaf; sort on 1/z
-			f64 fu = (f32)(edge->u-0xFFFFF)*(1.0/0x100000);
-			f64 newzi = surf->d_ziorigin +
-				fv*surf->d_zistepv + fu*surf->d_zistepu;
-			f64 newzibottom = newzi * 0.99;
-			f64 testzi = surf2->d_ziorigin +
-				fv*surf2->d_zistepv+fu*surf2->d_zistepu;
-			if(newzibottom >= testzi)
+			if(R_BmodelSurfInFront(edge, surf, surf2))
 				goto gotposition;
-			f64 newzitop = newzi * 1.01;
-			if(newzitop >= testzi &&
-				surf->d_zistepu >= surf2->d_zistepu)
-					goto gotposition;
 			goto continue_search;
 		}
 		goto gotposition;
