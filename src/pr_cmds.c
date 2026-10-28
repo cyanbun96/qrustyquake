@@ -1926,9 +1926,12 @@ static struct svcustomstat_s *PR_CustomStat(s32 idx, s32 type)
 	if(idx < 0 || idx >= MAX_CL_STATS)
 		return NULL;
 	switch(type){
+	case ev_vector:
+		if(idx + 2 >= MAX_CL_STATS) // uses 3 consecutive stats
+			return NULL;
+		break;
 	case ev_ext_integer:
 	case ev_float:
-	case ev_vector:
 	case ev_entity:
 		break;
 	default:
