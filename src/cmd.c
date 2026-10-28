@@ -179,7 +179,7 @@ void Cmd_Alias_f() // johnfitz -- rewritten
 	default: // set alias string
 		s = Cmd_Argv(1);
 		if(strlen(s) >= MAX_ALIAS_NAME){
-			Con_Printf("Alias name is too short\n");
+			Con_Printf("Alias name is too long\n");
 			return;
 		}
 		for(a = cmd_alias; a; a = a->next){ // if alias exists, reuse it
@@ -198,10 +198,14 @@ void Cmd_Alias_f() // johnfitz -- rewritten
 		cmd[0] = 0; // start out with a null string
 		s32 c = Cmd_Argc();
 		for(s32 i = 2; i < c; i++){
-			strcat(cmd, Cmd_Argv(i));
-			if(i != c) strcat(cmd, " ");
+			SDL_strlcat(cmd, Cmd_Argv(i), sizeof(cmd));
+			if(i != c - 1) SDL_strlcat(cmd, " ", sizeof(cmd));
 		}
-		strcat(cmd, "\n");
+		if(SDL_strlcat(cmd, "\n", sizeof(cmd)) >= sizeof(cmd)){
+			Con_Printf("Alias value too long\n");
+			cmd[0] = '\n'; // nullify the string
+			cmd[1] = 0;
+		}
 		a->value = CopyString(cmd);
 		break;
 	}
