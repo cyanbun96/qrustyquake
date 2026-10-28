@@ -1721,10 +1721,10 @@ nextleaf:
 		if(contenttransparent & SURF_DRAWSLIME)
 			Con_DPrintf(" slime");
 		Con_DPrintf("\n");
-		if(((r_wateralpha.value > 0 && r_wateralpha.value < 1) || 
-			(r_wateralpha.value > 0 && r_wateralpha.value < 1) ||
-			(r_wateralpha.value > 0 && r_wateralpha.value < 1) ||
-			(r_wateralpha.value > 0 && r_wateralpha.value < 1))
+		if(((r_wateralpha.value > 0 && r_wateralpha.value < 1) ||
+			(r_lavaalpha.value > 0 && r_lavaalpha.value < 1) ||
+			(r_slimealpha.value > 0 && r_slimealpha.value < 1) ||
+			(r_telealpha.value > 0 && r_telealpha.value < 1))
 			&& r_alphastyle.value != 1) R_BuildColorMixLUT(0);
 	}
 	// any types that we didn't find are assumed to be transparent.
