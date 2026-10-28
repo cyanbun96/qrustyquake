@@ -93,6 +93,7 @@ found:
 	CDAudio_Stop();
 	current_music = music;
 	MIX_SetTrackAudio(track, current_music);
+	CDAudio_Update(); // apply bgmvolume before the first samples go out
 	if(!MIX_PlayTrack(track, trackprops)){
 		Con_Printf("failed to play %s: %s\n", filename, SDL_GetError());
 		return;
