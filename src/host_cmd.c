@@ -211,7 +211,7 @@ void Host_Changelevel_f()
 	SDL_snprintf(level, sizeof(level), "maps/%s.bsp", Cmd_Argv(1));
 	if(!COM_FileExists(level, NULL))
 		Host_Error("cannot find map %s", level);
-	strcpy(level, Cmd_Argv(1));
+	SDL_strlcpy(level, Cmd_Argv(1), sizeof(level));
 	if(!strcmp(sv.name, level) && Host_AutoLoad())
 		return;
 	key_dest = key_game;
@@ -253,7 +253,7 @@ void Host_Connect_f()
 		CL_StopPlayback();
 		CL_Disconnect();
 	}
-	strcpy(name, Cmd_Argv(1));
+	SDL_strlcpy(name, Cmd_Argv(1), sizeof(name));
 	CL_EstablishConnection(name);
 	Host_Reconnect_f();
 }
