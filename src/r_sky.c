@@ -142,8 +142,8 @@ s32 R_LoadSkybox(const c8 *name)
 		s32 target = 1024;
 		s32 m = width > height ? width : height;
 		bool freescaled = false;
-		if(m <= 256) target = 256;
 		if(m <= 512) target = 512;
+		if(m <= 256) target = 256;
 		u8 *scaled;
 		if(width != target || height != target){
 			scaled = Resize_Nearest(pic,width,height,target,target);
