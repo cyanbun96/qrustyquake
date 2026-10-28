@@ -936,8 +936,8 @@ const c8 *ED_ParseEdict(const c8 *data, edict_t *ent)
 		}
 		if(anglehack){
 			c8 temp[32];
-			strcpy(temp, com_token);
-			sprintf(com_token, "0 %s 0", temp);
+			SDL_strlcpy(temp, com_token, sizeof(temp));
+			snprintf(com_token, sizeof(com_token), "0 %s 0", temp);
 		}
 
 		if(!ED_ParseEpair((void*)&ent->v,key,com_token,qcvm!=&sv.qcvm))
