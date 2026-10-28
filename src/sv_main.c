@@ -99,6 +99,7 @@ void SV_Init()
 	Cvar_RegisterVariable(&sv_aim);
 	Cvar_RegisterVariable(&sv_nostep);
 	Cvar_RegisterVariable(&sv_freezenonclients);
+	Cvar_RegisterVariable(&sv_gameplayfix_elevators);
 	Cvar_RegisterVariable(&pr_checkextension);
 	Cvar_RegisterVariable(&sv_altnoclip); //johnfitz
 	Cvar_RegisterVariable(&sv_autosave);

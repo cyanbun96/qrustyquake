@@ -249,8 +249,9 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 				|| check->v.movetype == MOVETYPE_NOCLIP)
 			continue;
 	// if the entity is standing on the pusher, it will definately be moved
-		if(!(((s32)check->v.flags & FL_ONGROUND)
-			&& PROG_TO_EDICT(check->v.groundentity) == pusher)){
+		bool riding = ((s32)check->v.flags & FL_ONGROUND)
+			&& PROG_TO_EDICT(check->v.groundentity) == pusher;
+		if(!riding){
 			if( check->v.absmin[0] >= maxs[0]
 					|| check->v.absmin[1] >= maxs[1]
 					|| check->v.absmin[2] >= maxs[2]
@@ -290,6 +291,23 @@ void SV_PushMove(edict_t *pusher, f32 movetime)
 				check->v.mins[0] = check->v.mins[1] = 0;
 				VectorCopy(check->v.mins, check->v.maxs);
 				continue;
+			}
+			// try moving the entity up a bit if it's blocked by the
+			// pusher while also standing on it (from Ironwail)
+			if(riding && block == pusher &&
+				(sv_gameplayfix_elevators.value >= 2 ||
+				(sv_gameplayfix_elevators.value
+				 && e <= svs.maxclients))){
+				check->v.origin[2] += DIST_EPSILON;
+				if(!SV_TestEntityPosition(check)){
+					Con_DPrintf("sv_gameplayfix_elevators "
+						"nudged %s #%d above %s #%d\n",
+					PR_GetString(check->v.classname),
+					NUM_FOR_EDICT(check),
+					PR_GetString(pusher->v.classname),
+					NUM_FOR_EDICT(pusher));
+					continue;
+				}
 			}
 			VectorCopy(entorig, check->v.origin);
 			SV_LinkEdict(check, 1);

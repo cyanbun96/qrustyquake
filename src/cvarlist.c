@@ -219,6 +219,7 @@ cvar_t sv_cheats=                                       {"sv_cheats","0", 0,ZR};
 cvar_t sv_edgefriction=                             {"edgefriction", "2", 0,ZR};
 cvar_t sv_freezenonclients=                    {"sv_freezenonclients","0",0,ZR};
 cvar_t sv_friction=          {"sv_friction","4",CVAR_NOTIFY|CVAR_SERVERINFO,ZR};
+cvar_t sv_gameplayfix_elevators=          {"sv_gameplayfix_elevators","2",1,ZR};
 cvar_t sv_gravity=          {"sv_gravity","800",CVAR_NOTIFY|CVAR_SERVERINFO,ZR};
 cvar_t sv_idealpitchscale=                   {"sv_idealpitchscale","0.8", 0,ZR};
 cvar_t sv_maxspeed=        {"sv_maxspeed","320",CVAR_NOTIFY|CVAR_SERVERINFO,ZR};
