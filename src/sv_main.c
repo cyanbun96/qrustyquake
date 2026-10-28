@@ -399,8 +399,10 @@ void SV_WriteEntitiesToClient(edict_t *clent, sizebuf_t *msg)
 	// assumed here. And, for protocol 85 the max size is actually 24 bytes.
 	// For f32 coords and angles the limit is 40.
 	// FIXME: Use tighter limit according to protocol flags and send bits.
-		if(msg->cursize + 40 > msg->maxsize)
+		if(msg->cursize + 40 > msg->maxsize){
 			Con_DPrintf("Packet overflow!\n");
+			break;
+		}
 		s32 bits = 0; // send an update
 		for(i = 0; i < 3; i++){
 			f32 miss = ent->v.origin[i] - ent->baseline.origin[i];
@@ -584,6 +586,8 @@ bool SV_SendClientDatagram(client_t *client)
 	msg.data = buf;
 	msg.maxsize = sizeof(buf);
 	msg.cursize = 0;
+	msg.allowoverflow = 0;
+	msg.overflowed = 0;
 // if client is nonlocal, use smaller max size so packets aren't fragmented
 	if(strcmp(client->netconnection->address, "LOCAL") != 0) //johnfitz
 		msg.maxsize = 1400;
