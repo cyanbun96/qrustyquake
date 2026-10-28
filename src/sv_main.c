@@ -962,8 +962,7 @@ void SV_SpawnServer(c8 *server)
 	qcvm->time = 1.0;
 	SDL_strlcpy(sv.name, server, sizeof(sv.name));
 	snprintf(sv.modelname, sizeof(sv.modelname), "maps/%s.bsp", server);
-	for(s32 i = 0; i < MAXSKIES; ++i)
-		r_skyname[i][0] = 0;
+	r_numskies = 0;
 	lit_loaded = 0;
 	sv.worldmodel = Mod_ForName(sv.modelname, false);
 	if(!sv.worldmodel){

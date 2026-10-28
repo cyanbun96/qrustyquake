@@ -267,9 +267,8 @@ EX f32 skytime;
 EX s32 c_surf;
 EX vrect_t scr_vrect;
 EX u8 *r_warpbuffer;
-EX u8 r_skysource[MAXSKIES][128*256];
-EX s32 r_skymade[MAXSKIES];
-EX c8 r_skyname[MAXSKIES][16];
+EX sky_t *r_skies;
+EX s32 r_numskies;
 void D_PolysetDraw();
 void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts);
 void D_DrawParticle(particle_t *pparticle);
@@ -747,7 +746,7 @@ void R_ParseWorldspawn();
 void R_InitSkyBox();                                                  // r_sky.c
 void Sky_NewMap();
 void Sky_Init();
-EX s32 r_skyframe[MAXSKIES];
+EX s32 r_skyframe;
 EX u8 lit_loaded;                                                     //r_surf.c
 EX u8 worldpal[768];                                                 // common.c
 EX u8 worldcmap[64*256];

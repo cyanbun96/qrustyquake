@@ -18,7 +18,8 @@ void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
 {
-	s32 skyi = R_SkyIndexForTexture(pface->texinfo->texture);
+	u8 *skysrc = r_skies[R_SkyIndexForTexture(pface->texinfo->texture)]
+		.source;
 	do{
 		u8 *pdest = ((u8*)d_viewbuffer+(screenwidth*pspan->v)+pspan->u);
 		s32 count = pspan->count;
@@ -50,7 +51,7 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
 				}
 			}
 			do{
-				*pdest++ = r_skysource[skyi][((t & R_SKY_TMASK)
+				*pdest++ = skysrc[((t & R_SKY_TMASK)
 						>> 8)+((s&R_SKY_SMASK) >> 16)];
 				s += sstep;
 				t += tstep;
@@ -64,7 +65,8 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
 void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface)
 {
 	R_BuildColorMixLUT(0);
-	s32 skyi = R_SkyIndexForTexture(pface->texinfo->texture);
+	u8 *skysrc = r_skies[R_SkyIndexForTexture(pface->texinfo->texture)]
+		.source;
 	s32 mix = CLAMP(0, (FOG_LUT_LEVELS - 1)*r_skyfog.value, FOG_LUT_LEVELS);
 	do{
 		u8 *pdest = (u8*)d_viewbuffer+(screenwidth*pspan->v) + pspan->u;
@@ -98,7 +100,7 @@ void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface)
 				}
 			}
 			do{
-				u8 c = r_skysource[skyi][((t&R_SKY_TMASK) >> 8)
+				u8 c = skysrc[((t&R_SKY_TMASK) >> 8)
 					+ ((s & R_SKY_SMASK) >> 16)];
 				*pdest++ = color_mix_lut[c][fog_pal_index][mix];
 				s += sstep;

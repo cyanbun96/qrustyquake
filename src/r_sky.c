@@ -5,8 +5,6 @@
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static u8 bottomsky[MAXSKIES][128 * 131];
-static u8 bottommask[MAXSKIES][128 * 131];
 static msurface_t *r_skyfaces;
 static mplane_t r_skyplanes[6]; // Manoel Kasimier - edited
 static mtexinfo_t r_skytexinfo[6];
@@ -392,8 +390,8 @@ void Sky_Init()
 
 s32 R_SkyIndexForTexture(texture_t *mt)
 {
-	for(s32 i = 0; i < MAXSKIES; ++i)
-		if(!strncmp(mt->name, r_skyname[i], 16))
+	for(s32 i = 0; i < r_numskies; ++i)
+		if(!strncmp(mt->name, r_skies[i].name, 16))
 			return i;
 	Sys_Error("Sky not found: %s\n", mt->name);
 	return 0;
@@ -401,43 +399,48 @@ s32 R_SkyIndexForTexture(texture_t *mt)
 
 void R_InitSky(texture_t *mt)
 { // A sky texture is 256*128, with the right side being a masked overlay
+	static s32 maxskies;
 	s32 newi = 0;
-	for(; newi < MAXSKIES + 1; ++newi){
-		if(newi == MAXSKIES){
-			Host_Error("No space for sky: %s\n", mt->name);
-			return;
+	while(newi < r_numskies && strncmp(r_skies[newi].name, mt->name, 16))
+		newi++; // a reloaded model reuses its slot
+	if(newi == r_numskies){
+		if(r_numskies == maxskies){
+			maxskies += 8;
+			r_skies = realloc(r_skies, maxskies*sizeof(*r_skies));
+			if(!r_skies) Sys_Error(
+				"R_InitSky: realloc() failed on %d skies",
+				maxskies);
 		}
-		if(!strncmp(r_skyname[newi], mt->name, 16))
-			break; // reloaded model, reuse its slot
-		if(r_skyname[newi][0] == 0){
-			strncpy(r_skyname[newi], mt->name, 16);
-			break;
-		}
+		r_numskies++;
+		strncpy(r_skies[newi].name, mt->name, 16);
 	}
+	sky_t *sky = &r_skies[newi];
+	sky->made = 0;
+	sky->xlast = sky->ylast = -1;
 	// skies of any other size get sampled down or up to it
 	u8 *src = (u8 *) mt + mt->offsets[0];
 	s32 w = mt->width, h = mt->height, half = w / 2;
 	if(half < 1){
 		Con_Printf("Sky %.16s is too small (%dx%d)\n", mt->name, w, h);
-		memset(r_skysource[newi], 0, sizeof(r_skysource[newi]));
-		memset(bottomsky[newi], 0, sizeof(bottomsky[newi]));
-		memset(bottommask[newi], 0xff, sizeof(bottommask[newi]));
+		memset(sky->source, 0, sizeof(sky->source));
+		memset(sky->bottomsky, 0, sizeof(sky->bottomsky));
+		memset(sky->bottommask, 0xff, sizeof(sky->bottommask));
 		return;
 	}
 	// row i, column j of a 128x128 layer; the left half is the front
 #define SKYSRC(i, j, left) src[(i) * h / 128 * w + (left) + (j) * half / 128]
 	for(s32 i = 0; i < 128; i++)
 		for(s32 j = 0; j < 128; j++)
-			r_skysource[newi][(i*256)+j+128] = SKYSRC(i, j, half);
+			sky->source[(i*256)+j+128] = SKYSRC(i, j, half);
 	for(s32 i = 0; i < 128; i++)
 		for(s32 j = 0; j < 131; j++){
 			if(SKYSRC(i, j & 0x7F, 0)){
-				bottomsky[newi][(i * 131) + j] =
+				sky->bottomsky[(i * 131) + j] =
 				    SKYSRC(i, j & 0x7F, 0);
-				bottommask[newi][(i * 131) + j] = 0;
+				sky->bottommask[(i * 131) + j] = 0;
 			}else{
-				bottomsky[newi][(i * 131) + j] = 0;
-				bottommask[newi][(i * 131) + j] = 0xff;
+				sky->bottomsky[(i * 131) + j] = 0;
+				sky->bottommask[(i * 131) + j] = 0xff;
 			}
 		}
 #undef SKYSRC
@@ -445,27 +448,26 @@ void R_InitSky(texture_t *mt)
 
 void R_MakeSky(texture_t *mt)
 {
-	s32 skyi = R_SkyIndexForTexture(mt);
+	sky_t *sky = &r_skies[R_SkyIndexForTexture(mt)];
 	s32 xshift = skytime * skyspeed;
 	s32 yshift = skytime * skyspeed;
-	static s32 xlast[MAXSKIES] = {-1}, ylast[8] = {-1};
-	if((xshift == xlast[skyi]) && (yshift == ylast[skyi]))
+	if((xshift == sky->xlast) && (yshift == sky->ylast))
 		return;
-	xlast[skyi] = xshift;
-	ylast[skyi] = yshift;
-	u32 *pnewsky = (u32 *)&r_skysource[skyi];
+	sky->xlast = xshift;
+	sky->ylast = yshift;
+	u32 *pnewsky = (u32 *)sky->source;
 	for(s32 y = 0; y < SKYSIZE; y++){
 		s32 baseofs = ((y + yshift) & SKYMASK) * 131;
 		for(s32 x = 0; x < SKYSIZE; x++){
 			s32 ofs = baseofs + ((x + xshift) & SKYMASK);
 			*(u8 *) pnewsky = (*((u8 *) pnewsky + 128) &
-					*(u8 *) & bottommask[skyi][ofs]) |
-					*(u8 *) & bottomsky[skyi][ofs];
+					sky->bottommask[ofs]) |
+					sky->bottomsky[ofs];
 			pnewsky = (unsigned *)((u8 *) pnewsky + 1);
 		}
 		pnewsky += 128 / sizeof(unsigned);
 	}
-	r_skymade[skyi] = 1;
+	sky->made = 1;
 }
 
 void R_SetSkyFrame()
@@ -478,6 +480,6 @@ void R_SetSkyFrame()
 	s32 s2 = iskyspeed2 / g;
 	f32 temp = SKYSIZE * s1 * s2;
 	skytime = cl.time - ((s32)(cl.time / temp) * temp);
-	for(s32 skyi = 0; skyi < MAXSKIES; ++skyi)
-		r_skymade[skyi] = 0;
+	for(s32 skyi = 0; skyi < r_numskies; ++skyi)
+		r_skies[skyi].made = 0;
 }

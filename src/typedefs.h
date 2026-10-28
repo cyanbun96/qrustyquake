@@ -434,6 +434,14 @@ typedef struct {
 	s32 triangles;
 	maliasframedesc_t frames[1]; // variable sized
 } aliashdr_t;
+typedef struct { // a classic scrolling sky texture, see R_InitSky
+	c8 name[16];
+	s32 made; // source is up to date for this frame
+	s32 xlast, ylast; // scroll position source was made for
+	u8 source[128*256]; // left half the composited sky, right the back
+	u8 bottomsky[128*131]; // front layer
+	u8 bottommask[128*131]; // 0xff where the front layer is see-through
+} sky_t;
 typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
 typedef struct {
 	f32 mins[3], maxs[3];

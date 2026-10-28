@@ -424,8 +424,8 @@ void R_NewMap()
 	r_dowarpold = 0;
 	r_viewchanged = 0;
 	skybox_name[0] = 0;
-	for(s32 i = 0; i < MAXSKIES; ++i)
-		r_skymade[i] = 0;
+	for(s32 i = 0; i < r_numskies; ++i)
+		r_skies[i].made = 0;
 	Sky_NewMap();
 	Fog_ParseWorldspawn();
 	R_ParseWorldspawn();

@@ -287,9 +287,7 @@ void Mod_ClearAll()
 		mod->needload = 2;
 		if(mod->type == mod_sprite) mod->cache.data = NULL;
 	}
-	// brush models register their skies again when they get reloaded
-	for(i = 0; i < MAXSKIES; i++)
-		r_skyname[i][0] = 0;
+	r_numskies = 0; // brush models register their skies when reloaded
 }
 
 void Mod_ResetAll()

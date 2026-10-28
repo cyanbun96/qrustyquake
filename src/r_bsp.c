@@ -430,6 +430,6 @@ void R_RenderWorld()
 		r_worldpass++;
 		R_RecursiveWorldNode(clmodel->nodes, 15);
 	}
-	if(r_skyframe[0] == r_framecount)
+	if(r_skyframe == r_framecount)
 		R_EmitSkyBox();
 }

@@ -510,7 +510,6 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define WARP_WIDTH MAXWIDTH                                         // d_iface.h
 #define WARP_HEIGHT MAXHEIGHT
 #define MAX_LBM_HEIGHT 480
-#define MAXSKIES 8
 #define SKYSIZE (1<<7)
 #define SKYMASK (SKYSIZE - 1)
 // max points in an intermediate polygon (while processing) (16+4)

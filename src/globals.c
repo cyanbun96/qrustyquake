@@ -219,12 +219,11 @@ server_static_t svs;
 globalvars_t *pr_global_struct;                                    // pr_edict.c
 qcvm_t *qcvm;
 u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                   // r_sky.c
-s32 r_skyframe[MAXSKIES];
+s32 r_skyframe; // the last frame a skybox surface was seen
 f32 skyspeed;
 f32 skytime;
-u8 r_skysource[MAXSKIES][128*256];
-s32 r_skymade[MAXSKIES];
-c8 r_skyname[MAXSKIES][16];
+sky_t *r_skies; // grows as maps bring more sky textures
+s32 r_numskies;
 c8 skybox_name[1024]; // name of current skybox, or "" if no skybox
 drawsurf_t r_drawsurf;                                               // r_surf.c
 u8 lit_loaded = 0;
