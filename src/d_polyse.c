@@ -145,7 +145,7 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 				continue;
 			s32 s = fv->v[2] >> 16;
 			s32 t = fv->v[3] >> 16;
-			if(t >= MAX_LBM_HEIGHT)
+			if(t < 0 || t >= MAX_LBM_HEIGHT)
 				continue;
 			u8 *row = skintable[t];
 			if(!row)
@@ -326,7 +326,7 @@ split: // split this edge
 		*zbuf = z;
 		s32 s = new[2] >> 16;
 		s32 t = new[3] >> 16;
-		if(t >= MAX_LBM_HEIGHT)
+		if(t < 0 || t >= MAX_LBM_HEIGHT)
 			goto nodraw;
 		u8 *row = skintable[t];
 		if(!row)
@@ -363,9 +363,10 @@ void D_PolysetUpdateTables()
 			r_affinetridesc.pskin != skinstart){
 		skinwidth = r_affinetridesc.skinwidth;
 		skinstart = r_affinetridesc.pskin;
-		u8 *s = skinstart;
+		u8 *s = skinstart; // rows past the skin stay NULL
+		s32 rows = r_affinetridesc.skinheight;
 		for(s32 i = 0; i < MAX_LBM_HEIGHT; i++, s += skinwidth)
-			skintable[i] = s;
+			skintable[i] = i < rows ? s : NULL;
 	}
 }
 

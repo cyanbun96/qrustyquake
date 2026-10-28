@@ -2361,12 +2361,20 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pstverts = (stvert_t *)&pmodel[1]; // set base s and t vertices
 	pinstverts = (stvert_t *)pskintype;
 	pheader->stverts = (u8 *)pstverts - (u8 *)pheader;
+	s32 stclamped = 0;
 	for(s32 i = 0; i < pheader->numverts; i++){
 		pstverts[i].onseam = (s32)(pinstverts[i].onseam);
+		// the rasterizer doesn't wrap, so keep s and t on the skin
+		s32 s = CLAMP(0, (s32)(pinstverts[i].s), pmodel->skinwidth-1);
+		s32 t = CLAMP(0, (s32)(pinstverts[i].t), pmodel->skinheight-1);
+		stclamped |= s != pinstverts[i].s || t != pinstverts[i].t;
 		// put s and t in 16.16 format
-		pstverts[i].s = (s32)(pinstverts[i].s) << 16;
-		pstverts[i].t = (s32)(pinstverts[i].t) << 16;
+		pstverts[i].s = s << 16;
+		pstverts[i].t = t << 16;
 	}
+	if(stclamped)
+		Con_DPrintf("Mod_LoadAliasModel: %s has texture coordinates "
+			"outside its skin\n", mod->name);
 	ptri = (mtriangle_t *)&pstverts[pmodel->numverts];//set up the triangles
 	pintriangles = (dtriangle_t *)&pinstverts[pmodel->numverts];
 	pheader->triangles = (u8 *)ptri - (u8 *)pheader;
