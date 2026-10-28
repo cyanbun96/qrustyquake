@@ -2024,6 +2024,9 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 		frame->bboxmin.v[i] = pdaliasframe->bboxmin.v[i];
 		frame->bboxmax.v[i] = pdaliasframe->bboxmax.v[i];
 	}
+	if(posenum >= MAXALIASFRAMES) Host_Error(
+		"Mod_LoadAliasFrame: model %s has too many poses(max = %d)",
+		loadmodel->name, MAXALIASFRAMES);
 	trivertx_t *pinframe = (trivertx_t *) (pdaliasframe + 1);
 	trivertx_t *pframe = Hunk_AllocName(numv * sizeof(*pframe), loadname);
 	*pframeindex = (u8 *) pframe - (u8 *) pheader;
