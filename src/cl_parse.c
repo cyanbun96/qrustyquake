@@ -113,7 +113,8 @@ void CL_ParseLocalSound()
 	s32 sn = (field_mask&SND_LARGESOUND) ? MSG_ReadShort() : MSG_ReadByte();
 	if(sn >= MAX_SOUNDS)
 		Host_Error("CL_ParseLocalSound: %i > MAX_SOUNDS", sn);
-	S_LocalSound(cl.sound_precache[sn]->name);
+	if(cl.sound_precache[sn]) // NULL with sound disabled
+		S_LocalSound(cl.sound_precache[sn]->name);
 }
 
 void CL_KeepaliveMessage()
