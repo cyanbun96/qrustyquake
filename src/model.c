@@ -1236,14 +1236,14 @@ s32 Mod_CountSecrets(const c8 *map)
 		while(1){
 			data = COM_Parse(data);
 			if(!data)
-				return secret_count;
+				goto done;
 			if(com_token[0] == '}')
 				break;
 			bool is_classname = !strcmp(com_token, "classname");
 			bool is_spawnflags = !strcmp(com_token, "spawnflags");
 			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 			if(!data)
-				return secret_count;
+				goto done;
 			if(is_classname){
 				if(!strcmp(com_token, "trigger_secret")
 				|| !strcmp(com_token, "target_secret") // copper
@@ -1263,6 +1263,7 @@ s32 Mod_CountSecrets(const c8 *map)
 				secret_count++;
 		}
 	}
+done:
 	free(buf);
 	return secret_count;
 }
@@ -1327,14 +1328,14 @@ s32 Mod_CountMonsters(const c8 *map)
 		while(1){
 			data = COM_Parse(data);
 			if(!data)
-				return monster_count;
+				goto done;
 			if(com_token[0] == '}')
 				break;
 			bool is_classname = !strcmp(com_token, "classname");
 			bool is_spawnflags = !strcmp(com_token, "spawnflags");
 			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
 			if(!data)
-				return monster_count;
+				goto done;
 			if(is_classname){
 				if(!strncmp(com_token, "monster_", 8))
 					is_monster = true;
@@ -1352,6 +1353,7 @@ s32 Mod_CountMonsters(const c8 *map)
 				monster_count++;
 		}
 	}
+done:
 	free(buf);
 	return monster_count;
 }
