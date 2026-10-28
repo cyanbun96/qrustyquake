@@ -419,38 +419,27 @@ void R_SetupAliasFrame(aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 	}
 }
 
-void R_BoundPoseSingle(mdl_t *m, lerpdata_t *lerpdata)
-{
-        if(lerpdata->pose2 < 0) lerpdata->pose2 = 0;
-        if(lerpdata->pose2 >= m->numframes) lerpdata->pose2 = m->numframes - 1;
-        if(lerpdata->pose1 < 0) lerpdata->pose1 = 0;
-        if(lerpdata->pose1 >= m->numframes) lerpdata->pose1 = m->numframes - 1;
+void R_BoundPose(aliashdr_t *hdr, lerpdata_t *lerpdata)
+{ // the previous pose can come from another frame or even another model
+	s32 last = hdr->numposes - 1;
+	if(lerpdata->pose2 < 0) lerpdata->pose2 = 0;
+	if(lerpdata->pose2 > last) lerpdata->pose2 = last;
+	if(lerpdata->pose1 < 0) lerpdata->pose1 = 0;
+	if(lerpdata->pose1 > last) lerpdata->pose1 = last;
 }
 
 void R_AliasSetupFrameMH(entity_t *ent)
 {
 	s32 frame = ent->frame; // validated by R_AliasValidateFrame
-	maliasgroup_t *paliasgroup = (maliasgroup_t*)((u8*)paliashdr+
-			paliashdr->frames[frame].frame);
 	lerpdata_t lerpdata;
 	R_SetupAliasFrame(paliashdr, frame, &lerpdata);
 	f32 blend = lerpdata.pose1 != lerpdata.pose2 ? lerpdata.blend : 0;
-	trivertx_t *currv;
-	trivertx_t *lastv;
-	if(paliashdr->frames[frame].type == ALIAS_SINGLE){
-		R_BoundPoseSingle(pmdl, &lerpdata);
-		currv = (trivertx_t*)((u8*)paliashdr+
-				paliashdr->frames[lerpdata.pose2].frame);
-		lastv = (trivertx_t*)((u8*)paliashdr+
-				paliashdr->frames[lerpdata.pose1].frame);
-	}else{ // For static models like torches with no server ent
-		lerpdata.pose1 -= paliashdr->frames[frame].firstpose;
-		lerpdata.pose2 -= paliashdr->frames[frame].firstpose;
-		currv = (trivertx_t*)((u8*)paliashdr+
-				paliasgroup->frames[lerpdata.pose2].frame);
-		lastv = (trivertx_t*)((u8*)paliashdr+
-				paliasgroup->frames[lerpdata.pose1].frame);
-	}
+	R_BoundPose(paliashdr, &lerpdata);
+	s32 *poseofs = (s32 *)((u8 *)paliashdr + paliashdr->posedata);
+	trivertx_t *currv = (trivertx_t *)((u8 *)paliashdr +
+			poseofs[lerpdata.pose2]);
+	trivertx_t *lastv = (trivertx_t *)((u8 *)paliashdr +
+			poseofs[lerpdata.pose1]);
 	lerpverts = r_aliaslerpverts;
 	for(s32 i = 0; i < pmdl->numverts; i++, currv++, lastv++, lerpverts++){
 		lerpverts->v[0] = currv->v[0]*blend + lastv->v[0]*(1.0f-blend);

@@ -425,7 +425,7 @@ typedef struct {
 	intptr_t vertexes;//offs in extradata: numposes*vertsperframe trivertx_t
 	s32 numposes;
 	s32 poseverts;
-	s32 posedata; // numposes*poseverts trivert_t
+	s32 posedata; // offset of numposes s32: each pose's trivertx_t
 	s32 commands; // gl command list with embedded s/t
 	s32 texels[32]; // only for player skins
 	s32 model;

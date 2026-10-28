@@ -158,6 +158,7 @@ typedef struct vispatch_s { // External VIS file support
 static aliashdr_t *pheader;
 // pose is a single set of vertexes. frame may be an animating sequence of poses
 static trivertx_t *poseverts[MAXALIASFRAMES];
+static s32 poseofs[MAXALIASFRAMES]; // where each pose's verts end up
 static s32 posenum;
 static model_t* loadmodel;
 static c8 loadname[32]; // for hunk tags
@@ -2027,6 +2028,7 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	trivertx_t *pframe = Hunk_AllocName(numv * sizeof(*pframe), loadname);
 	*pframeindex = (u8 *) pframe - (u8 *) pheader;
 	poseverts[posenum] = pinframe;
+	poseofs[posenum] = *pframeindex;
 	posenum++;
 	for(s32 j = 0; j < numv; j++){
 		pframe[j].lightnormalindex = pinframe[j].lightnormalindex;
@@ -2305,6 +2307,11 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 				pheader->frames[i].name, &pheader->frames[i]);
 	}
 	pheader->numposes = posenum; // Baker: Watch this and compare vs. Mark V
+	// frames and poses only line up when there are no frame groups, so
+	// the renderer looks poses up through this table
+	s32 *pposeofs = Hunk_AllocName(posenum * sizeof(s32), loadname);
+	memcpy(pposeofs, poseofs, posenum * sizeof(s32));
+	pheader->posedata = (u8 *)pposeofs - (u8 *)pheader;
 	mod->type = mod_alias;
 	if(nameInList(r_nolerp_list.string, mod->name))
 		mod->flags |= MOD_NOLERP;
