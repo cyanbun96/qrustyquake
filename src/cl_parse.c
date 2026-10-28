@@ -582,8 +582,9 @@ void CL_ParseServerMessage()
 	switch(cmd){ // other commands
 	default:
 		Host_Error(
-		"Illegible server message %d(previous was %s)",
-		cmd, svc_strings[lastcmd]);
+		"Illegible server message %d(previous was %s)", cmd,
+		lastcmd < (s32)Q_COUNTOF(svc_strings) ?
+		svc_strings[lastcmd] : va("%d", lastcmd));
 		break;
 	case svc_nop:
 		Con_Printf("svc_nop\n");
