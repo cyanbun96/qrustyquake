@@ -927,7 +927,8 @@ PR_RunError("PF_Precache_*: Precache can only be done in spawn functions");
 	const c8 *s = G_STRING(OFS_PARM0);
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
 	PR_CheckEmptyString(s);
-	for(s32 i = 0; i < MAX_SOUNDS; i++){
+	// the last slot stays NULL, lookups stop at the first NULL
+	for(s32 i = 0; i < MAX_SOUNDS - 1; i++){
 		if(!sv.sound_precache[i]){ sv.sound_precache[i] = s; return; }
 		if(!strcmp(sv.sound_precache[i], s)) return;
 	}
@@ -941,7 +942,7 @@ PR_RunError("PF_Precache_*: Precache can only be done in spawn functions");
 	const c8 *s = G_STRING(OFS_PARM0);
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
 	PR_CheckEmptyString(s);
-	for(s32 i = 0; i < MAX_MODELS; i++){
+	for(s32 i = 0; i < MAX_MODELS - 1; i++){ // keep the NULL at the end
 		if(!sv.model_precache[i]){
 			sv.model_precache[i] = s;
 			sv.models[i] = Mod_ForName(s, 1);

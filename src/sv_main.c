@@ -982,6 +982,10 @@ void SV_SpawnServer(c8 *server)
 	sv.sound_precache[0] = dummy;
 	sv.model_precache[0] = dummy;
 	sv.model_precache[1] = sv.modelname;
+	if(sv.worldmodel->numsubmodels > MAX_MODELS - 2)
+		Host_Error("%s has too many brush models (%d, max = %d)",
+			sv.modelname, sv.worldmodel->numsubmodels,
+			MAX_MODELS - 2);
 	for(i=1; i<sv.worldmodel->numsubmodels; i++){
 		sv.model_precache[1+i] = localmodels[i];
 		sv.models[i+1] = Mod_ForName(localmodels[i], false);
