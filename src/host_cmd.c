@@ -1206,9 +1206,7 @@ void Host_Maps_f()
 	c8 padchar = (c8)('.' | 0x80);
 	c8 padchar2 = (c8)('-' | 0x80);
 	Con_Printf("%s\n", RightPad("id1", 32, padchar2));
-	filelist_item_t *level;
-	s32 i;
-	for(level = extralevels, i = 0; level; level = level->next, i++){
+	for(filelist_item_t *level = extralevels; level; level = level->next){
 		Con_Printf("   %s%c%s\n", RightPad(level->name,
 			maxlevelnamelen, padchar), padchar, level->desc);
 		++tot;
@@ -1216,7 +1214,7 @@ void Host_Maps_f()
 	if(!strncmp("id1", COM_SkipPath(com_gamedir), 4))
 		goto host_maps_f_fin;
 	Con_Printf("%s\n", RightPad(COM_SkipPath(com_gamedir), 32, padchar2));
-	for(level = extralevels_mod, i = 0; level; level = level->next, i++){
+	for(filelist_item_t *level=extralevels_mod; level; level = level->next){
 		Con_Printf("   %s%c%s\n", RightPad(level->name,
 			maxlevelnamelen, padchar), padchar, level->desc);
 		++tot;

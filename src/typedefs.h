@@ -1160,7 +1160,6 @@ typedef struct qcvm_s
 	s32 localstack[LOCALSTACK_SIZE];
 	s32 localstack_used;
 	//originally part of the sv_state_t struct
-	//FIXME: put worldmodel in here too.
 	f64 time;
 	s32 num_edicts;
 	s32 reserved_edicts;
