@@ -90,10 +90,10 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 		u8 palette[256*4];
 		u64 i;
 		for(i = 0; i < targa_header.colormap_length; i++){ //bgr palette
-			palette[i*3+2] = Buf_GetC(buf);
-			palette[i*3+1] = Buf_GetC(buf);
-			palette[i*3+0] = Buf_GetC(buf);
-			palette[i*3+3] = 255;
+			palette[i*4+2] = Buf_GetC(buf);
+			palette[i*4+1] = Buf_GetC(buf);
+			palette[i*4+0] = Buf_GetC(buf);
+			palette[i*4+3] = 255;
 		}
 		for(i = targa_header.colormap_length*4; i<sizeof(palette); i++)
 			palette[i] = 0;
@@ -101,11 +101,11 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 			realrow = upside_down ? row : rows - 1 - row;
 			pixbuf = targa_rgba + realrow*columns*4;
 			for(s32 column=0; column<columns; column++){
-				i = Buf_GetC(buf);
-				*pixbuf++= palette[i*3+0];
-				*pixbuf++= palette[i*3+1];
-				*pixbuf++= palette[i*3+2];
-				*pixbuf++= palette[i*3+3];
+				i = Buf_GetC(buf) & 0xff; // EOF reads as 255
+				*pixbuf++= palette[i*4+0];
+				*pixbuf++= palette[i*4+1];
+				*pixbuf++= palette[i*4+2];
+				*pixbuf++= palette[i*4+3];
 			}
 		}
 	}else if(targa_header.image_type == 2){ // Uncompressed, RGB images
