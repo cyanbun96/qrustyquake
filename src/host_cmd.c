@@ -922,15 +922,18 @@ void Host_Give_f()
 
 edict_t *FindViewthing()
 {
+	edict_t *e = NULL;
 	PR_SwitchQCVM(&sv.qcvm);
 	for(s32 i = 0; i < qcvm->num_edicts; i++){
-		edict_t *e = EDICT_NUM(i);
-		if(!strcmp(PR_GetString(e->v.classname), "viewthing"))
-			return e;
+		edict_t *ent = EDICT_NUM(i);
+		if(!strcmp(PR_GetString(ent->v.classname), "viewthing")){
+			e = ent;
+			break;
+		}
 	}
-	Con_Printf("No viewthing on map\n");
+	if(!e) Con_Printf("No viewthing on map\n");
 	PR_SwitchQCVM(NULL);
-	return NULL;
+	return e;
 }
 
 void Host_Viewmodel_f()
