@@ -25,7 +25,7 @@ void Host_EndGame(c8 *message, ...)
 	c8 string[1024];
 	va_list argptr;
 	va_start(argptr, message);
-	vsprintf(string, message, argptr);
+	vsnprintf(string, sizeof(string), message, argptr);
 	va_end(argptr);
 	Con_DPrintf("Host_EndGame: %s\n", string);
 	if(sv.active) Host_ShutdownServer(0);
@@ -45,7 +45,7 @@ void Host_Error(c8 *error, ...)
 	SCR_EndLoadingPlaque();	// reenable screen updates
 	va_list argptr;
 	va_start(argptr, error);
-	vsprintf(string, error, argptr);
+	vsnprintf(string, sizeof(string), error, argptr);
 	va_end(argptr);
 	Con_Printf("Host_Error: %s\n", string);
 	if(sv.active) Host_ShutdownServer(0);
@@ -136,7 +136,7 @@ void SV_ClientPrintf(const c8 *fmt, ...) // Sends text across to be displayed
 	c8 string[1024];
 	va_list argptr;
 	va_start(argptr, fmt);
-	vsprintf(string, fmt, argptr);
+	vsnprintf(string, sizeof(string), fmt, argptr);
 	va_end(argptr);
 	MSG_WriteByte(&host_client->message, svc_print);
 	MSG_WriteString(&host_client->message, string);
@@ -147,7 +147,7 @@ void SV_BroadcastPrintf(const c8 *fmt, ...)
 	c8 string[1024];
 	va_list argptr;
 	va_start(argptr, fmt);
-	vsprintf(string, fmt, argptr);
+	vsnprintf(string, sizeof(string), fmt, argptr);
 	va_end(argptr);
 	for(s32 i = 0; i < svs.maxclients; i++)
 		if(svs.clients[i].active && svs.clients[i].spawned){
@@ -161,7 +161,7 @@ void Host_ClientCommands(c8 *fmt, ...)
 	c8 string[1024];
 	va_list argptr;
 	va_start(argptr, fmt);
-	vsprintf(string, fmt, argptr);
+	vsnprintf(string, sizeof(string), fmt, argptr);
 	va_end(argptr);
 	MSG_WriteByte(&host_client->message, svc_stufftext);
 	MSG_WriteString(&host_client->message, string);
