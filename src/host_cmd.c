@@ -1028,12 +1028,13 @@ void Host_Stopdemo_f()
 
 time_t Mod_GetMapDate(const c8 *map)
 {
-	c8 path[MAX_QPATH];
+	c8 path[MAX_OSPATH];
 	if((size_t)snprintf(path, sizeof(path), "%s/maps/%s.bsp",
 				com_gamedir, map) >= sizeof(path))
 		return 0;
 	SDL_PathInfo info;
-	SDL_GetPathInfo(path, &info);
+	if(!SDL_GetPathInfo(path, &info)) // e.g. the map is in a pak
+		return 0;
 	u64 ns = info.modify_time;
 	time_t seconds = ns / 1000000000ULL;
 	return seconds;
