@@ -422,6 +422,14 @@ static void bilinear_u8(u8 *in, u8 *out, s32 w, s32 h, s32 new_w, s32 new_h)
 	}
 }
 
+static s32 Mod_MiptexAvail(lump_t *l, miptex_t *mt, u32 ofs)
+{ // how many bytes of pixels at ofs the lump really has (0 if none)
+	u8 *end = mod_base + l->fileofs + l->filelen;
+	if(ofs < sizeof(miptex_t) || ofs >= (u32)(end - (u8 *)mt))
+		return 0; // compilers write 0 when the texture is in a wad
+	return end - ((u8 *)mt + ofs);
+}
+
 void Mod_LoadTextures(lump_t *l)
 {
 	texture_t *anims[10];
@@ -433,17 +441,35 @@ void Mod_LoadTextures(lump_t *l)
 	}
 	dmiptexlump_t *m = (dmiptexlump_t *) (mod_base + l->fileofs);
 	m->nummiptex = (s32)(m->nummiptex);
+	if(l->filelen < 4 || m->nummiptex < 0 ||
+			m->nummiptex > (l->filelen - 4) / 4){
+		Con_Printf("Mod_LoadTextures: bad texture count in %s\n",
+				loadmodel->name);
+		m->nummiptex = l->filelen < 4 ? 0 : (l->filelen - 4) / 4;
+	}
 	loadmodel->numtextures = m->nummiptex;
 	loadmodel->textures = Hunk_AllocName(m->nummiptex *
 			sizeof(*loadmodel->textures), loadname);
 	for(s32 i = 0; i < m->nummiptex; i++){
 		m->dataofs[i] = (s32)(m->dataofs[i]);
 		if(m->dataofs[i] == -1) continue;
+		if(m->dataofs[i] < 0 || (u32)m->dataofs[i] >
+				l->filelen - sizeof(miptex_t)){
+			Con_Printf("Texture %d is outside the lump in %s\n",
+					i, loadmodel->name);
+			continue;
+		}
 		miptex_t *mt = (miptex_t *) ((u8 *) m + m->dataofs[i]);
 		mt->width = (s32)(mt->width);
 		mt->height = (s32)(mt->height);
 		for(s32 j = 0; j < MIPLEVELS; j++)
 			mt->offsets[j] = (s32)(mt->offsets[j]);
+		if(!mt->width || !mt->height || mt->width > 8192 ||
+				mt->height > 8192){
+			Con_Printf("Texture %.16s has bad size %ux%u\n",
+					mt->name, mt->width, mt->height);
+			continue;
+		}
 		if((mt->width & 7) || (mt->height & 7)){
 			Con_Printf("Texture %s is not 8 aligned\n", mt->name);
 			s32 srcw = mt->width;
@@ -481,7 +507,9 @@ void Mod_LoadTextures(lump_t *l)
 			tx->offsets[2] = tx->offsets[1] + mip1;
 			tx->offsets[3] = tx->offsets[2] + mip2;
 			u8 *dst = (u8*)tx + tx->offsets[0];
-			if(mt->offsets[0] <= 0){
+			if(Mod_MiptexAvail(l, mt, mt->offsets[0]) < srcw*srch){
+				Con_DPrintf("Texture %.16s has no pixels\n",
+						mt->name);
 				memset(dst, 0, pixels);
 				continue;
 			}
@@ -521,7 +549,10 @@ void Mod_LoadTextures(lump_t *l)
 			u8 *src = (u8 *)mt + mt->offsets[0];
 			u8 resized[64 * 64];
 			//simple nearest-neighbor downscale
-			for(s32 y = 0; y < 64; y++){
+			if(Mod_MiptexAvail(l, mt, mt->offsets[0])
+					< (s32)(mt->width * mt->height))
+				memset(resized, 0, sizeof(resized));
+			else for(s32 y = 0; y < 64; y++){
 				s32 src_y = y * mt->height / 64;
 				for(s32 x = 0; x < 64; x++){
 					s32 src_x = x * mt->width / 64;
@@ -549,11 +580,26 @@ void Mod_LoadTextures(lump_t *l)
 		memcpy(tx->name, mt->name, sizeof(tx->name));
 		tx->width = mt->width;
 		tx->height = mt->height;
-		for(s32 j = 0; j < MIPLEVELS; j++)
-			tx->offsets[j] = mt->offsets[j] + sizeof(texture_t) -
-				sizeof(miptex_t);
-		// the pixels immediately follow the structures
-		memcpy(tx + 1, mt + 1, pixels);
+		// the pixels immediately follow the structures, unless the
+		// compiler left them out or the lump got cut short
+		s32 avail = mt->offsets[0] ?
+			Mod_MiptexAvail(l, mt, sizeof(miptex_t)) : 0;
+		if(avail < pixels){
+			Con_DPrintf("Texture %.16s is missing %d bytes\n",
+					mt->name, pixels - avail);
+			memset((u8 *)(tx + 1) + avail, 0, pixels - avail);
+		}
+		memcpy(tx + 1, mt + 1, avail < pixels ? avail : pixels);
+		s32 mipofs = 0;
+		for(s32 j = 0; j < MIPLEVELS; j++){
+			u32 ofs = mt->offsets[j] - sizeof(miptex_t);
+			u32 size = (mt->width >> j) * (mt->height >> j);
+			if(mt->offsets[j] < sizeof(miptex_t) ||
+					ofs + size > (u32)pixels)
+				ofs = mipofs; // where a compiler would put it
+			tx->offsets[j] = ofs + sizeof(texture_t);
+			mipofs += size;
+		}
 		if(!SDL_strncasecmp(mt->name, "sky", 3))
 			R_InitSky(tx);
 		if(!r_rebuildmips.value) continue;
@@ -812,14 +858,14 @@ static void Mod_LoadTexinfo(lump_t *l)
 		out->flags = (s32)(in->flags);
 		if(!loadmodel->textures){
 			out->texture = r_notexture_mip; // checkerboard texture
-			out->flags = 0;
+			out->flags = TEX_MISSING; // it has no pixels
 		}else{
-			if(miptex >= loadmodel->numtextures)
-				Sys_Error("miptex >= loadmodel->numtextures");
-			out->texture = loadmodel->textures[miptex];
+			if(miptex < 0 || miptex >= loadmodel->numtextures)
+				out->texture = NULL;
+			else out->texture = loadmodel->textures[miptex];
 			if(!out->texture){
 				out->texture = r_notexture_mip; // tex not found
-				out->flags = 0;
+				out->flags = TEX_MISSING;
 			}
 		}
 	}
