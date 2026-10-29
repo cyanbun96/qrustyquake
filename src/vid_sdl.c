@@ -385,9 +385,10 @@ void VID_Update()
 		Cvar_SetValue("vid_mode", (f32)vid_modenum);
 		vid_realmode = vid_modenum;
 	}
-	memset(screentop->pixels, 255, vid.width*vid.height);
-	memset(screensbar->pixels, 255, vid.width*vid.height);
-	memset(screenui->pixels, 255, vid.width*vid.height);
+	// unused layers aren't drawn to, so they stay clear from AllocBuffers
+	if(blitscreentop) memset(screentop->pixels, 255, vid.width*vid.height);
+	if(blitscreensbar) memset(screensbar->pixels,255,vid.width*vid.height);
+	if(blitscreenui) memset(screenui->pixels, 255, vid.width*vid.height);
 }
 
 c8 *VID_GetModeDescription(s32 mode)
@@ -411,6 +412,9 @@ void VID_AllocBuffers()
 	sbarpixels = realloc(sbarpixels, area);
 	if(!screenpixels||!toppixels||!uipixels||!sbarpixels)
 		Sys_Error("Not enough memory for video mode");
+	memset(toppixels, 255, area); // 255 is transparent in the overlays
+	memset(uipixels, 255, area);
+	memset(sbarpixels, 255, area);
 	screen->pixels = vid.buffer = screenpixels;
 	screentop->pixels = toppixels;
 	screenui->pixels = uipixels;
