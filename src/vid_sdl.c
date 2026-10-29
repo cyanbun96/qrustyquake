@@ -212,6 +212,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	realheight.value = (s32)(vid.width / aspectr.value + 0.5) * renderscale;
 	window = SDL_CreateWindow("QrustyQuake",realwidth.value,
 			realheight.value,SDL_WINDOW_RESIZABLE);
+	if(!window) Sys_Error("Couldn't create window: %s", SDL_GetError());
 	SDL_SetWindowMinimumSize(window, 320, 200);
 	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
@@ -244,6 +245,8 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	VID_SetPalette(host_basepal, screensbar);
 	SDL_SetSurfaceColorKey(screensbar, 1, 255);
 	renderer = SDL_CreateRenderer(window, NULL);
+	if(!renderer)
+		Sys_Error("Couldn't create renderer: %s", SDL_GetError());
 	window_format = SDL_GetWindowPixelFormat(window);
 	// pixels and pitch are filled in by SDL_LockTexture every frame
 	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale,
@@ -251,7 +254,7 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	texture = SDL_CreateTexture(renderer, window_format,
 			SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale,
 			vid.height * renderscale);
-	if(!texture){printf("%s\n", SDL_GetError());}
+	if(!texture) Sys_Error("Couldn't create texture: %s", SDL_GetError());
 	SDL_SetTextureScaleMode(texture, scalemode);
 	sprintf(caption, "QrustyQuake - Version %4.2f", VERSION);
 	SDL_SetWindowTitle(window, (const c8 *)&caption);
@@ -459,6 +462,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm,
 	texture = SDL_CreateTexture(renderer, window_format,
 		SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale,
 		vid.height * renderscale);
+	if(!texture) Sys_Error("Couldn't create texture: %s", SDL_GetError());
 	SDL_SetTextureScaleMode(texture, scalemode);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	screen->pixels = screenpixels;
