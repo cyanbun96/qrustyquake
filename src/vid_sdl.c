@@ -95,7 +95,8 @@ void VID_SetFullscreen(s32 w, s32 h)
 {
 	s32 moden = -1;
 	SDL_DisplayMode *mode = 0;
-	SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(1, &moden);
+	SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(
+			SDL_GetDisplayForWindow(window), &moden);
 	for(s32 i = 0; i < moden; ++i){
 		if(modes[i]->w == w && modes[i]->h == h){
 			mode = modes[i];
