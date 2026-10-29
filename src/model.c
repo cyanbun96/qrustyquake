@@ -680,6 +680,11 @@ void Mod_LoadTextures(lump_t *l)
 			}else
 				Sys_Error("Bad animating texture %s", tx->name);
 		}
+		if(loadmodel->bspversion == BSPVERSION_QUAKE64){
+			s32 j = 0; // Q64 has gaps, treat as a normal texture
+			while(j < max && anims[j]) j++;
+			if(j < max) continue;
+		}
 		for(s32 j = 0; j < max; j++){ // link them all together
 			texture_t *tx2 = anims[j];
 			if(!tx2)Sys_Error("Missing frame %i of %s", j,tx->name);
