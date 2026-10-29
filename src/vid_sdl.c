@@ -537,9 +537,13 @@ void VID_VidFullscreenCommand_f()
 		if(!m)
 			VID_SetWindowed();
 		else if(m == 1)
-			VID_SetFullscreen(vid.width, vid.height);
-		else
+			VID_SetFullscreen(vid.width * renderscale,
+					vid.height * renderscale);
+		else{
 			VID_SetBorderless();
+			m = 2;
+		}
+		Cvar_SetValue("vid_cwmode", m);
 		break;
 	}
 }
