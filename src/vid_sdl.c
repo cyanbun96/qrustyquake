@@ -55,11 +55,10 @@ s32 VID_GetConfigCvar(const c8 *cvname)
 	return ret;
 }
 
-s32 VID_DetermineMode()
+s32 VID_DetermineMode(s32 win)
 {
-	s32 win = !(SDLWindowFlags & SDL_WINDOW_FULLSCREEN);
 	for(s32 i = 0; i < NUM_OLDMODES; ++i){
-		if(i > 2 ? !win : win && vid.width == oldmodes[i * 2]
+		if((i > 2 ? !win : win) && vid.width == oldmodes[i * 2]
 				&& vid.height == oldmodes[i * 2 + 1])
 			return i;
 	}
@@ -262,16 +261,18 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	vid.numpages = 1;
 	vid.colormap = host_colormap;
 	VID_AllocBuffers(); // allocate z buffer, surface cache and the fbuffer
-	if(defmode >= 0) vid_modenum = defmode;
-	else vid_modenum = VID_DetermineMode();
-	if(vid_modenum < 0) Con_Printf("WARNING: non-standard video mode\n");
-	else Con_Printf("Detected video mode %d\n", vid_modenum);
+	s32 win = 0;
 	if(COM_CheckParm("-fullscreen") || confwmode == 1)
 		VID_SetFullscreen(vid.width*renderscale,vid.height*renderscale);
 	else if(COM_CheckParm("-borderless")||confwmode==2)VID_SetBorderless();
-	else if(COM_CheckParm("-window") || confwmode == 0) VID_SetWindowed();
-	else if(winmode == 0) VID_SetBorderless();
-	else if(winmode == 1) VID_SetWindowed();
+	else if(COM_CheckParm("-window") || confwmode == 0 || winmode){
+		VID_SetWindowed();
+		win = 1;
+	}else VID_SetBorderless();
+	if(defmode >= 0) vid_modenum = defmode;
+	else vid_modenum = VID_DetermineMode(win);
+	if(vid_modenum < 0) Con_Printf("WARNING: non-standard video mode\n");
+	else Con_Printf("Detected video mode %d\n", vid_modenum);
 	SDLWindowFlags = SDL_GetWindowFlags(window);
 	realwidth.value = 0;
 	VID_CalcScreenDimensions(0);
