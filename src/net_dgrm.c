@@ -179,12 +179,6 @@ bool Datagram_CanSendMessage(qsocket_t *sock)
 	return sock->canSend;
 }
 
-bool Datagram_CanSendUnreliableMessage(qsocket_t *sock)
-{
-	(void)sock; // the other sock, i found it.
-	return 1;
-}
-
 s32 Datagram_SendUnreliableMessage(qsocket_t *sock, sizebuf_t *data)
 {
 	s32 packetLen = NET_HEADERSIZE + data->cursize;

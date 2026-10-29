@@ -948,19 +948,6 @@ const c8 *ED_ParseEdict(const c8 *data, edict_t *ent)
 	return data;
 }
 
-static bool ED_IsSkillSelector(const edict_t *ent)
-{
-	s32 skill;
-	const c8 *classname = PR_GetString(ent->v.classname);
-	if(strcmp(classname, "trigger_setskill") == 0 ||
-		strcmp(classname, "target_setskill") == 0)
-		return true;
-	if(strcmp(classname, "info_command") == 0 && (s32)ent->v.message != 0 &&
-		sscanf(PR_GetString(ent->v.message), "skill %d", &skill) == 1)
-		return true;
-	return false;
-}
-
 // The entities are directly placed in the array, rather than allocated with
 // ED_Alloc, because otherwise an error loading the map would have entity
 // number references out of order.
@@ -995,36 +982,6 @@ void ED_LoadFromFile(const c8 *data)
 			continue;
 		}
 		classname = PR_GetString(ent->v.classname);
-		if(sv.mapchecks.active){
-			s32 skillflags = (s32)ent->v.spawnflags &
-		   (SPAWNFLAG_NOT_EASY|SPAWNFLAG_NOT_MEDIUM|SPAWNFLAG_NOT_HARD);
-			if(!(skillflags & SPAWNFLAG_NOT_EASY))
-				sv.mapchecks.skill_ents[0]++;
-			if(!(skillflags & SPAWNFLAG_NOT_MEDIUM))
-				sv.mapchecks.skill_ents[1]++;
-			if(!(skillflags & SPAWNFLAG_NOT_HARD))
-				sv.mapchecks.skill_ents[2]++;
-			if(strcmp(classname, "trigger_changelevel") == 0){
-				ddef_t *mapfield = ED_FindField("map");
-				sv.mapchecks.trigger_changelevel++;
-	if(mapfield && (mapfield->type & ~DEF_SAVEGLOBAL) == ev_string){
-		eval_t *val = GetEdictFieldValue(ent, mapfield->ofs);
-		const char *map = COM_SkipSpace(PR_GetString(val->string));
-		if(*map){
-			sv.mapchecks.changelevel = map;
-			sv.mapchecks.valid_changelevel++;
-		}
-	}
-			}
-			else if(ED_IsSkillSelector(ent))
-				sv.mapchecks.skill_triggers++;
-			else if(strcmp(classname, "info_intermission") == 0)
-				sv.mapchecks.intermission++;
-			else if(strcmp(classname, "info_player_coop") == 0)
-				sv.mapchecks.coop_spawns++;
-			else if(strcmp(classname,"info_player_deathmatch") == 0)
-				sv.mapchecks.dm_spawns++;
-		}
 		// remove things from different skill levels or deathmatch
 		if(deathmatch.value){
 			if(((s32)ent->v.spawnflags & SPAWNFLAG_NOT_DEATHMATCH)){
@@ -1513,8 +1470,6 @@ Host_Error("%s system vars have been modified, progdefs.h is out of date",
 	PR_MergeEngineFieldDefs();
 #define QCEXTFIELD(n,t) qcvm->extfields.n = ED_FindFieldOffset(#n);
 	QCEXTFIELDS_ALL
-		QCEXTFIELDS_GAME
-		QCEXTFIELDS_SS
 #undef QCEXTFIELD
 	qcvm->edict_size = qcvm->progs->entityfields * 4
 			+ sizeof(edict_t) - sizeof(entvars_t);

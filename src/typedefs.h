@@ -18,7 +18,6 @@ typedef double   f64;
 typedef struct { // specified by the host system                   // quakedef.h
 	c8 *basedir;
 	c8 *userdir;
-	c8 *cachedir; // for development over ISDN lines
 	s32 argc;
 	c8 **argv;
 	void *membase;
@@ -87,11 +86,10 @@ struct cvar_s {
 };
 
 typedef struct vrect_s {                                                // vid.h
-	s32 x,y,width,height; struct vrect_s *pnext;
+	s32 x,y,width,height;
 } vrect_t;
 typedef struct {
 	u8 *buffer; // invisible buffer
-	u8 *colormap; // 256 * VID_GRADES size
 	u32 width;
 	u32 height;
 	f32 aspect; // width / height -- < 0 is taller than wide
@@ -105,9 +103,6 @@ typedef struct {                                                      // model.h
 typedef struct texture_s {
 	c8 name[16];
 	unsigned width, height;
-	unsigned shift; // Q64
-	bool update_warp; //johnfitz -- update warp this frame
-	struct msurface_s *texturechains[2]; // for texture chains
 	s32 anim_total; // total tenths in sequence ( 0 = no)
 	s32 anim_min, anim_max; // time for this frame min <=time< max
 	struct texture_s *anim_next; // in the animation sequence
@@ -125,7 +120,6 @@ typedef struct mplane_s {
 	f32 dist;
 	u8 type; // for texture axis selection and fast side tests
 	u8 signbits; // signx + signy<<1 + signz<<1
-	u8 pad[2];
 } mplane_t;
 typedef struct msurface_s { // pointers first, no padding on 64 bit
 	mplane_t *plane;
@@ -163,7 +157,6 @@ typedef struct clipplane_s {
 	struct clipplane_s *next;
 	u8 leftedge;
 	u8 rightedge;
-	u8 reserved[2];
 } clipplane_t;
 
 typedef enum { ST_SYNC=0, ST_RAND } synctype_t;                    // modelgen.h
@@ -212,7 +205,6 @@ typedef struct {                                                   // protocol.h
 	s32 effects;
 } entity_state_t;
 typedef struct {
-	vec3_t viewangles;
 	f32 forwardmove; // intended velocities
 	f32 sidemove;
 	f32 upmove;
@@ -220,7 +212,6 @@ typedef struct {
 
 typedef struct entity_s {                                            // render.h
 	bool forcelink; // model changed
-	s32 update_type;
 	entity_state_t baseline; // to fill in defaults in updates
 	f64 msgtime; // time of last update
 	vec3_t msg_origins[2]; // last two updates (0 is newest)
@@ -235,27 +226,21 @@ typedef struct entity_s {                                            // render.h
 	s32 effects; // light, particles, etc
 	s32 skinnum; // for Alias models
 	s32 visframe; // last frame this entity was found in an active leaf
-	s32 dlightframe; // dynamic lighting
-	s32 dlightbits;
 	s32 trivial_accept;
 	struct mnode_s *topnode; // for bmodels, first world node that splits
 				 // bmodel, or NULL if not split
 	u8 alpha; //johnfitz -- alpha
-	u8 scale;
 	u8 lerpflags; //johnfitz -- lerping
 	f32 lerpstart; //johnfitz -- animation lerping
 	f32 lerptime; //johnfitz -- animation lerping
 	f32 lerpfinish; //johnfitz -- lerping
 	s16 previouspose; //johnfitz -- animation lerping
 	s16 currentpose; //johnfitz -- animation lerping
-	s16 futurepose; //johnfitz -- animation lerping
 	f32 movelerpstart; //johnfitz -- transform lerping
 	vec3_t previousorigin; //johnfitz -- transform lerping
 	vec3_t currentorigin; //johnfitz -- transform lerping
 	vec3_t previousangles; //johnfitz -- transform lerping
 	vec3_t currentangles;  //johnfitz -- transform lerping
-	f32 traildelay; // time left until next particle trail update
-	vec3_t trailorg; // previous particle trail point
 } entity_t;
 typedef struct {//johnfitz -- for passing lerp information to drawing functions
         s32 pose1;
@@ -275,8 +260,6 @@ typedef struct {
 	vrect_t aliasvrect; // scaled Alias version
 	s64 vrectright, vrectbottom; // right & bottom screen coords
 	s64 aliasvrectright, aliasvrectbottom; // scaled Alias versions
-	f32 vrectrightedge; // rightmost right edge we care about,
-			    // for use in edge list
 	f32 fvrectx, fvrecty; // for floating-point compares
 	f32 fvrectx_adj, fvrecty_adj; // left and top edges, for clamping
 	s64 vrect_x_adj_shift20; //(vrect.x + 0.5 - epsilon) << 20
@@ -291,13 +274,12 @@ typedef struct {
 	f32 yOrigin; // between be around 0.3 to 0.5
 	vec3_t vieworg;
 	vec3_t viewangles;
-	f32 fov_x, fov_y;
+	f32 fov_x;
 	s32 ambientlight;
 } refdef_t;
 
 typedef struct {                                                      // model.h
 	aliasskintype_t type;
-	void *pcachespot;
 	s32 skin;
 } maliasskindesc_t;
 typedef struct {
@@ -349,7 +331,6 @@ typedef struct {
 typedef struct mspriteframe_s {
 	s32 width, height;
 	f32 up, down, left, right;
-	f32 smax, tmax; //johnfitz -- image might be padded
 	u8 pixels[4];
 } mspriteframe_t;
 typedef struct {
@@ -367,11 +348,9 @@ typedef struct {
 	s32 maxheight;
 	s32 numframes;
 	f32 beamlength;
-	void *cachespot;
 	mspriteframedesc_t frames[1];
 } msprite_t;
 typedef struct {
-	aliasframetype_t type;
 	s32 firstpose;
 	s32 numposes;
 	f32 interval;
@@ -386,8 +365,6 @@ typedef struct {
 	s32 frame;
 } maliasgroupframedesc_t;
 typedef struct {
-	s32 numframes;
-	s32 intervals;
 	maliasgroupframedesc_t frames[1];
 } maliasgroup_t;
 typedef struct mtriangle_s {
@@ -395,32 +372,16 @@ typedef struct mtriangle_s {
 	s32 vertindex[3];
 } mtriangle_t;
 typedef struct {
-	s32 ident;
-	s32 version;
 	vec3_t scale;
 	vec3_t scale_origin;
-	f32 boundingradius;
 	vec3_t eyeposition;
-	s32 numskins;
 	s32 skinwidth;
 	s32 skinheight;
 	s32 numverts;
 	s32 numtris;
 	s32 numframes;
-	synctype_t synctype;
-	s32 flags;
-	f32 size;
-	//ericw -- used to populate vbo
-	s32 numverts_vbo; // number of verts with unique x,y,z,s,t
-	intptr_t meshdesc; // offset into extradata: numverts_vbo aliasmesh_t
-	s32 numindexes;
-	intptr_t indexes; // offset into extradata: numindexes unsigned shorts
-	intptr_t vertexes;//offs in extradata: numposes*vertsperframe trivertx_t
 	s32 numposes;
-	s32 poseverts;
 	s32 posedata; // offset of numposes s32: each pose's trivertx_t
-	s32 commands; // gl command list with embedded s/t
-	s32 texels[32]; // only for player skins
 	s32 model;
 	s32 stverts;
 	s32 skindesc;
@@ -445,7 +406,6 @@ typedef struct {
 	s32 firstface, numfaces;
 } dmodel_t;
 typedef struct model_s {
-	f32 radius;
 	c8 name[MAX_QPATH];
 	u32 path_id; // path id of game dir that this model came from
 	bool needload; // bmodels and sprites don't cache normally
@@ -456,7 +416,6 @@ typedef struct model_s {
 	vec3_t mins, maxs; // volume occupied by the model graphics
 	vec3_t ymins, ymaxs; //johnfitz -- bounds for entities with nonzero yaw
 	vec3_t rmins, rmaxs; //johnfitz -- same for pitch or roll
-	bool clipbox; // solid volume for clipping
 	vec3_t clipmins, clipmaxs;
 	s32 firstmodelsurface, nummodelsurfaces; // brush model
 	bool facetree; // each face is on exactly one of its nodes, see model.c
@@ -480,8 +439,6 @@ typedef struct model_s {
 	s32 numsurfedges;
 	s32 *surfedges;
 	s32 numclipnodes;
-	mclipnode_t *clipnodes; //johnfitz -- was dclipnode_t
-	s32 nummarksurfaces;
 	msurface_t **marksurfaces;
 	hull_t hulls[MAX_MAP_HULLS];
 	s32 numtextures;
@@ -494,10 +451,6 @@ typedef struct model_s {
 	s32 contentstransparent; //spike -- added this so we can disable glitchy
 				 //wateralpha where its not supported.
 	bool haslitwater;
-	// alias model
-	s32 vboindexofs; // offset in vbo of the hdr->numindexes unsigned shorts
-	s32 vboxyzofs; // offset of hdr->numposes*hdr->numverts_vbo meshxyz_t
-	s32 vbostofs; // offset in vbo of hdr->numverts_vbo meshst_t
 	cache_user_t cache;//extra model data, only access through Mod_Extradata
 } model_t;
 
@@ -521,7 +474,6 @@ typedef struct surf_s {
 	f32 nearzi; // nearest 1/z on surface, for mipmapping
 	bool insubmodel;
 	f32 d_ziorigin, d_zistepu, d_zistepv;
-	s32 pad[2]; // to 64 bytes
 } surf_t;
 typedef struct edge_s {
 	s64 u;
@@ -536,7 +488,6 @@ typedef struct edge_s {
 
 typedef struct {                                                    // d_iface.h
 	f32 u, v;
-	f32 s, t;
 	f32 zi;
 } emitpoint_t;
 typedef enum {
@@ -557,11 +508,9 @@ typedef struct particle_s {
 typedef struct finalvert_s {
 	s32 v[6]; // u, v, s, t, l, 1/z
 	s32 flags;
-	f32 reserved;
 } finalvert_t;
 typedef struct {
 	void *pskin;
-	maliasskindesc_t *pskindesc;
 	s32 skinwidth;
 	s32 skinheight;
 	mtriangle_t *ptriangles;
@@ -630,7 +579,6 @@ typedef struct qsocket_s {
 	c8 address[NET_NAMELEN];
 } qsocket_t;
 typedef struct {
-	const c8 *name;
 	bool initialized;
 	sys_socket_t controlSock;
 	sys_socket_t (*Init) ();
@@ -646,7 +594,6 @@ typedef struct {
 			struct qsockaddr *addr);
 	s32 (*Broadcast) (sys_socket_t socketid, u8 *buf, s32 len);
 	const c8 * (*AddrToString) (struct qsockaddr *addr);
-	s32 (*StringToAddr) (const c8 *string, struct qsockaddr *addr);
 	s32 (*GetSocketAddr) (sys_socket_t socketid, struct qsockaddr *addr);
 	s32 (*GetNameFromAddr) (struct qsockaddr *addr, c8 *name);
 	s32 (*GetAddrFromName) (const c8 *name, struct qsockaddr *addr);
@@ -655,7 +602,6 @@ typedef struct {
 	s32 (*SetSocketPort) (struct qsockaddr *addr, s32 port);
 } net_landriver_t;
 typedef struct {
-	const c8 *name;
 	bool initialized;
 	s32 (*Init) ();
 	void (*Listen) (bool state);
@@ -666,7 +612,6 @@ typedef struct {
 	s32 (*QSendMessage) (qsocket_t *sock, sizebuf_t *data);
 	s32 (*SendUnreliableMessage) (qsocket_t *sock, sizebuf_t *data);
 	bool (*CanSendMessage) (qsocket_t *sock);
-	bool (*CanSendUnreliableMessage) (qsocket_t *sock);
 	void (*Close) (qsocket_t *sock);
 	void (*Shutdown) ();
 } net_driver_t;
@@ -708,7 +653,6 @@ typedef struct surfcache_s {                                        // d_local.h
 	s32 size; // including header
 	unsigned width;
 	unsigned height; // DEBUG only needed for debug
-	f32 mipscale;
 	struct texture_s *texture; // checked for animating textures
 	u8 data[4]; // width*height elements
 } surfcache_t;
@@ -968,8 +912,6 @@ typedef struct cmd_function_s {
 	c8 *name;
 	xcommand_t function;
 	cmd_source_t srctype;
-	bool dynamic;
-	bool qcinterceptable;
 } cmd_function_t;
 
 typedef struct { s32 left; s32 right; } portable_samplepair_t;      // q_sound.h
@@ -998,7 +940,6 @@ typedef struct {
 	s32 rightvol; /* 0-255 volume */
 	s32 end; /* end time in global paintsamples */
 	s32 pos; /* sample position in sfx */
-	s32 looping; /* where to loop, -1 = no looping */
 	s32 entnum; /* to allow overriding a specific sound */
 	s32 entchannel;
 	vec3_t origin; /* origin of sound effect */
@@ -1030,9 +971,6 @@ struct pr_extglobals_s {
 	QCEXTGLOBAL_FLOAT(intermission_time)\
 	QCEXTGLOBAL_FLOAT(player_localnum)\
 	QCEXTGLOBAL_FLOAT(player_localentnum)\
-	QCEXTGLOBAL_VECTOR(view_angles)\
-	QCEXTGLOBAL_FLOAT(clientcommandframe)\
-	QCEXTGLOBAL_FLOAT(servercommandframe)\
 //end
 #define QCEXTGLOBAL_FLOAT(n) f32 *n;
 #define QCEXTGLOBAL_INT(n) s32 *n;
@@ -1047,38 +985,10 @@ struct pr_extfields_s {
 #define QCEXTFIELDS_ALL \
 	/*renderscene means we need a number of fields here*/ \
 	QCEXTFIELD(alpha, ".float") \
-	QCEXTFIELD(scale, ".float") \
-	QCEXTFIELD(colormod, ".vector") \
-	//end of list
-#define QCEXTFIELDS_GAME \
-	/*stuff used by csqc+ssqc, but not menu*/ \
-	QCEXTFIELD(customphysics, ".void()") \
-	QCEXTFIELD(gravity, ".float") \
-	//end of list
-#define QCEXTFIELDS_SS \
-	/*ssqc-only*/ \
-	QCEXTFIELD(items2, "//.float") \
-	QCEXTFIELD(movement, ".vector") \
-	QCEXTFIELD(viewmodelforclient, ".entity") \
-	QCEXTFIELD(exteriormodeltoclient, ".entity") \
-	QCEXTFIELD(traileffectnum, ".float") \
-	QCEXTFIELD(emiteffectnum, ".float") \
-	QCEXTFIELD(button3, ".float") \
-	QCEXTFIELD(button4, ".float") \
-	QCEXTFIELD(button5, ".float") \
-	QCEXTFIELD(button6, ".float") \
-	QCEXTFIELD(button7, ".float") \
-	QCEXTFIELD(button8, ".float") \
-	QCEXTFIELD(viewzoom, ".float") \
-	QCEXTFIELD(SendEntity, ".float(entity to, float changedflags)") \
-	QCEXTFIELD(SendFlags, ".float") \
 	//end of list
 
 #define QCEXTFIELD(n,t) s32 n;
 	QCEXTFIELDS_ALL
-	QCEXTFIELDS_GAME
-	QCEXTFIELDS_SS
-
 #undef QCEXTFIELD
 };
 
@@ -1156,7 +1066,6 @@ typedef struct qcvm_s
 	//originally part of the sv_state_t struct
 	f64 time;
 	s32 num_edicts;
-	s32 reserved_edicts;
 	s32 max_edicts;
 	link_t free_edicts; // linked list of free edicts
 	edict_t *edicts; //can NOT be array indexed, because edict_t is variable
@@ -1174,8 +1083,6 @@ typedef struct qcvm_s
 typedef struct {                                                     // client.h
 	s32 length;
 	c8 map[MAX_STYLESTRING];
-	c8 average; //johnfitz
-	c8 peak; //johnfitz
 } lightstyle_t;
 typedef struct {
 	c8 name[MAX_SCOREBOARDNAME];
@@ -1215,7 +1122,6 @@ typedef struct {
 	c8 demos[MAX_DEMOS][MAX_DEMONAME];
 	bool demorecording;
 	bool demoplayback;
-	bool demopaused;
 	bool timedemo;
 	s32 forcetrack; // -1 = use normal cd track
 	FILE *demofile;
@@ -1251,10 +1157,8 @@ typedef struct {
 	f32 driftmove;
 	f64 laststop;
 	f32 viewheight;
-	f32 crouch; // local amount for smoothing stepups
 	bool paused; // send over by server
 	bool onground;
-	bool inwater;
 	s32 intermission; // don't change view angle, full screen, etc
 	s32 completed_time; // latched at intermission start
 	f64 mtime[2]; // the timestamp of last two messages
@@ -1274,7 +1178,7 @@ typedef struct {
 	s32 num_entities; // held in cl_entities array
 	s32 num_statics; // held in cl_staticentities array
 	entity_t viewent; // the gun model
-	s32 cdtrack, looptrack; // cd audio
+	s32 cdtrack; // cd audio
 	scoreboard_t *scores; // [cl.maxclients]
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
@@ -1320,7 +1224,6 @@ typedef struct {
 	struct model_s *models[MAX_MODELS];
 	const c8 *sound_precache[MAX_SOUNDS]; // NULL terminated
 	const c8 *lightstyles[MAX_LIGHTSTYLES];
-	edict_t *edicts;
 	server_state_t state; // some actions are only valid during load
 	sizebuf_t datagram;
 	u8 datagram_buf[MAX_DATAGRAM];
@@ -1342,7 +1245,6 @@ typedef struct {
 	bool autoloading;
 	struct {
 		f32 secret_boost;
-		f32 teleport_boost;
 		f32 prev_health;
 		s32 prev_secrets;
 		f64 time; // last autosave time
@@ -1350,18 +1252,6 @@ typedef struct {
 		f64 shoot_time; // last time the player attacked
 		f64 cheat; // time spent with cheats active since last autosave
 	} autosave;
-	struct {
-		bool active;
-		s32 numwarnings;
-		const c8 *changelevel;
-		s32 trigger_changelevel;
-		s32 valid_changelevel;
-		s32 intermission;
-		s32 skill_triggers;
-		s32 coop_spawns;
-		s32 dm_spawns;
-		s32 skill_ents[3];
-	} mapchecks; // additional map checks (for level designers)
 } server_t;
 enum sendsignon_e {
 	PRESPAWN_DONE,
@@ -1378,7 +1268,6 @@ typedef struct client_s {
 	f64 last_message; // reliable messages must be sent periodically
 	struct qsocket_s *netconnection; // communications handle
 	usercmd_t cmd; // movement
-	vec3_t wishdir; // intended motion calced from cmd
 	sizebuf_t message;
 	u8 msgbuf[MAX_MSGLEN];
 	edict_t *edict; // EDICT_NUM(clientnum+1)

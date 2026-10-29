@@ -314,7 +314,7 @@ void Cmd_TokenizeString(const c8 *text)
 }
 
 cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
-				cmd_source_t srctype, bool qcinterceptable)
+				cmd_source_t srctype)
 {
 	// fail if the command is a variable name
 	if(Cvar_VariableString(cmd_name)[0]){
@@ -335,15 +335,12 @@ cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
 		if(!cmd)
 		    Sys_Error("Cmd_AddCommand2: out of memory(%s)", cmd_name);
 		cmd->name = strcpy((c8*)(cmd + 1), cmd_name);
-		cmd->dynamic = true;
 	}else{
 		cmd = (cmd_function_t *) Hunk_Alloc(sizeof(*cmd));
 		cmd->name = (c8*)cmd_name;
-		cmd->dynamic = false;
 	}
 	cmd->function = function;
 	cmd->srctype = srctype;
-	cmd->qcinterceptable = qcinterceptable;
 	//johnfitz -- insert each entry in alphabetical order
 	if(cmd_functions == NULL || strcmp(cmd->name, cmd_functions->name) < 0){
 		cmd->next = cmd_functions; //insert at front

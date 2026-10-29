@@ -433,7 +433,7 @@ static void CL_LoadCSProgs()
 			CLAMP(MIN_EDICTS, (s32)max_edicts.value, MAX_EDICTS);
 		qcvm->edicts =
 			(edict_t *)malloc(qcvm->max_edicts * qcvm->edict_size);
-		qcvm->num_edicts = qcvm->reserved_edicts = 1;
+		qcvm->num_edicts = 1;
 		memset(qcvm->edicts, 0, qcvm->num_edicts * qcvm->edict_size);
 		if(!qcvm->extfuncs.CSQC_DrawHud){
 		// no simplecsqc entry points... abort entirely!

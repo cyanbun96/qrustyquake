@@ -282,17 +282,6 @@ const c8 *UDP_AddrToString(struct qsockaddr *addr)
 	return buffer;
 }
 
-s32 UDP_StringToAddr(const c8 *string, struct qsockaddr *addr)
-{
-	s32 ha1, ha2, ha3, ha4, hp;
-	sscanf(string, "%d.%d.%d.%d:%d", &ha1, &ha2, &ha3, &ha4, &hp);
-	s32 ipaddr = (ha1 << 24) | (ha2 << 16) | (ha3 << 8) | ha4;
-	addr->qsa_family = AF_INET;
-	((struct sockaddr_in *)addr)->sin_addr.s_addr = htonl(ipaddr);
-	((struct sockaddr_in *)addr)->sin_port = htons((u16)hp);
-	return 0;
-}
-
 s32 UDP_GetSocketAddr(sys_socket_t socketid, struct qsockaddr *addr)
 {
 	socklen_t addrlen = sizeof(struct qsockaddr);

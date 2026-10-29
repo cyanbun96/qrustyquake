@@ -136,7 +136,6 @@ s32 Loop_GetMessage(qsocket_t *sock);
 s32 Loop_SendMessage(qsocket_t *sock, sizebuf_t *data);
 s32 Loop_SendUnreliableMessage(qsocket_t *sock, sizebuf_t *data);
 bool Loop_CanSendMessage(qsocket_t *sock);
-bool Loop_CanSendUnreliableMessage(qsocket_t *sock);
 void Loop_Close(qsocket_t *sock);
 void Loop_Shutdown();
 EX qsocket_t *net_activeSockets;                                   // net_defs.h
@@ -178,7 +177,6 @@ s32 Datagram_GetMessage(qsocket_t *sock);
 s32 Datagram_SendMessage(qsocket_t *sock, sizebuf_t *data);
 s32 Datagram_SendUnreliableMessage(qsocket_t *sock, sizebuf_t *data);
 bool Datagram_CanSendMessage(qsocket_t *sock);
-bool Datagram_CanSendUnreliableMessage(qsocket_t *sock);
 void Datagram_Close(qsocket_t *sock);
 void Datagram_Shutdown();
 EX qpic_t *draw_disc;                                                  // draw.h
@@ -232,7 +230,6 @@ s32 UDP_Read(sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr);
 s32 UDP_Write(sys_socket_t socketid, u8 *buf, s32 len, struct qsockaddr *addr);
 s32 UDP_Broadcast(sys_socket_t socketid, u8 *buf, s32 len);
 const c8 *UDP_AddrToString(struct qsockaddr *addr);
-s32 UDP_StringToAddr(const c8 *string, struct qsockaddr *addr);
 s32 UDP_GetSocketAddr(sys_socket_t socketid, struct qsockaddr *addr);
 s32 UDP_GetNameFromAddr(struct qsockaddr *addr, c8 *name);
 s32 UDP_GetAddrFromName(const c8 *name, struct qsockaddr *addr);
@@ -421,7 +418,7 @@ void Cbuf_AddTextLen (const c8 *text, s32 l);
 void Cbuf_InsertText(c8 *text);
 void Cbuf_Execute();
 cmd_function_t *Cmd_AddCommand2(const c8 *cmd_name, xcommand_t function,
-		cmd_source_t srctype, bool qcinterceptable);
+		cmd_source_t srctype);
 bool Cmd_Exists(const c8 *cmd_name);
 bool Cmd_AliasExists (const c8 *aliasname);
 s32 Cmd_ListCompletions(const c8 *text);

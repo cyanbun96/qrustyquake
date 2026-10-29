@@ -1866,7 +1866,6 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 	out = (mclipnode_t *) Hunk_AllocName( count*sizeof(*out), loadname);
 	if(count > 32767 && !bsp2) //johnfitz -- warn about exceeding old limits
 	  Con_DPrintf("%i clipnodes exceeds standard limit of 32767.\n", count);
-	loadmodel->clipnodes = out;
 	loadmodel->numclipnodes = count;
 	hull_t *hull = &loadmodel->hulls[1];
 	hull->clipnodes = out;
@@ -1937,7 +1936,6 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 		s32 count = l->filelen / sizeof(*in);
 		msurface_t **out = Hunk_AllocName(count*sizeof(*out), loadname);
 		loadmodel->marksurfaces = out;
-		loadmodel->nummarksurfaces = count;
 		for(s32 i = 0; i < count; i++){
 			u64 j = (s32)(in[i]);
 			if(j >= (u64)loadmodel->numsurfaces)
@@ -1951,7 +1949,6 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 		s32 count = l->filelen / sizeof(*in);
 		msurface_t **out = Hunk_AllocName(count*sizeof(*out), loadname);
 		loadmodel->marksurfaces = out;
-		loadmodel->nummarksurfaces = count;
 		if(count > 32767)
 	Con_DPrintf("%i marksurfaces exceeds standard limit of 32767.\n",count);
 		for(s32 i = 0; i < count; i++){
@@ -2265,7 +2262,7 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	frame->firstpose = posenum;
 	maliasgroup_t *paliasgroup = Hunk_AllocName(sizeof(maliasgroup_t) +
 		(numframes - 1) * sizeof(paliasgroup->frames[0]), loadname);
-	paliasgroup->numframes = frame->numposes = numframes;
+	frame->numposes = numframes;
 	for(s32 i = 0; i < 3; i++){
 		frame->bboxmin.v[i] = pingroup->bboxmin.v[i];
 		frame->bboxmax.v[i] = pingroup->bboxmax.v[i];
@@ -2273,15 +2270,9 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	*pframeindex = (u8 *) paliasgroup - (u8 *) pheader;
 	daliasinterval_t *pin_intervals = (daliasinterval_t *) (pingroup + 1);
 	frame->interval = (f32)(pin_intervals->interval);
-	f32 *poutintervals = Hunk_AllocName(numframes*sizeof(f32),loadname);
-	paliasgroup->intervals = (u8 *) poutintervals - (u8 *) pheader;
-	for(s32 i = 0; i < numframes; i++){
-		*poutintervals = (f32)(pin_intervals->interval);
-		if(*poutintervals <= 0.0)
+	for(s32 i = 0; i < numframes; i++, pin_intervals++)
+		if((f32)(pin_intervals->interval) <= 0.0)
 			Sys_Error("Mod_LoadAliasGroup: interval<=0");
-		poutintervals++;
-		pin_intervals++;
-	}
 	void *ptemp = (void *)pin_intervals;
 	for(s32 i = 0; i < numframes; i++)
 		ptemp = Mod_LoadAliasFrame(ptemp, &paliasgroup->frames[i].frame,
@@ -2422,11 +2413,10 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pheader = (aliashdr_t *)Hunk_AllocName(size, loadname);
 	mdl_t *pmodel = (mdl_t*)((u8*)&pheader[1]+((s32)(
 			pinmodel->numframes)-1)*sizeof(pheader->frames[0]));
-	pheader->flags = mod->flags = (s32)(pinmodel->flags);
+	mod->flags = (s32)(pinmodel->flags);
 	// endian-adjust and copy the data, starting with the alias model header
-	pmodel->boundingradius = pheader->boundingradius
-					= (f32)(pinmodel->boundingradius);
-	pmodel->numskins = pheader->numskins = (s32)(pinmodel->numskins);
+	pmodel->boundingradius = (f32)(pinmodel->boundingradius);
+	pmodel->numskins = (s32)(pinmodel->numskins);
 	pmodel->skinwidth = pheader->skinwidth =(s32)(pinmodel->skinwidth);
 	pmodel->skinheight=pheader->skinheight=(s32)(pinmodel->skinheight);
 	if(pheader->skinheight > MAX_LBM_HEIGHT) Con_DPrintf(
@@ -2454,8 +2444,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	s32 numframes = pheader->numframes;
 	if(numframes < 1)
 	    Host_Error("Mod_LoadAliasModel: Invalid # of frames: %d",numframes);
-	pmodel->size = pheader->size = (f32)(pinmodel->size)
-						* ALIAS_BASE_SIZE_RATIO;
+	pmodel->size = (f32)(pinmodel->size) * ALIAS_BASE_SIZE_RATIO;
 	mod->synctype = (synctype_t)(s32)(pinmodel->synctype);
 	mod->numframes = pheader->numframes;
 	for(s32 i = 0; i < 3; i++){
@@ -2518,7 +2507,6 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	for(s32 i = 0; i < numframes; i++){
 		aliasframetype_t frametype;
 		frametype = (aliasframetype_t)(s32)(pframetype->type);
-		pheader->frames[i].type = frametype;
 		if(frametype == ALIAS_SINGLE)
 			pframetype = (daliasframetype_t *) Mod_LoadAliasFrame(
 				pframetype + 1, &pheader->frames[i].frame,

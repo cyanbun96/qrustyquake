@@ -106,13 +106,6 @@ void SCR_CheckDrawCenterString()
 	SCR_DrawCenterString();
 }
 
-f32 CalcFov(f32 fov_x, f32 width, f32 height)
-{
-	if(fov_x < 1 || fov_x > 179)
-		Sys_Error("Bad fov: %f", fov_x);
-	return atan(height / (width / tan(fov_x / 360 * M_PI))) * 360 / M_PI;
-}
-
 static void SCR_CalcRefdef() // Must be called whenever vid changes
 { // Internal use only
 	fog_initialized = 0;
@@ -128,8 +121,6 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	if(scr_fov.value > 170)
 		Cvar_Set("fov", "170");
 	r_refdef.fov_x = scr_fov.value;
-	r_refdef.fov_y = CalcFov(r_refdef.fov_x,
-		r_refdef.vrect.width, r_refdef.vrect.height);
 	f32 size = cl.intermission ? 120 : scr_viewsize.value;
 	if(size >= 120 || hudstyle != HUD_CLASSIC ||
 			(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))

@@ -347,7 +347,6 @@ void R_AliasSetupSkin()
 		}
 		pskindesc = &paliasskingroup->skindescs[i];
 	}
-	r_affinetridesc.pskindesc = pskindesc;
 	r_affinetridesc.pskin = (void *)((u8 *) paliashdr + pskindesc->skin);
 	r_affinetridesc.skinwidth = a_skinwidth;
 	r_affinetridesc.seamfixupX16 = (a_skinwidth >> 1) << 16;

@@ -257,7 +257,6 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	SDL_SetWindowTitle(window, (const c8 *)&caption);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	vid.numpages = 1;
-	vid.colormap = host_colormap;
 	VID_AllocBuffers(); // allocate z buffer, surface cache and the fbuffer
 	s32 win = 0;
 	if(COM_CheckParm("-fullscreen") || confwmode == 1)

@@ -114,8 +114,6 @@ void R_SetupAndDrawSprite()
 		pout->zi = 1.0 / transformed[2];
 		if(pout->zi > r_spritedesc.nearzi)
 			r_spritedesc.nearzi = pout->zi;
-		pout->s = pv[3];
-		pout->t = pv[4];
 		f32 scale = xscale * pout->zi;
 		pout->u = (xcenter + scale * transformed[0]);
 		scale = yscale * pout->zi;

@@ -306,7 +306,7 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 	else ent->lerpflags &= ~LERP_MOVESTEP;
 	if(cl.protocol == PROTOCOL_FITZQUAKE || cl.protocol == PROTOCOL_RMQ){
 		ent->alpha = bits&U_ALPHA ? MSG_ReadByte():ent->baseline.alpha;
-		ent->scale = bits&U_SCALE ? MSG_ReadByte():ent->baseline.scale;
+		if(bits & U_SCALE) MSG_ReadByte(); // scale, not rendered
 		if(bits & U_FRAME2)
 			ent->frame = (ent->frame & 0x00FF)|(MSG_ReadByte()<<8);
 		if(bits & U_MODEL2)
@@ -325,7 +325,6 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 			ent->alpha = ENTALPHA_ENCODE(b);
 		}
 		else ent->alpha = ent->baseline.alpha;
-		ent->scale = ent->baseline.scale;
 	}
 	model_t *model = cl.model_precache[modnum];
 	if(model != ent->model){ // automatic animation(torches, etc) can be
@@ -376,7 +375,6 @@ void CL_ParseClientdata()
 		cl.stats[STAT_ITEMS] = i;
 	}
 	cl.onground = (bits & SU_ONGROUND) != 0;
-	cl.inwater = (bits & SU_INWATER) != 0;
 	cl.stats[STAT_WEAPONFRAME] = (bits&SU_WEAPONFRAME) ? MSG_ReadByte() : 0;
 	i = (bits & SU_ARMOR) ? MSG_ReadByte() : 0;
 	if(cl.stats[STAT_ARMOR] != i){
@@ -483,7 +481,6 @@ void CL_ParseStatic(s32 version) //johnfitz -- added a parameter
 	ent->skinnum = ent->baseline.skin;
 	ent->effects = ent->baseline.effects;
 	ent->alpha = ent->baseline.alpha; //johnfitz -- alpha
-	ent->scale = ent->baseline.scale;
 	VectorCopy(ent->baseline.origin, ent->origin);
 	VectorCopy(ent->baseline.angles, ent->angles);
 	R_AddEfrags(ent);
@@ -578,7 +575,7 @@ void CL_ParseServerMessage()
 		if(cl_shownet.value==2)
 			Con_Printf("%3i:%s\n",msg_readcount-1,svc_strings[cmd]);
 	}
-	s32 i, j; // keep here for OpenBSD
+	s32 i; // keep here for OpenBSD
 	switch(cmd){ // other commands
 	default:
 		Host_Error(
@@ -637,19 +634,6 @@ void CL_ParseServerMessage()
 		SDL_strlcpy(cl_lightstyle[i].map, MSG_ReadString(),
 				MAX_STYLESTRING);
 		cl_lightstyle[i].length=strlen(cl_lightstyle[i].map);
-		if(cl_lightstyle[i].length){ //save extra info
-			s32 total = 0;
-			cl_lightstyle[i].peak = 'a';
-			for(j = 0; j<cl_lightstyle[i].length; j++){
-				total += cl_lightstyle[i].map[j] - 'a';
-				cl_lightstyle[i].peak = q_max(
-					cl_lightstyle[i].peak,
-					cl_lightstyle[i].map[j]);
-			}
-			cl_lightstyle[i].average =
-				total / cl_lightstyle[i].length + 'a';
-		}else cl_lightstyle[i].average =
-				cl_lightstyle[i].peak = 'm';
 		break;
 	case svc_sound:
 		CL_ParseStartSoundPacket();
@@ -734,7 +718,7 @@ void CL_ParseServerMessage()
 		break;
 	case svc_cdtrack:
 		cl.cdtrack = MSG_ReadByte();
-		cl.looptrack = MSG_ReadByte();
+		MSG_ReadByte(); // looptrack
 		if((cls.demoplayback||cls.demorecording)&&(cls.forcetrack!=-1))
 			CDAudio_Play((u8)cls.forcetrack);
 		else

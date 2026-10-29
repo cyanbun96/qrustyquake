@@ -1049,7 +1049,6 @@ void SetWorldPal(c8 *path, c8 *cmappath)
 	VID_SetPalette(worldpal, screen);
 	memcpy(worldcmap, worldcmapbuf, 64*256);
 	SDL_strlcpy(worldcmapname, cmappath, MAX_OSPATH);
-	vid.colormap = worldcmap;
 	fog_lut_built = lit_lut_initialized = 0;
 }
 

@@ -203,8 +203,6 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	    && cache->texture == r_drawsurf.texture
 	    && D_LightAdjMatches(surface, cache))
 		return cache;
-	static f32 surfscale;
-	surfscale = 1.0 / (1 << miplevel); // determine shape of surface
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
@@ -218,7 +216,6 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 		if(cache == NULL) return NULL;
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
-		cache->mipscale = surfscale;
 	}
 	cache->dlight = (surface->dlightframe == r_framecount);
 	r_drawsurf.surfdat = (u8 *) cache->data;

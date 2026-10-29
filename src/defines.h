@@ -228,9 +228,9 @@
 #define FOG_LUT_LEVELS 32
 #define MAX_ALIAS_NAME 32                                               // cmd.h
 #define Cmd_AddCommand(cmdname,func) \
-Cmd_AddCommand2(cmdname,func,src_command,false) //regular console commands
+Cmd_AddCommand2(cmdname,func,src_command) //regular console commands
 #define Cmd_AddCommand_ServerCommand(cmdname,func) \
-Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
+Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define MAX_ARGS 80
 #define MOVE_NORMAL 0                                                 // world.h
 #define MOVE_NOMONSTERS 1
