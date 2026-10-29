@@ -40,7 +40,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - UI can be scaled independently with scr_uixscale and scr_uiyscale
   
-  - Implemented through a customizeable "layer" system
+  - Implemented through a customizable "layer" system
   
   - Several independently scalable layers for different UI elements
 
@@ -50,7 +50,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - Video configuration menu 
     
-    - Mostly for show, use -width and -heigth or the new menu
+    - Mostly for show, use -width and -height or the new menu
 
 - Proper UI scaling
   
@@ -58,7 +58,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - Mouse controls in menus
 
-  - Off by default, enamble in the "Modern Options" menu
+  - Off by default, enable in the "Modern Options" menu
 
 - 10 HUD styles (hudstyle 0-9)
   
@@ -340,10 +340,12 @@ The FitzQuake protocol implementation, both client and server, sound system, mod
 
 A lot of code is adapted from Ironwail. Most of the netcode is a direct copy, other chunks are adapted with minor changes. QCVM/CSQC code is mostly taken from IW too. Also the autosave system has been practically copy-pasted from Ironwail.
 
-TGA image loading code taken from MarkV, along with lots of other software rendering code. Most of it comes from ToChriS engine by Vic.
+TGA image loading code taken from MarkV, same for alias model lerping, along with lots of other software rendering code. Some of it comes from ToChriS engine by Vic.
 
 Bubbleguuum's build system is used for release AppImages. Bubbleguuum has also contributed several miscellaneous fixes. 
 
 Pup Luka has contributed the "resurrect" command, r_showtris, faithful Saturn text, svc_sellscreen, WinQuake-style exit screen, Steam Deck build script, and a lot of miscellaneous fixes all over.
+
+Several LLMs (notably Claude) have been used during development for various purposes, mostly optimization and miscellaneous bug fixes.
 
 --CyanBun96 <3
