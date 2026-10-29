@@ -108,7 +108,6 @@ bool R_AliasCheckBBox()
 		if(viewpts[i].flags & ALIAS_Z_CLIP)
 			continue;
 		f32 zi = 1.0 / viewaux[i].fv[2];
-		// FIXME: do with chop mode in ASM, or convert to f32
 		f32 v0 = (viewaux[i].fv[0] * xscale * zi) + xcenter;
 		f32 v1 = (viewaux[i].fv[1] * yscale * zi) + ycenter;
 		s32 flags = 0;
@@ -469,7 +468,7 @@ void R_AliasDrawModel(alight_t *plighting)
 		Sys_Error("R_AliasDrawModel: !currententity->colormap");
 	r_affinetridesc.drawtype = currententity->trivial_accept == 3;
 	if(r_affinetridesc.drawtype)
-		D_PolysetUpdateTables(); // FIXME: precalc...
+		D_PolysetUpdateTables();
 	acolormap = currententity->colormap;
 	ziscale = currententity != &cl.viewent ? (f32)0x8000 * (f32)0x10000
 		: (f32)0x8000 * (f32)0x10000 * 3.0;

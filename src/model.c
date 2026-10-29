@@ -1707,7 +1707,7 @@ static void Mod_CheckWaterVis()
 		else continue;
 		if(contenttransparent & contenttype){
 nextleaf:
-			continue;   //found one of this type already
+			continue; //found one of this type already
 		}
 		contentfound |= contenttype;
 		vis = Mod_DecompressVis(leaf->compressed_vis, loadmodel);
@@ -1723,7 +1723,7 @@ nextleaf:
 			}
 		}
 	}
-	if(!contenttransparent){   //no water leaf saw a non-water leaf
+	if(!contenttransparent){ //no water leaf saw a non-water leaf
 	    //but only warn when there's actually water somewhere there...
 		if(hascontents & ((1<<-CONTENTS_WATER)
 				|  (1<<-CONTENTS_SLIME)

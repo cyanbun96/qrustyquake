@@ -2,12 +2,6 @@
 
 #include "quakedef.h"
 
-// FIXME the complex cases add new polys on most lines,
-// so dont optimize for keeping them the same have multiple free span lists to
-// try to get better coherence ? low depth complexity-- 1 to 3 or so this
-// breaks spans at every edge, even hidden ones(bad)
-// have a sentinal at both ends ?
-
 // surfaces are generated in back to front order by the bsp, so if a surf
 // pointer is greater than another one, it should be drawn in front
 // surfaces[1] is the background, and is used as the active surface stack
@@ -591,7 +585,6 @@ void R_ScanEdges()
 	max_span_p = &basespan_p[MAXSPANS - r_refdef.vrect.width - cut_surfs];
 	span_p = basespan_p;
 	// clear active edges to just background edges around the whole screen
-	// FIXME: most of this only needs to be set up once
 	edge_head.u = (s64)r_refdef.vrect.x << 20;
 	edge_head_u_shift20 = edge_head.u >> 20;
 	edge_head.u_step = 0;
