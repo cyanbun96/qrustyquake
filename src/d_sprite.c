@@ -39,12 +39,12 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		s32 s = (s32)(sdivz * z) + sadjust;
+		s32 s = (s32)(sdivz * z + sadjust);
 		if(s > bbextents)
 			s = bbextents;
 		else if(s < 0)
 			s = 0;
-		s32 t = (s32)(tdivz * z) + tadjust;
+		s32 t = (s32)(tdivz * z + tadjust);
 		if(t > bbextentt)
 			t = bbextentt;
 		else if(t < 0)
@@ -62,14 +62,14 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 				zi += zi8stepu;
 				z = (f32)0x10000 / zi; // prescale to 16.16
 						       // fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
+				snext = (s32)(sdivz * z + sadjust);
 				if(snext > bbextents)
 					snext = bbextents;
 				else if(snext < 8)
 					snext = 8; // prevent round-off error on
 				   // <0 steps from causing overstepping and
 				   // running off the edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
+				tnext = (s32)(tdivz * z + tadjust);
 				if(tnext > bbextentt)
 					tnext = bbextentt;
 				else if(tnext < 8)
@@ -87,14 +87,14 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 				zi += d_zistepu * spancountminus1;
 				z = (f32)0x10000 / zi; // prescale to
 						       // 16.16 fixed-point
-				snext = (s32)(sdivz * z) + sadjust;
+				snext = (s32)(sdivz * z + sadjust);
 				if(snext > bbextents)
 					snext = bbextents;
 				else if(snext < 8)
 					snext = 8; // prevent round-off error on
 				// <0 steps from from causing overstepping and
 				// running off the edge of the texture
-				tnext = (s32)(tdivz * z) + tadjust;
+				tnext = (s32)(tdivz * z + tadjust);
 				if(tnext > bbextentt)
 					tnext = bbextentt;
 				else if(tnext < 8)

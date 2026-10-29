@@ -222,8 +222,8 @@ Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift)
 	w->tdivz_chunk = d_tdivzstepu * (1 << shift);
 	w->zi_chunk = d_zistepu * (1 << shift);
 	f32 z = (f32)0x10000 / w->zi;
-	w->s = D_ClampCoord((s32)(w->sdivz * z) + sadjust, 0, bbextents);
-	w->t = D_ClampCoord((s32)(w->tdivz * z) + tadjust, 0, bbextentt);
+	w->s = D_ClampCoord((s32)(w->sdivz * z + sadjust), 0, bbextents);
+	w->t = D_ClampCoord((s32)(w->tdivz * z + tadjust), 0, bbextentt);
 	w->snext = w->s;
 	w->tnext = w->t;
 	w->sstep = 0;
@@ -234,8 +234,8 @@ Q_SIL void D_SpanWalkEvalEnd(spanwalk_t *w)
 {
 	s32 lo = 1 << w->shift;
 	f32 z = (f32)0x10000 / w->zi;
-	w->snext = D_ClampCoord((s32)(w->sdivz * z) + sadjust, lo, bbextents);
-	w->tnext = D_ClampCoord((s32)(w->tdivz * z) + tadjust, lo, bbextentt);
+	w->snext = D_ClampCoord((s32)(w->sdivz * z + sadjust), lo, bbextents);
+	w->tnext = D_ClampCoord((s32)(w->tdivz * z + tadjust), lo, bbextentt);
 }
 
 Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
@@ -440,9 +440,12 @@ void D_TurbSetLight(const surfcache_t *cache, const msurface_t *pface,
 	turblight.base = cache->data;
 	turblight.width = cache->width;
 	turblight.mip = mip;
-	// tiled gradients offset s and t by 0x20000000 instead of texturemins
-	turblight.soff = 0x20000000 + (pface->texturemins[0] << 16);
-	turblight.toff = 0x20000000 + (pface->texturemins[1] << 16);
+	// tiled gradients offset s and t by 0x20000000 plus the texturemins
+	// remainder that keeps them aligned to the tile (D_CalcGradients)
+	turblight.soff = 0x20000000
+		+ ((pface->texturemins[0] & (TURB_CYCLE-1)) << 16);
+	turblight.toff = 0x20000000
+		+ ((pface->texturemins[1] & (TURB_CYCLE-1)) << 16);
 	turblight.smax = ((pface->extents[0] << 16) >> mip) - 1;
 	turblight.tmax = ((pface->extents[1] << 16) >> mip) - 1;
 }

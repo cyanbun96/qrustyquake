@@ -46,25 +46,25 @@ void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 						ycenter * d_sdivzstepv;
 	d_tdivzorigin = p_taxis[2] * mipscale - xcenter * d_tdivzstepu -
 						ycenter * d_tdivzstepv;
-	vec3_t p_temp1;
-	VectorScale(transformed_modelorg, mipscale, p_temp1);
-	t = 0x10000 * mipscale;
+	// texture coords relative to the surface origin, summed in f64 so
+	// huge maps (|s| > 32k) don't overflow 16.16 before they cancel out
+	f64 s0 = DotProduct(transformed_modelorg, p_saxis)
+		+ pface->texinfo->vecs[0][3] - pface->texturemins[0];
+	f64 t0 = DotProduct(transformed_modelorg, p_taxis)
+		+ pface->texinfo->vecs[1][3] - pface->texturemins[1];
 	if(!tiledextents){
-		sadjust = ((s32)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5))-
-				((pface->texturemins[0] << 16) >> miplevel)
-				+ pface->texinfo->vecs[0][3] * t;
-		tadjust = ((s32)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5))-
-				((pface->texturemins[1] << 16) >> miplevel)
-				+ pface->texinfo->vecs[1][3] * t;
+		sadjust = s0 * 0x10000 * mipscale;
+		tadjust = t0 * 0x10000 * mipscale;
 		// -1(-epsilon) so we never wander off the edge of the texture
 		bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
 		bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
 	}
 	else{ // Tiled textures(water, sky) always have miplevel of 0
-		sadjust = ((s32)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5))-
-				(-0x20000000) + pface->texinfo->vecs[0][3] * t;
-		tadjust = ((s32)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5))-
-				(-0x20000000) + pface->texinfo->vecs[1][3] * t;
+		// keep the texturemins remainder so s stays tile-aligned
+		s0 += pface->texturemins[0] & (TURB_CYCLE-1);
+		t0 += pface->texturemins[1] & (TURB_CYCLE-1);
+		sadjust = s0 * 0x10000 + 0x20000000;
+		tadjust = t0 * 0x10000 + 0x20000000;
 		bbextents = 0x3fffffff;
 		bbextentt = 0x3fffffff;
 	}

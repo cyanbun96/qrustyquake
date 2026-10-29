@@ -28,7 +28,7 @@ static void R_GenerateSpansAlpha(bool step);
 // replaces a rescan of the whole edge list for every cutout leading edge.
 typedef struct { s32 left, right; } cutspan_t;
 static cutspan_t *cut_acc; // indexed by surface number
-static u16 *cut_list; // surfaces with any edge on this scanline
+static u32 *cut_list; // surfaces with any edge on this scanline
 static s32 cut_count; // valid entries in cut_list
 static s32 cut_surfs; // cutout/skybox surfaces in this frame
 static s32 cut_right0; // reset value of cutspan_t.right
@@ -416,7 +416,7 @@ gotposition:
 	}
 }
 
-static inline void R_CutTrailing(u16 sn, const edge_t *edge)
+static inline void R_CutTrailing(u32 sn, const edge_t *edge)
 {
 	cutspan_t *acc = &cut_acc[sn];
 	s64 iu = edge->u >> 20;
@@ -428,7 +428,7 @@ static inline void R_CutTrailing(u16 sn, const edge_t *edge)
 		acc->right = iu;
 }
 
-static inline void R_CutLeading(u16 sn, const edge_t *edge)
+static inline void R_CutLeading(u32 sn, const edge_t *edge)
 {
 	cutspan_t *acc = &cut_acc[sn];
 	s64 iu = edge->u >> 20;
@@ -481,7 +481,7 @@ static void R_GenerateSpans(bool step)
 			// A shared(cached) edge can carry a trailing surface in
 			// surfs[0] AND a leading one in surfs[1]. Always retire
 			// the trailing surface first.
-			u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
+			u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 			if(s0)
 				R_TrailingEdge(&sbase[s0], edge);
 			if(s1)
@@ -501,7 +501,7 @@ static void R_GenerateSpans(bool step)
 	s64 prev_u = edge_head.u;
 	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
 		next = edge->next;
-		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
+		u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0){
 			surf_t *surf = &sbase[s0];
 			if(surf->flags & SURF_CUTMASK)
@@ -531,7 +531,7 @@ static void R_GenerateSpansAlpha(bool step)
 	s64 prev_u = edge_head.u;
 	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
 		next = edge->next;
-		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
+		u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0)
 			R_CutTrailing(s0, edge);
 		if(s1)
@@ -552,7 +552,7 @@ static void R_GenerateSpansBackward(bool step)
 	s64 prev_u = edge_head.u;
 	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
 		next = edge->next;
-		u16 s0 = edge->surfs[0], s1 = edge->surfs[1];
+		u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0)
 			R_TrailingEdge(&sbase[s0], edge);
 		if(s1)

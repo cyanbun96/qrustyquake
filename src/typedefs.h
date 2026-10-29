@@ -132,7 +132,7 @@ typedef struct msurface_s { // pointers first, no padding on 64 bit
 	s32 numedges; // are backwards edges
 	s32 dlightframe;
 	s32 dlightbits;
-	s16 texturemins[2];
+	s32 texturemins[2];
 	s16 extents[2];
 	u8 styles[MAXLIGHTMAPS];
 	u8 lightpeak[MAXLIGHTMAPS]; // brightest sample of each lightmap
@@ -479,11 +479,11 @@ typedef struct edge_s {
 	s64 u;
 	s64 u_step;
 	struct edge_s *prev, *next;
-	u16 surfs[2];
+	medge_t *owner;
+	u32 surfs[2]; // u16 wrapped on maps with over 64k surfs in view
 	s32 vlast; // last scanline this edge is active on
 	f32 nearzi;
 	u8 rev; // reverse edge, used for detecting cache conflicts
-	medge_t *owner;
 } edge_t;
 
 typedef struct {                                                    // d_iface.h
