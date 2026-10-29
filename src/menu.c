@@ -1252,7 +1252,7 @@ void M_Options_Key(s32 k)
 c8 *bindnames[][2] = {
 	{ "+attack", "attack" },
 	{ "impulse 10", "next weapon" },
-	{ "impulse 12", "previous weapon" },
+	{ "impulse 12", "prev. weapon" },
 	{ "+jump", "jump / swim up" },
 	{ "+forward", "walk forward" },
 	{ "+back", "backpedal" },
@@ -2581,19 +2581,19 @@ void M_Graphics_Key(s32 k)
 			!r_alphastyle.value); break;
 		case 905: Cvar_SetValue("scr_saturntext",
 			!scr_saturntext.value); break;
-		case 906: Cvar_SetValue("r_lerpmodels",
+		case 1000: Cvar_SetValue("r_lerpmodels",
 			!r_lerpmodels.value); break;
-		case 907: Cvar_SetValue("r_lerpmove",
+		case 1001: Cvar_SetValue("r_lerpmove",
 			!r_lerpmove.value); break;
-		case 908: Cvar_SetValue("v_gunkick",
+		case 1002: Cvar_SetValue("v_gunkick",
 			!(v_gunkick.value-1)+1); break;
-		case 909: Cvar_SetValue("r_lerplightstyles",
+		case 1003: Cvar_SetValue("r_lerplightstyles",
 			CLAMP(0, r_lerplightstyles.value - 1, 2)); break;
-		case 1000: Cvar_SetValue("r_coarseocclusion",
+		case 1100: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
-		case 1001: Cvar_SetValue("r_entocclusion",
+		case 1101: Cvar_SetValue("r_entocclusion",
 			CLAMP(0, r_entocclusion.value - 1, 2)); break;
-		case 1002: Cvar_SetValue("r_bmodelocclusion",
+		case 1102: Cvar_SetValue("r_bmodelocclusion",
 			CLAMP(0, r_bmodelocclusion.value - 1, 2)); break;
 		}
 		break;
@@ -2765,26 +2765,26 @@ void M_Graphics_Key(s32 k)
 			!r_alphastyle.value); break;
 		case 905: Cvar_SetValue("scr_saturntext",
 			!scr_saturntext.value); break;
-		case 906: Cvar_SetValue("r_lerpmodels",
+		case 1000: Cvar_SetValue("r_lerpmodels",
 			!r_lerpmodels.value); break;
-		case 907: Cvar_SetValue("r_lerpmove",
+		case 1001: Cvar_SetValue("r_lerpmove",
 			!r_lerpmove.value); break;
-		case 908: Cvar_SetValue("v_gunkick",
+		case 1002: Cvar_SetValue("v_gunkick",
 			!(v_gunkick.value-1)+1); break;
-		case 909: Cvar_SetValue("r_lerplightstyles",
+		case 1003: Cvar_SetValue("r_lerplightstyles",
 			CLAMP(0, r_lerplightstyles.value + 1, 2)); break;
-		case 1000: Cvar_SetValue("r_coarseocclusion",
+		case 1100: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
-		case 1001: Cvar_SetValue("r_entocclusion",
+		case 1101: Cvar_SetValue("r_entocclusion",
 			CLAMP(0, r_entocclusion.value + 1, 2)); break;
-		case 1002: Cvar_SetValue("r_bmodelocclusion",
+		case 1102: Cvar_SetValue("r_bmodelocclusion",
 			CLAMP(0, r_bmodelocclusion.value + 1, 2)); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if(graphics_cursor == 0) graphics_cursor = 10;
+		if(graphics_cursor == 0) graphics_cursor = 11;
 		else if(graphics_cursor == 300){
 			if(r_lockfog.value) graphics_cursor = 311;
 			else graphics_cursor = 307;
@@ -2795,14 +2795,15 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor = 605;
 		}else if(graphics_cursor == 700) graphics_cursor = 703;
 		else if(graphics_cursor == 800) graphics_cursor = 807;
-		else if(graphics_cursor == 900) graphics_cursor = 909;
-		else if(graphics_cursor == 1000) graphics_cursor = 1002;
+		else if(graphics_cursor == 900) graphics_cursor = 905;
+		else if(graphics_cursor == 1000) graphics_cursor = 1003;
+		else if(graphics_cursor == 1100) graphics_cursor = 1102;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		if(graphics_cursor < 100){
-			if(graphics_cursor == 10) graphics_cursor = 0;
+			if(graphics_cursor == 11) graphics_cursor = 0;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 400){
 			if(r_lockfog.value){
@@ -2833,10 +2834,13 @@ void M_Graphics_Key(s32 k)
 			if(graphics_cursor == 807) graphics_cursor = 800;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1000){
-			if(graphics_cursor == 909) graphics_cursor = 900;
+			if(graphics_cursor == 905) graphics_cursor = 900;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1100){
-			if(graphics_cursor == 1002) graphics_cursor = 1000;
+			if(graphics_cursor == 1003) graphics_cursor = 1000;
+			else graphics_cursor++;
+		}else if(graphics_cursor < 1200){
+			if(graphics_cursor == 1102) graphics_cursor = 1100;
 			else graphics_cursor++;
 		}
 		break;
@@ -2882,7 +2886,8 @@ void M_Graphics_Draw()
 	M_Print(xoffset, 88, "  Particles...");
 	M_Print(xoffset, 96, "  Layers...");
 	M_Print(xoffset, 104, "  Misc...");
-	M_Print(xoffset, 112, "  Performance...");
+	M_Print(xoffset, 112, "  Interpolation...");
+	M_Print(xoffset, 120, "  Performance...");
 	xoffset = 160;
 	s32 x2 = 104;
 	if(graphics_cursor == 0){
@@ -3103,24 +3108,25 @@ void M_Graphics_Draw()
 		M_Print(xoffset+112, 64, !r_alphastyle.value?"   Mix":"Dither");
 		M_Print(xoffset, 72, "Popup Style:");
 	       M_Print(xoffset+104,72,scr_saturntext.value?" Saturn":"Default");
-		M_Print(xoffset, 80, "Model lerp:");
-		M_Print(xoffset+x2, 80, r_lerpmodels.value?"  On":" Off");
-		M_Print(xoffset, 88, "Move lerp:");
-		M_Print(xoffset+x2, 88, r_lerpmove.value?"  On":" Off");
-		M_Print(xoffset, 96, "Recoil lerp:");
-		M_Print(xoffset+x2, 96, v_gunkick.value==2?"  On":" Off");
-		M_Print(xoffset, 104, "Light lerp:");
+	}else if(graphics_cursor == 10 || graphics_cursor/100 == 10){
+		M_Print(xoffset, 32, "Models:");
+		M_Print(xoffset+x2, 32, r_lerpmodels.value?"On":"Off");
+		M_Print(xoffset, 40, "Movement:");
+		M_Print(xoffset+x2, 40, r_lerpmove.value?"On":"Off");
+		M_Print(xoffset, 48, "Recoil:");
+		M_Print(xoffset+x2, 48, v_gunkick.value==2?"On":"Off");
+		M_Print(xoffset, 56, "Lights:");
 		switch((s32)r_lerplightstyles.value){
-		default: case 0: M_Print(xoffset + x2, 104, " Off"); break;
-		case 1: M_Print(xoffset + x2, 104, "  On"); break;
-		case 2: M_Print(xoffset + x2, 104, " All"); break;
+		default: case 0: M_Print(xoffset + x2, 56, "Off"); break;
+		case 1: M_Print(xoffset + x2, 56, "On"); break;
+		case 2: M_Print(xoffset + x2, 56, "All"); break;
 		}
-		if(graphics_cursor == 909){
+		if(graphics_cursor == 1003){
 			M_DrawTextBox(60, 150, 23, 2);
 			M_Print(72, 158, "On keeps flickers sharp");
 			M_Print(72, 166, "All lerps every change");
 		}
-	}else if(graphics_cursor == 10 || graphics_cursor/100 == 10){
+	}else if(graphics_cursor == 11 || graphics_cursor/100 == 11){
 		x2 += 24;
 		M_Print(xoffset, 32, "World Culling:");
 		M_PrintOffOnAuto(xoffset + x2, 32, r_coarseocclusion.value);
@@ -4549,7 +4555,7 @@ void M_Gamepad_Mouse(s32 x, s32 y)
 void M_Graphics_Mouse(s32 x, s32 y)
 {
 	if(graphics_cursor < 100){
-		if(x >= 24 && x < 136 && y >= 32 && y < 32 + 11*8)
+		if(x >= 24 && x < 160 && y >= 32 && y < 32 + 12*8)
 			M_SetMouseCursor(&graphics_cursor, (y - 32) / 8);
 	}else if(graphics_cursor < 400){
 		if(!r_lockfog.value){
@@ -4580,11 +4586,14 @@ void M_Graphics_Mouse(s32 x, s32 y)
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
 			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
 	}else if(graphics_cursor < 1000){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 10*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 6*8)
 			M_SetMouseCursor(&graphics_cursor,900+(y-32)/8);
 	}else if(graphics_cursor < 1100){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
 			M_SetMouseCursor(&graphics_cursor,1000+(y-32)/8);
+	}else if(graphics_cursor < 1200){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+			M_SetMouseCursor(&graphics_cursor,1100+(y-32)/8);
 	}
 }
 
