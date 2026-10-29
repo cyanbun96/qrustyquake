@@ -73,6 +73,7 @@ s32 r_numdebuglines = 0; // r_showtris
 s32 r_numdebugpoints = 0;
 bool coccl_enable = 0;
 bool r_bmodel_occ_active = 0;
+bool r_ent_occ_active = 0;
 bool r_bmodel_occ_faces = 0;
 s32 r_bmodels_occluded;
 s32 r_bmodel_faces_occluded;

@@ -76,14 +76,20 @@ static void R_CoarseOccClearPixels()
 			r_coarse_occ_pixels[(th-1) * tw + t] |= ~(u64)0<<(yo*8);
 }
 
+static bool R_OcclusionModeOn(f32 mode)
+{ // 1 = on, 2 = on only on maps with a non-vanilla BSP format
+	return mode == 1 || (mode && cl_entities[0].model &&
+		cl_entities[0].model->bspversion != BSPVERSION);
+}
+
 void R_CoarseOcclusionBeginFrame()
 {
 	r_coarse_rejected = r_nodes_occluded = 0;
 	r_bmodels_occluded = r_bmodel_faces_occluded = 0;
-	coccl_enable = (r_coarseocclusion.value == 1) ||
-		(r_coarseocclusion.value && cl_entities[0].model &&
-		 cl_entities[0].model->bspversion != BSPVERSION);
+	coccl_enable = R_OcclusionModeOn(r_coarseocclusion.value);
 	r_coarse_active = coccl_enable && !r_showtris.value;
+	r_ent_occ_active = R_OcclusionModeOn(r_entocclusion.value) &&
+		!r_showtris.value;
 	r_bmodel_occ_active = 0;
 	if(!r_coarse_active)
 		return;
@@ -144,8 +150,8 @@ void R_CoarseOcclusionBeginFrame()
 	}
 	// r_draworder shows the highest key on top instead of the lowest, which
 	// is the opposite of what the brush entity tests rely on
-	r_bmodel_occ_active = r_coarse_active && r_bmodelocclusion.value &&
-		!r_draworder.value;
+	r_bmodel_occ_active = r_coarse_active && !r_draworder.value &&
+		R_OcclusionModeOn(r_bmodelocclusion.value);
 }
 
 

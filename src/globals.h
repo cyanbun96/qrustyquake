@@ -72,6 +72,7 @@ EX s32 r_numdebuglines;
 EX s32 r_numdebugpoints;
 EX bool coccl_enable;
 EX bool r_bmodel_occ_active; // brush entity occlusion is on this frame
+EX bool r_ent_occ_active; // alias entity occlusion is on this frame
 EX bool r_bmodel_occ_faces; // test the faces of the brush entity being drawn
 EX s32 r_bmodels_occluded, r_bmodel_faces_occluded;
 EX s32 r_nodes_occluded;

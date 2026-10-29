@@ -2579,14 +2579,18 @@ void M_Graphics_Key(s32 k)
 			!r_alphastyle.value); break;
 		case 905: Cvar_SetValue("scr_saturntext",
 			!scr_saturntext.value); break;
-		case 906: Cvar_SetValue("r_coarseocclusion",
-			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
-		case 907: Cvar_SetValue("r_lerpmodels",
+		case 906: Cvar_SetValue("r_lerpmodels",
 			!r_lerpmodels.value); break;
-		case 908: Cvar_SetValue("r_lerpmove",
+		case 907: Cvar_SetValue("r_lerpmove",
 			!r_lerpmove.value); break;
-		case 909: Cvar_SetValue("v_gunkick",
+		case 908: Cvar_SetValue("v_gunkick",
 			!(v_gunkick.value-1)+1); break;
+		case 1000: Cvar_SetValue("r_coarseocclusion",
+			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
+		case 1001: Cvar_SetValue("r_entocclusion",
+			CLAMP(0, r_entocclusion.value - 1, 2)); break;
+		case 1002: Cvar_SetValue("r_bmodelocclusion",
+			CLAMP(0, r_bmodelocclusion.value - 1, 2)); break;
 		}
 		break;
 	case K_MOUSE1:
@@ -2749,20 +2753,24 @@ void M_Graphics_Key(s32 k)
 			!r_alphastyle.value); break;
 		case 905: Cvar_SetValue("scr_saturntext",
 			!scr_saturntext.value); break;
-		case 906: Cvar_SetValue("r_coarseocclusion",
-			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
-		case 907: Cvar_SetValue("r_lerpmodels",
+		case 906: Cvar_SetValue("r_lerpmodels",
 			!r_lerpmodels.value); break;
-		case 908: Cvar_SetValue("r_lerpmove",
+		case 907: Cvar_SetValue("r_lerpmove",
 			!r_lerpmove.value); break;
-		case 909: Cvar_SetValue("v_gunkick",
+		case 908: Cvar_SetValue("v_gunkick",
 			!(v_gunkick.value-1)+1); break;
+		case 1000: Cvar_SetValue("r_coarseocclusion",
+			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
+		case 1001: Cvar_SetValue("r_entocclusion",
+			CLAMP(0, r_entocclusion.value + 1, 2)); break;
+		case 1002: Cvar_SetValue("r_bmodelocclusion",
+			CLAMP(0, r_bmodelocclusion.value + 1, 2)); break;
 		}
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if(graphics_cursor == 0) graphics_cursor = 9;
+		if(graphics_cursor == 0) graphics_cursor = 10;
 		else if(graphics_cursor == 300){
 			if(r_lockfog.value) graphics_cursor = 311;
 			else graphics_cursor = 307;
@@ -2773,13 +2781,14 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor = 605;
 		}else if(graphics_cursor == 700) graphics_cursor = 703;
 		else if(graphics_cursor == 800) graphics_cursor = 807;
-		else if(graphics_cursor == 900) graphics_cursor = 909;
+		else if(graphics_cursor == 900) graphics_cursor = 908;
+		else if(graphics_cursor == 1000) graphics_cursor = 1002;
 		else graphics_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
 		if(graphics_cursor < 100){
-			if(graphics_cursor == 9) graphics_cursor = 0;
+			if(graphics_cursor == 10) graphics_cursor = 0;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 400){
 			if(r_lockfog.value){
@@ -2810,7 +2819,10 @@ void M_Graphics_Key(s32 k)
 			if(graphics_cursor == 807) graphics_cursor = 800;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1000){
-			if(graphics_cursor == 909) graphics_cursor = 900;
+			if(graphics_cursor == 908) graphics_cursor = 900;
+			else graphics_cursor++;
+		}else if(graphics_cursor < 1100){
+			if(graphics_cursor == 1002) graphics_cursor = 1000;
 			else graphics_cursor++;
 		}
 		break;
@@ -2825,6 +2837,15 @@ void M_Menu_Graphics_f()
 	key_dest = key_menu;
 	m_state = m_graphics;
 	m_entersound = 1;
+}
+
+static void M_PrintOffOnAuto(s32 x, s32 y, f32 v)
+{
+	switch((s32)v){
+	default: case 0: M_Print(x, y, " Off"); break;
+	case 1: M_Print(x, y, "  On"); break;
+	case 2: M_Print(x, y, "Auto"); break;
+	}
 }
 
 void M_Graphics_Draw()
@@ -2847,6 +2868,7 @@ void M_Graphics_Draw()
 	M_Print(xoffset, 88, "  Particles...");
 	M_Print(xoffset, 96, "  Layers...");
 	M_Print(xoffset, 104, "  Misc...");
+	M_Print(xoffset, 112, "  Performance...");
 	xoffset = 160;
 	s32 x2 = 104;
 	if(graphics_cursor == 0){
@@ -3049,7 +3071,7 @@ void M_Graphics_Draw()
 		}
 		M_Print(xoffset, 56, "Textures:");
 		M_Print(xoffset+96,56,r_dithertex.value?"Dithered":" Default");
-		if(graphics_cursor == 802){
+		if(graphics_cursor == 902){
 			M_DrawTextBox(12, 150, 33, 3);
 			M_Print(16, 158, "  Enable if you see pink around");
 			M_Print(16, 166, " cutouts or fullbright reds that");
@@ -3065,24 +3087,25 @@ void M_Graphics_Draw()
 		M_Print(xoffset+112, 64, !r_alphastyle.value?"   Mix":"Dither");
 		M_Print(xoffset, 72, "Popup Style:");
 	       M_Print(xoffset+104,72,scr_saturntext.value?" Saturn":"Default");
-		M_Print(xoffset, 80, "Coarse Culling:");
-		switch((s32)r_coarseocclusion.value){
-		default: case 0: M_Print(xoffset + x2, 80, " Off"); break;
-		case 1: M_Print(xoffset + x2, 80, "  On"); break;
-		case 2: M_Print(xoffset + x2, 80, "Auto"); break;
-		}
-		M_Print(xoffset, 88, "Model lerp:");
-		M_Print(xoffset+x2, 88, r_lerpmodels.value?"  On":" Off");
-		M_Print(xoffset, 96, "Move lerp:");
-		M_Print(xoffset+x2, 96, r_lerpmove.value?"  On":" Off");
-		M_Print(xoffset, 104, "Recoil lerp:");
-		M_Print(xoffset+x2, 104, v_gunkick.value==2?"  On":" Off");
-		if(graphics_cursor == 806){
-			M_DrawTextBox(12, 150, 33, 3);
-			M_Print(16, 158, "   An extra step that boosts FPS");
-			M_Print(16, 166, " on some modern maps with poor VIS");
-			M_Print(16, 174, "  Auto = enable only on BSP2 maps");
-		}
+		M_Print(xoffset, 80, "Model lerp:");
+		M_Print(xoffset+x2, 80, r_lerpmodels.value?"  On":" Off");
+		M_Print(xoffset, 88, "Move lerp:");
+		M_Print(xoffset+x2, 88, r_lerpmove.value?"  On":" Off");
+		M_Print(xoffset, 96, "Recoil lerp:");
+		M_Print(xoffset+x2, 96, v_gunkick.value==2?"  On":" Off");
+	}else if(graphics_cursor == 10 || graphics_cursor/100 == 10){
+		x2 += 24;
+		M_Print(xoffset, 32, "World Culling:");
+		M_PrintOffOnAuto(xoffset + x2, 32, r_coarseocclusion.value);
+		M_Print(xoffset, 40, "Model Culling:");
+		M_PrintOffOnAuto(xoffset + x2, 40, r_entocclusion.value);
+		M_Print(xoffset, 48, "Brush Culling:");
+		M_PrintOffOnAuto(xoffset + x2, 48, r_bmodelocclusion.value);
+		M_DrawTextBox(32, 150, 31, 4);
+		M_Print(48, 158, " Skips drawing what is hidden");
+		M_Print(48, 166, "Off:  never");
+		M_Print(48, 174, "On:   always");
+		M_Print(48, 182, "Auto: only on non-vanilla maps");
 	}
 }
 
@@ -4499,7 +4522,7 @@ void M_Gamepad_Mouse(s32 x, s32 y)
 void M_Graphics_Mouse(s32 x, s32 y)
 {
 	if(graphics_cursor < 100){
-		if(x >= 24 && x < 136 && y >= 32 && y < 32 + 10*8)
+		if(x >= 24 && x < 136 && y >= 32 && y < 32 + 11*8)
 			M_SetMouseCursor(&graphics_cursor, (y - 32) / 8);
 	}else if(graphics_cursor < 400){
 		if(!r_lockfog.value){
@@ -4530,8 +4553,11 @@ void M_Graphics_Mouse(s32 x, s32 y)
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
 			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
 	}else if(graphics_cursor < 1000){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 10*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 9*8)
 			M_SetMouseCursor(&graphics_cursor,900+(y-32)/8);
+	}else if(graphics_cursor < 1100){
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+			M_SetMouseCursor(&graphics_cursor,1000+(y-32)/8);
 	}
 }
 

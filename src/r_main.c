@@ -687,7 +687,7 @@ static void R_DrawAliasEntity()
 		return;
 	// hidden behind what's already in the z-buffer: skip the lighting,
 	// transform and triangle setup, but keep its animation state current
-	if(r_entocclusion.value && !r_showtris.value && R_AliasOccluded()){
+	if(r_ent_occ_active && R_AliasOccluded()){
 		R_AliasSyncLerpState();
 		r_amodels_occluded++;
 		return;
@@ -1034,7 +1034,7 @@ void R_RenderView()
 	if(r_bmodel_occ_active && r_speeds.value)
 		Con_Printf("Brush entities occluded: %d (faces %d)\n",
 				r_bmodels_occluded, r_bmodel_faces_occluded);
-	if(r_entocclusion.value && r_speeds.value)
+	if(r_ent_occ_active && r_speeds.value)
 		Con_Printf("Entities occluded: %d (drawn %d)\n",
 				r_amodels_occluded, r_amodels_drawn);
 }
