@@ -1703,7 +1703,8 @@ static void Mod_CheckWaterVis()
 			contenttype = SURF_DRAWSLIME;
 		else if(leaf->contents == CONTENTS_LAVA)
 			contenttype = SURF_DRAWLAVA;
-		//fixme: tele
+		//no CONTENTS_TELE: tele surfs are in water leafs and
+		//get told apart from water by surf flags above
 		else continue;
 		if(contenttransparent & contenttype){
 nextleaf:
