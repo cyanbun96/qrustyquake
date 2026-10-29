@@ -103,6 +103,7 @@ u16 CRC_Block(const u8 *start, s32 count);
 EX keydest_t key_dest;                                                 // keys.h
 void Key_Event(s32 key, bool down);
 void Key_Init();
+void Key_ClearStates();
 void Key_WriteBindings(FILE *f);
 void Key_SetBinding(s32 keynum, c8 *binding);
 EX s32 sb_lines;                                                       // sbar.h

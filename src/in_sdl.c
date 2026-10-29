@@ -217,6 +217,7 @@ void Sys_SendKeyEvents()
 			Cvar_SetValue("realheight", winH);
 			VID_CalcScreenDimensions(0);
 			break;
+		case SDL_EVENT_WINDOW_FOCUS_LOST: Key_ClearStates(); break;
 		case SDL_EVENT_QUIT:
 			CL_Disconnect();
 			Host_ShutdownServer(0);

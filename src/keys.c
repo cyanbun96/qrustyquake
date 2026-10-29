@@ -582,3 +582,9 @@ void Key_Event(s32 key, bool down) // Should NOT be called during an interrupt!
 	default: Sys_Error("Bad key_dest");
 	}
 }
+
+void Key_ClearStates() // release held keys, e.g. ones whose up event was lost
+{ // from Ironwail
+	for(s32 i = 0; i < 256; i++)
+		if(keydown[i]) Key_Event(i, 0);
+}
