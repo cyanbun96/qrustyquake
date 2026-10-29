@@ -2250,7 +2250,7 @@ void M_Display_Key(s32 k)
 			if(display_sel_moden == 0) display_sel_moden = moden-1;
 			else display_sel_moden--;
 		}else if(display_cursor == 13 && newwinmode == 1 && moden){
-			VID_SetMode(0,mode->w, mode->h, newwinmode, vid_curpal);
+			VID_SetMode(0,mode->w, mode->h, newwinmode);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		}else if(display_cursor == 14
 			   && atoi(customwidthstr) >= 320
@@ -2258,8 +2258,7 @@ void M_Display_Key(s32 k)
 			   && atoi(customwidthstr) <= MAXWIDTH
 			   && atoi(customheightstr) <= MAXHEIGHT){
 			VID_SetMode(0, atoi(customwidthstr),
-				    atoi(customheightstr), newwinmode,
-				    vid_curpal);
+				    atoi(customheightstr), newwinmode);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		}
 		break;
@@ -3503,7 +3502,7 @@ void M_Video_Key(s32 key)
 		// fallthrough
 	case K_ENTER:
 		S_LocalSound("misc/menu1.wav");
-		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
+		VID_SetMode(vid_line, 0, 0, 0);
 		if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		break;
 	case 'T':
@@ -3512,7 +3511,7 @@ void M_Video_Key(s32 key)
 		vid_realmode = vid_modenum;
 		vid_testingmode = 1;
 		vid_testendtime = realtime + 5.0;
-		VID_SetMode(vid_line, 0, 0, 0, vid_curpal);
+		VID_SetMode(vid_line, 0, 0, 0);
 		printf("VID_LINE: %d\n", vid_line);
 		break;
 	case 'D':

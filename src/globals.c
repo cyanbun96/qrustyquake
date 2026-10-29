@@ -28,7 +28,6 @@ s32 vid_modenum;
 s32 vid_testingmode;
 s32 vid_realmode;
 f64 vid_testendtime;
-u8 vid_curpal[256 * 3];
 viddef_t vid; // global video state
 s32 fadescreen;
 u64 d_pzbuffer_size;

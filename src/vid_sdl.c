@@ -63,8 +63,6 @@ s32 VID_DetermineMode(s32 win)
 void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 {
 	SDL_Color colors[256];
-	if(palette != vid_curpal)
-		memcpy(vid_curpal, palette, sizeof(vid_curpal));
 	for(s32 i = 0; i < 256; ++i){
 		colors[i].r = *palette++;
 		colors[i].g = *palette++;
@@ -379,11 +377,11 @@ void VID_Update()
 	SDL_RenderPresent(renderer);
 	if(vid_testingmode){
 		if(realtime >= vid_testendtime){
-			VID_SetMode(vid_realmode, 0, 0, 0, vid_curpal);
+			VID_SetMode(vid_realmode, 0, 0, 0);
 			vid_testingmode = 0;
 		}
 	}else if((s32)vid_mode.value != vid_realmode && vid_realmode != -1){
-		VID_SetMode((s32)vid_mode.value, 0, 0, 0, vid_curpal);
+		VID_SetMode((s32)vid_mode.value, 0, 0, 0);
 		Cvar_SetValue("vid_mode", (f32)vid_modenum);
 		vid_realmode = vid_modenum;
 	}
@@ -421,8 +419,7 @@ void VID_AllocBuffers()
 	D_AllocCaches();
 }
 
-void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm,
-		SDL_UNUSED u8 *palette)
+void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 {
 	Con_DPrintf("SetMode: %d %dx%d %d\n", modenum, custw, custh, custwinm);
 	if(modenum == vid_modenum && (!custw || !custh))
@@ -521,7 +518,7 @@ void VID_VidSetModeCommand_f()
 			return;
 		}
 		vid_realmode = -1;
-		VID_SetMode(-1, custw, custh, atoi(Cmd_Argv(3)), vid_curpal);
+		VID_SetMode(-1, custw, custh, atoi(Cmd_Argv(3)));
 		break;
 	}
 }
@@ -568,7 +565,7 @@ void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar)
 		return; // e.g. config.cfg, VID_Init already used it
 	renderscale = r_renderscale.value;
 	s32 winm = VID_GetWinMode(); // keep the current window mode
-	VID_SetMode(-1, vid.width, vid.height, winm, vid_curpal);
+	VID_SetMode(-1, vid.width, vid.height, winm);
 	vid_modenum = VID_DetermineMode(!winm);
 	Cvar_SetValue("vid_mode", (f32)vid_modenum);
 }
