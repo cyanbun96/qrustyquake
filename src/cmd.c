@@ -61,6 +61,7 @@ void Cbuf_InsertText(c8 *text)
 		SZ_Clear(&cmd_text);
 	} 
 	Cbuf_AddText(text); // add the entire text of the file
+	SZ_Write(&cmd_text, "\n", 1);
 	if(templen){ // add the copied off data
 		SZ_Write(&cmd_text, temp, templen);
 		Z_Free(temp);
