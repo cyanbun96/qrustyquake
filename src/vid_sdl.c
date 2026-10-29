@@ -549,12 +549,23 @@ void VID_VidFullscreenCommand_f()
 	}
 }
 
+s32 VID_GetWinMode()
+{ // 0 - windowed, 1 - exclusive fullscreen, 2 - borderless
+	if(!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)) return 0;
+	return SDL_GetWindowFullscreenMode(window) ? 1 : 2;
+}
+
 void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar)
 {
 	if((s32)r_renderscale.value < 1)
 		r_renderscale.value = 1;
+	if(renderscale == (s32)r_renderscale.value)
+		return; // e.g. config.cfg, VID_Init already used it
 	renderscale = r_renderscale.value;
-	VID_SetMode(-1, vid.width, vid.height, vid_cwmode.value, vid_curpal);
+	s32 winm = VID_GetWinMode(); // keep the current window mode
+	VID_SetMode(-1, vid.width, vid.height, winm, vid_curpal);
+	vid_modenum = VID_DetermineMode(!winm);
+	Cvar_SetValue("vid_mode", (f32)vid_modenum);
 }
 
 void VID_SetScaleModeCommand_f()
@@ -570,7 +581,7 @@ void VID_SetScaleModeCommand_f()
 		Con_Printf("   current: %d\n", scalemode);
 		return;
 	case 2:
-		i = atof(Cmd_Argv(1));
+		i = atoi(Cmd_Argv(1));
 		if(i < 0 || i > 2){
 			Con_Printf("valid values:\n");
 			Con_Printf("   0 - nearest(default, pixelated)\n");
@@ -581,8 +592,7 @@ void VID_SetScaleModeCommand_f()
 		}
 		else{
 			scalemode = i;
-			VID_SetMode(-1, vid.width, vid.height, vid_cwmode.value,
-					vid_curpal);
+			SDL_SetTextureScaleMode(texture, scalemode);
 		}
 		break;
 	}
