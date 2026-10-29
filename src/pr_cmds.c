@@ -1323,6 +1323,9 @@ static void PF_etos()
 	G_INT(OFS_RETURN) = PR_SetEngineString(result);
 }
 
+static void PF_ftoi()
+{ G_INT(OFS_RETURN) = G_FLOAT(OFS_PARM0); }
+
 static void PF_itof()
 { G_FLOAT(OFS_RETURN) = G_INT(OFS_PARM0); }
 
@@ -2062,6 +2065,7 @@ builtindef_t pr_builtindefs[] = {
 {"strconv", PF_BOTH(PF_strconv), 224, FTE_STRINGS}, 
 {"clientstat", PF_SSQC(PF_clientstat), 232, 0}, 
 {"mod", PF_BOTH(PF_mod), 245, 0}, 
+{"ftoi", PF_BOTH(PF_ftoi), 0, 0}, 
 {"itof", PF_BOTH(PF_itof), 0, 0}, 
 {"checkcommand", PF_BOTH(PF_checkcommand), 294, FTE_QC_CHECKCOMMAND}, 
 {"iscachedpic", PF_CSQC(PF_cl_iscachedpic), 316, 0}, 
