@@ -127,29 +127,21 @@ typedef struct mplane_s {
 	u8 signbits; // signx + signy<<1 + signz<<1
 	u8 pad[2];
 } mplane_t;
-typedef struct msurface_s {
-	s32 visframe; // should be drawn when node is crossed
-	f32 mins[3]; // johnfitz -- for frustum culling
-	f32 maxs[3]; // johnfitz -- for frustum culling
+typedef struct msurface_s { // pointers first, no padding on 64 bit
 	mplane_t *plane;
+	mtexinfo_t *texinfo;
+	u8 *samples; // [numstyles*surfsize]
+	struct surfcache_s *cachespots[MIPLEVELS]; // surface generation data
+	s32 visframe; // should be drawn when node is crossed
 	s32 flags;
 	s32 firstedge; // look up in model->surfedges[], negative numbers
 	s32 numedges; // are backwards edges
-	s16 texturemins[2];
-	s16 extents[2];
-	s32 light_s, light_t; // gl lightmap coordinates
-	struct msurface_s *texturechain;
-	mtexinfo_t *texinfo;
-	s32 vbo_firstvert; // index of surface's first vert in VBO lighting info
 	s32 dlightframe;
 	s32 dlightbits;
-	s32 lightmaptexturenum;
+	s16 texturemins[2];
+	s16 extents[2];
 	u8 styles[MAXLIGHTMAPS];
 	u8 lightpeak[MAXLIGHTMAPS]; // brightest sample of each lightmap
-	s32 cached_light[MAXLIGHTMAPS]; // values currently used in lightmap
-	bool cached_dlight; // 1 if dynamic light in cache
-	u8 *samples; // [numstyles*surfsize]
-	struct surfcache_s *cachespots[MIPLEVELS]; // surface generation data
 } msurface_t;
 
 typedef struct { // viewmodel lighting                              // r_local.h
