@@ -8,7 +8,6 @@ static u8 *screenpixels;
 static u8 *toppixels;
 static u8 *uipixels;
 static u8 *sbarpixels;
-static u8 *argbpixels;
 static SDL_PixelFormat window_format;
 static SDL_Palette *sdlworldpal;
 static SDL_Palette *sdltoppal;
@@ -244,12 +243,9 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	SDL_SetSurfaceColorKey(screensbar, 1, 255);
 	renderer = SDL_CreateRenderer(window, NULL);
 	window_format = SDL_GetWindowPixelFormat(window);
+	// pixels and pitch are filled in by SDL_LockTexture every frame
 	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale,
 			vid.height*renderscale, window_format, 0, 0);
-	argbbuffer->pixels = argbpixels;
-	s32 bpp = SDL_BYTESPERPIXEL(
-			SDL_GetPixelFormatDetails(window_format)->format);
-	argbbuffer->pitch = vid.width * renderscale * bpp;
 	texture = SDL_CreateTexture(renderer, window_format,
 			SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale,
 			vid.height * renderscale);
@@ -410,14 +406,12 @@ void VID_AllocBuffers()
 	toppixels = realloc(toppixels, area);
 	uipixels = realloc(uipixels, area);
 	sbarpixels = realloc(sbarpixels, area);
-	argbpixels = realloc(argbpixels, area*renderscale*renderscale);
-	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!argbpixels)
+	if(!screenpixels||!toppixels||!uipixels||!sbarpixels)
 		Sys_Error("Not enough memory for video mode");
 	screen->pixels = vid.buffer = screenpixels;
 	screentop->pixels = toppixels;
 	screenui->pixels = uipixels;
 	screensbar->pixels = sbarpixels;
-	argbbuffer->pixels = argbpixels;
 	d_pzbuffer_size = 0; // reallocate caches
 	D_AllocCaches();
 }
@@ -456,12 +450,9 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm,
 	scrbuffs[0] = screen; scrbuffs[1] = screentop;
 	scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
 	SDL_DestroySurface(argbbuffer);
+	// pixels and pitch are filled in by SDL_LockTexture every frame
 	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale,
 			vid.height*renderscale, window_format, 0, 0);
-	argbbuffer->pixels = argbpixels;
-	s32 bpp = SDL_BYTESPERPIXEL(
-			SDL_GetPixelFormatDetails(window_format)->format);
-	argbbuffer->pitch = vid.width * renderscale * bpp;
 	SDL_DestroyTexture(texture);
 	texture = SDL_CreateTexture(renderer, window_format,
 		SDL_TEXTUREACCESS_STREAMING, vid.width*renderscale,
