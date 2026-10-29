@@ -177,6 +177,18 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 	return new;
 }
 
+static s32 D_LightAdjMatches(msurface_t *surf, surfcache_t *cache)
+{ // lerped lightstyles change every frame; keep the cached surface while
+  // the summed light error stays under one colormap shade at its peak
+	s32 *a = cache->lightadj, *b = r_drawsurf.lightadj;
+	if(!r_lerplightstyles.value)
+		return a[0]==b[0] && a[1]==b[1] && a[2]==b[2] && a[3]==b[3];
+	s32 err = 0;
+	for(s32 m = 0; m < MAXLIGHTMAPS; m++)
+		err += abs(a[m] - b[m]) * surf->lightpeak[m];
+	return err < 1 << (16 - VID_CBITS); // one shade of blocklight
+}
+
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 {
 	// if the surface is animating or flashing, flush the cache
@@ -189,10 +201,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	surfcache_t *cache = surface->cachespots[miplevel];
 	if(cache && !cache->dlight && surface->dlightframe != r_framecount
 	    && cache->texture == r_drawsurf.texture
-	    && cache->lightadj[0] == r_drawsurf.lightadj[0]
-	    && cache->lightadj[1] == r_drawsurf.lightadj[1]
-	    && cache->lightadj[2] == r_drawsurf.lightadj[2]
-	    && cache->lightadj[3] == r_drawsurf.lightadj[3])
+	    && D_LightAdjMatches(surface, cache))
 		return cache;
 	static f32 surfscale;
 	surfscale = 1.0 / (1 << miplevel); // determine shape of surface

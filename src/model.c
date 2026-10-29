@@ -942,6 +942,23 @@ static void CalcSurfaceExtents(msurface_t *s)
 	}
 }
 
+static void Mod_FindLightPeaks(msurface_t *s, s32 len)
+{ // brightest channel of each lightmap, bounds lerped lightstyle error
+	s32 size = (s->extents[0] / 16 + 1) * (s->extents[1] / 16 + 1) * 3;
+	u8 *lm = s->samples;
+	for(s32 m = 0; m < MAXLIGHTMAPS; m++){
+		u8 peak = lm && s->styles[m] != 255 ? 255 : 0;
+		if(peak && len >= size){
+			peak = 0;
+			for(s32 i = 0; i < size; i++)
+				peak = q_max(peak, lm[i]);
+			lm += size;
+			len -= size;
+		}
+		s->lightpeak[m] = peak;
+	}
+}
+
 static void Mod_LoadFaces(lump_t *l, bool bsp2)
 {
 	dface_t *ins;
@@ -1024,6 +1041,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 		CalcSurfaceExtents(out);
 		if(lofs == -1) out->samples = NULL; // lighting info
 		else out->samples = loadmodel->lightdata + (lofs * 3);
+		Mod_FindLightPeaks(out, (lightlen - lofs) * 3);
 		if((out->extents[0] > 2000 || out->extents[1] > 2000) &&
 				!(out->texinfo->flags & TEX_SPECIAL)){
 Con_DPrintf("Unreasonably big surfaces not supported, drawn as solid black\n");

@@ -357,6 +357,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_coarseocclusion);
 	Cvar_RegisterVariable(&r_lerpmodels);
 	Cvar_RegisterVariable(&r_lerpmove);
+	Cvar_RegisterVariable(&r_lerplightstyles);
 	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);

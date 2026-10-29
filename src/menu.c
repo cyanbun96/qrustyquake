@@ -2585,6 +2585,8 @@ void M_Graphics_Key(s32 k)
 			!r_lerpmove.value); break;
 		case 908: Cvar_SetValue("v_gunkick",
 			!(v_gunkick.value-1)+1); break;
+		case 909: Cvar_SetValue("r_lerplightstyles",
+			CLAMP(0, r_lerplightstyles.value - 1, 2)); break;
 		case 1000: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
 		case 1001: Cvar_SetValue("r_entocclusion",
@@ -2615,6 +2617,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("r_mipscale");
 			Cvar_Reset("r_lerpmove");
 			Cvar_Reset("r_lerpmodels");
+			Cvar_Reset("r_lerplightstyles");
 			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
@@ -2634,6 +2637,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("r_mipscale");
 			Cvar_Reset("r_lerpmove");
 			Cvar_Reset("r_lerpmodels");
+			Cvar_Reset("r_lerplightstyles");
 			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
@@ -2653,6 +2657,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("r_mipscale", 3);
 			Cvar_SetValue("r_lerpmove", 1);
 			Cvar_SetValue("r_lerpmodels", 1);
+			Cvar_SetValue("r_lerplightstyles", 1);
 			Cvar_SetValue("v_gunkick", 2);
 			Cvar_SetValue("r_dithertex", 1);
 			Cvar_SetValue("r_particlestyle", 1);
@@ -2759,6 +2764,8 @@ void M_Graphics_Key(s32 k)
 			!r_lerpmove.value); break;
 		case 908: Cvar_SetValue("v_gunkick",
 			!(v_gunkick.value-1)+1); break;
+		case 909: Cvar_SetValue("r_lerplightstyles",
+			CLAMP(0, r_lerplightstyles.value + 1, 2)); break;
 		case 1000: Cvar_SetValue("r_coarseocclusion",
 			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
 		case 1001: Cvar_SetValue("r_entocclusion",
@@ -2781,7 +2788,7 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor = 605;
 		}else if(graphics_cursor == 700) graphics_cursor = 703;
 		else if(graphics_cursor == 800) graphics_cursor = 807;
-		else if(graphics_cursor == 900) graphics_cursor = 908;
+		else if(graphics_cursor == 900) graphics_cursor = 909;
 		else if(graphics_cursor == 1000) graphics_cursor = 1002;
 		else graphics_cursor--;
 		break;
@@ -2819,7 +2826,7 @@ void M_Graphics_Key(s32 k)
 			if(graphics_cursor == 807) graphics_cursor = 800;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1000){
-			if(graphics_cursor == 908) graphics_cursor = 900;
+			if(graphics_cursor == 909) graphics_cursor = 900;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1100){
 			if(graphics_cursor == 1002) graphics_cursor = 1000;
@@ -3093,6 +3100,17 @@ void M_Graphics_Draw()
 		M_Print(xoffset+x2, 88, r_lerpmove.value?"  On":" Off");
 		M_Print(xoffset, 96, "Recoil lerp:");
 		M_Print(xoffset+x2, 96, v_gunkick.value==2?"  On":" Off");
+		M_Print(xoffset, 104, "Light lerp:");
+		switch((s32)r_lerplightstyles.value){
+		default: case 0: M_Print(xoffset + x2, 104, " Off"); break;
+		case 1: M_Print(xoffset + x2, 104, "  On"); break;
+		case 2: M_Print(xoffset + x2, 104, " All"); break;
+		}
+		if(graphics_cursor == 909){
+			M_DrawTextBox(60, 150, 23, 2);
+			M_Print(72, 158, "On keeps flickers sharp");
+			M_Print(72, 166, "All lerps every change");
+		}
 	}else if(graphics_cursor == 10 || graphics_cursor/100 == 10){
 		x2 += 24;
 		M_Print(xoffset, 32, "World Culling:");
@@ -4553,7 +4571,7 @@ void M_Graphics_Mouse(s32 x, s32 y)
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
 			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
 	}else if(graphics_cursor < 1000){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 9*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 10*8)
 			M_SetMouseCursor(&graphics_cursor,900+(y-32)/8);
 	}else if(graphics_cursor < 1100){
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)

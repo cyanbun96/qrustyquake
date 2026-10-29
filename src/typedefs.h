@@ -145,6 +145,7 @@ typedef struct msurface_s {
 	s32 dlightbits;
 	s32 lightmaptexturenum;
 	u8 styles[MAXLIGHTMAPS];
+	u8 lightpeak[MAXLIGHTMAPS]; // brightest sample of each lightmap
 	s32 cached_light[MAXLIGHTMAPS]; // values currently used in lightmap
 	bool cached_dlight; // 1 if dynamic light in cache
 	u8 *samples; // [numstyles*surfsize]

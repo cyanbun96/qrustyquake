@@ -3,16 +3,21 @@
 
 void R_AnimateLight() // light animations
 { // 'm' is normal light, 'a' is no light, 'z' is f64 bright
-	s32 i = (s32)(cl.time * 10);
+	f64 t = cl.time * 10;
+	s32 i = (s32)t;
+	s32 f = r_lerplightstyles.value ? (t - i) * 256 : 0; // 0.8 fraction
 	for(s32 j = 0; j < MAX_LIGHTSTYLES; j++){
-		if(!cl_lightstyle[j].length){
+		lightstyle_t *ls = &cl_lightstyle[j];
+		if(!ls->length){
 			d_lightstylevalue[j] = 256;
 			continue;
 		}
-		s32 k = i % cl_lightstyle[j].length;
-		k = cl_lightstyle[j].map[k] - 'a';
-		k = k * 22;
-		d_lightstylevalue[j] = k;
+		s32 k = ls->map[i % ls->length] - 'a';
+		s32 n = ls->map[(i + 1) % ls->length] - 'a';
+		// 1 = only smooth gradual changes, keep flickers sharp
+		if(r_lerplightstyles.value < 2 && abs(n - k) >= ('m'-'a')/2)
+			n = k;
+		d_lightstylevalue[j] = k * 22 + (((n - k) * 22 * f) >> 8);
 	}
 }
 

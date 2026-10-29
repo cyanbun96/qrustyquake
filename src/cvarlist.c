@@ -136,6 +136,7 @@ cvar_t r_labmixpal=                                  {"r_labmixpal", "1", 1,ZR};
 cvar_t r_lavaalpha=                                  {"r_lavaalpha", "1", 1,ZR};
 cvar_t r_lerpmodels=                                 {"r_lerpmodels", "0",1,ZR};
 cvar_t r_lerpmove=                                     {"r_lerpmove", "0",1,ZR};
+cvar_t r_lerplightstyles=                      {"r_lerplightstyles", "0", 1,ZR};
 cvar_t r_litwater=                                    {"r_litwater", "1", 1,ZR};
 cvar_t r_lockfog=                                     {"r_lockfog", "0", 1, ZR};
 cvar_t r_lockfogb=                                   {"r_lockfogb", "0", 1, ZR};
