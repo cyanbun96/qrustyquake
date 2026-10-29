@@ -314,7 +314,7 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define MAX_DEMOS 8
 #define MAX_DEMONAME 16
 #define MAX_TEMP_ENTITIES 1024 // lightning bolts, etc
-#define MAX_STATIC_ENTITIES 2048 // torches, etc
+#define MAX_STATIC_ENTITIES 4096 // torches, etc
 #define MAX_VISEDICTS 16384 // larger, now we support BSP2
 #define K_TAB 9                                                        // keys.h
 #define K_ENTER 13 // these are key numbers that should be passed to Key_Event
