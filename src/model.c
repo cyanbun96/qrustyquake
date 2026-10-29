@@ -332,7 +332,6 @@ void Mod_TouchModel(const c8 *name)
 
 static model_t *Mod_LoadModel(model_t *mod, bool crash)
 { // Loads a model into the cache
-	u8 stackbuf[1024]; // avoid dirtying the cache heap
 	if(mod->type == mod_alias){
 		if(Cache_Check(&mod->cache)){
 			mod->needload = 0;
@@ -340,9 +339,8 @@ static model_t *Mod_LoadModel(model_t *mod, bool crash)
 		}
 	}
 	else if(mod->needload == 0) return mod;
-	// because the world is so huge, load it one piece at a time
-	u8 *buf = 
-	COM_LoadStackFile(mod->name, stackbuf, sizeof(stackbuf), &mod->path_id);
+	// malloc so the file doesn't take hunk space from what's built of it
+	u8 *buf = COM_LoadMallocFile(mod->name, &mod->path_id);
 	if(!buf){
 		if(crash) Host_Error("Mod_LoadModel: %s not found", mod->name);
 		return NULL;
@@ -358,6 +356,7 @@ static model_t *Mod_LoadModel(model_t *mod, bool crash)
 			Mod_LoadSpriteModel(mod, buf); break;
 		default: Mod_LoadBrushModel(mod, buf); break;
 	}
+	free(buf);
 	return mod;
 }
 
