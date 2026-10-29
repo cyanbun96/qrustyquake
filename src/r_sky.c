@@ -385,6 +385,7 @@ void Sky_Init()
 	Cvar_RegisterVariable(&r_enableskybox);
 	Cvar_RegisterVariable(&r_skyfog);
 	Cvar_RegisterVariable(&r_skynoise);
+	Cvar_RegisterVariable(&r_skysmooth);
 	skybox_name[0] = 0;
 }
 
@@ -433,15 +434,10 @@ void R_InitSky(texture_t *mt)
 		for(s32 j = 0; j < 128; j++)
 			sky->source[(i*256)+j+128] = SKYSRC(i, j, half);
 	for(s32 i = 0; i < 128; i++)
-		for(s32 j = 0; j < 131; j++){
-			if(SKYSRC(i, j & 0x7F, 0)){
-				sky->bottomsky[(i * 131) + j] =
-				    SKYSRC(i, j & 0x7F, 0);
-				sky->bottommask[(i * 131) + j] = 0;
-			}else{
-				sky->bottomsky[(i * 131) + j] = 0;
-				sky->bottommask[(i * 131) + j] = 0xff;
-			}
+		for(s32 j = 0; j < 128; j++){
+			u8 c = SKYSRC(i, j, 0);
+			sky->bottomsky[i * 128 + j] = c;
+			sky->bottommask[i * 128 + j] = c ? 0 : 0xff;
 		}
 #undef SKYSRC
 }
@@ -457,7 +453,7 @@ void R_MakeSky(texture_t *mt)
 	sky->ylast = yshift;
 	u32 *pnewsky = (u32 *)sky->source;
 	for(s32 y = 0; y < SKYSIZE; y++){
-		s32 baseofs = ((y + yshift) & SKYMASK) * 131;
+		s32 baseofs = ((y + yshift) & SKYMASK) * 128;
 		for(s32 x = 0; x < SKYSIZE; x++){
 			s32 ofs = baseofs + ((x + xshift) & SKYMASK);
 			*(u8 *) pnewsky = (*((u8 *) pnewsky + 128) &

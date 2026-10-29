@@ -162,6 +162,7 @@ cvar_t r_showtris=                                     {"r_showtris", "0",0,ZR};
 cvar_t r_showtris_color=                        {"r_showtris_color", "15",0,ZR};
 cvar_t r_skyfog=                                      {"r_skyfog", "0.5", 1,ZR};
 cvar_t r_skynoise=                                    {"r_skynoise", "1", 1,ZR};
+cvar_t r_skysmooth=                                  {"r_skysmooth", "0", 1,ZR};
 cvar_t r_slimealpha=                                {"r_slimealpha", "1", 1,ZR};
 cvar_t r_speeds=                                        {"r_speeds", "0", 0,ZR};
 cvar_t r_telealpha=                                  {"r_telealpha", "1", 1,ZR};

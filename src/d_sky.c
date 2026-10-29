@@ -16,12 +16,21 @@ void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 	*t = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[1]) * 65536.0f);
 }
 
-void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
-{
-	u8 *skysrc = r_skies[R_SkyIndexForTexture(pface->texinfo->texture)]
-		.source;
+Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
+		s32 smooth)
+{ // smooth samples the layers apart, the front one at a fractional offset
+	sky_t *sky = &r_skies[R_SkyIndexForTexture(pface->texinfo->texture)];
+	u8 *skysrc = smooth ? sky->source + 128 : sky->source;
+	u8 *front = sky->bottomsky;
+	s32 shift = smooth ? (s32)(skytime * skyspeed * 65536.0f) : 0;
+	s32 mix = 0;
+	if(fog){
+		R_BuildColorMixLUT(0);
+		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*r_skyfog.value,
+			FOG_LUT_LEVELS);
+	}
 	do{
-		u8 *pdest = ((u8*)d_viewbuffer+(screenwidth*pspan->v)+pspan->u);
+		u8 *pdest = (u8*)d_viewbuffer+(screenwidth*pspan->v)+pspan->u;
 		s32 count = pspan->count;
 		s32 u = pspan->u; // calculate the initial s & t
 		s32 v = pspan->v;
@@ -51,8 +60,17 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
 				}
 			}
 			do{
-				*pdest++ = skysrc[((t & R_SKY_TMASK)
+				u8 c = skysrc[((t & R_SKY_TMASK)
 						>> 8)+((s&R_SKY_SMASK) >> 16)];
+				if(smooth){
+					u8 f = front[(((t+shift)&R_SKY_TMASK)
+						>> 9) + (((s+shift)
+						&R_SKY_SMASK) >> 16)];
+					c = f ? f : c;
+				}
+				if(fog) c = color_mix_lut[c]
+					[fog_pal_index][mix];
+				*pdest++ = c;
 				s += sstep;
 				t += tstep;
 			}while(--spancount > 0);
@@ -62,54 +80,16 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
 	}while((pspan = pspan->pnext) != NULL);
 }
 
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
+{
+	if(r_skysmooth.value) D_SkyScans(pspan, pface, 0, 1);
+	else D_SkyScans(pspan, pface, 0, 0);
+}
+
 void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface)
 {
-	R_BuildColorMixLUT(0);
-	u8 *skysrc = r_skies[R_SkyIndexForTexture(pface->texinfo->texture)]
-		.source;
-	s32 mix = CLAMP(0, (FOG_LUT_LEVELS - 1)*r_skyfog.value, FOG_LUT_LEVELS);
-	do{
-		u8 *pdest = (u8*)d_viewbuffer+(screenwidth*pspan->v) + pspan->u;
-		s32 count = pspan->count;
-		s32 u = pspan->u; // calculate the initial s & t
-		s32 v = pspan->v;
-		s32 s, t, snext = 0, tnext = 0;
-		D_Sky_uv_To_st(u, v, &s, &t);
-		do{
-			s32 spancount = count >= SKY_SPAN_MAX ?
-				SKY_SPAN_MAX : count;
-			count -= spancount;
-			s32 sstep = 0;
-			s32 tstep = 0;
-			if(count){
-				u += spancount;
-				// calculate s and t at far end of span,
-				// s and t steps across span by shifting
-				D_Sky_uv_To_st(u, v, &snext, &tnext);
-				sstep = (snext - s) >> SKY_SPAN_SHIFT;
-				tstep = (tnext - t) >> SKY_SPAN_SHIFT;
-			}else{
-				// calculate s and t at last pixel in span,
-				// s and t steps across span by division
-				s32 spancountminus1 = (f32)(spancount - 1);
-				if(spancountminus1 > 0){
-					u += spancountminus1;
-					D_Sky_uv_To_st(u, v, &snext, &tnext);
-					sstep = (snext - s) / spancountminus1;
-					tstep = (tnext - t) / spancountminus1;
-				}
-			}
-			do{
-				u8 c = skysrc[((t&R_SKY_TMASK) >> 8)
-					+ ((s & R_SKY_SMASK) >> 16)];
-				*pdest++ = color_mix_lut[c][fog_pal_index][mix];
-				s += sstep;
-				t += tstep;
-			}while(--spancount > 0);
-			s = snext;
-			t = tnext;
-		}while(count > 0);
-	}while((pspan = pspan->pnext) != NULL);
+	if(r_skysmooth.value) D_SkyScans(pspan, pface, 1, 1);
+	else D_SkyScans(pspan, pface, 1, 0);
 }
 
 void D_DrawSkyScansOnlyFog(espan_t *pspan)

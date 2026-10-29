@@ -2523,6 +2523,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_skyfog.value - 0.1, 1)); break;
 		case 402: Cvar_SetValue("r_skynoise",
 			CLAMP(0, r_skynoise.value - 0.1, 1)); break;
+		case 403: Cvar_SetValue("r_skysmooth",
+			!r_skysmooth.value); break;
 		case 500: Cvar_SetValue("r_rgblighting",
 			!r_rgblighting.value); break;
 		case 501: Cvar_SetValue("r_litwater",
@@ -2621,6 +2623,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
+			Cvar_Reset("r_skysmooth");
 		}else if(graphics_cursor == 1){
 			Cvar_SetValue("r_nofog", 1);
 			Cvar_SetValue("r_entalpha", 0);
@@ -2641,6 +2644,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_Reset("v_gunkick");
 			Cvar_Reset("r_dithertex");
 			Cvar_Reset("r_particlestyle");
+			Cvar_Reset("r_skysmooth");
 		}else if(graphics_cursor == 2){
 			Cvar_Reset("r_nofog");
 			Cvar_Reset("r_entalpha");
@@ -2661,6 +2665,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("v_gunkick", 2);
 			Cvar_SetValue("r_dithertex", 1);
 			Cvar_SetValue("r_particlestyle", 1);
+			Cvar_SetValue("r_skysmooth", 1);
 		}else if(graphics_cursor < 100) graphics_cursor *= 100;
 		else switch(graphics_cursor){
 		case 300: Cvar_SetValue("r_nofog",
@@ -2693,6 +2698,8 @@ void M_Graphics_Key(s32 k)
 			CLAMP(0, r_skyfog.value + 0.1, 1)); break;
 		case 402: Cvar_SetValue("r_skynoise",
 			CLAMP(0, r_skynoise.value + 0.1, 1)); break;
+		case 403: Cvar_SetValue("r_skysmooth",
+			!r_skysmooth.value); break;
 		case 500: Cvar_SetValue("r_rgblighting",
 			!r_rgblighting.value); break;
 		case 501: Cvar_SetValue("r_litwater",
@@ -2781,7 +2788,7 @@ void M_Graphics_Key(s32 k)
 		else if(graphics_cursor == 300){
 			if(r_lockfog.value) graphics_cursor = 311;
 			else graphics_cursor = 307;
-		}else if(graphics_cursor == 400) graphics_cursor = 402;
+		}else if(graphics_cursor == 400) graphics_cursor = 403;
 		else if(graphics_cursor == 500) graphics_cursor = 502;
 		else if(graphics_cursor == 600){
 			if(r_hlwater.value) graphics_cursor = 608;
@@ -2806,7 +2813,7 @@ void M_Graphics_Key(s32 k)
 				else graphics_cursor++;
 			}
 		}else if(graphics_cursor < 500){
-			if(graphics_cursor == 402) graphics_cursor = 400;
+			if(graphics_cursor == 403) graphics_cursor = 400;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 600){
 			if(graphics_cursor == 502) graphics_cursor = 500;
@@ -2954,6 +2961,8 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 48, "Sky Noise:");
 		snprintf(temp, sizeof(temp), "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset + x2, 48, temp);
+		M_Print(xoffset, 56, "Smooth Anim:");
+		M_Print(xoffset + x2, 56, r_skysmooth.value==0 ? "Off":"On");
 		if(graphics_cursor == 402){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Applies to newly loaded skyboxes");
@@ -4551,7 +4560,7 @@ void M_Graphics_Mouse(s32 x, s32 y)
 				M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
 		}
 	}else if(graphics_cursor < 500){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
+		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
 			M_SetMouseCursor(&graphics_cursor,400+(y-32)/8);
 	}else if(graphics_cursor < 600){
 		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)

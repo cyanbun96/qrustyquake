@@ -87,7 +87,8 @@ static void D_DrawSky(surf_t *s, msurface_t *pface)
 {
 	r_drawnpolycount++;
 	s32 skyi = R_SkyIndexForTexture(pface->texinfo->texture);
-	if(!r_skies[skyi].made) R_MakeSky(pface->texinfo->texture);
+	if(!r_skies[skyi].made && !r_skysmooth.value)
+		R_MakeSky(pface->texinfo->texture);
 	if(fog_density>0){
 		if(r_skyfog.value>=1) D_DrawSkyScansOnlyFog(s->spans);
 		else D_DrawSkyScansFog(s->spans, pface);
