@@ -363,16 +363,16 @@ void VID_Update()
 		if(blitscreentop)
 			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer,
 					&dst, scalemode);
+		if(scrshot_name[0]){ // the pixels are only valid while locked
+			if(!SDL_SaveBMP(argbbuffer, scrshot_name))
+				Con_Printf("Screenshot: couldn't save %s: %s\n",
+						scrshot_name, SDL_GetError());
+			else
+				Con_Printf("Wrote %s\n", scrshot_name);
+			memset(scrshot_name, 0, sizeof(scrshot_name));
+		}
 		SDL_UnlockTexture(texture);
 	}else{ printf("Couldn't lock texture %s\n", SDL_GetError()); }
-	if(scrshot_name[0]){
-		if(!SDL_SaveBMP(argbbuffer, scrshot_name))
-			Con_Printf("Screenshot: couldn't save %s: %s\n",
-					scrshot_name, SDL_GetError());
-		else
-			Con_Printf("Wrote %s\n", scrshot_name);
-		memset(scrshot_name, 0, sizeof(scrshot_name));
-	}
 	SDL_RenderClear(renderer);
 	SDL_RenderTexture(renderer, texture, NULL, &destRect);
 	SDL_RenderPresent(renderer);
