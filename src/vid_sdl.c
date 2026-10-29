@@ -20,37 +20,33 @@ void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_AllocBuffers();
 void VID_VidFullscreenCommand_f();
 
-s32 VID_GetConfigCvar(const c8 *cvname)
+s32 VID_GetConfigCvar(FILE *file, const c8 *cvname)
 {
 	// CyanBun96: _vid_default_mode_win gets read from config.cfg only after
 	// video is initialized. To avoid creating a window and textures just to
 	// destroy them right away and only then replace them with valid ones,
 	// this function reads the default mode independently of the cvar status
-	c8 line[256], path[MAX_OSPATH];
-	snprintf(path, sizeof(path), "%s/config.cfg", com_gamedir);
-	s32 ret = -1;
-	FILE *file = fopen(path, "r");
-	if(!file){
-		printf("VID_GetConfigCvar: Failed to open %s\n", path);
-		return -2;
-	}
+	if(!file) return -2;
+	c8 line[256];
+	s32 ret = -1, len = strlen(cvname);
+	rewind(file);
 	while(fgets(line, sizeof(line), file)){
-		c8 *found = strstr(line, cvname);
-		if(found){
-			c8 *start = strchr(found, '"');
-			if(start){
-				c8 *end = strchr(start + 1, '"');
-				if(end){
-					*end = '\0';
-					ret = atoi(start + 1);
-					break;
-				}
+		c8 *p = line;
+		while(*p == ' ' || *p == '\t') ++p;
+		if(strncmp(p, cvname, len) || (p[len] != ' ' && p[len] != '\t'))
+			continue; // not this cvar, or a bind/alias mentioning it
+		c8 *start = strchr(p + len, '"');
+		if(start){
+			c8 *end = strchr(start + 1, '"');
+			if(end){
+				*end = '\0';
+				ret = atoi(start + 1);
+				break;
 			}
 		}
 	}
-	fclose(file);
 	if(ret != -1) printf("%s: %d\n", cvname, ret);
-	else printf("%s not found in %s\n", cvname, path);
+	else printf("%s not found in config.cfg\n", cvname);
 	return ret;
 }
 
@@ -156,21 +152,26 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	// erysdren: emscripten requires windowed mode
 	winmode = 1;
 #endif
+	c8 cfgpath[MAX_OSPATH];
+	snprintf(cfgpath, sizeof(cfgpath), "%s/config.cfg", com_gamedir);
+	FILE *cfg = fopen(cfgpath, "r");
+	if(!cfg) printf("VID_Init: Failed to open %s\n", cfgpath);
 	s32 defmode = -1;
 	if(!(COM_CheckParm("-width") || COM_CheckParm("-height")
 	   || COM_CheckParm("-window") || COM_CheckParm("-fullscreen")
-	   || COM_CheckParm("-winsize"))){
-		defmode = VID_GetConfigCvar("_vid_default_mode_win");
+	   || COM_CheckParm("-borderless") || COM_CheckParm("-winsize"))){
+		defmode = VID_GetConfigCvar(cfg, "_vid_default_mode_win");
 		if(defmode >= 0 && defmode < NUM_OLDMODES){
 			vid.width = oldmodes[defmode * 2];
 			vid.height = oldmodes[defmode * 2 + 1];
 			winmode = defmode < 3;
 		}
 	}
-	s32 confwidth = VID_GetConfigCvar("vid_cwidth");
-	s32 confheight = VID_GetConfigCvar("vid_cheight");
-	s32 confwmode = VID_GetConfigCvar("vid_cwmode");
-	renderscale = VID_GetConfigCvar("r_renderscale");
+	s32 confwidth = VID_GetConfigCvar(cfg, "vid_cwidth");
+	s32 confheight = VID_GetConfigCvar(cfg, "vid_cheight");
+	s32 confwmode = VID_GetConfigCvar(cfg, "vid_cwmode");
+	renderscale = VID_GetConfigCvar(cfg, "r_renderscale");
+	if(cfg) fclose(cfg);
 	if(renderscale < 1) renderscale = 1;
 	if(confwidth >= 320 && confheight >= 200 &&
 		confwidth <= MAXWIDTH && confheight <= MAXHEIGHT){
