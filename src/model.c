@@ -777,10 +777,6 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 		for(s32 i = 0; i < count; i++, in++, out++){
 			out->v[0] = (s32)(in->v[0]);
 			out->v[1] = (s32)(in->v[1]);
-			if(out->v[0] >= (u32)loadmodel->numvertexes ||
-				out->v[1] >= (u32)loadmodel->numvertexes)
-				Host_Error("Mod_LoadEdges: bad vertex in %s",
-						loadmodel->name);
 		}
 	}else{
 		dedge_t *in = (dedge_t *)(mod_base + l->fileofs);
@@ -794,10 +790,6 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 		for(s32 i = 0; i<count; i++, in++, out++){
 			out->v[0] = (u16)(s16)(in->v[0]);
 			out->v[1] = (u16)(s16)(in->v[1]);
-			if(out->v[0] >= (u32)loadmodel->numvertexes ||
-				out->v[1] >= (u32)loadmodel->numvertexes)
-				Host_Error("Mod_LoadEdges: bad vertex in %s",
-						loadmodel->name);
 		}
 	}
 }
@@ -1905,6 +1897,12 @@ static void Mod_LoadSurfedges(lump_t *l)
 		if(out[i] <= -loadmodel->numedges ||
 				out[i] >= loadmodel->numedges)
 			Host_Error("Mod_LoadSurfedges: bad edge in %s",
+					loadmodel->name);
+		// only check used edges, edge 0 is often garbage
+		medge_t *e = &loadmodel->edges[abs(out[i])];
+		if(e->v[0] >= (u32)loadmodel->numvertexes ||
+				e->v[1] >= (u32)loadmodel->numvertexes)
+			Host_Error("Mod_LoadSurfedges: bad vertex in %s",
 					loadmodel->name);
 	}
 }
