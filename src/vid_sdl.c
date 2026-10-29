@@ -9,10 +9,8 @@ static u8 *toppixels;
 static u8 *uipixels;
 static u8 *sbarpixels;
 static SDL_PixelFormat window_format;
-static SDL_Palette *sdlworldpal;
-static SDL_Palette *sdltoppal;
-static SDL_Palette *sdluipal;
-static SDL_Palette *sdlsbarpal;
+static SDL_Palette *sdlpals[4]; // indexed like scrbuffs
+static u32 pallut[4][256]; // the same palettes in window_format
 static s32 renderscale;
 static s32 scalemode;
 
@@ -63,18 +61,19 @@ s32 VID_DetermineMode(s32 win)
 void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 {
 	SDL_Color colors[256];
+	s32 l = dest == screentop ? 1 : dest == screenui ? 2
+		: dest == screensbar ? 3 : 0;
+	const SDL_PixelFormatDetails *fmt =
+		SDL_GetPixelFormatDetails(window_format);
 	for(s32 i = 0; i < 256; ++i){
 		colors[i].r = *palette++;
 		colors[i].g = *palette++;
 		colors[i].b = *palette++;
 		colors[i].a = 255;
+		pallut[l][i] = SDL_MapRGB(fmt, 0, colors[i].r, colors[i].g,
+				colors[i].b);
 	}
-	SDL_Palette *pal = sdlworldpal;
-	if(dest == screentop) pal = sdltoppal;
-	else if(dest == screenui) pal = sdluipal;
-	else if(dest == screensbar) pal = sdlsbarpal;
-	SDL_SetPaletteColors(pal, colors, 0, 256);
-	SDL_SetSurfacePalette(dest, pal);
+	SDL_SetPaletteColors(sdlpals[l], colors, 0, 256);
 }
 
 void VID_SetWindowed()
@@ -211,19 +210,20 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	window = SDL_CreateWindow("QrustyQuake",realwidth.value,
 			realheight.value,SDL_WINDOW_RESIZABLE);
 	if(!window) Sys_Error("Couldn't create window: %s", SDL_GetError());
+	window_format = SDL_GetWindowPixelFormat(window); // for VID_SetPalette
 	SDL_SetWindowMinimumSize(window, 320, 200);
 	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlworldpal = SDL_CreateSurfacePalette(screen);
+		sdlpals[0] = SDL_CreateSurfacePalette(screen);
 	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlsbarpal = SDL_CreateSurfacePalette(screensbar);
+		sdlpals[3] = SDL_CreateSurfacePalette(screensbar);
 	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdluipal = SDL_CreateSurfacePalette(screenui);
+		sdlpals[2] = SDL_CreateSurfacePalette(screenui);
 	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdltoppal = SDL_CreateSurfacePalette(screentop);
+		sdlpals[1] = SDL_CreateSurfacePalette(screentop);
 	screen->pixels = screenpixels;
 	screenui->pixels = uipixels;
 	screensbar->pixels = sbarpixels;
@@ -245,7 +245,6 @@ void VID_Init(SDL_UNUSED u8 *palette)
 	renderer = SDL_CreateRenderer(window, NULL);
 	if(!renderer)
 		Sys_Error("Couldn't create renderer: %s", SDL_GetError());
-	window_format = SDL_GetWindowPixelFormat(window);
 	// pixels and pitch are filled in by SDL_LockTexture every frame
 	argbbuffer = SDL_CreateSurfaceFrom(vid.width*renderscale,
 			vid.height*renderscale, window_format, 0, 0);
@@ -322,6 +321,35 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 	Sbar_CalcPos();
 }
 
+Q_SIL void VID_CompositeRows(u32 *d, s32 pitch, s32 rs, s32 ui, s32 top)
+{ // world, ui and top layers to window_format in one pass, rs x rs nearest
+	const u8 *w = screen->pixels, *u = screenui->pixels;
+	const u8 *t = screentop->pixels;
+	const u32 *wl = pallut[0], *tl = pallut[1], *ul = pallut[2];
+	for(u32 y = 0; y < vid.height; ++y){
+		u32 *row = d;
+		for(u32 x = 0; x < vid.width; ++x){
+			u32 c = wl[w[x]];
+			if(ui && u[x] != 255) c = ul[u[x]];
+			if(top && t[x] != 255) c = tl[t[x]];
+			for(s32 k = 0; k < rs; ++k) *row++ = c;
+		}
+		for(s32 k = 1; k < rs; ++k)
+			memcpy(d + k * pitch, d, vid.width * rs * sizeof(u32));
+		w += vid.width; u += vid.width; t += vid.width;
+		d += pitch * rs;
+	}
+}
+
+#define COMPFUNC(rs1, ui, top) \
+static void VID_Composite##rs1##ui##top(u32 *d, s32 pitch) \
+{ VID_CompositeRows(d, pitch, rs1 ? 1 : renderscale, ui, top); }
+#define COMPFUNC_LIST(X) X(0, 0, 0) X(0, 0, 1) X(0, 1, 0) X(0, 1, 1) \
+	X(1, 0, 0) X(1, 0, 1) X(1, 1, 0) X(1, 1, 1)
+COMPFUNC_LIST(COMPFUNC)
+#define COMPFUNC_PTR(rs1, ui, top) VID_Composite##rs1##ui##top,
+static void (*const compfuncs[8])(u32 *, s32) ={COMPFUNC_LIST(COMPFUNC_PTR)};
+
 void VID_Update()
 {
 	bool blitscreentop = false;
@@ -354,14 +382,22 @@ void VID_Update()
 			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
 				&scRect, SDL_SCALEMODE_NEAREST); // 8-bit to 8-bit
 		if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
-		SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer, &dst,
-					scalemode);
-		if(blitscreenui)
-			SDL_BlitSurfaceScaled(screenui, &blitRect, argbbuffer,
-					&scRect2, scalemode);
-		if(blitscreentop)
-			SDL_BlitSurfaceScaled(screentop, &blitRect, argbbuffer,
+		if(SDL_BYTESPERPIXEL(window_format) == 4
+		&& (renderscale == 1 || scalemode != SDL_SCALEMODE_LINEAR)
+		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h)))
+			compfuncs[(renderscale == 1) * 4 + blitscreenui * 2
+				+ blitscreentop](argbbuffer->pixels,
+					argbbuffer->pitch / 4);
+		else{ // linear filtering or a scaled UI layer
+			SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer,
 					&dst, scalemode);
+			if(blitscreenui)
+				SDL_BlitSurfaceScaled(screenui, &blitRect,
+					argbbuffer, &scRect2, scalemode);
+			if(blitscreentop)
+				SDL_BlitSurfaceScaled(screentop, &blitRect,
+					argbbuffer, &dst, scalemode);
+		}
 		if(scrshot_name[0]){ // the pixels are only valid while locked
 			if(!SDL_SaveBMP(argbbuffer, scrshot_name))
 				Con_Printf("Screenshot: couldn't save %s: %s\n",
@@ -443,16 +479,16 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 	SDL_DestroySurface(screensbar);
 	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlworldpal = SDL_CreateSurfacePalette(screen);
+		sdlpals[0] = SDL_CreateSurfacePalette(screen);
 	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlsbarpal = SDL_CreateSurfacePalette(screensbar);
+		sdlpals[3] = SDL_CreateSurfacePalette(screensbar);
 	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdluipal = SDL_CreateSurfacePalette(screenui);
+		sdlpals[2] = SDL_CreateSurfacePalette(screenui);
 	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height,
 			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdltoppal = SDL_CreateSurfacePalette(screentop);
+		sdlpals[1] = SDL_CreateSurfacePalette(screentop);
 	scrbuffs[0] = screen; scrbuffs[1] = screentop;
 	scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
 	SDL_DestroySurface(argbbuffer);
