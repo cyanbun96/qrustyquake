@@ -61,6 +61,8 @@ void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar);
 EX u8 r_foundtranswater, r_alphapass;                                // r_main.c
 EX bool r_dowarp;
 EX s32 r_coarse_rejected;
+EX bool r_coarse_active;
+EX f32 winquake_surface_liquid_alpha;
 EX refdef_t r_refdef;
 EX s64 r_framecount;
 EX texture_t *r_notexture_mip;
@@ -83,6 +85,8 @@ bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa);
 bool R_SurfaceInPass(msurface_t *fa);
 bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx);
 bool R_CoarseOcclusionTestNode(mnode_t *node);
+bool R_CoarseOcclusionTestSurface(msurface_t *fa);
+void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf);
 void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();

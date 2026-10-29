@@ -603,7 +603,7 @@ Cmd_AddCommand2(cmdname,func,src_server,false) //command came from a server
 #define MAX_CACHED_PICS 1024 // was 128                                // draw.c
 #define FULLY_CLIPPED_CACHED 0x80000000                              // r_draw.c
 #define FRAMECOUNT_MASK 0x7FFFFFFF
-#define COARSE_OCCLUSION_TILE_SIZE 8
+#define COARSE_OCCLUSION_TILE_SIZE 8                               // r_coarse.c
 #define COARSE_OCCLUSION_MAX_VERTS 128
 #define COARSE_OCCLUSION_EPSILON 0.001f
 // pixels of slack so float rounding can't make the tile test wrong

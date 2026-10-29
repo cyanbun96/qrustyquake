@@ -36,6 +36,8 @@ u8 r_foundtranswater, r_alphapass;                                   // r_main.c
 s32 r_outofsurfaces;
 s32 r_outofedges;
 s32 r_coarse_rejected;
+bool r_coarse_active; // set once per frame, see R_CoarseOcclusionBeginFrame
+f32 winquake_surface_liquid_alpha; // set by R_SurfaceInPass
 bool r_dowarp, r_dowarpold, r_viewchanged;
 mvertex_t *r_pcurrentvertbase;
 s32 c_surf;
