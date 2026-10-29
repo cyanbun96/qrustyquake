@@ -442,6 +442,7 @@ typedef struct { // a classic scrolling sky texture, see R_InitSky
 	u8 source[128*256]; // left half the composited sky, right the back
 	u8 bottomsky[128*128]; // front layer
 	u8 bottommask[128*128]; // 0xff where the front layer is see-through
+	bool blend; // Q64: the front layer is mixed 50% over the back
 } sky_t;
 typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
 typedef struct {

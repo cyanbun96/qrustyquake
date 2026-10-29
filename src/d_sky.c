@@ -17,13 +17,15 @@ void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 }
 
 Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
-		s32 smooth)
+		s32 smooth, s32 blend)
 { // smooth samples the layers apart, the front one at a fractional offset
+  // blend mixes the front 50% over the back instead of masking (Q64)
 	sky_t *sky = &r_skies[R_SkyIndexForTexture(pface->texinfo->texture)];
 	u8 *skysrc = smooth ? sky->source + 128 : sky->source;
 	u8 *front = sky->bottomsky;
 	s32 shift = smooth ? (s32)(skytime * skyspeed * 65536.0f) : 0;
 	s32 mix = 0;
+	if(blend) R_BuildColorMixLUT(0);
 	if(fog){
 		R_BuildColorMixLUT(0);
 		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*r_skyfog.value,
@@ -66,7 +68,8 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 					u8 f = front[(((t+shift)&R_SKY_TMASK)
 						>> 9) + (((s+shift)
 						&R_SKY_SMASK) >> 16)];
-					c = f ? f : c;
+					c = blend ? color_mix_lut[f][c]
+						[FOG_LUT_LEVELS/2] : f ? f : c;
 				}
 				if(fog) c = color_mix_lut[c]
 					[fog_pal_index][mix];
@@ -80,16 +83,21 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 	}while((pspan = pspan->pnext) != NULL);
 }
 
+static bool D_SkyBlend(msurface_t *pface)
+{ return r_skies[R_SkyIndexForTexture(pface->texinfo->texture)].blend; }
+
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
 {
-	if(r_skysmooth.value) D_SkyScans(pspan, pface, 0, 1);
-	else D_SkyScans(pspan, pface, 0, 0);
+	if(!r_skysmooth.value) D_SkyScans(pspan, pface, 0, 0, 0);
+	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 0, 1, 1);
+	else D_SkyScans(pspan, pface, 0, 1, 0);
 }
 
 void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface)
 {
-	if(r_skysmooth.value) D_SkyScans(pspan, pface, 1, 1);
-	else D_SkyScans(pspan, pface, 1, 0);
+	if(!r_skysmooth.value) D_SkyScans(pspan, pface, 1, 0, 0);
+	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 1, 1, 1);
+	else D_SkyScans(pspan, pface, 1, 1, 0);
 }
 
 void D_DrawSkyScansOnlyFog(espan_t *pspan)

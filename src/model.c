@@ -22,6 +22,12 @@ typedef struct miptex_s {
 	unsigned offsets[MIPLEVELS]; // four mip maps stored
 } miptex_t;
 typedef struct {
+	c8 name[16];
+	unsigned width, height;
+	unsigned shift; // Q64 texture scale
+	unsigned offsets[MIPLEVELS]; // only the first mip is stored
+} miptex64_t;
+typedef struct {
 	f32 point[3];
 } dvertex_t;
 typedef struct {
@@ -431,6 +437,44 @@ static s32 Mod_MiptexAvail(lump_t *l, miptex_t *mt, u32 ofs)
 	return end - ((u8 *)mt + ofs);
 }
 
+static texture_t *Mod_LoadTextureQ64(lump_t *l, miptex_t *mt, s32 shift)
+{ // Q64 has no mips and stretches textures over 2*shift texels (Ironwail)
+	bool sky = !SDL_strncasecmp(mt->name, "sky", 3);
+	s32 srcw = mt->width, srch = mt->height;
+	s32 f = shift > 0 && !sky ? 2 * shift : 1;
+	s32 w = srcw * f, h = srch * f;
+	if(sky){ w = srcw * 2; h = srch / 2; } // front on top -> left
+	s32 pixels = w * h / 64 * 85;
+	texture_t *tx = Hunk_AllocName(sizeof(texture_t) + pixels, loadname);
+	memcpy(tx->name, mt->name, sizeof(tx->name));
+	tx->width = w;
+	tx->height = h;
+	tx->offsets[0] = sizeof(texture_t);
+	for(s32 j = 1; j < MIPLEVELS; j++)
+		tx->offsets[j] = tx->offsets[j-1] + (w>>(j-1)) * (h>>(j-1));
+	u8 *dst = (u8 *)tx + tx->offsets[0];
+	u8 *src = (u8 *)mt + mt->offsets[0];
+	if(Mod_MiptexAvail(l, mt, mt->offsets[0]) < srcw * srch){
+		Con_DPrintf("Texture %.16s has no pixels\n", mt->name);
+		memset(dst, 0, pixels);
+	}else if(sky) for(s32 y = 0; y < h; y++)
+		for(s32 x = 0; x < srcw; x++){
+			dst[y * w + x] = src[y * srcw + x];
+			dst[y * w + srcw + x] = src[(y + h) * srcw + x];
+		}
+	else for(s32 y = 0; y < h; y++)
+		for(s32 x = 0; x < w; x++)
+			dst[y * w + x] = src[y / f * srcw + x / f];
+	if(sky){ // the front layer is blended over the back, not masked
+		R_InitSky(tx);
+		r_skies[R_SkyIndexForTexture(tx)].blend = 1;
+		return tx;
+	}
+	for(s32 j = 1; j < MIPLEVELS; j++)
+		bilinear_u8(dst, (u8 *)tx + tx->offsets[j], w, h, w>>j, h>>j);
+	return tx;
+}
+
 static bool Mod_MiptexClobbered(u8 *tail)
 { // some wad tools stored lump sizes without the header, so textures
   // extracted from them end with the next lump's header instead of pixels
@@ -466,13 +510,23 @@ void Mod_LoadTextures(lump_t *l)
 	for(s32 i = 0; i < m->nummiptex; i++){
 		m->dataofs[i] = (s32)(m->dataofs[i]);
 		if(m->dataofs[i] == -1) continue;
-		if(m->dataofs[i] < 0 || (u32)m->dataofs[i] >
-				l->filelen - sizeof(miptex_t)){
+		bool q64 = loadmodel->bspversion == BSPVERSION_QUAKE64;
+		if(m->dataofs[i] < 0 || (u32)m->dataofs[i] > l->filelen -
+				(q64 ? sizeof(miptex64_t) : sizeof(miptex_t))){
 			Con_Printf("Texture %d is outside the lump in %s\n",
 					i, loadmodel->name);
 			continue;
 		}
 		miptex_t *mt = (miptex_t *) ((u8 *) m + m->dataofs[i]);
+		s32 shift = 0;
+		if(q64){ // move name and size over the shift, so the rest
+			// can read it as a plain miptex_t
+			shift = ((miptex64_t *)mt)->shift;
+			memmove((u8 *)mt + 4, mt, offsetof(miptex64_t, shift));
+			mt = (miptex_t *)((u8 *)mt + 4);
+			for(s32 j = 0; j < MIPLEVELS; j++)
+				if(mt->offsets[j]) mt->offsets[j] -= 4;
+		}
 		mt->width = (s32)(mt->width);
 		mt->height = (s32)(mt->height);
 		for(s32 j = 0; j < MIPLEVELS; j++)
@@ -481,6 +535,11 @@ void Mod_LoadTextures(lump_t *l)
 				mt->height > 8192){
 			Con_Printf("Texture %.16s has bad size %ux%u\n",
 					mt->name, mt->width, mt->height);
+			continue;
+		}
+		if(q64 && mt->name[0] != '*' && !((mt->width|mt->height) & 7)){
+			loadmodel->textures[i] =
+				Mod_LoadTextureQ64(l, mt, shift);
 			continue;
 		}
 		if((mt->width & 7) || (mt->height & 7)){
@@ -553,7 +612,7 @@ void Mod_LoadTextures(lump_t *l)
 			if(!strncmp(mt->name, "sky", 3))
 				R_InitSky(tx);
 			continue;
-		}else if((mt->width & 8) || (mt->height & 8))
+		}else if(((mt->width & 8) || (mt->height & 8)) && !q64)
 			Con_Printf("Texture %s is not 16 aligned\n", mt->name);
 		bool is_water = (mt->name[0] == '*');
 		//CyanBun96: turbulent rendering code only supports 64x64
@@ -745,6 +804,20 @@ static void Mod_LoadLighting(lump_t *l)
 		Con_Printf("Corrupt .lit file(old version?), ignoring\n");}
 	} // LordHavoc: no .lit found, expand the white lighting data to color
 	if(!l->filelen) return;
+	if(loadmodel->bspversion == BSPVERSION_QUAKE64){
+		// RGB samples packed in 16 bits: RRRRR GGGGG BBBBBB
+		loadmodel->lightdata = Hunk_AllocName(l->filelen / 2 * 3,
+				litfilename);
+		u8 *in = mod_base + l->fileofs;
+		u8 *out = loadmodel->lightdata;
+		for(s32 i = 0; i < l->filelen / 2; i++, in += 2){
+			*out++ = in[0] & 0xf8;
+			*out++ = ((in[0] & 0x07) << 5) + ((in[1] & 0xc0) >> 5);
+			*out++ = (in[1] & 0x3f) << 2;
+		}
+		lit_loaded = 1;
+		return;
+	}
 	loadmodel->lightdata = (u8 *)Hunk_AllocName( l->filelen*3, litfilename);
 	u8 *in = loadmodel->lightdata + l->filelen*2; // place the file at the
 		// end, so it will not be overwritten until the very last write
@@ -978,6 +1051,8 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	msurface_t *out = Hunk_AllocName((count+6)*sizeof(*out), loadname);
 	// the lit or expanded data has 3 bytes for each byte of this lump
 	s32 lightlen = ((dheader_t *)mod_base)->lumps[8].filelen;
+	bool q64 = loadmodel->bspversion == BSPVERSION_QUAKE64;
+	if(q64) lightlen /= 2; // Q64 samples are 16 bits
 	if(count > 32767 && !bsp2)
 	      Con_DPrintf("%i faces exceeds standard limit of 32767.\n", count);
 	loadmodel->surfaces = out;
@@ -1024,6 +1099,7 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 				loadmodel->numsurfedges - out->numedges)
 			Host_Error("Mod_LoadFaces: face %d of %s has bad"
 				" edges", surfnum, loadmodel->name);
+		if(q64 && lofs != -1) lofs /= 2;
 		if(lofs < -1 || lofs >= lightlen){
 			Con_DPrintf("Mod_LoadFaces: face %d has a bad"
 				" lightofs\n", surfnum);

@@ -417,6 +417,7 @@ void R_InitSky(texture_t *mt)
 	}
 	sky_t *sky = &r_skies[newi];
 	sky->made = 0;
+	sky->blend = 0;
 	sky->xlast = sky->ylast = -1;
 	// skies of any other size get sampled down or up to it
 	u8 *src = (u8 *) mt + mt->offsets[0];
@@ -451,14 +452,17 @@ void R_MakeSky(texture_t *mt)
 		return;
 	sky->xlast = xshift;
 	sky->ylast = yshift;
+	if(sky->blend) R_BuildColorMixLUT(0);
 	u32 *pnewsky = (u32 *)sky->source;
 	for(s32 y = 0; y < SKYSIZE; y++){
 		s32 baseofs = ((y + yshift) & SKYMASK) * 128;
 		for(s32 x = 0; x < SKYSIZE; x++){
 			s32 ofs = baseofs + ((x + xshift) & SKYMASK);
-			*(u8 *) pnewsky = (*((u8 *) pnewsky + 128) &
-					sky->bottommask[ofs]) |
-					sky->bottomsky[ofs];
+			u8 back = *((u8 *) pnewsky + 128);
+			*(u8 *) pnewsky = sky->blend ? color_mix_lut
+				[sky->bottomsky[ofs]][back][FOG_LUT_LEVELS/2] :
+				(back & sky->bottommask[ofs]) |
+				sky->bottomsky[ofs];
 			pnewsky = (unsigned *)((u8 *) pnewsky + 1);
 		}
 		pnewsky += 128 / sizeof(unsigned);
