@@ -438,7 +438,7 @@ void S_ClearBuffer();
 void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up);
 sfx_t *S_PrecacheSound(const c8 *sample);
 void S_TouchSound(const c8 *sample);
-void S_PaintChannels(s32 endtime);
+void S_PaintChannels(s32 endtime, bool paused);
 bool SNDDMA_Init(dma_t *dma);
 s32 SNDDMA_GetDMAPos();
 EX channel_t snd_channels[MAX_CHANNELS];

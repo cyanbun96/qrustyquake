@@ -412,7 +412,9 @@ static void S_Update_()
 	endtime = soundtime + (u32)(_snd_mixahead.value * shm->speed);
 	samps = shm->samples >> (shm->channels - 1);
 	endtime = q_min(endtime, (u32)(soundtime + samps));
-	S_PaintChannels(endtime);
+	// world sounds stop with the world, see Host_ServerFrame
+	S_PaintChannels(endtime, sv.active && (sv.paused
+		|| (svs.maxclients == 1 && key_dest != key_game)));
 }
 
 static void S_Play()
@@ -425,7 +427,8 @@ static void S_Play()
 		if(!strrchr(Cmd_Argv(i), '.'))
 			SDL_strlcat(name, ".wav", sizeof(name));
 		sfx_t *sfx = S_PrecacheSound(name);
-		S_StartSound(hash++, 0, sfx, listener_origin, 1.0, 1.0);
+		S_StartSound(hash++, SND_LOCAL_CHAN, sfx, listener_origin,
+				1.0, 1.0);
 		i++;
 	}
 }
@@ -441,7 +444,8 @@ static void S_PlayVol()
 			SDL_strlcat(name, ".wav", sizeof(name));
 		sfx_t *sfx = S_PrecacheSound(name);
 		f32 vol = atof(Cmd_Argv(i + 1));
-		S_StartSound(hash++, 0, sfx, listener_origin, vol, 1.0);
+		S_StartSound(hash++, SND_LOCAL_CHAN, sfx, listener_origin,
+				vol, 1.0);
 		i += 2;
 	}
 }
@@ -468,5 +472,5 @@ void S_LocalSound(const c8 *name)
 	if(!sound_started) return;
 	sfx_t *sfx = S_PrecacheSound(name);
 	if(!sfx){ Con_Printf("S_LocalSound: can't cache %s\n", name); return; }
-	S_StartSound(cl.viewentity, -1, sfx, vec3_origin, 1, 1);
+	S_StartSound(cl.viewentity, SND_LOCAL_CHAN, sfx, vec3_origin, 1, 1);
 }

@@ -197,7 +197,7 @@ static void SND_PaintChannelFrom8
 static void SND_PaintChannelFrom16
 	(channel_t *ch, sfxcache_t *sc, s32 endtime, s32 paintbufferstart);
 
-void S_PaintChannels(s32 endtime)
+void S_PaintChannels(s32 endtime, bool paused)
 {
 	snd_vol = sfxvolume.value * 256;
 	while(paintedtime < endtime){
@@ -211,6 +211,10 @@ void S_PaintChannels(s32 endtime)
 		channel_t *ch = snd_channels;
 		for(s32 i = 0; i < total_channels; i++, ch++){
 			if(!ch->sfx) continue;
+			if(paused && ch->entchannel != SND_LOCAL_CHAN){
+				ch->end += end - paintedtime; // hold position
+				continue;
+			}
 			if(!ch->leftvol && !ch->rightvol) continue;
 			sfxcache_t *sc = S_LoadSound(ch->sfx);
 			if(!sc) continue;
