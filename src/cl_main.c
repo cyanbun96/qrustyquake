@@ -87,6 +87,7 @@ void CL_Disconnect() // Sends a disconnect message to the server
 	cls.signon = 0;
 	cl.sendprespawn = 0;
 	cls.sellscreen = 0;
+	V_ResetCshift();
 }
 
 void CL_Disconnect_f()

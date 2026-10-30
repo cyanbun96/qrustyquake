@@ -171,6 +171,9 @@ void V_cshift_f()
 	cshift_empty.percent = atoi(Cmd_Argv(4));
 }
 
+// A mod can't undo its v_cshift once the player has left, e.g. mid-fade
+void V_ResetCshift() { cshift_empty.percent = 0; }
+
 void V_BonusFlash_f()
 { // When you run over an item, the server sends this command
 	cl.cshifts[CSHIFT_BONUS].destcolor[0] = 215;
@@ -341,7 +344,8 @@ static void V_PaletteCallback(SDL_UNUSED cvar_t *cvar)
 
 void V_UpdatePalette()
 {
-	V_CalcPowerupCshift();
+	if(cls.state == ca_connected) V_CalcPowerupCshift();
+	else memset(cl.cshifts, 0, sizeof(cl.cshifts)); // would tint the menus
 	f32 frametime = fabs(cl.time - cl.oldtime);
 	// not in cl: wiping it must still clear a tint that's on screen
 	static cshift_t prev[NUM_CSHIFTS];

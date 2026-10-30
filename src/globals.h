@@ -559,6 +559,7 @@ void V_StartPitchDrift();
 void V_StopPitchDrift();
 void V_RenderView();
 void V_UpdatePalette();
+void V_ResetCshift();
 void V_ParseDamage();
 void V_SetContentsColor(s32 contents);
 void CL_InitTEnts();
