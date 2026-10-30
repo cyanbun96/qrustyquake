@@ -177,8 +177,6 @@ static void Mod_Print();
 static model_t mod_known[MAX_MOD_KNOWN];
 static s32 mod_numknown;
 
-u8 *Mod_NoVisPVS(model_t *model);
-
 void Mod_Init()
 {
 	Cvar_RegisterVariable(&external_vis);

@@ -208,7 +208,8 @@ void *Mod_Extradata(model_t *mod);
 void Mod_TouchModel(const c8 *name);
 mleaf_t *Mod_PointInLeaf(vec3_t p, model_t *model);
 u8 *Mod_LeafPVS(mleaf_t *leaf, model_t *model);
-void SCR_Init();                                                     // screen.h
+u8 *Mod_NoVisPVS(model_t *model);
+void SCR_Init();                                                   // screen.h
 void SCR_UpdateScreen();
 void SCR_CenterPrint(const c8 *str);
 void SCR_BeginLoadingPlaque();
