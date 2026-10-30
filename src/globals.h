@@ -726,7 +726,7 @@ void Host_ClearMemory();
 void Host_InitCommands();
 void Host_Init();
 void Host_Shutdown();
-void Host_Error(c8 *error, ...);
+SDL_NORETURN void Host_Error(c8 *error, ...);
 void Host_EndGame(c8 *message, ...);
 void Host_Frame(f32 time);
 void Host_Quit_f();

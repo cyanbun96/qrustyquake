@@ -169,6 +169,7 @@ static s32 posenum;
 static model_t* loadmodel;
 static c8 loadname[32]; // for hunk tags
 static u8 *mod_base;
+static u8 *mod_end; // one past the last byte of the file being loaded
 static void Mod_LoadSpriteModel(model_t *mod, void *buffer);
 static void Mod_LoadBrushModel(model_t *mod, void *buffer);
 static void Mod_LoadAliasModel(model_t *mod, void *buffer);
@@ -345,6 +346,8 @@ static model_t *Mod_LoadModel(model_t *mod, bool crash)
 	}
 	COM_FileBase(mod->name,loadname,sizeof(loadname));//allocate a new model
 	loadmodel = mod;
+	mod_base = buf;
+	mod_end = buf + com_filesize;
 	mod->needload = 0; // fill it in, call the apropriate loader
 	s32 mod_type = (buf[0] | (buf[1]<<8) | (buf[2]<<16) | (buf[3]<<24));
 	switch(mod_type){
@@ -2220,9 +2223,34 @@ visdone:
 	}
 }
 
+static SDL_NORETURN void Mod_BadFile()
+{
+	free(mod_base); // Host_Error won't return to Mod_LoadModel
+	Host_Error("%s is truncated or corrupt", loadmodel->name);
+}
+
+static void Mod_CheckFile(const void *p, s64 count, s64 size)
+{ // alias and sprite files are walked using counts they declare themselves
+	if(count < 0 || count * size > mod_end - (const u8 *)p) Mod_BadFile();
+}
+
 void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax,
 	aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame, s32 recursed){
+	// released models can end partway through their frames, e.g. Impel's
+	// null.mdl has no data for its only one, so missing bytes read as zero
+	static u8 pad[sizeof(daliasframe_t)+MAXALIASVERTS*sizeof(trivertx_t)];
+	s64 need = sizeof(daliasframe_t) + numv * sizeof(trivertx_t);
+	s64 have = mod_end - (u8 *)pin;
+	void *next = have < need ? (void *)mod_end : (u8 *)pin + need;
+	if(have < need){
+		have = q_max(have, 0);
+		Con_DPrintf("%s is missing %d bytes of frame data\n",
+				loadmodel->name, (s32)(need - have));
+		memset(pad, 0, need);
+		memcpy(pad, pin, have);
+		pin = pad;
+	}
 	daliasframe_t *pdaliasframe = (daliasframe_t *) pin;
 	SDL_strlcpy(name, pdaliasframe->name, 16);
 	if(!recursed){
@@ -2247,8 +2275,7 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 		for(s32 k = 0; k < 3; k++)
 			pframe[j].v[k] = pinframe[j].v[k];
 	}
-	pinframe += numv;
-	return(void *)pinframe;
+	return next;
 }
 
 void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
@@ -2256,7 +2283,10 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 		aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame)
 {
 	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
+	Mod_CheckFile(pingroup, 1, sizeof(*pingroup));
 	s32 numframes = (s32)(pingroup->numframes);
+	if(numframes < 1 || numframes > MAXALIASFRAMES) Mod_BadFile();
+	Mod_CheckFile(pingroup + 1, numframes, sizeof(daliasinterval_t));
 	frame->firstpose = posenum;
 	maliasgroup_t *paliasgroup = Hunk_AllocName(sizeof(maliasgroup_t) +
 		(numframes - 1) * sizeof(paliasgroup->frames[0]), loadname);
@@ -2347,6 +2377,7 @@ void *Mod_LoadAliasSkin(void *pin, s32 *pskinindex, s32 skinsize,
 {
 	// one padding row on each side, copied from the edge rows, absorbs the
 	// rasterizer stepping a texel past the skin (it doesn't clamp s/t)
+	Mod_CheckFile(pin, skinsize, 1);
 	s32 w = pheader->skinwidth;
 	u8 *pskin = (u8 *)Hunk_AllocName(skinsize + 2 * w, loadname) + w;
 	u8 *pinskin = (u8 *)pin;
@@ -2362,7 +2393,11 @@ void *Mod_LoadAliasSkinGroup(void *pin, s32 *pskinindex, s32 skinsize,
 		aliashdr_t *pheader)
 {
 	daliasskingroup_t *pinskingroup = (daliasskingroup_t *) pin;
+	Mod_CheckFile(pinskingroup, 1, sizeof(*pinskingroup));
 	s32 numskins = (s32)(pinskingroup->numskins);
+	if(numskins < 1) Mod_BadFile();
+	Mod_CheckFile(pinskingroup + 1, numskins,
+			sizeof(daliasskininterval_t));
 	maliasskingroup_t *paliasskingroup =
 		Hunk_AllocName(sizeof(maliasskingroup_t) + (numskins - 1) *
 				sizeof(paliasskingroup->skindescs[0]),loadname);
@@ -2396,52 +2431,52 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	maliasskindesc_t *pskindesc;
 	s32 start = Hunk_LowMark();
 	mdl_t *pinmodel = buffer;
-	mod_base = (u8 *)buffer; //johnfitz
+	Mod_CheckFile(pinmodel, 1, sizeof(*pinmodel));
 	s32 version = (s32)(pinmodel->version);
 	if(version != ALIAS_VERSION) Host_Error(
 	     "Mod_LoadAliasModel: %s has wrong version number(%d should be %d)",
 				mod->name, version, ALIAS_VERSION);
+	// size and pmodel below are built from these, so check them first
+	s32 numframes = (s32)(pinmodel->numframes);
+	s32 numverts = (s32)(pinmodel->numverts);
+	s32 numtris = (s32)(pinmodel->numtris);
+	s32 numskins = (s32)(pinmodel->numskins);
+	if(numverts <= 0) Host_Error(
+	    "Mod_LoadAliasModel: model %s has no vertices", mod->name);
+	if(numverts > MAXALIASVERTS) Host_Error(
+	    "Mod_LoadAliasModel: %s has too many vertices(%d, max = %d)",
+	    mod->name, numverts, MAXALIASVERTS);
+	if(numtris <= 0) Host_Error(
+	    "Mod_LoadAliasModel: model %s has no triangles", mod->name);
+	if(numtris > MAXALIASTRIS) Host_Error(
+	    "Mod_LoadAliasModel: %s has too many triangles(%d, max = %d)",
+	    mod->name, numtris, MAXALIASTRIS);
+	if(numframes < 1 || numframes > MAXALIASFRAMES) Host_Error(
+	    "Mod_LoadAliasModel: Invalid # of frames: %d", numframes);
+	if(numskins < 1) Host_Error(
+	    "Mod_LoadAliasModel: Invalid # of skins: %d", numskins);
+	if(pinmodel->skinwidth < 1 || pinmodel->skinheight < 1) Mod_BadFile();
+	Mod_CheckFile(pinmodel + 1, pinmodel->skinwidth, pinmodel->skinheight);
 	// allocate space for a working header, plus all the data except the
 	// frames, skin and group info
-	s32 size = sizeof(aliashdr_t) +
-		((s32)(pinmodel->numframes)-1) * sizeof(pheader->frames[0])
-		+ sizeof(mdl_t) + (s32)(pinmodel->numverts)
-		* sizeof(stvert_t)
-		+ (s32)(pinmodel->numtris) * sizeof(mtriangle_t) ;
+	s32 size = sizeof(aliashdr_t) + sizeof(mdl_t)
+		+ (numframes - 1) * sizeof(pheader->frames[0])
+		+ numverts * sizeof(stvert_t) + numtris * sizeof(mtriangle_t);
 	pheader = (aliashdr_t *)Hunk_AllocName(size, loadname);
-	mdl_t *pmodel = (mdl_t*)((u8*)&pheader[1]+((s32)(
-			pinmodel->numframes)-1)*sizeof(pheader->frames[0]));
+	mdl_t *pmodel = (mdl_t*)((u8*)&pheader[1]
+			+ (numframes-1)*sizeof(pheader->frames[0]));
 	mod->flags = (s32)(pinmodel->flags);
 	// endian-adjust and copy the data, starting with the alias model header
 	pmodel->boundingradius = (f32)(pinmodel->boundingradius);
-	pmodel->numskins = (s32)(pinmodel->numskins);
+	pmodel->numskins = numskins;
 	pmodel->skinwidth = pheader->skinwidth =(s32)(pinmodel->skinwidth);
 	pmodel->skinheight=pheader->skinheight=(s32)(pinmodel->skinheight);
 	if(pheader->skinheight > MAX_LBM_HEIGHT) Con_DPrintf(
 		"Mod_LoadAliasModel: model %s has a skin taller than %d",
 			mod->name, MAX_LBM_HEIGHT);
-	pmodel->numverts = pheader->numverts = (s32)(pinmodel->numverts);
-	if(pheader->numverts <= 0) Host_Error(
-	    "Mod_LoadAliasModel: model %s has no vertices", mod->name);
-	if(pheader->numverts > MAXALIASVERTS) Host_Error(
-	    "Mod_LoadAliasModel: model %s has too many vertices(%d, max = %d)",
-	    mod->name, pheader->numverts, MAXALIASVERTS);
-	if(pheader->numtris > MAXALIASTRIS) Host_Error(
-	    "Mod_LoadAliasModel: model %s has too many triangles(%d, max = %d)",
-	    mod->name, pheader->numtris, MAXALIASTRIS);
-	if(pmodel->numverts > MAXALIASVERTS) Host_Error(
-	    "Mod_LoadAliasModel: model %s has too many vertexes(%d, max = %d)",
-	    mod->name, pmodel->numverts, MAXALIASVERTS);
-	    pmodel->numtris = pheader->numtris = (s32)(pinmodel->numtris);
-	if(pheader->numtris <= 0) Host_Error(
-		"Mod_LoadAliasModel: model %s has no triangles", mod->name);
-	if(pheader->numtris > MAXALIASTRIS) Host_Error(
-		"model %s has too many triangles(%d > %d)",
-		mod->name, pheader->numtris, MAXALIASTRIS);
-	pmodel->numframes = pheader->numframes =(s32)(pinmodel->numframes);
-	s32 numframes = pheader->numframes;
-	if(numframes < 1)
-	    Host_Error("Mod_LoadAliasModel: Invalid # of frames: %d",numframes);
+	pmodel->numverts = pheader->numverts = numverts;
+	pmodel->numtris = pheader->numtris = numtris;
+	pmodel->numframes = pheader->numframes = numframes;
 	pmodel->size = (f32)(pinmodel->size) * ALIAS_BASE_SIZE_RATIO;
 	mod->synctype = (synctype_t)(s32)(pinmodel->synctype);
 	mod->numframes = pheader->numframes;
@@ -2453,18 +2488,17 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 		pmodel->eyeposition[i] = pheader->eyeposition[i] =
 			(f32)(pinmodel->eyeposition[i]);
 	}
-	s32 numskins = pmodel->numskins;
 	if(pmodel->skinwidth & 0x03)
 	    Con_DPrintf("Mod_LoadAliasModel: skinwidth not multiple of 4\n");
 	pheader->model = (u8 *)pmodel - (u8 *)pheader;
 	s32 skinsize = pmodel->skinheight * pmodel->skinwidth; // load the skins
-	if(numskins < 1)
-	     Host_Error("Mod_LoadAliasModel: Invalid # of skins: %d", numskins);
 	pskintype = (daliasskintype_t *)&pinmodel[1];
+	Mod_CheckFile(pskintype, numskins, sizeof(*pskintype) + skinsize);
 	pskindesc = Hunk_AllocName(numskins*sizeof(maliasskindesc_t), loadname);
 	pheader->skindesc = (u8 *)pskindesc - (u8 *)pheader;
 	for(s32 i = 0; i < numskins; i++){
 		aliasskintype_t skintype;
+		Mod_CheckFile(pskintype, 1, sizeof(*pskintype));
 		skintype = (s32)(pskintype->type);
 		pskindesc[i].type = skintype;
 		if(skintype == ALIAS_SKIN_SINGLE){
@@ -2477,6 +2511,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	}
 	pstverts = (stvert_t *)&pmodel[1]; // set base s and t vertices
 	pinstverts = (stvert_t *)pskintype;
+	Mod_CheckFile(pinstverts, numverts, sizeof(*pinstverts));
 	pheader->stverts = (u8 *)pstverts - (u8 *)pheader;
 	s32 stclamped = 0;
 	for(s32 i = 0; i < pheader->numverts; i++){
@@ -2494,17 +2529,23 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 			"outside its skin\n", mod->name);
 	ptri = (mtriangle_t *)&pstverts[pmodel->numverts];//set up the triangles
 	pintriangles = (dtriangle_t *)&pinstverts[pmodel->numverts];
+	Mod_CheckFile(pintriangles, numtris, sizeof(*pintriangles));
 	pheader->triangles = (u8 *)ptri - (u8 *)pheader;
 	for(s32 i = 0; i<pheader->numtris ; i++){
 		ptri[i].facesfront = (s32)(pintriangles[i].facesfront);
-		for(s32 j = 0; j < 3; j++)
-		  ptri[i].vertindex[j]=(s32)(pintriangles[i].vertindex[j]);
+		for(s32 j = 0; j < 3; j++){
+			s32 v = (s32)(pintriangles[i].vertindex[j]);
+			// the renderer indexes its vertex arrays with these
+			if(v < 0 || v >= numverts) Mod_BadFile();
+			ptri[i].vertindex[j] = v;
+		}
 	}
 	posenum = 0; // load the frames
 	pframetype = (daliasframetype_t *)&pintriangles[pmodel->numtris];
 	for(s32 i = 0; i < numframes; i++){
-		aliasframetype_t frametype;
-		frametype = (aliasframetype_t)(s32)(pframetype->type);
+		aliasframetype_t frametype = ALIAS_SINGLE; // if it's missing
+		if(mod_end - (u8 *)pframetype >= (s64)sizeof(*pframetype))
+			frametype = (aliasframetype_t)(s32)(pframetype->type);
 		if(frametype == ALIAS_SINGLE)
 			pframetype = (daliasframetype_t *) Mod_LoadAliasFrame(
 				pframetype + 1, &pheader->frames[i].frame,
@@ -2540,8 +2581,11 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 {
 	s32 width, height, size, origin[2];
 	dspriteframe_t *pinframe = (dspriteframe_t *) pin;
+	Mod_CheckFile(pinframe, 1, sizeof(*pinframe));
 	width = (s32)(pinframe->width);
 	height = (s32)(pinframe->height);
+	if(width < 0 || height < 0) Mod_BadFile();
+	Mod_CheckFile(pinframe + 1, width, height);
 	size = width * height;
 	mspriteframe_t *pspriteframe = Hunk_AllocName(sizeof(mspriteframe_t) +
 			size, loadname);
@@ -2562,7 +2606,10 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 void *Mod_LoadSpriteGroup(void *pin, mspriteframe_t **ppframe)
 {
 	dspritegroup_t *pingroup = (dspritegroup_t *) pin;
+	Mod_CheckFile(pingroup, 1, sizeof(*pingroup));
 	s32 numframes = (s32)(pingroup->numframes);
+	if(numframes < 1) Mod_BadFile();
+	Mod_CheckFile(pingroup + 1, numframes, sizeof(dspriteinterval_t));
 	mspritegroup_t *pspritegroup = Hunk_AllocName(sizeof(mspritegroup_t) +
 		(numframes - 1) * sizeof(pspritegroup->frames[0]), loadname);
 	pspritegroup->numframes = numframes;
@@ -2587,11 +2634,16 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 {
 	dspriteframetype_t *pframetype;
 	dsprite_t *pin = (dsprite_t *) buffer;
+	Mod_CheckFile(pin, 1, sizeof(*pin));
 	s32 version = (s32)(pin->version);
 	if(version != SPRITE_VERSION)
 		Sys_Error("%s has wrong version number " "(%i should be %i)",
 				mod->name, version, SPRITE_VERSION);
 	s32 numframes = (s32)(pin->numframes);
+	if(numframes < 1) Host_Error(
+		"Mod_LoadSpriteModel: Invalid # of frames: %d\n", numframes);
+	Mod_CheckFile(pin + 1, numframes,
+		sizeof(dspriteframetype_t) + sizeof(dspriteframe_t));
 	msprite_t *psprite;
 	s32 size = sizeof(msprite_t) + (numframes - 1)*sizeof(psprite->frames);
 	psprite = Hunk_AllocName(size, loadname);
@@ -2607,14 +2659,12 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 	mod->mins[2] = -psprite->maxheight / 2;
 	mod->maxs[2] = psprite->maxheight / 2;
 	// load the frames
-	if(numframes < 1)
-		Sys_Error("Mod_LoadSpriteModel: Invalid # of frames: %d\n",
-				numframes);
 	mod->numframes = numframes;
 	mod->flags = 0;
 	pframetype = (dspriteframetype_t *) (pin + 1);
 	for(s32 i = 0; i < numframes; i++){
 		spriteframetype_t frametype;
+		Mod_CheckFile(pframetype, 1, sizeof(*pframetype));
 		frametype = (s32)(pframetype->type);
 		psprite->frames[i].type = frametype;
 		if(frametype == SPR_SINGLE){
