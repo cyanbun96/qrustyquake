@@ -952,10 +952,11 @@ struct pr_extfuncs_s {                                             // pr_edict.c
 QCEXTFUNC(SV_ParseClientCommand, "void(string cmd)") \
 
 #define QCEXTFUNCS_CS \
-QCEXTFUNC(CSQC_Init,"void(f32 apilevel, string enginename, f32 engineversion)")\
+QCEXTFUNC(CSQC_Init, \
+	"void(float apilevel, string enginename, float engineversion)") \
 QCEXTFUNC(CSQC_Shutdown, "void()") \
-QCEXTFUNC(CSQC_DrawHud, "void(vector virtsize, f32 showscores)") \
-QCEXTFUNC(CSQC_DrawScores, "void(vector virtsize, f32 showscores)") \
+QCEXTFUNC(CSQC_DrawHud, "void(vector virtsize, float showscores)") \
+QCEXTFUNC(CSQC_DrawScores, "void(vector virtsize, float showscores)") \
 
 #define QCEXTFUNC(n,t) func_t n;
 	QCEXTFUNCS_SV

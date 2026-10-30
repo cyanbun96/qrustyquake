@@ -66,7 +66,7 @@ void S_Init()
 	Cvar_RegisterVariable(&nosound);
 	Cvar_RegisterVariable(&sfxvolume);
 	Cvar_RegisterVariable(&precache);
-	Cvar_RegisterVariable(&loadac8bit);
+	Cvar_RegisterVariable(&loadas8bit);
 	Cvar_RegisterVariable(&bgmvolume);
 	Cvar_RegisterVariable(&keepmusic);
 	Cvar_RegisterVariable(&ambient_level);
@@ -86,7 +86,7 @@ void S_Init()
 	s32 i = COM_CheckParm("-sndspeed");
 	if(i && i < com_argc-1) Cvar_SetQuick(&sndspeed, com_argv[i + 1]);
 	if(host_parms.memsize < 0x800000){
-		Cvar_SetQuick(&loadac8bit, "1");
+		Cvar_SetQuick(&loadas8bit, "1");
 		Con_Printf("loading all sounds as 8bit\n");
 	}
 	Cvar_SetCallback(&sfxvolume, SND_Callback_sfxvolume);
@@ -113,7 +113,8 @@ void S_Shutdown()
 static sfx_t *S_FindName(const c8 *name)
 {
 	if(!name) Sys_Error("S_FindName: NULL");
-	if(strlen(name) >= MAX_QPATH) Sys_Error("Sound name too s64: %s", name);
+	if(strlen(name) >= MAX_QPATH)
+		Sys_Error("Sound name too long: %s", name);
 	s32 i = 0;
 	for(; i < num_sfx; i++) // see if already loaded
 		if(!strcmp(known_sfx[i].name, name))

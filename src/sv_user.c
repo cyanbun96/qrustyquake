@@ -262,7 +262,8 @@ nextmsg:
 			case -1:
 				goto nextmsg; // end of message
 			default:
-		       Sys_Printf("SV_ReadClientMessage: unknown command c8\n");
+				Sys_Printf("SV_ReadClientMessage: "
+						"unknown command char\n");
 				return 0;
 			case clc_nop:
 				break;

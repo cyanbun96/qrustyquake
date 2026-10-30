@@ -27,7 +27,7 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 	sc->length = outcount;
 	if(sc->loopstart != -1) sc->loopstart = sc->loopstart / stepscale;
 	sc->speed = shm->speed;
-	if(loadac8bit.value) sc->width = 1;
+	if(loadas8bit.value) sc->width = 1;
 	else sc->width = inwidth;
 	sc->stereo = 0;
 	// resample / decimate to the current source rate
