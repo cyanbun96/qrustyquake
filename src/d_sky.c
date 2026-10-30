@@ -29,7 +29,7 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 	if(fog){
 		R_BuildColorMixLUT(0);
 		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*r_skyfog.value,
-			FOG_LUT_LEVELS);
+			FOG_LUT_LEVELS-1);
 	}
 	do{
 		u8 *pdest = (u8*)d_viewbuffer+(screenwidth*pspan->v)+pspan->u;
