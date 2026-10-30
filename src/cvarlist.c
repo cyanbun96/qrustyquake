@@ -207,6 +207,7 @@ cvar_t sensitivityyscale=                      {"sensitivityyscale", "1", 1,ZR};
 cvar_t serverprofile=                              {"serverprofile", "0", 0,ZR};
 cvar_t sfxvolume=                                       {"volume", "0.7", 1,ZR};
 cvar_t skill=                                              {"skill", "1", 0,ZR};
+cvar_t snd_allowpause=                            {"snd_allowpause", "0", 0,ZR};
 cvar_t snd_filterquality=                      {"snd_filterquality", "1", 0,ZR};
 cvar_t _snd_mixahead=                            {"_snd_mixahead", "0.1", 1,ZR};
 cvar_t snd_show=                                        {"snd_show", "0", 0,ZR};

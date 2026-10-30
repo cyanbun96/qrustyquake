@@ -75,6 +75,7 @@ void S_Init()
 	Cvar_RegisterVariable(&_snd_mixahead);
 	Cvar_RegisterVariable(&sndspeed);
 	Cvar_RegisterVariable(&snd_filterquality);
+	Cvar_RegisterVariable(&snd_allowpause);
 	if(safemode || COM_CheckParm("-nosound")) return;
 	Con_Printf("\nSound Initialization\n");
 	Cmd_AddCommand("play", S_Play);
@@ -413,7 +414,7 @@ static void S_Update_()
 	samps = shm->samples >> (shm->channels - 1);
 	endtime = q_min(endtime, (u32)(soundtime + samps));
 	// world sounds stop with the world, see Host_ServerFrame
-	S_PaintChannels(endtime, sv.active && (sv.paused
+	S_PaintChannels(endtime, sv.active && snd_allowpause.value && (sv.paused
 		|| (svs.maxclients == 1 && key_dest != key_game)));
 }
 
