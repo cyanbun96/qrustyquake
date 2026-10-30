@@ -429,7 +429,6 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	}
 	sv.paused = 1; // pause until all clients connect
 	sv.loadgame = 1;
-	refresh_palette = 10;
 	s32 i = 0;
 	for(; i < MAX_LIGHTSTYLES; i++){ // load the light styles
 		fscanf(f, "%s\n", str);

@@ -519,6 +519,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 	SDL_SetSurfaceColorKey(screensbar, 1, 255);
 	VID_SetPalette(host_basepal, screentop);
 	SDL_SetSurfaceColorKey(screentop, 1, 255);
+	refresh_palette++;
 	if(!custw || !custh){
 		if(modenum <= 2) VID_SetWindowed();
 		else VID_SetBorderless();

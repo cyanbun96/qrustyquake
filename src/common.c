@@ -1046,7 +1046,7 @@ void SetWorldPal(c8 *path, c8 *cmappath)
 	Con_DPrintf("Setting %s %s\n", ppath, cmpath);
 	memcpy(worldpal, worldpalbuf, 768);
 	SDL_strlcpy(worldpalname, path, MAX_OSPATH);
-	VID_SetPalette(worldpal, screen);
+	refresh_palette++;
 	memcpy(worldcmap, worldcmapbuf, 64*256);
 	SDL_strlcpy(worldcmapname, cmappath, MAX_OSPATH);
 	fog_lut_built = lit_lut_initialized = 0;
@@ -1067,8 +1067,7 @@ void SetUiPal(c8 *path)
 	Con_DPrintf("Setting %s\n", ppath);
 	memcpy(uipal, uipalbuf, 768);
 	SDL_strlcpy(uipalname, path, MAX_OSPATH);
-	VID_SetPalette(uipal, screenui);
-	VID_SetPalette(uipal, screensbar);
+	refresh_palette++;
 }
 
 static void COM_WorldPal_f()

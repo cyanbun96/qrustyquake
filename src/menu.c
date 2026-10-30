@@ -1849,7 +1849,6 @@ void M_Palette_Key(s32 k)
 		case 8: Cvar_SetValue("v_bluelevel",
 			CLAMP(0, v_bluelevel.value - 0.1, 2)); break;
 		}
-		refresh_palette++;
 		break;
 	case K_MWHEELUP:
 	case K_MOUSE1:
@@ -1888,7 +1887,6 @@ void M_Palette_Key(s32 k)
 			Cvar_Reset("v_greenlevel");
 			Cvar_Reset("v_bluelevel");
 		}
-		refresh_palette++;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");

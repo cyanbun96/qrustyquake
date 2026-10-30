@@ -1144,7 +1144,6 @@ typedef struct {
 	f32 item_gettime[32]; // cl.time of aquiring item, for blinking
 	f32 faceanimtime; // use anim frame if cl.time < this
 	cshift_t cshifts[NUM_CSHIFTS]; // color shifts for damage, powerups
-	cshift_t prev_cshifts[NUM_CSHIFTS];
 	vec3_t mviewangles[2];
 	vec3_t viewangles;
 	vec3_t mvelocity[2];

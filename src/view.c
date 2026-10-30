@@ -336,21 +336,25 @@ void V_ModifyPalette(u8 *basepal, u8 *newpal)
 	}
 }
 
+static void V_PaletteCallback(SDL_UNUSED cvar_t *cvar)
+{ refresh_palette++; }
+
 void V_UpdatePalette()
 {
 	V_CalcPowerupCshift();
 	f32 frametime = fabs(cl.time - cl.oldtime);
+	// not in cl: wiping it must still clear a tint that's on screen
+	static cshift_t prev[NUM_CSHIFTS];
 	bool new = 0;
 	for(s32 i = 0; i < NUM_CSHIFTS; i++){
-		if(cl.cshifts[i].percent != cl.prev_cshifts[i].percent){
+		if(cl.cshifts[i].percent != prev[i].percent){
 			new = 1;
-			cl.prev_cshifts[i].percent = cl.cshifts[i].percent;
+			prev[i].percent = cl.cshifts[i].percent;
 		}
 		for(s32 j = 0; j < 3; j++)
-			if(cl.cshifts[i].destcolor[j] !=
-					cl.prev_cshifts[i].destcolor[j]){
+			if(cl.cshifts[i].destcolor[j] != prev[i].destcolor[j]){
 				new = 1;
-				cl.prev_cshifts[i].destcolor[j] =
+				prev[i].destcolor[j] =
 					cl.cshifts[i].destcolor[j];
 			}
 	}
@@ -365,7 +369,7 @@ void V_UpdatePalette()
 	bool force = V_CheckGamma();
 	if(!new && !force && !refresh_palette)
 		return;
-	refresh_palette--;
+	if(refresh_palette) refresh_palette--;
 	u8 pal[768];
 	u8 *basepal = CURWORLDPAL;
 	u8 *newpal = pal;
@@ -654,6 +658,19 @@ void V_Init()
 	Cvar_RegisterVariable(&gl_cshiftpercent_damage);
 	Cvar_RegisterVariable(&gl_cshiftpercent_bonus);
 	Cvar_RegisterVariable(&gl_cshiftpercent_powerup);
+	Cvar_SetCallback(&v_redlevel, V_PaletteCallback);
+	Cvar_SetCallback(&v_greenlevel, V_PaletteCallback);
+	Cvar_SetCallback(&v_bluelevel, V_PaletteCallback);
+	Cvar_SetCallback(&v_saturation, V_PaletteCallback);
+	Cvar_SetCallback(&v_vibrance, V_PaletteCallback);
+	Cvar_SetCallback(&v_contrast, V_PaletteCallback);
+	Cvar_SetCallback(&v_hue, V_PaletteCallback);
+	Cvar_SetCallback(&v_brightness, V_PaletteCallback);
+	Cvar_SetCallback(&gl_cshiftpercent, V_PaletteCallback);
+	Cvar_SetCallback(&gl_cshiftpercent_contents, V_PaletteCallback);
+	Cvar_SetCallback(&gl_cshiftpercent_damage, V_PaletteCallback);
+	Cvar_SetCallback(&gl_cshiftpercent_bonus, V_PaletteCallback);
+	Cvar_SetCallback(&gl_cshiftpercent_powerup, V_PaletteCallback);
 	V_AllocLedges();
 	V_AllocLsurfs();
 }
