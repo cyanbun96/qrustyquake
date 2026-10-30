@@ -1093,7 +1093,7 @@ typedef struct {
 } scoreboard_t;
 typedef struct {
 	s32 destcolor[3];
-	s32 percent; // 0-256
+	f32 percent; // 0-256, fractional so slow fades survive high framerates
 } cshift_t;
 typedef struct {
 	vec3_t origin;
