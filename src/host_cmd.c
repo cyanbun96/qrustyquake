@@ -397,7 +397,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		Host_InvalidateSave(orgname);
 		return;
 	}
-	s32 version;
+	s32 version = 0;
 	fscanf(f, "%i\n", &version);
 	if(version != SAVEGAME_VERSION){
 		fclose(f);
@@ -406,19 +406,25 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		return;
 	}
 	c8 str[32768];
-	fscanf(f, "%s\n", str);
+	bool ok = fscanf(f, "%32767s\n", str) == 1;
 	f32 spawn_parms[NUM_SPAWN_PARMS];
-	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++)
-		fscanf(f, "%f\n", &spawn_parms[i]);
+	for(s32 i = 0; ok && i < NUM_SPAWN_PARMS; i++)
+		ok = fscanf(f, "%f\n", &spawn_parms[i]) == 1;
 // this silliness is so we can load 1.06 save files, which have f32 skill values
 	f32 tfloat;
-	fscanf(f, "%f\n", &tfloat);
+	ok = ok && fscanf(f, "%f\n", &tfloat) == 1;
+	c8 mapname[MAX_QPATH];
+	ok = ok && fscanf(f, "%63s\n", mapname) == 1;
+	f32 time;
+	ok = ok && fscanf(f, "%f\n", &time) == 1;
+	if(!ok){ // a name too long for mapname leaves the rest where time goes
+		fclose(f);
+		Con_Printf("ERROR: %s has a bad header.\n", name);
+		Host_InvalidateSave(orgname);
+		return;
+	}
 	current_skill = (s32)(tfloat + 0.1);
 	Cvar_SetValue("skill", (f32)current_skill);
-	c8 mapname[MAX_QPATH];
-	fscanf(f, "%s\n", mapname);
-	f32 time;
-	fscanf(f, "%f\n", &time);
 	CL_Disconnect_f();
 	PR_SwitchQCVM(&sv.qcvm);
 	SV_SpawnServer(mapname);
@@ -431,7 +437,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	sv.loadgame = 1;
 	s32 i = 0;
 	for(; i < MAX_LIGHTSTYLES; i++){ // load the light styles
-		fscanf(f, "%s\n", str);
+		fscanf(f, "%32767s\n", str);
 		c8 *dst = Hunk_Alloc(strlen(str) + 1);
 		strcpy(dst, str);
 		sv.lightstyles[i] = dst;
