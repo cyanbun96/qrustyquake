@@ -397,11 +397,11 @@ static void Test_Poll(void *unused)
 			Sys_Error
 			    ("Unexpected response to Player Info request\n");
 		MSG_ReadByte();	/* playerNumber */
-		strcpy(name, MSG_ReadString());
+		SDL_strlcpy(name, MSG_ReadString(), sizeof(name));
 		s32 colors = MSG_ReadLong();
 		s32 frags = MSG_ReadLong();
 		s32 connectTime = MSG_ReadLong();
-		strcpy(address, MSG_ReadString());
+		SDL_strlcpy(address, MSG_ReadString(), sizeof(address));
 		Con_Printf("%s\n  frags:%3i  colors:%d %d  time:%d\n  %s\n",
 			   name, frags, colors >> 4, colors & 0x0f,
 			   connectTime / 60, address);
@@ -495,10 +495,10 @@ static void Test2_Poll(SDL_UNUSED void *unused)
 		goto Error;
 	if(MSG_ReadByte() != CCREP_RULE_INFO)
 		goto Error;
-	strcpy(name, MSG_ReadString());
+	SDL_strlcpy(name, MSG_ReadString(), sizeof(name));
 	if(name[0] == 0)
 		goto Done;
-	strcpy(value, MSG_ReadString());
+	SDL_strlcpy(value, MSG_ReadString(), sizeof(value));
 	Con_Printf("%-16.16s  %-16.16s\n", name, value);
 	SZ_Clear(&net_message);
 	// save space for the header, filled in later
@@ -899,8 +899,10 @@ static void _Datagram_SearchForHosts(bool xmit)
 			continue;
 		// add it
 		hostCacheCount++;
-		strcpy(hostcache[n].name, MSG_ReadString());
-		strcpy(hostcache[n].map, MSG_ReadString());
+		SDL_strlcpy(hostcache[n].name, MSG_ReadString(),
+				sizeof(hostcache[n].name));
+		SDL_strlcpy(hostcache[n].map, MSG_ReadString(),
+				sizeof(hostcache[n].map));
 		hostcache[n].users = MSG_ReadByte();
 		hostcache[n].maxusers = MSG_ReadByte();
 		if(MSG_ReadByte() != NET_PROTOCOL_VERSION){
@@ -1045,7 +1047,7 @@ static qsocket_t *_Datagram_Connect(const c8 *host)
 	if(ret == CCREP_REJECT){
 		reason = MSG_ReadString();
 		Con_Printf("%s\n", reason);
-		strncpy(m_return_reason, reason, sizeof(m_return_reason));
+		SDL_strlcpy(m_return_reason, reason, sizeof(m_return_reason));
 		goto ErrorReturn;
 	}
 	if(ret == CCREP_ACCEPT){

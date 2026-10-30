@@ -158,7 +158,7 @@ static s32 PartialIPAddress(const c8 *in, struct qsockaddr *hostaddr)
 	c8 buff[256];
 	buff[0] = '.';
 	c8 *b = buff;
-	strcpy(buff + 1, in);
+	SDL_strlcpy(buff + 1, in, sizeof(buff) - 1);
 	if(buff[1] == '.')
 		b++;
 	s32 addr = 0;

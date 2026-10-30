@@ -31,8 +31,9 @@ void Loop_SearchForHosts(bool xmit)
 	if(strcmp(hostname.string, "UNNAMED") == 0)
 		strcpy(hostcache[0].name, "local");
 	else
-		strcpy(hostcache[0].name, hostname.string);
-	strcpy(hostcache[0].map, sv.name);
+		SDL_strlcpy(hostcache[0].name, hostname.string,
+				sizeof(hostcache[0].name));
+	SDL_strlcpy(hostcache[0].map, sv.name, sizeof(hostcache[0].map));
 	hostcache[0].users = net_activeconnections;
 	hostcache[0].maxusers = svs.maxclients;
 	hostcache[0].driver = net_driverlevel;
