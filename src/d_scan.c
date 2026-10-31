@@ -670,7 +670,7 @@ Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 	do{
 		spanwalk_t w;
 		u8 *pdest = D_SpanDest(pspan);
-		D_SpanWalkBegin(&w, pspan, 3); // exact coords every 8px
+		D_SpanWalkBegin(&w, pspan, 4); // exact coords every 16px
 		if(depthtested)
 			D_SpanDepthBegin(pspan, w.zi);
 		do{
