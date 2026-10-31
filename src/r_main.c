@@ -1,5 +1,10 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
+#include <fenv.h>
+
+#ifndef FE_TOWARDZERO // not every target can change it
+#define FE_TOWARDZERO FE_TONEAREST
+#endif
 
 typedef struct { s32 x0, y0, x1, y1; } debugline_t;
 typedef struct { vec3_t origin; } debugpoint_t;
@@ -998,6 +1003,7 @@ void R_RenderView()
 	if(r_speeds.value) d_times[0] = Sys_DoubleTime();
 	R_SetupFrame();
 	R_MarkLeaves(); // done here so we know if we're in water
+	fesetround(FE_TOWARDZERO); // Sys_LowFPPrecision set this in WinQuake
 	R_EdgeDrawing();
 	if(r_speeds.value) d_times[5] = Sys_DoubleTime();
 	R_DrawEntitiesOnList();
@@ -1032,4 +1038,5 @@ void R_RenderView()
 	if(r_ent_occ_active && r_speeds.value)
 		Con_Printf("Entities occluded: %d (drawn %d)\n",
 				r_amodels_occluded, r_amodels_drawn);
+	fesetround(FE_TONEAREST);
 }

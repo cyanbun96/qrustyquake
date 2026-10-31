@@ -14,6 +14,7 @@ typedef struct {
 } turbchunk_t;
 typedef struct {
 	s32 shift;
+	s32 fine; // extra fraction bits in the steps, see D_DrawSpansImpl
 	s32 count;
 	s32 len;
 	f32 sdivz, tdivz, zi;
@@ -25,8 +26,8 @@ typedef struct {
 typedef struct {
 	const u8 *pbase;
 	s32 width;
-	s32 s, t;
-	s32 sstep, tstep;
+	u32 s, t;
+	u32 sstep, tstep;
 	s32 s_max, t_max;
 	s32 x, y;
 	s32 count;
@@ -208,11 +209,13 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 static inline s32 D_ClampCoord(s32 v, s32 lo, s32 hi)
 { if(v > hi) return hi; if(v < lo) return lo; return v; }
 
-Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift)
+Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
+		s32 fine)
 {
 	f32 du = (f32)pspan->u;
 	f32 dv = (f32)pspan->v;
 	w->shift = shift;
+	w->fine = fine;
 	w->count = pspan->count;
 	w->len = 0;
 	w->sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
@@ -251,8 +254,8 @@ Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
 		w->tdivz += w->tdivz_chunk;
 		w->zi += w->zi_chunk;
 		D_SpanWalkEvalEnd(w);
-		w->sstep = (w->snext - w->s) >> w->shift;
-		w->tstep = (w->tnext - w->t) >> w->shift;
+		w->sstep = (w->snext - w->s) >> (w->shift - w->fine);
+		w->tstep = (w->tnext - w->t) >> (w->shift - w->fine);
 	}else{
 		f32 lastpixel = (f32)(w->len - 1);
 		w->sdivz += d_sdivzstepu * lastpixel;
@@ -260,8 +263,9 @@ Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
 		w->zi += d_zistepu * lastpixel;
 		D_SpanWalkEvalEnd(w);
 		if(w->len > 1){
-			w->sstep = (w->snext - w->s) / (w->len - 1);
-			w->tstep = (w->tnext - w->t) / (w->len - 1);
+			s32 n = w->len - 1;
+			w->sstep = (u32)((w->snext - w->s) / n) << w->fine;
+			w->tstep = (u32)((w->tnext - w->t) / n) << w->fine;
 		}
 	}
 }
@@ -476,7 +480,7 @@ static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 	spanwalk_t w;
 	turbchunk_t c;
 	c.pdest = (u8*)((u8*)d_viewbuffer + (screenwidth*pspan->v) + pspan->u);
-	D_SpanWalkBegin(&w, pspan, 4); // exact coords every 16px
+	D_SpanWalkBegin(&w, pspan, 4, 0); // exact coords every 16px
 	c.zp = D_SpanDepthPtr(pspan);
 	c.iz = D_SpanDepthStart(w.zi);
 	do{
@@ -502,8 +506,8 @@ Q_SIL void D_CursorBegin(texcursor_t *c, const spanwalk_t *w,
 {
 	c->pbase = (u8 *)cacheblock;
 	c->width = cachewidth;
-	c->s = w->s;
-	c->t = w->t;
+	c->s = (u32)w->s << w->fine;
+	c->t = (u32)w->t << w->fine;
 	c->sstep = w->sstep;
 	c->tstep = w->tstep;
 	c->count = w->len;
@@ -541,7 +545,8 @@ Q_SIL void D_CursorAdvance(texcursor_t *c)
 Q_SIL u8 *D_SpanChunkNormal(texcursor_t *c, u8 *pdest, s32 dithered)
 {
 	do{
-		*pdest++ = D_CursorTexel(c, dithered);
+		*pdest++ = dithered ? D_CursorTexel(c, 1) :
+			c->pbase[(c->s >> 20) + (c->t >> 20) * c->width];
 		D_CursorAdvance(c);
 	}while(--c->count > 0);
 	return pdest;
@@ -664,13 +669,16 @@ static u8 *D_SpanDest(const espan_t *pspan)
 Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 {
 	s32 depthtested = (type == SPAN_TRANS || type == SPAN_CUTOUT);
+	// d_draw16.s keeps the bits that shifting a 16 pixel run's step drops.
+	// 12.20 has room for them, lightmapped surfaces end at 2000 texels
+	s32 fine = type == SPAN_NORMAL && !dithered ? 4 : 0;
 	D_SpanDepthSetup();
 	if(type == SPAN_SKYBOX)
 		D_SkyFogSetup();
 	do{
 		spanwalk_t w;
 		u8 *pdest = D_SpanDest(pspan);
-		D_SpanWalkBegin(&w, pspan, 4); // exact coords every 16px
+		D_SpanWalkBegin(&w, pspan, 4, fine); // exact coords every 16px
 		if(depthtested)
 			D_SpanDepthBegin(pspan, w.zi);
 		do{

@@ -46,9 +46,11 @@ void R_Alias_clip_z(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 		out->flags |= ALIAS_BOTTOM_CLIP;
 }
 
+// r_aclipa.s starts from the upper vertex. The results depend on the direction
+// because of the chop rounding that R_RenderView sets
 void R_Alias_clip_left(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 {
-	if(pfv0->v[1] >= pfv1->v[1]){
+	if(pfv0->v[1] < pfv1->v[1]){
 		f32 scale = (f32)(r_refdef.aliasvrect.x - pfv0->v[0]) /
 		    (pfv1->v[0] - pfv0->v[0]);
 		for(s32 i = 0; i < 6; i++)
@@ -63,7 +65,7 @@ void R_Alias_clip_left(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 
 void R_Alias_clip_right(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 {
-	if(pfv0->v[1] >= pfv1->v[1]){
+	if(pfv0->v[1] < pfv1->v[1]){
 		f32 scale = (f32)(r_refdef.aliasvrectright - pfv0->v[0]) /
 			(pfv1->v[0] - pfv0->v[0]);
 		for(s32 i = 0; i < 6; i++)
@@ -78,7 +80,7 @@ void R_Alias_clip_right(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 
 void R_Alias_clip_top(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 {
-	if(pfv0->v[1] >= pfv1->v[1]){
+	if(pfv0->v[1] < pfv1->v[1]){
 		f32 scale = (f32)(r_refdef.aliasvrect.y - pfv0->v[1]) /
 			(pfv1->v[1] - pfv0->v[1]);
 		for(s32 i = 0; i < 6; i++)
@@ -93,7 +95,7 @@ void R_Alias_clip_top(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 
 void R_Alias_clip_bottom(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 {
-	if(pfv0->v[1] >= pfv1->v[1]){
+	if(pfv0->v[1] < pfv1->v[1]){
 		f32 scale = (f32)(r_refdef.aliasvrectbottom - pfv0->v[1]) /
 			(pfv1->v[1] - pfv0->v[1]);
 		for(s32 i = 0; i < 6; i++)
