@@ -139,48 +139,38 @@ loc0:
 			}
 			if(dist < *maxdist){
 				// LordHavoc: enhanced to interpolate lighting
+				// WinQuake takes the nearest sample
+				s32 lit = lit_loaded && r_rgblighting.value;
+				s32 dsfrac = lit ? ds&15 : 0, c[4][3] = {{0}};
+				s32 dtfrac = lit ? dt&15 : 0, line3, maps;
 				u8 *lightmap;
-				s32 maps, line3, dsfrac = ds&15, dtfrac = dt&15,
-					r00 = 0, g00 = 0, b00 = 0, r01 = 0,
-					g01 = 0, b01 = 0, r10 = 0, g10 = 0,
-					b10 = 0, r11 = 0, g11 = 0, b11 = 0;
-				f32 scale;
 				line3 = ((surf->extents[0]>>4)+1)*3;
 				// LordHavoc: *3 for color
 				lightmap = surf->samples + ((dt>>4) *
 					((surf->extents[0]>>4)+1) + (ds>>4))*3;
 				for(maps = 0;maps < MAXLIGHTMAPS &&
 						surf->styles[maps]!=255;maps++){
-					scale = (f32)d_lightstylevalue[
-						surf->styles[maps]] * 1.0/256.0;
-					r00 += (f32)lightmap[0] * scale;
-					g00 += (f32)lightmap[1] * scale;
-					b00 += (f32)lightmap[2] * scale;
-					r01 += (f32)lightmap[3] * scale;
-					g01 += (f32)lightmap[4] * scale;
-					b01 += (f32)lightmap[5] * scale;
-					r10 += (f32)lightmap[line3] * scale;
-					g10 += (f32)lightmap[line3+1] * scale;
-					b10 += (f32)lightmap[line3+2] * scale;
-					r11 += (f32)lightmap[line3+3] * scale;
-					g11 += (f32)lightmap[line3+4] * scale;
-					b11 += (f32)lightmap[line3+5] * scale;
+					s32 scale = d_lightstylevalue[
+						surf->styles[maps]];
+					for(s32 j = 0; j < 3; j++){
+						u8 *r = lightmap + j;
+						c[0][j] += r[0] * scale;
+						c[1][j] += r[3] * scale;
+						c[2][j] += r[line3] * scale;
+						c[3][j] += r[line3+3] * scale;
+					}
 					// LordHavoc: *3 for colored lighting
 					lightmap += ((surf->extents[0]>>4)+1) *
 						((surf->extents[1]>>4)+1)*3;
 				}
-				color[0]+=
-				(f32)((s32)((((((((r11-r10)*dsfrac)>>4)+r10)-
-				    ((((r01-r00)*dsfrac)>>4)+r00))*dtfrac)>>4)+
-					((((r01-r00)*dsfrac)>>4)+r00)));
-				color[1]+=
-				(f32)((s32)((((((((g11-g10)*dsfrac)>>4)+g10)-
-				    ((((g01-g00)*dsfrac)>>4)+g00))*dtfrac)>>4)+
-					((((g01-g00)*dsfrac)>>4)+g00)));
-				color[2]+=
-				(f32)((s32)((((((((b11-b10)*dsfrac)>>4)+b10)-
-				    ((((b01-b00)*dsfrac)>>4)+b00))*dtfrac)>>4)+
-					((((b01-b00)*dsfrac)>>4)+b00)));
+				for(s32 j = 0; j < 3; j++){
+					s32 r00 = c[0][j]>>8, r01 = c[1][j]>>8;
+					s32 r10 = c[2][j]>>8, r11 = c[3][j]>>8;
+					s32 top = (((r01-r00)*dsfrac)>>4)+r00;
+					s32 bot = (((r11-r10)*dsfrac)>>4)+r10;
+					color[j] += (f32)
+						((((bot-top)*dtfrac)>>4)+top);
+				}
 			}
 			return 1; // success
 		}
