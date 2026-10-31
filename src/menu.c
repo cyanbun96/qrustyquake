@@ -30,6 +30,7 @@ static s32 bind_grab;
 static s32 new_cursor;
 static s32 csqc_cursor;
 static s32 palette_cursor;
+static s32 sound_cursor;
 static s32 mods_cursor;
 static s32 mods_scroll;
 static s32 mods_total;
@@ -216,7 +217,7 @@ c8 *quitMessage[] = {
 enum { m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup,
 m_net, m_options, m_video, m_keys, m_new, m_gamepad, m_display, m_graphics, 
 m_help, m_quit, m_lanconfig, m_gameoptions, m_search, m_slist, m_maps, m_mods,
-m_csqc, m_palette
+m_csqc, m_palette, m_sound
 } m_state;
 
 void M_Menu_Main_f();
@@ -1903,6 +1904,69 @@ void M_Palette_Key(s32 k)
 	}
 }
 
+void M_Sound_Draw()
+{
+	c8 temp[32];
+	s32 xoffset = 0;
+	M_DrawCursor(192, 32+sound_cursor*8);
+	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
+	qpic_t *p = Draw_CachePic("gfx/p_option.lmp");
+	M_DrawTransPic((320 - p->width) / 2, 4, p);
+	M_Print(xoffset, 32, "          Pause Sounds");
+	M_DrawCheckbox(xoffset + 204, 32, snd_allowpause.value);
+	M_Print(xoffset, 40, "           Sample Rate");
+	sprintf(temp, "%d Hz", (s32)sndspeed.value);
+	M_Print(xoffset + 204, 40, temp);
+	M_Print(xoffset, 48, "            Keep Music");
+	M_DrawCheckbox(xoffset + 204, 48, keepmusic.value);
+	if(sound_cursor == 2){
+		M_DrawTextBox(56, 158, 27, 2);
+		M_Print(72, 166, " Prevents the music from");
+		M_Print(72, 174, "restarting on death/reload");
+	}
+}
+
+void M_Sound_Key(s32 k)
+{
+	switch(k){
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
+	case K_ESCAPE:
+		M_Menu_New_f();
+		break;
+	case K_MWHEELDOWN:
+	case K_MWHEELUP:
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
+	case K_LEFTARROW:
+	case K_RIGHTARROW:
+	case K_ENTER:
+		S_LocalSound("misc/menu3.wav");
+		switch(sound_cursor){
+		case 0: Cvar_SetValue("snd_allowpause", !snd_allowpause.value);
+			break;
+		case 1: Cvar_SetValue("sndspeed",
+			sndspeed.value == 11025 ? 44100 : 11025); break;
+		case 2: Cvar_SetValue("keepmusic", !keepmusic.value); break;
+		}
+		break;
+	case K_UPARROW:
+		S_LocalSound("misc/menu1.wav");
+		if(sound_cursor == 0) sound_cursor = 2;
+		else sound_cursor--;
+		break;
+	case K_DOWNARROW:
+		S_LocalSound("misc/menu1.wav");
+		if(sound_cursor == 2) sound_cursor = 0;
+		else sound_cursor++;
+		break;
+	default:
+		break;
+	}
+}
+
 void M_CSQC_Draw()
 {
 	c8 temp[32];
@@ -2300,6 +2364,13 @@ void M_Menu_Palette_f()
 {
 	key_dest = key_menu;
 	m_state = m_palette;
+	m_entersound = 1;
+}
+
+void M_Menu_Sound_f()
+{
+	key_dest = key_menu;
+	m_state = m_sound;
 	m_entersound = 1;
 }
 
@@ -3159,10 +3230,10 @@ void M_New_Draw()
 	M_Print(xoffset, 32, "             This Menu");
 	M_DrawCheckbox(xoffset + 204, 32, newoptions.value);
 	if(new_cursor == 0){
-		M_DrawTextBox(52, 158, 30, 2);
-		M_Print(64, 166, "  This menu can be restored");
-		M_Print(64, 174, "with the              command");
-		M_PrintWhite(64, 174, "         newoptions 1");
+		M_DrawTextBox(52, 166, 30, 2);
+		M_Print(64, 174, "  This menu can be restored");
+		M_Print(64, 182, "with the              command");
+		M_PrintWhite(64, 182, "         newoptions 1");
 	}
 	M_Print(xoffset, 40, "          Center Menus");
 	M_DrawCheckbox(xoffset + 204, 40, scr_centermenus.value);
@@ -3173,11 +3244,11 @@ void M_New_Draw()
 	else if(ui_mouse.value && ui_mouse_sound.value)
 		M_Print(xoffset + 204, 48, "Loud");
 	if(new_cursor == 2){
-		M_DrawTextBox(52, 158, 30, 2);
-		M_Print(64, 166, "     - Enter        - Escape");
-		M_PrintWhite(64, 166, " LMB            RMB");
-		M_Print(64, 174, "          - Change Values");
-		M_PrintWhite(64, 174, "    Wheel");
+		M_DrawTextBox(52, 166, 30, 2);
+		M_Print(64, 174, "     - Enter        - Escape");
+		M_PrintWhite(64, 174, " LMB            RMB");
+		M_Print(64, 182, "          - Change Values");
+		M_PrintWhite(64, 182, "    Wheel");
 	}
 	M_Print(xoffset, 56, "         Y Mouse Speed");
 	sprintf(temp, "x%0.1f\n", sensitivityyscale.value);
@@ -3208,6 +3279,7 @@ void M_New_Draw()
 	M_Print(xoffset + 204, 136, "Mods...");
 	M_Print(xoffset + 204, 144, "Custom HUD...");
 	M_Print(xoffset + 204, 152, "Palette...");
+	M_Print(xoffset + 204, 160, "Sound...");
 	M_DrawCursor(xoffset + 192, 32 + new_cursor * 8);
 }
 
@@ -3365,12 +3437,12 @@ void M_New_Key(s32 k)
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
-		if(new_cursor == 0) new_cursor = 15;
+		if(new_cursor == 0) new_cursor = 16;
 		else new_cursor--;
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if(new_cursor == 15) new_cursor = 0;
+		if(new_cursor == 16) new_cursor = 0;
 		else new_cursor++;
 		break;
 	case K_MWHEELUP:
@@ -3428,6 +3500,7 @@ void M_New_Key(s32 k)
 		else if(new_cursor == 13) M_Menu_Mods_f();
 		else if(new_cursor == 14) M_Menu_CSQC_f();
 		else if(new_cursor == 15) M_Menu_Palette_f();
+		else if(new_cursor == 16) M_Menu_Sound_f();
 		break;
 	}
 }
@@ -4290,6 +4363,7 @@ void M_Init()
 	Cmd_AddCommand("menu_mods", M_Menu_Mods_f);
 	Cmd_AddCommand("menu_csqc", M_Menu_CSQC_f);
 	Cmd_AddCommand("menu_palette", M_Menu_Palette_f);
+	Cmd_AddCommand("menu_sound", M_Menu_Sound_f);
 	Cmd_AddCommand("menu_display", M_Menu_Display_f);
 	Cmd_AddCommand("menu_graphics", M_Menu_Graphics_f);
 	Cmd_AddCommand("help", M_Menu_Help_f);
@@ -4325,6 +4399,7 @@ void M_Draw()
 		case m_mods: M_Mods_Draw(); break;
 		case m_csqc: M_CSQC_Draw(); break;
 		case m_palette: M_Palette_Draw(); break;
+		case m_sound: M_Sound_Draw(); break;
 		case m_graphics: M_Graphics_Draw(); break;
 		case m_video: M_Video_Draw(); break;
 		case m_help: M_Help_Draw(); break;
@@ -4361,6 +4436,7 @@ void M_Keydown(s32 key)
 		case m_mods: M_Mods_Key(key); return;
 		case m_csqc: M_CSQC_Key(key); return;
 		case m_palette: M_Palette_Key(key); return;
+		case m_sound: M_Sound_Key(key); return;
 		case m_graphics: M_Graphics_Key(key); return;
 		case m_help: M_Help_Key(key); return;
 		case m_quit: M_Quit_Key(key); return;
@@ -4514,7 +4590,7 @@ void M_Video_Mouse(s32 x, s32 y)
 
 void M_New_Mouse(s32 x, s32 y)
 {
-	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 16*8)return;
+	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 17*8)return;
 	M_SetMouseCursor(&new_cursor, (y - 32) / 8);
 }
 
@@ -4528,6 +4604,12 @@ void M_Palette_Mouse(s32 x, s32 y)
 {
 	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 10*8)return;
 	M_SetMouseCursor(&palette_cursor, (y - 32) / 8);
+}
+
+void M_Sound_Mouse(s32 x, s32 y)
+{
+	if(x < 72 || x >= 310 || y < 32 || y >= 32 + 3*8)return;
+	M_SetMouseCursor(&sound_cursor, (y - 32) / 8);
 }
 
 void M_Display_Mouse(s32 x, s32 y)
@@ -4635,6 +4717,7 @@ void M_MouseCursor(s32 x, s32 y)
 	case m_mods: M_Mods_Mouse(x, y); return;
 	case m_csqc: M_CSQC_Mouse(x, y); return;
 	case m_palette: M_Palette_Mouse(x, y); return;
+	case m_sound: M_Sound_Mouse(x, y); return;
 	case m_graphics: M_Graphics_Mouse(x, y); return;
 	case m_help: /* no cursor */ return;
 	case m_quit: /* no cursor */ return;
