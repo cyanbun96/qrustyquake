@@ -488,6 +488,30 @@ static bool Mod_MiptexClobbered(u8 *tail)
 		mt.offsets[3] == mt.offsets[2] + size / 16;
 }
 
+static bool Mod_MipsNeedRebuild(const texture_t *tx, const bool *clobbered)
+{ // r_rebuildmips 2: cutouts, and fullbrights that only exist in the mips.
+  // A texture with fullbrights of its own keeps its mips
+	const u8 *base = (const u8 *)tx + tx->offsets[0];
+	bool fullbright = 0;
+	for(u32 i = 0; i < tx->width * tx->height; i++){
+		if(base[i] == 0xFF)
+			return 1;
+		fullbright |= base[i] >= 0xE0;
+	}
+	if(fullbright)
+		return 0;
+	for(s32 j = 1; j < MIPLEVELS; j++){
+		if(clobbered[j]) // gets rebuilt regardless
+			continue;
+		const u8 *mip = (const u8 *)tx + tx->offsets[j];
+		u32 size = (tx->width >> j) * (tx->height >> j);
+		for(u32 i = 0; i < size; i++)
+			if(mip[i] >= 0xE0)
+				return 1;
+	}
+	return 0;
+}
+
 void Mod_LoadTextures(lump_t *l)
 {
 	texture_t *anims[10];
@@ -687,10 +711,9 @@ void Mod_LoadTextures(lump_t *l)
 				rebuild[j] = ofs + size > bad;
 			}
 		}
-		bool all = r_rebuildmips.value == 1;
-		if(r_rebuildmips.value == 2) // only cutouts and fullbrights
-			for(u32 j = 0; j < tx->width * tx->height && !all; ++j)
-				all = base[j] >= 0xE0;
+		bool all = r_rebuildmips.value == 1 ||
+			(r_rebuildmips.value == 2 &&
+			 Mod_MipsNeedRebuild(tx, rebuild));
 		for(s32 j = 1; j < MIPLEVELS; j++)
 			if(all || rebuild[j])
 				bilinear_u8(base, (u8 *)tx + tx->offsets[j],

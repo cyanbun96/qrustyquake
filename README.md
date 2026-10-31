@@ -188,7 +188,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - Better mipmaps
     
-    - Regenerated on map load with r_rebuildmips 1 (all textures) or 2 (only cutouts)
+    - Regenerated on map load with r_rebuildmips 1 (all textures) or 2 (cutouts, and textures with fullbrights only in their mipmaps)
     
     - Solves random fullbright pixels on dark textures and bright fringe around cutout textures
   
