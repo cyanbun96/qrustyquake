@@ -83,7 +83,7 @@ vec3_t v_punchangles[2];
 f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
 f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
 f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
-f32 sadjust, tadjust;
+s64 sadjust, tadjust;
 s32 bbextents, bbextentt;
 u8 *cacheblock;
 s32 cachewidth, cacheheight;

@@ -30,10 +30,20 @@ void D_DrawSolidSurface(surf_t *surf, s32 color)
 	}
 }
 
+// 16.16 texture offset as id computed it, in s64 so that huge maps (|s| > 32k)
+// don't overflow before it cancels out. x87 rounds the sum to 24 bits but not
+// the integer going into it
+static inline s64 D_Adjust(const vec3_t org, const vec3_t axis, f32 ofs,
+		f32 t, s64 mins)
+{
+	f32 d = DotProduct(org, axis) * 0x10000 + 0.5f;
+	return (s64)(f32)((f64)((s64)d - mins) + ofs * t);
+}
+
 void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 {
 	f32 mipscale = 1.0 / (f32)(1 << miplevel);
-	vec3_t p_saxis, p_taxis;
+	vec3_t p_saxis, p_taxis, p_temp;
 	TransformVector(pface->texinfo->vecs[0], p_saxis);
 	TransformVector(pface->texinfo->vecs[1], p_taxis);
 	f32 t = xscaleinv * mipscale;
@@ -46,25 +56,25 @@ void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 						ycenter * d_sdivzstepv;
 	d_tdivzorigin = p_taxis[2] * mipscale - xcenter * d_tdivzstepu -
 						ycenter * d_tdivzstepv;
-	// texture coords relative to the surface origin, summed in f64 so
-	// huge maps (|s| > 32k) don't overflow 16.16 before they cancel out
-	f64 s0 = DotProduct(transformed_modelorg, p_saxis)
-		+ pface->texinfo->vecs[0][3] - pface->texturemins[0];
-	f64 t0 = DotProduct(transformed_modelorg, p_taxis)
-		+ pface->texinfo->vecs[1][3] - pface->texturemins[1];
+	VectorScale(transformed_modelorg, mipscale, p_temp);
+	t = 0x10000 * mipscale;
+	mtexinfo_t *tex = pface->texinfo;
 	if(!tiledextents){
-		sadjust = s0 * 0x10000 * mipscale;
-		tadjust = t0 * 0x10000 * mipscale;
+		sadjust = D_Adjust(p_temp, p_saxis, tex->vecs[0][3], t,
+			((s64)pface->texturemins[0] * 0x10000) >> miplevel);
+		tadjust = D_Adjust(p_temp, p_taxis, tex->vecs[1][3], t,
+			((s64)pface->texturemins[1] * 0x10000) >> miplevel);
 		// -1(-epsilon) so we never wander off the edge of the texture
 		bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
 		bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
 	}
 	else{ // Tiled textures(water, sky) always have miplevel of 0
-		// keep the texturemins remainder so s stays tile-aligned
-		s0 += pface->texturemins[0] & (TURB_CYCLE-1);
-		t0 += pface->texturemins[1] & (TURB_CYCLE-1);
-		sadjust = s0 * 0x10000 + 0x20000000;
-		tadjust = t0 * 0x10000 + 0x20000000;
+		// WinQuake's -8192 mins, then whole tiles to stay near them
+		s64 mins = (s64)-8192 * 0x10000;
+		sadjust = D_Adjust(p_temp, p_saxis, tex->vecs[0][3], t, mins)
+			- (s64)(pface->texturemins[0] & -TURB_CYCLE) * 0x10000;
+		tadjust = D_Adjust(p_temp, p_taxis, tex->vecs[1][3], t, mins)
+			- (s64)(pface->texturemins[1] & -TURB_CYCLE) * 0x10000;
 		bbextents = 0x3fffffff;
 		bbextentt = 0x3fffffff;
 	}

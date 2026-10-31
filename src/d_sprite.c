@@ -39,12 +39,12 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 		f32 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		f32 z = (f32)0x10000 / zi; // prescale to 16.16 fixed-point
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		s32 s = (s32)(sdivz * z + sadjust);
+		s32 s = (s32)((s64)(sdivz * z) + sadjust);
 		if(s > bbextents)
 			s = bbextents;
 		else if(s < 0)
 			s = 0;
-		s32 t = (s32)(tdivz * z + tadjust);
+		s32 t = (s32)((s64)(tdivz * z) + tadjust);
 		if(t > bbextentt)
 			t = bbextentt;
 		else if(t < 0)
@@ -62,14 +62,14 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 				zi += zi8stepu;
 				z = (f32)0x10000 / zi; // prescale to 16.16
 						       // fixed-point
-				snext = (s32)(sdivz * z + sadjust);
+				snext = (s32)((s64)(sdivz * z) + sadjust);
 				if(snext > bbextents)
 					snext = bbextents;
 				else if(snext < 8)
 					snext = 8; // prevent round-off error on
 				   // <0 steps from causing overstepping and
 				   // running off the edge of the texture
-				tnext = (s32)(tdivz * z + tadjust);
+				tnext = (s32)((s64)(tdivz * z) + tadjust);
 				if(tnext > bbextentt)
 					tnext = bbextentt;
 				else if(tnext < 8)
@@ -87,14 +87,14 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 				zi += d_zistepu * spancountminus1;
 				z = (f32)0x10000 / zi; // prescale to
 						       // 16.16 fixed-point
-				snext = (s32)(sdivz * z + sadjust);
+				snext = (s32)((s64)(sdivz * z) + sadjust);
 				if(snext > bbextents)
 					snext = bbextents;
 				else if(snext < 8)
 					snext = 8; // prevent round-off error on
 				// <0 steps from from causing overstepping and
 				// running off the edge of the texture
-				tnext = (s32)(tdivz * z + tadjust);
+				tnext = (s32)((s64)(tdivz * z) + tadjust);
 				if(tnext > bbextentt)
 					tnext = bbextentt;
 				else if(tnext < 8)
@@ -236,10 +236,10 @@ void D_SpriteCalculateGradients()
 	d_tdivzorigin = p_taxis[2]-xcenter*d_tdivzstepu-ycenter*d_tdivzstepv;
 	d_ziorigin = p_normal[2]*distinv-xcenter*d_zistepu-ycenter*d_zistepv;
 	TransformVector(modelorg, p_temp1);
-	sadjust = ((DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5)) -
-	    (-(cachewidth >> 1) << 16);
-	tadjust = ((DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5)) -
-	    (-(sprite_height >> 1) << 16);
+	sadjust = (s64)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5f) -
+	    (s64)-(cachewidth >> 1) * 0x10000;
+	tadjust = (s64)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5f) -
+	    (s64)-(sprite_height >> 1) * 0x10000;
 	// -1(-epsilon) so we never wander off the edge of the texture
 	bbextents = (cachewidth << 16) - 1;
 	bbextentt = (sprite_height << 16) - 1;

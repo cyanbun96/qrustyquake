@@ -206,7 +206,7 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 	*v = basev + oy;
 }
 
-static inline s32 D_ClampCoord(s32 v, s32 lo, s32 hi)
+static inline s32 D_ClampCoord(s64 v, s32 lo, s32 hi)
 { if(v > hi) return hi; if(v < lo) return lo; return v; }
 
 Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
@@ -225,8 +225,8 @@ Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
 	w->tdivz_chunk = d_tdivzstepu * (1 << shift);
 	w->zi_chunk = d_zistepu * (1 << shift);
 	f32 z = (f32)0x10000 / w->zi;
-	w->s = D_ClampCoord((s32)(w->sdivz * z + sadjust), 0, bbextents);
-	w->t = D_ClampCoord((s32)(w->tdivz * z + tadjust), 0, bbextentt);
+	w->s = D_ClampCoord((s64)(w->sdivz * z) + sadjust, 0, bbextents);
+	w->t = D_ClampCoord((s64)(w->tdivz * z) + tadjust, 0, bbextentt);
 	w->snext = w->s;
 	w->tnext = w->t;
 	w->sstep = 0;
@@ -237,8 +237,8 @@ Q_SIL void D_SpanWalkEvalEnd(spanwalk_t *w)
 {
 	s32 lo = 1 << w->shift;
 	f32 z = (f32)0x10000 / w->zi;
-	w->snext = D_ClampCoord((s32)(w->sdivz * z + sadjust), lo, bbextents);
-	w->tnext = D_ClampCoord((s32)(w->tdivz * z + tadjust), lo, bbextentt);
+	w->snext = D_ClampCoord((s64)(w->sdivz * z) + sadjust, lo, bbextents);
+	w->tnext = D_ClampCoord((s64)(w->tdivz * z) + tadjust, lo, bbextentt);
 }
 
 Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
