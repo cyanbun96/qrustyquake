@@ -181,7 +181,7 @@ void D_DrawSubdiv()
 	finalvert_t *pfv = r_affinetridesc.pfinalverts;
 	mtriangle_t *ptri = r_affinetridesc.ptriangles;
 	s32 lnumtriangles = r_affinetridesc.numtriangles;
-	for(s32 i = 0; i < lnumtriangles; i++){
+	for(s32 i = lnumtriangles - 1; i >= 0; i--){
 		finalvert_t *i0 = pfv + ptri[i].vertindex[0];
 		finalvert_t *i1 = pfv + ptri[i].vertindex[1];
 		finalvert_t *i2 = pfv + ptri[i].vertindex[2];
@@ -223,7 +223,8 @@ void D_DrawNonSubdiv()
 	finalvert_t *pfv = r_affinetridesc.pfinalverts;
 	mtriangle_t *ptri = r_affinetridesc.ptriangles;
 	s32 lnumtriangles = r_affinetridesc.numtriangles;
-	for(s32 i = 0; i < lnumtriangles; i++, ptri++){
+	ptri += lnumtriangles - 1;
+	for(s32 i = 0; i < lnumtriangles; i++, ptri--){
 		finalvert_t *i0 = pfv + ptri->vertindex[0];
 		finalvert_t *i1 = pfv + ptri->vertindex[1];
 		finalvert_t *i2 = pfv + ptri->vertindex[2];
@@ -562,30 +563,32 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	s16 *pz = span->pz;
 	u8 *ptex = span->ptex;
 	s32 sfrac = span->sfrac;
-	s32 tfrac = span->tfrac;
 	s32 light = span->light;
 	s32 lstep = r_lstepx;
 	s32 zi = span->zi;
 	D_PolysetClampSpanLight(&light, &lstep, count);
+	// tfrac:light share a register like in d_polysa.s, so light carries
+	// into tfrac there, and tfrac's carry is the step to the next skin row
+	u32 tl = ((u32)span->tfrac << 16) | (light & 0xFFFF);
+	u32 tlstep = ((u32)a_tstepxfrac << 16) | (lstep & 0xFFFF);
+	s32 skinwidth = r_affinetridesc.skinwidth;
 	do{
 		if((zi >> 16) >= *pz){
 			u8 texel = sample == TEXSAMPLE_DITHERED ?
-			  D_PolysetDitheredTexel(ptex,sfrac,tfrac,pdest):*ptex;
-			D_PolysetPlot(st, texel, light, pdest, pz, zi);
+			  D_PolysetDitheredTexel(ptex, sfrac, tl >> 16,
+				  pdest) : *ptex;
+			D_PolysetPlot(st, texel, tl & 0xFFFF, pdest, pz, zi);
 		}
 		pdest++;
 		pz++;
 		zi += r_zistepx;
-		light += lstep;
 		ptex += a_ststepxwhole;
 		sfrac += a_sstepxfrac;
 		ptex += sfrac >> 16;
 		sfrac &= 0xFFFF;
-		tfrac += a_tstepxfrac;
-		if(tfrac & 0x10000){
-			ptex += r_affinetridesc.skinwidth;
-			tfrac &= 0xFFFF;
-		}
+		u32 tlold = tl;
+		tl += tlstep;
+		ptex += skinwidth & -(s32)(tl < tlold);
 	}while(--count);
 }
  

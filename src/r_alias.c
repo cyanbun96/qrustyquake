@@ -280,21 +280,24 @@ void R_AliasProjectFinalVert(finalvert_t *fv, auxvert_t *av)
 	fv->v[1] = (av->fv[1] * aliasyscale * zi) + aliasycenter;
 }
 
+// r_aliasa.s adds the translation second
+static inline f32 R_AliasDot(const vec3_t v, const f32 *t)
+{ return ((v[0] * t[0] + t[3]) + v[1] * t[1]) + v[2] * t[2]; }
+
 void R_AliasTransformAndProjectFinalVerts(finalvert_t *fv, stvert_t *pstverts)
 {
         aliaslerp_t *pverts = r_aliaslerpverts;
         for(s32 i = 0; i < r_anumverts; i++, fv++, pverts++, pstverts++){
                 // transform and project
-                f32 zi = 1.0 / (DotProduct(pverts->v, aliastransform[2])
-				+ aliastransform[2][3]);
+                f32 zi = 1.0 / R_AliasDot(pverts->v, aliastransform[2]);
                 // x, y, and z are scaled down by 1/2**31 in the transform,
 		// so 1/z is scaled up by 1/2**31, and the scaling cancels out
 		// for x and y in the projection
                 fv->v[5] = zi;
-                fv->v[0] = ((DotProduct(pverts->v, aliastransform[0])
-				+ aliastransform[0][3]) * zi) + aliasxcenter;
-                fv->v[1] = ((DotProduct(pverts->v, aliastransform[1])
-				+ aliastransform[1][3]) * zi) + aliasycenter;
+                fv->v[0] = (R_AliasDot(pverts->v, aliastransform[0]) * zi)
+			+ aliasxcenter;
+                fv->v[1] = (R_AliasDot(pverts->v, aliastransform[1]) * zi)
+			+ aliasycenter;
                 fv->v[2] = pstverts->s;
                 fv->v[3] = pstverts->t;
                 fv->flags = pstverts->onseam;
