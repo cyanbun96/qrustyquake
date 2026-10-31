@@ -240,11 +240,12 @@ void CL_RelinkEntities()
 	f32 frac = CL_LerpPoint(); // determine partial update time
 	cl_numvisedicts = 0;
 	for(s32 i = 0; i < 3; i++) // interpolate player info
-		cl.velocity[i] = cl.mvelocity[1][i] +
-			frac * (cl.mvelocity[0][i] - cl.mvelocity[1][i]);
+		cl.velocity[i] = cl.mvelocity[1][i] + (f64)frac *
+			((f64)cl.mvelocity[0][i] - cl.mvelocity[1][i]);
 	if(cls.demoplayback){
 		for(s32 j = 0; j < 3; j++){ // interpolate the angles
-			f32 d = cl.mviewangles[0][j] - cl.mviewangles[1][j];
+			f64 d = cl.mviewangles[0][j];
+			d -= cl.mviewangles[1][j];
 			if(d > 180) d -= 360;
 			else if(d < -180) d += 360;
 			cl.viewangles[j] = cl.mviewangles[1][j] + frac * d;
@@ -287,10 +288,10 @@ void CL_RelinkEntities()
 				f = 1;
 			// interpolate the origin and angles
 			for(s32 j = 0; j < 3; j++){
-				ent->origin[j] =
-					ent->msg_origins[1][j] + f * delta[j];
-				f32 d = ent->msg_angles[0][j] -
-					ent->msg_angles[1][j];
+				ent->origin[j] = ent->msg_origins[1][j] +
+					(f64)f * delta[j];
+				f64 d = ent->msg_angles[0][j];
+				d -= ent->msg_angles[1][j];
 				if(d > 180)
 					d -= 360;
 				else if(d < -180)

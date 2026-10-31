@@ -14,24 +14,26 @@ f32 V_CalcRoll(vec3_t angles, vec3_t velocity)
 { // Used by view and sv_user
 	static vec3_t forward, right, up;
 	AngleVectors(angles, forward, right, up);
-	f32 side = DotProduct(velocity, right);
+	f32 side = DotProductF64(velocity, right);
 	f32 sign = side < 0 ? -1 : 1;
 	side = fabs(side);
 	f32 value = cl_rollangle.value;
-	side=side<cl_rollspeed.value?side*value/cl_rollspeed.value:value;
+	side = side < cl_rollspeed.value ?
+		(f64)side * value / cl_rollspeed.value : value;
 	return side * sign;
 }
 
 f32 V_CalcBob()
 {
-	f32 cycle=cl.time-(s32)(cl.time/cl_bobcycle.value)*cl_bobcycle.value;
-	cycle /= cl_bobcycle.value;
-	if(cycle < cl_bobup.value) cycle = M_PI * cycle / cl_bobup.value;
-	else cycle=M_PI+M_PI*(cycle-cl_bobup.value)/(1.0-cl_bobup.value);
+	f64 bobcycle = cl_bobcycle.value, bobup = cl_bobup.value;
+	f32 cycle = cl.time - (s32)(cl.time / bobcycle) * bobcycle;
+	cycle /= bobcycle;
+	if(cycle < bobup) cycle = M_PI * cycle / bobup;
+	else cycle = M_PI + M_PI * (cycle - bobup) / (1.0 - bobup);
 	// bob is proportional to velocity in the xy plane
 	// (don't count Z, or jumping messes it up)
-	f32 bob = sqrt(cl.velocity[0] * cl.velocity[0] + cl.velocity[1]
-			* cl.velocity[1]) * cl_bob.value;
+	f32 bob = sqrt((f64)cl.velocity[0] * cl.velocity[0] +
+		(f64)cl.velocity[1] * cl.velocity[1]) * cl_bob.value;
 	bob = bob * 0.3 + bob * 0.7 * sin(cycle);
 	if(bob > 4) bob = 4;
 	else if(bob < -7) bob = -7;
@@ -495,7 +497,7 @@ void V_CalcRefdef()
 	ent->angles[PITCH]=-cl.viewangles[PITCH];
 	f32 bob = V_CalcBob();
 	VectorCopy(ent->origin, r_refdef.vieworg); // refresh position
-	r_refdef.vieworg[2] += cl.viewheight + bob;
+	r_refdef.vieworg[2] += (f64)cl.viewheight + bob;
 	// never let it sit exactly on a node line, because a water plane can
 	// dissapear when viewed with the eye exactly on it. the server protocol
 	// only specifies to 1/16 pixel, so add 1/32 in each axis
@@ -520,7 +522,7 @@ void V_CalcRefdef()
 	VectorCopy(ent->origin, view->origin);
 	view->origin[2] += cl.viewheight;
 	for(s32 i = 0; i < 3; i++)
-		view->origin[i] += forward[i] * bob * 0.4;
+		view->origin[i] += (f64)forward[i] * bob * 0.4;
 	view->origin[2] += bob;
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
