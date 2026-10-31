@@ -365,6 +365,7 @@ typedef struct {
 	s32 frame;
 } maliasgroupframedesc_t;
 typedef struct {
+	s32 intervals;
 	maliasgroupframedesc_t frames[1];
 } maliasgroup_t;
 typedef struct mtriangle_s {

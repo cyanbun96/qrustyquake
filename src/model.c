@@ -2298,9 +2298,13 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	*pframeindex = (u8 *) paliasgroup - (u8 *) pheader;
 	daliasinterval_t *pin_intervals = (daliasinterval_t *) (pingroup + 1);
 	frame->interval = (f32)(pin_intervals->interval);
-	for(s32 i = 0; i < numframes; i++, pin_intervals++)
-		if((f32)(pin_intervals->interval) <= 0.0)
+	f32 *poutintervals = Hunk_AllocName(numframes * sizeof(f32), loadname);
+	paliasgroup->intervals = (u8 *) poutintervals - (u8 *) pheader;
+	for(s32 i = 0; i < numframes; i++, pin_intervals++){
+		poutintervals[i] = (f32)(pin_intervals->interval);
+		if(poutintervals[i] <= 0.0)
 			Sys_Error("Mod_LoadAliasGroup: interval<=0");
+	}
 	void *ptemp = (void *)pin_intervals;
 	for(s32 i = 0; i < numframes; i++)
 		ptemp = Mod_LoadAliasFrame(ptemp, &paliasgroup->frames[i].frame,

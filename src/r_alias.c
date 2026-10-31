@@ -386,8 +386,20 @@ void R_SetupAliasFrame(aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 	s32 posenum = paliashdr->frames[frame].firstpose;
 	s32 numposes = paliashdr->frames[frame].numposes;
 	if(numposes > 1){
+		maliasgroup_t *pgroup = (maliasgroup_t *)((u8 *)paliashdr
+				+ paliashdr->frames[frame].frame);
+		f32 *pintervals = (f32 *)((u8 *)paliashdr + pgroup->intervals);
+		f32 fullinterval = pintervals[numposes - 1];
+		f32 time = cl.time + e->syncbase;
+		// when loading in Mod_LoadAliasGroup, we guaranteed all
+		// interval values are positive
+		f32 targettime = time - ((s32)(time / fullinterval))
+			* fullinterval;
+		s32 i = 0;
+		while(i < numposes - 1 && pintervals[i] <= targettime)
+			i++;
+		posenum += i;
 		e->lerptime = paliashdr->frames[frame].interval;
-		posenum += (s32)(cl.time / e->lerptime) % numposes;
 	}else e->lerptime = 0.1;
 	if(e->lerpflags & LERP_RESETANIM){ //kill any lerp in progress
 		e->lerpstart = 0;
