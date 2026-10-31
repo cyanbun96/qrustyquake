@@ -206,6 +206,15 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 	*v = basev + oy;
 }
 
+static inline s32 D_StepDiv(s32 d, s32 n)
+{ // d / n for a span's last run, reciprocal_table_16 in d_draw16.s
+	static const u32 r[] = { 0x40000000, 0x2aaaaaaa, 0x20000000,
+		0x19999999, 0x15555555, 0x12492492, 0x10000000, 0xe38e38e,
+		0xccccccc, 0xba2e8ba, 0xaaaaaaa, 0x9d89d89, 0x9249249,
+		0x8888888 };
+	return n < 2 ? d : (s32)(((s64)d * r[n - 2]) >> 31);
+}
+
 static inline s32 D_ClampCoord(s64 v, s32 lo, s32 hi)
 { if(v > hi) return hi; if(v < lo) return lo; return v; }
 
@@ -218,9 +227,9 @@ Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
 	w->fine = fine;
 	w->count = pspan->count;
 	w->len = 0;
-	w->sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-	w->tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-	w->zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
+	w->sdivz = (du*d_sdivzstepu + dv*d_sdivzstepv) + d_sdivzorigin;
+	w->tdivz = (dv*d_tdivzstepv + du*d_tdivzstepu) + d_tdivzorigin;
+	w->zi = (dv*d_zistepv + du*d_zistepu) + d_ziorigin;
 	w->sdivz_chunk = d_sdivzstepu * (1 << shift);
 	w->tdivz_chunk = d_tdivzstepu * (1 << shift);
 	w->zi_chunk = d_zistepu * (1 << shift);
@@ -235,7 +244,7 @@ Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
 
 Q_SIL void D_SpanWalkEvalEnd(spanwalk_t *w)
 {
-	s32 lo = 1 << w->shift;
+	s32 lo = w->fine ? 4096 : 1 << w->shift;
 	f32 z = (f32)0x10000 / w->zi;
 	w->snext = D_ClampCoord((s64)(w->sdivz * z) + sadjust, lo, bbextents);
 	w->tnext = D_ClampCoord((s64)(w->tdivz * z) + tadjust, lo, bbextentt);
@@ -263,9 +272,12 @@ Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
 		w->zi += d_zistepu * lastpixel;
 		D_SpanWalkEvalEnd(w);
 		if(w->len > 1){
+			s32 ds = w->snext - w->s, dt = w->tnext - w->t;
 			s32 n = w->len - 1;
-			w->sstep = (u32)((w->snext - w->s) / n) << w->fine;
-			w->tstep = (u32)((w->tnext - w->t) / n) << w->fine;
+			w->sstep = (u32)(w->fine ? D_StepDiv(ds, n) : ds / n)
+				<< w->fine;
+			w->tstep = (u32)(w->fine ? D_StepDiv(dt, n) : dt / n)
+				<< w->fine;
 		}
 	}
 }
