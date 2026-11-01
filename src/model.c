@@ -860,32 +860,19 @@ static void Mod_LoadVisibility(lump_t *l)
 
 static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 {
-	if(bsp2){
-		dledge_t *in = (dledge_t *)(mod_base + l->fileofs);
-		if(l->filelen % sizeof(*in))
+	s32 insize = bsp2 ? sizeof(dledge_t) : sizeof(dedge_t);
+	if(l->filelen % insize)
 	Sys_Error("MOD_LoadEdges: funny lump size in %s",loadmodel->name);
-		s32 count = l->filelen / sizeof(*in);
-		medge_t *out = (medge_t *)Hunk_AllocName((count + 13)
-				* sizeof(*out), loadname);
-		loadmodel->edges = out;
-		loadmodel->numedges = count;
-		for(s32 i = 0; i < count; i++, in++, out++){
-			out->v[0] = (s32)(in->v[0]);
-			out->v[1] = (s32)(in->v[1]);
-		}
-	}else{
-		dedge_t *in = (dedge_t *)(mod_base + l->fileofs);
-		if(l->filelen % sizeof(*in))
-	Sys_Error("MOD_LoadEdges: funny lump size in %s",loadmodel->name);
-		s32 count = l->filelen / sizeof(*in);
-		medge_t *out = (medge_t *) Hunk_AllocName
-			((count + 13) * sizeof(*out), loadname);
-		loadmodel->edges = out;
-		loadmodel->numedges = count;
-		for(s32 i = 0; i<count; i++, in++, out++){
-			out->v[0] = (u16)(s16)(in->v[0]);
-			out->v[1] = (u16)(s16)(in->v[1]);
-		}
+	s32 count = l->filelen / insize;
+	dledge_t *inl = (dledge_t *)(mod_base + l->fileofs);
+	dedge_t *ins = (dedge_t *)(mod_base + l->fileofs);
+	medge_t *out = (medge_t *)Hunk_AllocName((count + 13)
+			* sizeof(*out), loadname);
+	loadmodel->edges = out;
+	loadmodel->numedges = count;
+	for(s32 i = 0; i < count; i++, out++){
+		out->v[0] = bsp2 ? inl[i].v[0] : ins[i].v[0];
+		out->v[1] = bsp2 ? inl[i].v[1] : ins[i].v[1];
 	}
 }
 
@@ -1202,50 +1189,53 @@ size_t Mod_SanitizeMapDescription(c8 *dst, size_t dstsize, const c8 *src)
 	return dstpos;
 }
 
+// Opens a map and reads its header, leaving the file just after it.
+// Returns NULL if that isn't a BSP with a sane entity lump
+static FILE *Mod_OpenMap(const c8 *map, dheader_t *header)
+{
+	c8 path[MAX_QPATH];
+	FILE *f;
+	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>=sizeof(path))
+		return NULL;
+	s32 filesize = COM_FOpenFile(path, &f, NULL);
+	if(filesize <= (s32)sizeof(*header)){
+		if(filesize != -1)
+			fclose(f);
+		return NULL;
+	}
+	if(fread(header, sizeof(*header), 1, f) != 1){
+		fclose(f);
+		return NULL;
+	}
+	lump_t *entlump = &header->lumps[0];
+	if((header->version != BSPVERSION
+	&& header->version != BSP2VERSION_2PSB
+	&& header->version != BSP2VERSION_BSP2
+	&& header->version != BSPVERSION_QUAKE64)
+	|| entlump->filelen < 0 || entlump->filelen >= filesize
+	|| entlump->fileofs < 0
+	|| entlump->fileofs + entlump->filelen > filesize){
+		fclose(f);
+		return NULL;
+	}
+	return f;
+}
+
 // Parses the entity lump in the given map to find its worldspawn message
 // Writes at most maxchars bytes to dest, including the NUL terminator
 // Returns true if map is playable, false otherwise
 bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 {
 	c8 buf[4 * 1024];
-	c8 path[MAX_QPATH];
 	const c8 *data;
-	FILE *f;
-	lump_t *entlump;
 	dheader_t header;
-	s32 i, filesize;
+	s32 i;
 	bool ret = false;
 	if(!maxchars) return false;
 	*desc = '\0';
-	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>= sizeof(path))
-		return false;
-	filesize = COM_FOpenFile (path, &f, NULL);
-	if(filesize <= (s32) sizeof(header)){
-		if(filesize != -1)
-			fclose (f);
-		return false;
-	}
-	if(fread (&header, sizeof(header), 1, f) != 1){
-		fclose (f);
-		return false;
-	}
-	switch(header.version)
-	{
-		case BSPVERSION:
-		case BSP2VERSION_2PSB:
-		case BSP2VERSION_BSP2:
-		case BSPVERSION_QUAKE64:
-			break;
-		default:
-			fclose (f);
-			return false;
-	}
-	entlump = &header.lumps[0];
-	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
-	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
-		fclose (f);
-		return false;
-	}
+	FILE *f = Mod_OpenMap(map, &header);
+	if(!f) return false;
+	lump_t *entlump = &header.lumps[0];
 	// if the entity lump is large enough we assume the map is playable
 	// and only try to parse the first entity (worldspawn) for the map title
 	if((u64)entlump->filelen >= sizeof(buf)){
@@ -1298,48 +1288,19 @@ bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 	return ret;
 }
 
-s32 Mod_CountSecrets(const c8 *map)
-{
-	c8 path[MAX_QPATH];
-	const c8 *data;
-	FILE *f;
-	lump_t *entlump;
+static s32 Mod_CountEntities(const c8 *map, bool (*match)(const c8 *))
+{ // how many entities match on the current skill
 	dheader_t header;
-	s32 i, filesize;
-	s32 secret_count = 0;
-	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>=sizeof(path))
-		return 0;
-	filesize = COM_FOpenFile(path, &f, NULL);
-	if(filesize <= (s32)sizeof(header)){
-		if(filesize != -1)
-			fclose (f);
-		return 0;
-	}
-	if(fread (&header, sizeof(header), 1, f) != 1){
-		fclose (f);
-		return 0;
-	}
-	switch(header.version){
-		case BSPVERSION:
-		case BSP2VERSION_2PSB:
-		case BSP2VERSION_BSP2:
-		case BSPVERSION_QUAKE64:
-			break;
-		default:
-			fclose (f);
-			return 0;
-	}
-	entlump = &header.lumps[0];
-	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
-	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
-		fclose (f);
-		return 0;
-	}
+	const c8 *data;
+	s32 count = 0;
+	FILE *f = Mod_OpenMap(map, &header);
+	if(!f) return 0;
+	lump_t *entlump = &header.lumps[0];
 	c8 *buf = malloc(entlump->filelen + 1);
 	if(!buf)
 		return 0;
 	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
-	i = fread(buf, 1, entlump->filelen, f);
+	s32 i = fread(buf, 1, entlump->filelen, f);
 	fclose(f);
 	if(i <= 0){
 		free(buf);
@@ -1351,7 +1312,7 @@ s32 Mod_CountSecrets(const c8 *map)
 		if(!data || com_token[0] != '{')
 			break;
 		s32 spawnflags = 0;
-		bool is_secret = false;
+		bool matched = false;
 		while(1){
 			data = COM_Parse(data);
 			if(!data)
@@ -1364,115 +1325,42 @@ s32 Mod_CountSecrets(const c8 *map)
 			if(!data)
 				goto done;
 			if(is_classname){
-				if(!strcmp(com_token, "trigger_secret")
-				|| !strcmp(com_token, "target_secret") // copper
-			|| !strcmp(com_token, "trigger_secret_point")) // quoth
-					is_secret = true;
+				if(match(com_token))
+					matched = true;
 			}
 			else if(is_spawnflags)
 				spawnflags = atoi(com_token);
 		}
-		if(is_secret){
+		if(matched){
 			s32 s = (s32)skill.value;
 			bool skip = false;
 			if(s == 0 && (spawnflags & 256)) skip = true;
 			if(s == 1 && (spawnflags & 512)) skip = true;
 			if(s >= 2 && (spawnflags & 1024)) skip = true;
 			if(!skip)
-				secret_count++;
+				count++;
 		}
 	}
 done:
 	free(buf);
-	return secret_count;
+	return count;
 }
 
-s32 Mod_CountMonsters(const c8 *map)
+static bool Mod_IsSecret(const c8 *classname)
 {
-	c8 path[MAX_QPATH];
-	const c8 *data;
-	FILE *f;
-	lump_t *entlump;
-	dheader_t header;
-	s32 i, filesize;
-	s32 monster_count = 0;
-	if((size_t)snprintf(path,sizeof(path),"maps/%s.bsp",map)>=sizeof(path))
-		return 0;
-	filesize = COM_FOpenFile (path, &f, NULL);
-	if(filesize <= (s32) sizeof (header)){
-		if(filesize != -1)
-			fclose (f);
-		return 0;
-	}
-	if(fread (&header, sizeof (header), 1, f) != 1){
-		fclose (f);
-		return 0;
-	}
-	switch(header.version){
-		case BSPVERSION:
-		case BSP2VERSION_2PSB:
-		case BSP2VERSION_BSP2:
-		case BSPVERSION_QUAKE64:
-			break;
-		default:
-			fclose (f);
-			return 0;
-	}
-	entlump = &header.lumps[0];
-	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
-	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
-		fclose (f);
-		return 0;
-	}
-	c8 *buf = malloc(entlump->filelen + 1);
-	if(!buf)
-		return 0;
-	fseek(f, entlump->fileofs - sizeof(header), SEEK_CUR);
-	i = fread(buf, 1, entlump->filelen, f);
-	fclose(f);
-	if(i <= 0){
-		free(buf);
-		return 0;
-	}
-	buf[i] = '\0';
-	for(data = buf; data;){
-		data = COM_Parse(data);
-		if(!data || com_token[0] != '{')
-			break;
-		s32 spawnflags = 0;
-		bool is_monster = false;
-		while(1){
-			data = COM_Parse(data);
-			if(!data)
-				goto done;
-			if(com_token[0] == '}')
-				break;
-			bool is_classname = !strcmp(com_token, "classname");
-			bool is_spawnflags = !strcmp(com_token, "spawnflags");
-			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-			if(!data)
-				goto done;
-			if(is_classname){
-				if(!strncmp(com_token, "monster_", 8))
-					is_monster = true;
-			}
-			else if(is_spawnflags)
-				spawnflags = atoi(com_token);
-		}
-		if(is_monster){
-			s32 s = (s32)skill.value;
-			bool skip = false;
-			if(s == 0 && (spawnflags & 256)) skip = true;
-			if(s == 1 && (spawnflags & 512)) skip = true;
-			if(s >= 2 && (spawnflags & 1024)) skip = true;
-			if(!skip)
-				monster_count++;
-		}
-	}
-done:
-	free(buf);
-	return monster_count;
+	return !strcmp(classname, "trigger_secret")
+		|| !strcmp(classname, "target_secret") // copper
+		|| !strcmp(classname, "trigger_secret_point"); // quoth
 }
+
+static bool Mod_IsMonster(const c8 *classname)
+{ return !strncmp(classname, "monster_", 8); }
+
+s32 Mod_CountSecrets(const c8 *map)
+{ return Mod_CountEntities(map, Mod_IsSecret); }
+
+s32 Mod_CountMonsters(const c8 *map)
+{ return Mod_CountEntities(map, Mod_IsMonster); }
 
 static void Mod_SetParent(mnode_t *node, mnode_t *parent)
 {
@@ -1546,120 +1434,53 @@ static void Mod_SetupFaceTree(model_t *mod)
 	free(seen);
 }
 
-static void Mod_LoadNodes_S(lump_t *l)
+static mnode_t *Mod_LeafChild(s32 p)
 {
-	dnode_t *in = (dnode_t *)(mod_base + l->fileofs);
-	if(l->filelen % sizeof(*in))
-	    Sys_Error("MOD_LoadNodes_S: funny lump size in %s",loadmodel->name);
-	s32 count = l->filelen / sizeof(*in);
-	mnode_t *out = Hunk_AllocName( count*sizeof(*out), loadname);
-	if(count > 32767) //johnfitz -- warn mappers about exceeding old limits
-	      Con_DPrintf("%i nodes exceeds standard limit of 32767.\n", count);
-	loadmodel->nodes = out;
-	loadmodel->numnodes = count;
-	for(s32 i = 0; i < count; i++, in++, out++){
-		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = in->mins[j];
-			out->minmaxs[3+j] = in->maxs[j];
-		}
-		s32 p = in->planenum;
-		out->plane = loadmodel->planes + p;
-		out->firstsurface = (u16)(s16)(in->firstface);
-		out->numsurfaces = (u16)(s16)(in->numfaces);
-		for(s32 j = 0; j < 2; j++){
-			p = (u16)in->children[j];
-			if(p < count)
-				out->children[j] = loadmodel->nodes + p;
-			else{//note this uses 65535 intentionally, -1 is leaf 0
-				p = 65535 - p;
-				if(p < loadmodel->numleafs)
-			   out->children[j] = (mnode_t *)(loadmodel->leafs + p);
-				else{
+	if(p >= 0 && p < loadmodel->numleafs)
+		return (mnode_t *)(loadmodel->leafs + p);
     Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-							p, loadmodel->numleafs);
-					out->children[j] =
-			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
-				}
-			}
-		}
-	}
+			p, loadmodel->numleafs);
+	return (mnode_t *)loadmodel->leafs; // map it to the solid leaf
 }
 
-static void Mod_LoadNodes_L1(lump_t *l)
-{
-	dl1node_t *in = (dl1node_t *)(mod_base + l->fileofs);
-	if(l->filelen % sizeof(*in))
-	      Sys_Error("Mod_LoadNodes: funny lump size in %s",loadmodel->name);
-	s32 count = l->filelen / sizeof(*in);
-	mnode_t *out = (mnode_t *)Hunk_AllocName( count*sizeof(*out), loadname);
-	loadmodel->nodes = out;
-	loadmodel->numnodes = count;
-	for(s32 i = 0; i < count; i++, in++, out++){
-		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = in->mins[j];
-			out->minmaxs[3+j] = in->maxs[j];
-		}
-		s32 p = in->planenum;
-		out->plane = loadmodel->planes + p;
-		out->firstsurface = (s32)(in->firstface);
-		out->numsurfaces = (s32)(in->numfaces);
-		for(s32 j = 0; j < 2; j++){
-			p = in->children[j];
-			if(p >= 0 && p < count)
-				out->children[j] = loadmodel->nodes + p;
-			else{//note this uses 65535 intentionally, -1 is leaf 0
-				p = 0xffffffff - p;
-				if(p >= 0 && p < loadmodel->numleafs)
-					out->children[j] =
-					    (mnode_t *)(loadmodel->leafs + p);
-				else{
-    Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-							p, loadmodel->numleafs);
-					out->children[j] =
-			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
-				}
-			}
-		}
-	}
+// p is the child as stored, LEAF makes it a leaf number if it isn't a node
+// note that S uses 65535 intentionally, -1 is leaf 0
+#define MOD_LOADNODES(NAME, DTYPE, LIMITED, CHILD, ISNODE, LEAF) \
+static void NAME(lump_t *l) \
+{ \
+	DTYPE *in = (DTYPE *)(mod_base + l->fileofs); \
+	if(l->filelen % sizeof(*in)) \
+		Sys_Error("Mod_LoadNodes: funny lump size in %s", \
+				loadmodel->name); \
+	s32 count = l->filelen / sizeof(*in); \
+	mnode_t *out = (mnode_t *)Hunk_AllocName(count*sizeof(*out), \
+			loadname); \
+	if(LIMITED && count > 32767) /* johnfitz -- warn mappers */ \
+		Con_DPrintf("%i nodes exceeds standard limit of 32767.\n", \
+				count); \
+	loadmodel->nodes = out; \
+	loadmodel->numnodes = count; \
+	for(s32 i = 0; i < count; i++, in++, out++){ \
+		for(s32 j = 0; j < 3; j++){ \
+			out->minmaxs[j] = in->mins[j]; \
+			out->minmaxs[3+j] = in->maxs[j]; \
+		} \
+		out->plane = loadmodel->planes + in->planenum; \
+		out->firstsurface = in->firstface; \
+		out->numsurfaces = in->numfaces; \
+		for(s32 j = 0; j < 2; j++){ \
+			s32 p = CHILD; \
+			out->children[j] = ISNODE ? loadmodel->nodes + p \
+				: Mod_LeafChild(LEAF); \
+		} \
+	} \
 }
-
-static void Mod_LoadNodes_L2(lump_t *l)
-{
-	dl2node_t *in = (dl2node_t *)(mod_base + l->fileofs);
-	if(l->filelen % sizeof(*in))
-	      Sys_Error("Mod_LoadNodes: funny lump size in %s",loadmodel->name);
-	s32 count = l->filelen / sizeof(*in);
-	mnode_t *out = (mnode_t *)Hunk_AllocName( count*sizeof(*out), loadname);
-	loadmodel->nodes = out;
-	loadmodel->numnodes = count;
-	for(s32 i = 0; i < count; i++, in++, out++){
-		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = in->mins[j];
-			out->minmaxs[3+j] = in->maxs[j];
-		}
-		s32 p = in->planenum;
-		out->plane = loadmodel->planes + p;
-		out->firstsurface = (s32)(in->firstface);
-		out->numsurfaces = (s32)(in->numfaces);
-		for(s32 j = 0; j < 2; j++){
-			p = in->children[j];
-			if(p > 0 && p < count)
-				out->children[j] = loadmodel->nodes + p;
-			else{//note this uses 65535 intentionally, -1 is leaf 0
-				p = 0xffffffff - p;
-				if(p >= 0 && p < loadmodel->numleafs)
-					out->children[j] =
-					    (mnode_t *)(loadmodel->leafs + p);
-				else{
-    Con_Printf("Mod_LoadNodes: invalid leaf index %i(file has only %i leafs)\n",
-							p, loadmodel->numleafs);
-					out->children[j] =
-			(mnode_t *)(loadmodel->leafs);//map it to the solid leaf
-				}
-			}
-		}
-	}
-}
+MOD_LOADNODES(Mod_LoadNodes_S, dnode_t, 1,
+		(u16)in->children[j], p < count, 65535 - p)
+MOD_LOADNODES(Mod_LoadNodes_L1, dl1node_t, 0,
+		in->children[j], p >= 0 && p < count, 0xffffffff - p)
+MOD_LOADNODES(Mod_LoadNodes_L2, dl2node_t, 0,
+		in->children[j], p > 0 && p < count, 0xffffffff - p)
 
 static void Mod_LoadNodes(lump_t *l, s32 bsp2)
 {
@@ -1669,88 +1490,39 @@ static void Mod_LoadNodes(lump_t *l, s32 bsp2)
 	Mod_SetParent(loadmodel->nodes, NULL); // sets nodes and leafs
 }
 
-static void Mod_ProcessLeafs_S(dleaf_t *in, s32 filelen)
-{
-	if(filelen % sizeof(*in))
-	  Sys_Error("Mod_ProcessLeafs: funny lump size in %s", loadmodel->name);
-	s32 count = filelen / sizeof(*in);
-	mleaf_t *out = (mleaf_t *)Hunk_AllocName( count*sizeof(*out), loadname);
-	if(count > 32767) // johnfitz
-	   Host_Error("Mod_LoadLeafs: %i leafs exceeds limit of 32767.", count);
-	loadmodel->leafs = out;
-	loadmodel->numleafs = count;
-	for(s32 i = 0; i < count; i++, in++, out++){
-		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = in->mins[j];
-			out->minmaxs[3+j] = in->maxs[j];
-		}
-		s32 p = in->contents;
-		out->contents = p;
-		out->firstmarksurface = loadmodel->marksurfaces 
-				+ (u16)(s16)(in->firstmarksurface);
-		out->nummarksurfaces = (u16)(s16)(in->nummarksurfaces);
-		p = in->visofs;
-		if(p == -1) out->compressed_vis = NULL;
-		else out->compressed_vis = loadmodel->visdata + p;
-		out->efrags = NULL;
-		for(s32 j = 0; j < 4; j++)
-			out->ambient_sound_level[j] = in->ambient_level[j];
-	}
+#define MOD_PROCESSLEAFS(NAME, DTYPE, LIMITED) \
+static void NAME(DTYPE *in, s32 filelen) \
+{ \
+	if(filelen % sizeof(*in)) \
+		Sys_Error("Mod_ProcessLeafs: funny lump size in %s", \
+				loadmodel->name); \
+	s32 count = filelen / sizeof(*in); \
+	mleaf_t *out = (mleaf_t *)Hunk_AllocName(count*sizeof(*out), \
+			loadname); \
+	if(LIMITED && count > 32767) /* johnfitz */ \
+		Host_Error("Mod_LoadLeafs: %i leafs exceeds limit of 32767.", \
+				count); \
+	loadmodel->leafs = out; \
+	loadmodel->numleafs = count; \
+	for(s32 i = 0; i < count; i++, in++, out++){ \
+		for(s32 j = 0; j < 3; j++){ \
+			out->minmaxs[j] = in->mins[j]; \
+			out->minmaxs[3+j] = in->maxs[j]; \
+		} \
+		out->contents = in->contents; \
+		out->firstmarksurface = loadmodel->marksurfaces \
+			+ (s32)in->firstmarksurface; \
+		out->nummarksurfaces = in->nummarksurfaces; \
+		if(in->visofs == -1) out->compressed_vis = NULL; \
+		else out->compressed_vis = loadmodel->visdata + in->visofs; \
+		out->efrags = NULL; \
+		for(s32 j = 0; j < 4; j++) \
+			out->ambient_sound_level[j] = in->ambient_level[j]; \
+	} \
 }
-
-static void Mod_ProcessLeafs_L1(dl1leaf_t *in, s32 filelen)
-{
-	if(filelen % sizeof(*in))
-	   Sys_Error("Mod_ProcessLeafs: funny lump size in %s",loadmodel->name);
-	s32 count = filelen / sizeof(*in);
-	mleaf_t *out = (mleaf_t *) Hunk_AllocName(count*sizeof(*out), loadname);
-	loadmodel->leafs = out;
-	loadmodel->numleafs = count;
-	for(s32 i = 0; i < count; i++, in++, out++){
-		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = in->mins[j];
-			out->minmaxs[3+j] = in->maxs[j];
-		}
-		s32 p = in->contents;
-		out->contents = p;
-		out->firstmarksurface = loadmodel->marksurfaces 
-			+ (s32)(in->firstmarksurface);
-		out->nummarksurfaces = (s32)(in->nummarksurfaces);
-		p = in->visofs;
-		if(p == -1) out->compressed_vis = NULL;
-		else out->compressed_vis = loadmodel->visdata + p;
-		out->efrags = NULL;
-		for(s32 j = 0; j < 4; j++)
-			out->ambient_sound_level[j] = in->ambient_level[j];
-	}
-}
-
-static void Mod_ProcessLeafs_L2(dl2leaf_t *in, s32 filelen)
-{
-	if(filelen % sizeof(*in))
-	  Sys_Error("Mod_ProcessLeafs: funny lump size in %s", loadmodel->name);
-	s32 count = filelen / sizeof(*in);
-	mleaf_t *out = (mleaf_t *) Hunk_AllocName(count*sizeof(*out), loadname);
-	loadmodel->leafs = out;
-	loadmodel->numleafs = count;
-	for(s32 i = 0; i < count; i++, in++, out++){
-		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = in->mins[j];
-			out->minmaxs[3+j] = in->maxs[j];
-		}
-		s32 p = in->contents;
-		out->contents = p;
-		out->firstmarksurface = loadmodel->marksurfaces
-			+ (s32)(in->firstmarksurface);
-		out->nummarksurfaces = (s32)(in->nummarksurfaces);
-		p = in->visofs;
-		if(p == -1) out->compressed_vis = NULL;
-		else out->compressed_vis = loadmodel->visdata + p;
-		out->efrags = NULL;
-		for(s32 j = 0; j < 4; j++)
-			out->ambient_sound_level[j] = in->ambient_level[j];
-	}
-}
+MOD_PROCESSLEAFS(Mod_ProcessLeafs_S, dleaf_t, 1)
+MOD_PROCESSLEAFS(Mod_ProcessLeafs_L1, dl1leaf_t, 0)
+MOD_PROCESSLEAFS(Mod_ProcessLeafs_L2, dl2leaf_t, 0)
 
 static void Mod_LoadLeafs(lump_t *l, s32 bsp2)
 {
