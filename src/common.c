@@ -568,6 +568,21 @@ const c8 *COM_Parse(const c8 *data)
 	return COM_ParseEx(data, CPE_NOTRUNC);
 }
 
+// Reads an entity's next pair into key[128] and value[4096], false at its
+// closing brace or on bad data. Leading '_' and trailing spaces leave the key
+bool COM_ParseEntityPair(const c8 **data, c8 *key, c8 *value)
+{
+	*data = COM_Parse(*data);
+	if(!*data || com_token[0] == '}') return 0;
+	SDL_strlcpy(key, com_token + (com_token[0] == '_'), 128);
+	while(key[0] && key[strlen(key)-1] == ' ')
+		key[strlen(key)-1] = 0;
+	*data = COM_ParseEx(*data, CPE_ALLOWTRUNC);
+	if(!*data) return 0;
+	SDL_strlcpy(value, com_token, 4096);
+	return 1;
+}
+
 s32 COM_CheckParm(const c8 *parm) // Returns the position(1 to argc-1) in the
 { // program's argument list where given parameter apears, or 0 if not present
 	for(s32 i = 1; i < com_argc; i++){

@@ -629,6 +629,7 @@ void COM_InitArgv(s32 argc, c8 **argv);
 void COM_InitFilesystem();
 const c8 *COM_Parse(const c8 *data);
 const c8 *COM_ParseEx(const c8 *data, cpe_mode mode);
+bool COM_ParseEntityPair(const c8 **data, c8 *key, c8 *value);
 const c8 *COM_SkipPath(const c8 *pathname);
 void COM_StripExtension(const c8 *in, c8 *out, size_t outsize);
 void COM_FileBase(const c8 *in, c8 *out, size_t outsize);

@@ -331,26 +331,9 @@ void R_EmitSkyBox()
 void Sky_NewMap()
 { // read worldspawn(this is so ugly, and shouldn't it be done on the server?)
 	c8 key[128], value[4096];
-	const c8 *data = cl.worldmodel->entities;
-	data = COM_Parse(data);
-	if(!data || com_token[0] != '{') // should never happen
-		return; // error
-	while(1){
-		data = COM_Parse(data);
-		if(!data)
-			return; // error
-		if(com_token[0] == '}')
-			break; // end of worldspawn
-		if(com_token[0] == '_')
-			SDL_strlcpy(key, com_token + 1, sizeof(key));
-		else
-			SDL_strlcpy(key, com_token, sizeof(key));
-		while(key[0] && key[strlen(key)-1] == ' ')
-			key[strlen(key)-1] = 0; // remove trailing spaces
-		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-		if(!data)
-			return; // error
-		SDL_strlcpy(value, com_token, sizeof(value));
+	const c8 *data = COM_Parse(cl.worldmodel->entities);
+	if(!data || com_token[0] != '{') return; // should never happen
+	while(COM_ParseEntityPair(&data, key, value)){
 		if(!strcmp("sky", key))
 			Sky_LoadSkyBox(value);
 		if(!strcmp("skyfog", key))

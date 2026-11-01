@@ -17,19 +17,8 @@ void R_ParseWorldspawn()
 	map_telealpha =  (ct&SURF_DRAWTELE)? r_telealpha.value:1;
 	map_slimealpha = (ct&SURF_DRAWSLIME)?r_slimealpha.value:1;
 	const c8 *data = COM_Parse(cl.worldmodel->entities);
-	if(!data)return; // error
-	if(com_token[0] != '{')return; // error
-	while(1){
-		data = COM_Parse(data);
-		if(!data)return; // error
-		if(com_token[0]=='}')break; // end of worldspawn
-		if(com_token[0]=='_')SDL_strlcpy(key, com_token+1, sizeof(key));
-		else SDL_strlcpy(key, com_token, sizeof(key));
-		while(key[0]&&key[strlen(key)-1]==' ') // remove trailing spaces
-			key[strlen(key)-1] = 0;
-		data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-		if(!data)return; // error
-		SDL_strlcpy(value, com_token, sizeof(value));
+	if(!data || com_token[0] != '{') return; // error
+	while(COM_ParseEntityPair(&data, key, value)){
 		if(!strcmp("wateralpha", key))map_wateralpha = atof(value);
 		if(!strcmp("lavaalpha", key)) map_lavaalpha  = atof(value);
 		if(!strcmp("telealpha", key)) map_telealpha  = atof(value);
