@@ -15,11 +15,13 @@ static f32 old_fog_density = -1234;
 static f32 old_noisebias = -1234;
 static f32 *zadjarr = 0;
 
+static u8 Fog_Channel(f32 c) // worldspawn colours can be past 1 and so can
+{ return CLAMP(0, c * 255.0f * r_fogbrightness.value, 255); } // the brightness
+
 void Fog_SetPalIndex(SDL_UNUSED cvar_t *cvar)
 {
-	fog_pal_index = rgbtoi_lab(fog_red * 255.0f*r_fogbrightness.value,
-				   fog_green*255.0f*r_fogbrightness.value,
-				   fog_blue *255.0f*r_fogbrightness.value);
+	fog_pal_index = rgbtoi_lab(Fog_Channel(fog_red),
+			Fog_Channel(fog_green), Fog_Channel(fog_blue));
 }
 
 void Fog_Update(f32 d, f32 r, f32 g, f32 b){
