@@ -176,7 +176,8 @@ void CL_ParseServerInfo()
 		   "PROTOCOL_RMQ protocolflags %i contains unsupported flags\n",
 		   cl.protocolflags);
 	}
-	else cl.protocolflags = 0;
+	else cl.protocolflags = cl.protocol == PROTOCOL_NETQUAKE ?
+		PRFL_TRUNCATE : 0;
 	cl.maxclients = MSG_ReadByte(); // parse maxclients
 	if(cl.maxclients < 1 || cl.maxclients > MAX_SCOREBOARD)
 		Host_Error("Bad maxclients(%u) from server", cl.maxclients);

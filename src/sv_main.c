@@ -936,7 +936,8 @@ void SV_SpawnServer(c8 *server)
 		// choose the protocol features used by their servers)
 		sv.protocolflags = PRFL_INT32COORD | PRFL_SHORTANGLE;
 	}
-	else sv.protocolflags = 0;
+	else sv.protocolflags = sv.protocol == PROTOCOL_NETQUAKE ?
+		PRFL_TRUNCATE : 0;
 	PR_SwitchQCVM(vm);
 	PR_LoadProgs("progs.dat", true); // load progs to get entity field count
 	// allocate server memory

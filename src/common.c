@@ -217,6 +217,7 @@ void MSG_WriteCoord(sizebuf_t *sb, f32 f, u32 flags)
 	if(flags & PRFL_FLOATCOORD)      MSG_WriteFloat(sb, f);
 	else if(flags & PRFL_INT32COORD) MSG_WriteLong(sb, Q_rint(f * 16));
 	else if(flags & PRFL_24BITCOORD) MSG_WriteCoord24(sb, f);
+	else if(flags & PRFL_TRUNCATE) MSG_WriteShort(sb, (s32)(f * 8));
 	else MSG_WriteCoord16(sb, f);
 }
 
@@ -226,6 +227,8 @@ void MSG_WriteAngle(sizebuf_t *sb, f32 f, u32 flags)
 		MSG_WriteFloat(sb, f);
 	else if(flags & PRFL_SHORTANGLE)
 		MSG_WriteShort(sb, Q_rint(f * 65536.0 / 360.0) & 65535);
+	else if(flags & PRFL_TRUNCATE)
+		MSG_WriteByte(sb, ((s32)f * 256 / 360) & 255);
 	else MSG_WriteByte(sb, Q_rint(f * 256.0 / 360.0) & 255);
 }
 void MSG_WriteAngle16(sizebuf_t *sb, f32 f, u32 flags)

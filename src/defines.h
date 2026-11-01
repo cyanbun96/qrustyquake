@@ -71,6 +71,7 @@
 #define PRFL_FLOATCOORD (1 << 4)
 #define PRFL_EDICTSCALE (1 << 5)
 #define PRFL_INT32COORD (1 << 7)
+#define PRFL_TRUNCATE (1 << 8) // never sent, protocol 15 truncates like id's
 #define U_MOREBITS (1<<0)
 #define U_ORIGIN1 (1<<1)
 #define U_ORIGIN2 (1<<2)
