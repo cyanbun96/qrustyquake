@@ -1514,20 +1514,24 @@ static void PF_chr2str()
 	G_INT(OFS_RETURN) = PR_SetEngineString(ret);
 }
 
+static void PF_cl_HudScale(f32 *pos, f32 *size, f32 *pos_s, f32 *size_s)
+{
+	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
+	f32 ay = vid.height;
+	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
+	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
+	size_s[0] = size[0] * scr_qchudscale.value;
+	size_s[1] = size[1] * scr_qchudscale.value;
+}
+
 static void PF_cl_drawfill()
 {
 	f32 *pos = G_VECTOR(OFS_PARM0);
 	f32 *size = G_VECTOR(OFS_PARM1);
 	f32 *rgb = G_VECTOR(OFS_PARM2);
 	f32 alpha = G_FLOAT(OFS_PARM3);
-	f32 pos_s[2];
-	f32 size_s[2] = {size[0], size[1]};
-	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
-	f32 ay = vid.height;
-	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
-	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
-	size_s[0] *= scr_qchudscale.value;
-	size_s[1] *= scr_qchudscale.value;
+	f32 pos_s[2], size_s[2];
+	PF_cl_HudScale(pos, size, pos_s, size_s);
 	Draw_FillEx(pos_s[0], pos_s[1], size_s[0], size_s[1], rgb, alpha);
 }
 
@@ -1549,42 +1553,9 @@ static void PF_cl_drawcharacter()
 	f32 alpha = G_FLOAT(OFS_PARM4);
 	if(charcode == 32)
 		return; //don't waste time on spaces
-	f32 pos_s[2];
-	f32 size_s[2] = {size[0], size[1]};
-	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
-	f32 ay = vid.height;
-	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
-	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
-	size_s[0] *= scr_qchudscale.value;
-	size_s[1] *= scr_qchudscale.value;
+	f32 pos_s[2], size_s[2];
+	PF_cl_HudScale(pos, size, pos_s, size_s);
 	Draw_Character_Ex(pos_s, size_s, charcode, rgb, alpha);
-}
-
-static void PF_cl_drawrawstring()
-{
-	f32 *pos = G_VECTOR(OFS_PARM0);
-	const c8 *text = G_STRING(OFS_PARM1);
-	f32 *size = G_VECTOR(OFS_PARM2);
-	f32 *rgb = G_VECTOR(OFS_PARM3);
-	f32 alpha = G_FLOAT(OFS_PARM4);
-	f32 pos_s[2];
-	f32 size_s[2] = {size[0], size[1]};
-	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
-	f32 ay = vid.height;
-	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
-	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
-	size_s[0] *= scr_qchudscale.value;
-	size_s[1] *= scr_qchudscale.value;
-	f32 pos2[2];
-	pos2[0] = pos_s[0];
-	pos2[1] = pos_s[1];
-	s32 c;
-	if(!*text)
-		return; //don't waste time on spaces
-	while((c = *text++)){
-		Draw_Character_Ex(pos2, size_s, c, rgb, alpha);
-		pos2[0] += size_s[0];
-	}
 }
 
 static void PF_cl_drawstring()
@@ -1594,23 +1565,12 @@ static void PF_cl_drawstring()
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
-	f32 pos_s[2];
-	f32 size_s[2] = {size[0], size[1]};
-	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
-	f32 ay = vid.height;
-	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
-	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
-	size_s[0] *= scr_qchudscale.value;
-	size_s[1] *= scr_qchudscale.value;
-	f32 pos2[2];
-	pos2[0] = pos_s[0];
-	pos2[1] = pos_s[1];
+	f32 pos_s[2], size_s[2];
+	PF_cl_HudScale(pos, size, pos_s, size_s);
 	s32 c;
-	if(!*text)
-		return; //don't waste time on spaces
 	while((c = *text++)){
-		Draw_Character_Ex(pos2, size_s, c, rgb, alpha);
-		pos2[0] += size_s[0];
+		Draw_Character_Ex(pos_s, size_s, c, rgb, alpha);
+		pos_s[0] += size_s[0];
 	}
 }
 
@@ -1660,14 +1620,8 @@ static void PF_cl_drawpic()
 	f32 alpha = G_FLOAT(OFS_PARM4);
 	f32 srcpos[2] = {0, 0};
 	f32 srcsize[2] = {1, 1};
-	f32 pos_s[2];
-	f32 size_s[2] = {size[0], size[1]};
-	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
-	f32 ay = vid.height;
-	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
-	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
-	size_s[0] *= scr_qchudscale.value;
-	size_s[1] *= scr_qchudscale.value;
+	f32 pos_s[2], size_s[2];
+	PF_cl_HudScale(pos, size, pos_s, size_s);
 	if(pic) Draw_Pic_Ex(pos_s, size_s, pic, srcpos, srcsize, rgb, alpha);
 }
 
@@ -1680,14 +1634,8 @@ static void PF_cl_drawsubpic()
 	f32 *srcsize = G_VECTOR(OFS_PARM4);
 	f32 *rgb = G_VECTOR(OFS_PARM5);
 	f32 alpha = G_FLOAT(OFS_PARM6);
-	f32 pos_s[2];
-	f32 size_s[2] = {size[0], size[1]};
-	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
-	f32 ay = vid.height;
-	pos_s[0] = ax + (pos[0] - ax) * scr_qchudscale.value;
-	pos_s[1] = ay + (pos[1] - ay) * scr_qchudscale.value;
-	size_s[0] *= scr_qchudscale.value;
-	size_s[1] *= scr_qchudscale.value;
+	f32 pos_s[2], size_s[2];
+	PF_cl_HudScale(pos, size, pos_s, size_s);
 	if(pic) Draw_Pic_Ex(pos_s, size_s, pic, srcpos, srcsize, rgb, alpha);
 }
 
@@ -2046,7 +1994,7 @@ builtindef_t pr_builtindefs[] = {
 {"precache_pic", PF_CSQC(PF_cl_precachepic), 317, 0}, 
 {"drawgetimagesize", PF_CSQC(PF_cl_getimagesize), 318, 0}, 
 {"drawcharacter", PF_CSQC(PF_cl_drawcharacter), 320, 0}, 
-{"drawrawstring", PF_CSQC(PF_cl_drawrawstring), 321, 0}, 
+{"drawrawstring", PF_CSQC(PF_cl_drawstring), 321, 0}, 
 {"drawpic", PF_CSQC(PF_cl_drawpic), 322, 0}, 
 {"drawfill", PF_CSQC(PF_cl_drawfill), 323, 0}, 
 {"drawsetcliparea", PF_CSQC(PF_cl_drawsetclip), 324, 0}, 
