@@ -6,35 +6,23 @@ static finalvert_t fv[2][8];
 static auxvert_t av[8];
 
 void R_AliasProjectFinalVert(finalvert_t *fv, auxvert_t *av);
-void R_Alias_clip_top(finalvert_t *pfv0, finalvert_t *pfv1,finalvert_t *out);
-void R_Alias_clip_bottom(finalvert_t *pfv0, finalvert_t *pfv1,finalvert_t *out);
-void R_Alias_clip_left(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t * out);
-void R_Alias_clip_right(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out);
-
 void R_Alias_clip_z(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 { // pfv0 is the unclipped vertex, pfv1 is the z-clipped vertex
 	auxvert_t *pav0 = &av[pfv0 - &fv[0][0]];
 	auxvert_t *pav1 = &av[pfv1 - &fv[0][0]];
 	auxvert_t avout;
-	if(pfv0->v[1] >= pfv1->v[1]){
-		f32 scale = (ALIAS_Z_CLIP_PLANE - pav0->fv[2]) /
-		    (pav1->fv[2] - pav0->fv[2]);
-		avout.fv[0] = pav0->fv[0] + (pav1->fv[0] - pav0->fv[0]) * scale;
-		avout.fv[1] = pav0->fv[1] + (pav1->fv[1] - pav0->fv[1]) * scale;
-		avout.fv[2] = ALIAS_Z_CLIP_PLANE;
-		out->v[2] = pfv0->v[2] + (pfv1->v[2] - pfv0->v[2]) * scale;
-		out->v[3] = pfv0->v[3] + (pfv1->v[3] - pfv0->v[3]) * scale;
-		out->v[4] = pfv0->v[4] + (pfv1->v[4] - pfv0->v[4]) * scale;
-	}else{
-		f32 scale = (ALIAS_Z_CLIP_PLANE - pav1->fv[2]) /
-		    (pav0->fv[2] - pav1->fv[2]);
-		avout.fv[0] = pav1->fv[0] + (pav0->fv[0] - pav1->fv[0]) * scale;
-		avout.fv[1] = pav1->fv[1] + (pav0->fv[1] - pav1->fv[1]) * scale;
-		avout.fv[2] = ALIAS_Z_CLIP_PLANE;
-		out->v[2] = pfv1->v[2] + (pfv0->v[2] - pfv1->v[2]) * scale;
-		out->v[3] = pfv1->v[3] + (pfv0->v[3] - pfv1->v[3]) * scale;
-		out->v[4] = pfv1->v[4] + (pfv0->v[4] - pfv1->v[4]) * scale;
+	if(pfv0->v[1] < pfv1->v[1]){ // start from the lower vertex
+		finalvert_t *fswap = pfv0; pfv0 = pfv1; pfv1 = fswap;
+		auxvert_t *aswap = pav0; pav0 = pav1; pav1 = aswap;
 	}
+	f32 scale = (ALIAS_Z_CLIP_PLANE - pav0->fv[2]) /
+	    (pav1->fv[2] - pav0->fv[2]);
+	avout.fv[0] = pav0->fv[0] + (pav1->fv[0] - pav0->fv[0]) * scale;
+	avout.fv[1] = pav0->fv[1] + (pav1->fv[1] - pav0->fv[1]) * scale;
+	avout.fv[2] = ALIAS_Z_CLIP_PLANE;
+	out->v[2] = pfv0->v[2] + (pfv1->v[2] - pfv0->v[2]) * scale;
+	out->v[3] = pfv0->v[3] + (pfv1->v[3] - pfv0->v[3]) * scale;
+	out->v[4] = pfv0->v[4] + (pfv1->v[4] - pfv0->v[4]) * scale;
 	R_AliasProjectFinalVert(out, &avout);
 	if(out->v[0] < r_refdef.aliasvrect.x)
 		out->flags |= ALIAS_LEFT_CLIP;
@@ -48,65 +36,29 @@ void R_Alias_clip_z(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 
 // r_aclipa.s starts from the upper vertex. The results depend on the direction
 // because of the chop rounding that R_RenderView sets
-void R_Alias_clip_left(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
+Q_SIL void R_AliasClipEdge(finalvert_t *pfv0, finalvert_t *pfv1,
+		finalvert_t *out, s32 axis, s64 edge)
 {
-	if(pfv0->v[1] < pfv1->v[1]){
-		f32 scale = (f32)(r_refdef.aliasvrect.x - pfv0->v[0]) /
-		    (pfv1->v[0] - pfv0->v[0]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv0->v[i]+(pfv1->v[i]-pfv0->v[i])*scale+0.5;
-	}else{
-		f32 scale = (f32)(r_refdef.aliasvrect.x - pfv1->v[0]) /
-		    (pfv0->v[0] - pfv1->v[0]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv1->v[i]+(pfv0->v[i]-pfv1->v[i])*scale+0.5;
+	if(pfv0->v[1] >= pfv1->v[1]){
+		finalvert_t *swap = pfv0; pfv0 = pfv1; pfv1 = swap;
 	}
+	f32 scale = (f32)(edge - pfv0->v[axis]) /
+		(pfv1->v[axis] - pfv0->v[axis]);
+	for(s32 i = 0; i < 6; i++)
+		out->v[i]=pfv0->v[i]+(pfv1->v[i]-pfv0->v[i])*scale+0.5;
 }
+
+void R_Alias_clip_left(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
+{ R_AliasClipEdge(pfv0, pfv1, out, 0, r_refdef.aliasvrect.x); }
 
 void R_Alias_clip_right(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
-{
-	if(pfv0->v[1] < pfv1->v[1]){
-		f32 scale = (f32)(r_refdef.aliasvrectright - pfv0->v[0]) /
-			(pfv1->v[0] - pfv0->v[0]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv0->v[i]+(pfv1->v[i]-pfv0->v[i])*scale+0.5;
-	}else{
-		f32 scale = (f32)(r_refdef.aliasvrectright - pfv1->v[0]) /
-		    (pfv0->v[0] - pfv1->v[0]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv1->v[i]+(pfv0->v[i]-pfv1->v[i])*scale+0.5;
-	}
-}
+{ R_AliasClipEdge(pfv0, pfv1, out, 0, r_refdef.aliasvrectright); }
 
 void R_Alias_clip_top(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
-{
-	if(pfv0->v[1] < pfv1->v[1]){
-		f32 scale = (f32)(r_refdef.aliasvrect.y - pfv0->v[1]) /
-			(pfv1->v[1] - pfv0->v[1]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv0->v[i]+(pfv1->v[i]-pfv0->v[i])*scale+0.5;
-	}else{
-		f32 scale = (f32)(r_refdef.aliasvrect.y - pfv1->v[1]) /
-		    (pfv0->v[1] - pfv1->v[1]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv1->v[i]+(pfv0->v[i]-pfv1->v[i])*scale+0.5;
-	}
-}
+{ R_AliasClipEdge(pfv0, pfv1, out, 1, r_refdef.aliasvrect.y); }
 
 void R_Alias_clip_bottom(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
-{
-	if(pfv0->v[1] < pfv1->v[1]){
-		f32 scale = (f32)(r_refdef.aliasvrectbottom - pfv0->v[1]) /
-			(pfv1->v[1] - pfv0->v[1]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv0->v[i]+(pfv1->v[i]-pfv0->v[i])*scale+0.5;
-	}else{
-		f32 scale = (f32)(r_refdef.aliasvrectbottom - pfv1->v[1]) /
-			(pfv0->v[1] - pfv1->v[1]);
-		for(s32 i = 0; i < 6; i++)
-			out->v[i]=pfv1->v[i]+(pfv0->v[i]-pfv1->v[i])*scale+0.5;
-	}
-}
+{ R_AliasClipEdge(pfv0, pfv1, out, 1, r_refdef.aliasvrectbottom); }
 
 s32 R_AliasClip(finalvert_t *in, finalvert_t *out, s32 flag, s32 count,
 	void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out))
