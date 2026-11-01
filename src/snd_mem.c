@@ -34,7 +34,7 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 	if(stepscale == 1 && inwidth == 1 && sc->width == 1){
 		// fast special case
 		for(s32 i = 0; i < outcount; i++)
-			((c8 *)sc->data)[i] = (s32)((u8)(data[i]) - 128);
+			((c8 *)sc->data)[i] = (s32)(data[i] - 128);
 	}else{
 		// general case
 		// samplefrac can overflow 2**31 with very big sounds, see below
@@ -45,7 +45,7 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 			samplefrac += fracstep; // int64_t to prevent overflow
 			s32 sample = inwidth == 2 ? 
 				(s16)(((s16 *)data)[srcsample]):
-				(s32)((u8)(data[srcsample]) - 128) << 8;
+				(s32)(data[srcsample] - 128) << 8;
 			if(sc->width == 2) ((s16 *)sc->data)[i] = sample;
 			else((c8 *)sc->data)[i] = sample >> 8;
 		}

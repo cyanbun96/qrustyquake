@@ -1363,9 +1363,6 @@ bool PR_LoadProgs(const c8 *filename, bool fatal)
 		return false;
 	Con_DPrintf("Programs occupy %" SDL_PRIs64 "K.\n", com_filesize/1024);
 	qcvm->crc = CRC_Block((u8*)qcvm->progs, com_filesize);
-	// byte swap the header
-	for(s32 i = 0; i < (s32) sizeof(*qcvm->progs) / 4; i++)
-		((s32*)qcvm->progs)[i] = (s32)( ((s32*)qcvm->progs)[i] );
 	if(qcvm->progs->version != PROG_VERSION){
 		if(fatal)
 		    Host_Error("%s has wrong version number(%i should be %i)",
@@ -1431,41 +1428,9 @@ Host_Error("%s system vars have been modified, progdefs.h is out of date",
 			+ qcvm->progs->ofs_statements);
 	qcvm->globals = (f32 *)((u8 *)qcvm->progs + qcvm->progs->ofs_globals);
 	pr_global_struct = (globalvars_t*)qcvm->globals;
-	// byte swap the lumps
-	for(s32 i = 0; i < qcvm->progs->numstatements; i++){
-		qcvm->statements[i].op = (s16)(qcvm->statements[i].op);
-		qcvm->statements[i].a = (s16)(qcvm->statements[i].a);
-		qcvm->statements[i].b = (s16)(qcvm->statements[i].b);
-		qcvm->statements[i].c = (s16)(qcvm->statements[i].c);
-	}
-	for(s32 i = 0; i < qcvm->progs->numfunctions; i++){
-		qcvm->functions[i].first_statement =
-			(s32)(qcvm->functions[i].first_statement);
-		qcvm->functions[i].parm_start =
-			(s32)(qcvm->functions[i].parm_start);
-		qcvm->functions[i].s_name =
-			(s32)(qcvm->functions[i].s_name);
-		qcvm->functions[i].s_file =
-			(s32)(qcvm->functions[i].s_file);
-		qcvm->functions[i].numparms =
-			(s32)(qcvm->functions[i].numparms);
-		qcvm->functions[i].locals =
-			(s32)(qcvm->functions[i].locals);
-	}
-	for(s32 i = 0; i < qcvm->progs->numglobaldefs; i++){
-		qcvm->globaldefs[i].type = (s16)(qcvm->globaldefs[i].type);
-		qcvm->globaldefs[i].ofs = (s16)(qcvm->globaldefs[i].ofs);
-		qcvm->globaldefs[i].s_name = (s32)(qcvm->globaldefs[i].s_name);
-	}
-	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++){
-		qcvm->fielddefs[i].type = (s16)(qcvm->fielddefs[i].type);
+	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++)
 		if(qcvm->fielddefs[i].type & DEF_SAVEGLOBAL)
 	Host_Error("PR_LoadProgs: pr_fielddefs[i].type & DEF_SAVEGLOBAL");
-		qcvm->fielddefs[i].ofs = (s16)(qcvm->fielddefs[i].ofs);
-		qcvm->fielddefs[i].s_name = (s32)(qcvm->fielddefs[i].s_name);
-	}
-	for(s32 i = 0; i < qcvm->progs->numglobals; i++)
-		((s32*)qcvm->globals)[i] = (s32)(((s32*)qcvm->globals)[i]);
 	//spike: detect extended fields from progs
 	PR_MergeEngineFieldDefs();
 #define QCEXTFIELD(n,t) qcvm->extfields.n = ED_FindFieldOffset(#n);

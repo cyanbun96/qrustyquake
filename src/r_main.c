@@ -482,10 +482,10 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	r_refdef.vrectbottom = r_refdef.vrect.y + r_refdef.vrect.height;
 	r_refdef.fvrectbottom = (f32)r_refdef.vrectbottom;
 	r_refdef.fvrectbottom_adj = (f32)r_refdef.vrectbottom - 0.5;
-	r_refdef.aliasvrect.x = (s32)(r_refdef.vrect.x);
-	r_refdef.aliasvrect.y = (s32)(r_refdef.vrect.y);
-	r_refdef.aliasvrect.width = (s32)(r_refdef.vrect.width);
-	r_refdef.aliasvrect.height = (s32)(r_refdef.vrect.height);
+	r_refdef.aliasvrect.x = r_refdef.vrect.x;
+	r_refdef.aliasvrect.y = r_refdef.vrect.y;
+	r_refdef.aliasvrect.width = r_refdef.vrect.width;
+	r_refdef.aliasvrect.height = r_refdef.vrect.height;
 	r_refdef.aliasvrectright =
 		r_refdef.aliasvrect.x + r_refdef.aliasvrect.width;
 	r_refdef.aliasvrectbottom =

@@ -521,7 +521,6 @@ void Mod_LoadTextures(lump_t *l)
 		return;
 	}
 	dmiptexlump_t *m = (dmiptexlump_t *) (mod_base + l->fileofs);
-	m->nummiptex = (s32)(m->nummiptex);
 	if(l->filelen < 4 || m->nummiptex < 0 ||
 			m->nummiptex > (l->filelen - 4) / 4){
 		Con_Printf("Mod_LoadTextures: bad texture count in %s\n",
@@ -532,7 +531,6 @@ void Mod_LoadTextures(lump_t *l)
 	loadmodel->textures = Hunk_AllocName(m->nummiptex *
 			sizeof(*loadmodel->textures), loadname);
 	for(s32 i = 0; i < m->nummiptex; i++){
-		m->dataofs[i] = (s32)(m->dataofs[i]);
 		if(m->dataofs[i] == -1) continue;
 		bool q64 = loadmodel->bspversion == BSPVERSION_QUAKE64;
 		if(m->dataofs[i] < 0 || (u32)m->dataofs[i] > l->filelen -
@@ -551,10 +549,6 @@ void Mod_LoadTextures(lump_t *l)
 			for(s32 j = 0; j < MIPLEVELS; j++)
 				if(mt->offsets[j]) mt->offsets[j] -= 4;
 		}
-		mt->width = (s32)(mt->width);
-		mt->height = (s32)(mt->height);
-		for(s32 j = 0; j < MIPLEVELS; j++)
-			mt->offsets[j] = (s32)(mt->offsets[j]);
 		if(!mt->width || !mt->height || mt->width > 8192 ||
 				mt->height > 8192){
 			Con_Printf("Texture %.16s has bad size %ux%u\n",
@@ -908,9 +902,9 @@ static void Mod_LoadVertexes(lump_t *l)
 	loadmodel->vertexes = out;
 	loadmodel->numvertexes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
-		out->position[0] = (f32)(in->point[0]);
-		out->position[1] = (f32)(in->point[1]);
-		out->position[2] = (f32)(in->point[2]);
+		out->position[0] = in->point[0];
+		out->position[1] = in->point[1];
+		out->position[2] = in->point[2];
 	}
 }
 
@@ -964,7 +958,7 @@ static void Mod_LoadTexinfo(lump_t *l)
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 k = 0; k < 2; k++)
 			for(s32 j = 0; j < 4; j++)
-				out->vecs[k][j] = (f32)(in->vecs[k][j]);
+				out->vecs[k][j] = in->vecs[k][j];
 		f32 len1 = VectorLength(out->vecs[0]);
 		f32 len2 = VectorLength(out->vecs[1]);
 		len1 = (len1 + len2) / 2;
@@ -972,8 +966,8 @@ static void Mod_LoadTexinfo(lump_t *l)
 		else if(len1 < 0.49) out->mipadjust = 3;
 		else if(len1 < 0.99) out->mipadjust = 2;
 		else                 out->mipadjust = 1;
-		s32 miptex = (s32)(in->miptex);
-		out->flags = (s32)(in->flags);
+		s32 miptex = in->miptex;
+		out->flags = in->flags;
 		if(!loadmodel->textures){
 			out->texture = r_notexture_mip; // checkerboard texture
 			out->flags = TEX_MISSING; // it has no pixels
@@ -1086,24 +1080,24 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	s32 badfaces = 0;
 	for(s32 surfnum = 0; surfnum < count; surfnum++, out++){
 		if(bsp2){
-			out->firstedge = (s32)(inl->firstedge);
-			out->numedges = (s32)(inl->numedges);
-			planenum = (s32)(inl->planenum);
-			side = (s32)(inl->side);
-			texinfon = (s32)(inl->texinfo);
+			out->firstedge = inl->firstedge;
+			out->numedges = inl->numedges;
+			planenum = inl->planenum;
+			side = inl->side;
+			texinfon = inl->texinfo;
 			for(i=0 ; i<MAXLIGHTMAPS ; i++)
 				out->styles[i] = inl->styles[i];
-			lofs = (s32)(inl->lightofs);
+			lofs = inl->lightofs;
 			inl++;
 		}else{
-			out->firstedge = (s32)(ins->firstedge);
-			out->numedges = (s16)(ins->numedges);
+			out->firstedge = ins->firstedge;
+			out->numedges = ins->numedges;
 			planenum = (u16)(ins->planenum); // can be past 32767
-			side = (s16)(ins->side);
+			side = ins->side;
 			texinfon = (u16)(ins->texinfo);
 			for(i=0 ; i<MAXLIGHTMAPS ; i++)
 				out->styles[i] = ins->styles[i];
-			lofs = (s32)(ins->lightofs);
+			lofs = ins->lightofs;
 			ins++;
 		}
 		// other engines just read past the arrays and load the map
@@ -1235,7 +1229,6 @@ bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 		fclose (f);
 		return false;
 	}
-	header.version = (s32) (header.version);
 	switch(header.version)
 	{
 		case BSPVERSION:
@@ -1247,8 +1240,6 @@ bool Mod_LoadMapDescription(c8 *desc, size_t maxchars, const c8 *map)
 			fclose (f);
 			return false;
 	}
-	for(i = 1; i < (s32) (sizeof(header) / sizeof(s32)); i++)
-		((s32*)&header)[i] = (s32) ( ((s32*)&header)[i]);
 	entlump = &header.lumps[0];
 	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
@@ -1328,7 +1319,6 @@ s32 Mod_CountSecrets(const c8 *map)
 		fclose (f);
 		return 0;
 	}
-	header.version = (s32) (header.version);
 	switch(header.version){
 		case BSPVERSION:
 		case BSP2VERSION_2PSB:
@@ -1339,8 +1329,6 @@ s32 Mod_CountSecrets(const c8 *map)
 			fclose (f);
 			return 0;
 	}
-	for(i = 1; i < (s32)(sizeof(header) / sizeof(s32)); i++)
-		((s32*)&header)[i] = (s32)(((s32*)&header)[i]);
 	entlump = &header.lumps[0];
 	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
@@ -1420,7 +1408,6 @@ s32 Mod_CountMonsters(const c8 *map)
 		fclose (f);
 		return 0;
 	}
-	header.version = (s32) (header.version);
 	switch(header.version){
 		case BSPVERSION:
 		case BSP2VERSION_2PSB:
@@ -1431,8 +1418,6 @@ s32 Mod_CountMonsters(const c8 *map)
 			fclose (f);
 			return 0;
 	}
-	for(i = 1; i < (s32)(sizeof (header) / sizeof (s32)); i++)
-		((s32 *)&header)[i] = (s32) (((s32 *)&header)[i]);
 	entlump = &header.lumps[0];
 	if(entlump->filelen < 0 || entlump->filelen >= filesize ||
 	entlump->fileofs < 0 || entlump->fileofs + entlump->filelen > filesize){
@@ -1574,15 +1559,15 @@ static void Mod_LoadNodes_S(lump_t *l)
 	loadmodel->numnodes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = (s16)(in->mins[j]);
-			out->minmaxs[3+j] = (s16)(in->maxs[j]);
+			out->minmaxs[j] = in->mins[j];
+			out->minmaxs[3+j] = in->maxs[j];
 		}
-		s32 p = (s32)(in->planenum);
+		s32 p = in->planenum;
 		out->plane = loadmodel->planes + p;
 		out->firstsurface = (u16)(s16)(in->firstface);
 		out->numsurfaces = (u16)(s16)(in->numfaces);
 		for(s32 j = 0; j < 2; j++){
-			p = (u16)(s16)(in->children[j]);
+			p = (u16)in->children[j];
 			if(p < count)
 				out->children[j] = loadmodel->nodes + p;
 			else{//note this uses 65535 intentionally, -1 is leaf 0
@@ -1611,15 +1596,15 @@ static void Mod_LoadNodes_L1(lump_t *l)
 	loadmodel->numnodes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = (s16)(in->mins[j]);
-			out->minmaxs[3+j] = (s16)(in->maxs[j]);
+			out->minmaxs[j] = in->mins[j];
+			out->minmaxs[3+j] = in->maxs[j];
 		}
-		s32 p = (s32)(in->planenum);
+		s32 p = in->planenum;
 		out->plane = loadmodel->planes + p;
 		out->firstsurface = (s32)(in->firstface);
 		out->numsurfaces = (s32)(in->numfaces);
 		for(s32 j = 0; j < 2; j++){
-			p = (s32)(in->children[j]);
+			p = in->children[j];
 			if(p >= 0 && p < count)
 				out->children[j] = loadmodel->nodes + p;
 			else{//note this uses 65535 intentionally, -1 is leaf 0
@@ -1649,15 +1634,15 @@ static void Mod_LoadNodes_L2(lump_t *l)
 	loadmodel->numnodes = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = (f32)(in->mins[j]);
-			out->minmaxs[3+j] = (f32)(in->maxs[j]);
+			out->minmaxs[j] = in->mins[j];
+			out->minmaxs[3+j] = in->maxs[j];
 		}
-		s32 p = (s32)(in->planenum);
+		s32 p = in->planenum;
 		out->plane = loadmodel->planes + p;
 		out->firstsurface = (s32)(in->firstface);
 		out->numsurfaces = (s32)(in->numfaces);
 		for(s32 j = 0; j < 2; j++){
-			p = (s32)(in->children[j]);
+			p = in->children[j];
 			if(p > 0 && p < count)
 				out->children[j] = loadmodel->nodes + p;
 			else{//note this uses 65535 intentionally, -1 is leaf 0
@@ -1696,15 +1681,15 @@ static void Mod_ProcessLeafs_S(dleaf_t *in, s32 filelen)
 	loadmodel->numleafs = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = (s16)(in->mins[j]);
-			out->minmaxs[3+j] = (s16)(in->maxs[j]);
+			out->minmaxs[j] = in->mins[j];
+			out->minmaxs[3+j] = in->maxs[j];
 		}
-		s32 p = (s32)(in->contents);
+		s32 p = in->contents;
 		out->contents = p;
 		out->firstmarksurface = loadmodel->marksurfaces 
 				+ (u16)(s16)(in->firstmarksurface);
 		out->nummarksurfaces = (u16)(s16)(in->nummarksurfaces);
-		p = (s32)(in->visofs);
+		p = in->visofs;
 		if(p == -1) out->compressed_vis = NULL;
 		else out->compressed_vis = loadmodel->visdata + p;
 		out->efrags = NULL;
@@ -1723,15 +1708,15 @@ static void Mod_ProcessLeafs_L1(dl1leaf_t *in, s32 filelen)
 	loadmodel->numleafs = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = (s16)(in->mins[j]);
-			out->minmaxs[3+j] = (s16)(in->maxs[j]);
+			out->minmaxs[j] = in->mins[j];
+			out->minmaxs[3+j] = in->maxs[j];
 		}
-		s32 p = (s32)(in->contents);
+		s32 p = in->contents;
 		out->contents = p;
 		out->firstmarksurface = loadmodel->marksurfaces 
 			+ (s32)(in->firstmarksurface);
 		out->nummarksurfaces = (s32)(in->nummarksurfaces);
-		p = (s32)(in->visofs);
+		p = in->visofs;
 		if(p == -1) out->compressed_vis = NULL;
 		else out->compressed_vis = loadmodel->visdata + p;
 		out->efrags = NULL;
@@ -1750,15 +1735,15 @@ static void Mod_ProcessLeafs_L2(dl2leaf_t *in, s32 filelen)
 	loadmodel->numleafs = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){
-			out->minmaxs[j] = (f32)(in->mins[j]);
-			out->minmaxs[3+j] = (f32)(in->maxs[j]);
+			out->minmaxs[j] = in->mins[j];
+			out->minmaxs[3+j] = in->maxs[j];
 		}
-		s32 p = (s32)(in->contents);
+		s32 p = in->contents;
 		out->contents = p;
 		out->firstmarksurface = loadmodel->marksurfaces
 			+ (s32)(in->firstmarksurface);
 		out->nummarksurfaces = (s32)(in->nummarksurfaces);
-		p = (s32)(in->visofs);
+		p = in->visofs;
 		if(p == -1) out->compressed_vis = NULL;
 		else out->compressed_vis = loadmodel->visdata + p;
 		out->efrags = NULL;
@@ -1914,17 +1899,17 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 	hull->clip_maxs[1] = 32;
 	hull->clip_maxs[2] = 64;
 	if(bsp2){ for(s32 i = 0; i < count; i++, out++, inl++){ // johnfitz
-		out->planenum = (s32)(inl->planenum);//bounds check
+		out->planenum = inl->planenum;//bounds check
 		if(out->planenum < 0 || out->planenum >= loadmodel->numplanes)
 			Host_Error("Mod_LoadClipnodes: planenum out of bounds");
-		out->children[0] = (s32)(inl->children[0]);
-		out->children[1] = (s32)(inl->children[1]);
+		out->children[0] = inl->children[0];
+		out->children[1] = inl->children[1];
 	} }else{ for(s32 i = 0; i < count; i++, out++, ins++){
-		out->planenum = (s32)(ins->planenum);
+		out->planenum = ins->planenum;
 		if(out->planenum < 0 || out->planenum >= loadmodel->numplanes)
 			Host_Error("Mod_LoadClipnodes: planenum out of bounds");
-		out->children[0] = (u16)(s16)(ins->children[0]);
-		out->children[1] = (u16)(s16)(ins->children[1]);
+		out->children[0] = (u16)ins->children[0];
+		out->children[1] = (u16)ins->children[1];
 		if(out->children[0] >= count) out->children[0] -= 65536;
 		if(out->children[1] >= count) out->children[1] -= 65536;
 	} }
@@ -1976,7 +1961,7 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 		if(count > 32767)
 	Con_DPrintf("%i marksurfaces exceeds standard limit of 32767.\n",count);
 		for(s32 i = 0; i < count; i++){
-			u16 j = (u16)(s16)(in[i]);
+			u16 j = (u16)in[i];
 			if(j >= loadmodel->numsurfaces)
 			  Sys_Error("Mod_LoadMarksurfaces: bad surface number");
 			out[i] = loadmodel->surfaces + j;
@@ -1994,7 +1979,7 @@ static void Mod_LoadSurfedges(lump_t *l)
 	loadmodel->surfedges = out;
 	loadmodel->numsurfedges = count;
 	for(s32 i = 0; i < count; i++){
-		out[i] = (s32)(in[i]);
+		out[i] = in[i];
 		if(out[i] <= -loadmodel->numedges ||
 				out[i] >= loadmodel->numedges)
 			Host_Error("Mod_LoadSurfedges: bad edge in %s",
@@ -2021,12 +2006,12 @@ static void Mod_LoadPlanes(lump_t *l)
 	for(s32 i = 0; i < count; i++, in++, out++){
 		s32 bits = 0;
 		for(s32 j = 0; j < 3; j++){
-			out->normal[j] = (f32)(in->normal[j]);
+			out->normal[j] = in->normal[j];
 			if(out->normal[j] < 0)
 				bits |= 1<<j;
 		}
-		out->dist = (f32)(in->dist);
-		out->type = (s32)(in->type);
+		out->dist = in->dist;
+		out->type = in->type;
 		out->signbits = bits;
 	}
 }
@@ -2050,15 +2035,15 @@ static void Mod_LoadSubmodels(lump_t *l)
 	loadmodel->numsubmodels = count;
 	for(s32 i = 0; i < count; i++, in++, out++){
 		for(s32 j = 0; j < 3; j++){ // spread the mins / maxs by a pixel
-			out->mins[j] = (f32)(in->mins[j]) - 1;
-			out->maxs[j] = (f32)(in->maxs[j]) + 1;
-			out->origin[j] = (f32)(in->origin[j]);
+			out->mins[j] = in->mins[j] - 1;
+			out->maxs[j] = in->maxs[j] + 1;
+			out->origin[j] = in->origin[j];
 		}
 		for(s32 j = 0; j < MAX_MAP_HULLS; j++)
-			out->headnode[j] = (s32)(in->headnode[j]);
-		out->visleafs = (s32)(in->visleafs);
-		out->firstface = (s32)(in->firstface);
-		out->numfaces = (s32)(in->numfaces);
+			out->headnode[j] = in->headnode[j];
+		out->visleafs = in->visleafs;
+		out->firstface = in->firstface;
+		out->numfaces = in->numfaces;
 	}
 	out = loadmodel->submodels;
 	if(out->visleafs > 8192) // johnfitz -- check world visleafs, from bjp
@@ -2092,7 +2077,6 @@ static FILE *Mod_FindVisibilityExternal()
 	const c8 *shortname = COM_SkipPath(loadmodel->name);
 	s64 pos = 0;
 	while((r=fread(&header,1,VISPATCH_HEADER_LEN,f))==VISPATCH_HEADER_LEN){
-		header.filelen = (s32)(header.filelen);
 		if(header.filelen <= 0){ // bad entry -- don't trust the rest.
 			fclose(f);
 			return NULL;
@@ -2113,7 +2097,6 @@ static u8 *Mod_LoadVisibilityExternal(FILE *f)
 {
 	s32 filelen = 0;
 	if(!fread(&filelen, 4, 1, f)) return NULL;
-	filelen = (s32)(filelen);
 	if(filelen <= 0) return NULL;
 	Con_DPrintf("...%d bytes visibility data\n", filelen);
 	u8 *visdata = (u8 *) Hunk_AllocName(filelen, "EXT_VIS");
@@ -2125,7 +2108,6 @@ static void Mod_LoadLeafsExternal(FILE *f)
 {
 	s32 filelen = 0;
 	if(!fread(&filelen, 4, 1, f)) return;
-	filelen = (s32)(filelen);
 	if(filelen <= 0) return;
 	Con_DPrintf("...%d bytes leaf data\n", filelen);
 	void *in = Hunk_AllocName(filelen, "EXT_LEAF");
@@ -2137,7 +2119,7 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 {
 	loadmodel->type = mod_brush;
 	dheader_t *header = (dheader_t *)buffer;
-	mod->bspversion = (s32)(header->version);
+	mod->bspversion = header->version;
 	s32 bsp2 = 0;
 	switch(mod->bspversion){
 		case BSPVERSION: bsp2 = 0; break;
@@ -2151,9 +2133,7 @@ static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 	}
 	if(com_filesize < (s32)sizeof(dheader_t))
 		Host_Error("Mod_LoadBrushModel: %s is too short", mod->name);
-	mod_base = (u8 *)header; // swap all the lumps
-	for(s32 i = 0; i < (s32)sizeof(dheader_t) / 4; i++)
-		((s32 *)header)[i] = (s32)( ((s32 *)header)[i]);
+	mod_base = (u8 *)header;
 	for(s32 i = 0; i < 15; i++){ // the loaders trust these
 		lump_t *l = &header->lumps[i];
 		if(l->filelen < 0 || (l->filelen && (l->fileofs < 0 ||
@@ -2307,7 +2287,7 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 {
 	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
 	Mod_CheckFile(pingroup, 1, sizeof(*pingroup));
-	s32 numframes = (s32)(pingroup->numframes);
+	s32 numframes = pingroup->numframes;
 	if(numframes < 1 || numframes > MAXALIASFRAMES) Mod_BadFile();
 	Mod_CheckFile(pingroup + 1, numframes, sizeof(daliasinterval_t));
 	frame->firstpose = posenum;
@@ -2320,11 +2300,11 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	}
 	*pframeindex = (u8 *) paliasgroup - (u8 *) pheader;
 	daliasinterval_t *pin_intervals = (daliasinterval_t *) (pingroup + 1);
-	frame->interval = (f32)(pin_intervals->interval);
+	frame->interval = pin_intervals->interval;
 	f32 *poutintervals = Hunk_AllocName(numframes * sizeof(f32), loadname);
 	paliasgroup->intervals = (u8 *) poutintervals - (u8 *) pheader;
 	for(s32 i = 0; i < numframes; i++, pin_intervals++){
-		poutintervals[i] = (f32)(pin_intervals->interval);
+		poutintervals[i] = pin_intervals->interval;
 		if(poutintervals[i] <= 0.0)
 			Sys_Error("Mod_LoadAliasGroup: interval<=0");
 	}
@@ -2421,7 +2401,7 @@ void *Mod_LoadAliasSkinGroup(void *pin, s32 *pskinindex, s32 skinsize,
 {
 	daliasskingroup_t *pinskingroup = (daliasskingroup_t *) pin;
 	Mod_CheckFile(pinskingroup, 1, sizeof(*pinskingroup));
-	s32 numskins = (s32)(pinskingroup->numskins);
+	s32 numskins = pinskingroup->numskins;
 	if(numskins < 1) Mod_BadFile();
 	Mod_CheckFile(pinskingroup + 1, numskins,
 			sizeof(daliasskininterval_t));
@@ -2435,7 +2415,7 @@ void *Mod_LoadAliasSkinGroup(void *pin, s32 *pskinindex, s32 skinsize,
 	f32 *poutskinintervals = Hunk_AllocName(numskins*sizeof(f32), loadname);
 	paliasskingroup->intervals = (u8*)poutskinintervals - (u8*)pheader;
 	for(s32 i = 0; i < numskins; i++){
-		*poutskinintervals = (f32)(pinskinintervals->interval);
+		*poutskinintervals = pinskinintervals->interval;
 		if(*poutskinintervals <= 0)
 			Sys_Error("Mod_LoadAliasSkinGroup: interval<=0");
 		poutskinintervals++;
@@ -2459,15 +2439,15 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	s32 start = Hunk_LowMark();
 	mdl_t *pinmodel = buffer;
 	Mod_CheckFile(pinmodel, 1, sizeof(*pinmodel));
-	s32 version = (s32)(pinmodel->version);
+	s32 version = pinmodel->version;
 	if(version != ALIAS_VERSION) Host_Error(
 	     "Mod_LoadAliasModel: %s has wrong version number(%d should be %d)",
 				mod->name, version, ALIAS_VERSION);
 	// size and pmodel below are built from these, so check them first
-	s32 numframes = (s32)(pinmodel->numframes);
-	s32 numverts = (s32)(pinmodel->numverts);
-	s32 numtris = (s32)(pinmodel->numtris);
-	s32 numskins = (s32)(pinmodel->numskins);
+	s32 numframes = pinmodel->numframes;
+	s32 numverts = pinmodel->numverts;
+	s32 numtris = pinmodel->numtris;
+	s32 numskins = pinmodel->numskins;
 	if(numverts <= 0) Host_Error(
 	    "Mod_LoadAliasModel: model %s has no vertices", mod->name);
 	if(numverts > MAXALIASVERTS) Host_Error(
@@ -2492,28 +2472,28 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pheader = (aliashdr_t *)Hunk_AllocName(size, loadname);
 	mdl_t *pmodel = (mdl_t*)((u8*)&pheader[1]
 			+ (numframes-1)*sizeof(pheader->frames[0]));
-	mod->flags = (s32)(pinmodel->flags);
+	mod->flags = pinmodel->flags;
 	// endian-adjust and copy the data, starting with the alias model header
-	pmodel->boundingradius = (f32)(pinmodel->boundingradius);
+	pmodel->boundingradius = pinmodel->boundingradius;
 	pmodel->numskins = numskins;
-	pmodel->skinwidth = pheader->skinwidth =(s32)(pinmodel->skinwidth);
-	pmodel->skinheight=pheader->skinheight=(s32)(pinmodel->skinheight);
+	pmodel->skinwidth = pheader->skinwidth =pinmodel->skinwidth;
+	pmodel->skinheight=pheader->skinheight=pinmodel->skinheight;
 	if(pheader->skinheight > MAX_LBM_HEIGHT) Con_DPrintf(
 		"Mod_LoadAliasModel: model %s has a skin taller than %d",
 			mod->name, MAX_LBM_HEIGHT);
 	pmodel->numverts = pheader->numverts = numverts;
 	pmodel->numtris = pheader->numtris = numtris;
 	pmodel->numframes = pheader->numframes = numframes;
-	pmodel->size = (f32)(pinmodel->size) * ALIAS_BASE_SIZE_RATIO;
+	pmodel->size = pinmodel->size * ALIAS_BASE_SIZE_RATIO;
 	mod->synctype = (synctype_t)(s32)(pinmodel->synctype);
 	mod->numframes = pheader->numframes;
 	for(s32 i = 0; i < 3; i++){
 		pmodel->scale[i] = pheader->scale[i] =
-			(f32)(pinmodel->scale[i]);
+			pinmodel->scale[i];
 		pmodel->scale_origin[i] = pheader->scale_origin[i] =
-			(f32)(pinmodel->scale_origin[i]);
+			pinmodel->scale_origin[i];
 		pmodel->eyeposition[i] = pheader->eyeposition[i] =
-			(f32)(pinmodel->eyeposition[i]);
+			pinmodel->eyeposition[i];
 	}
 	if(pmodel->skinwidth & 0x03)
 	    Con_DPrintf("Mod_LoadAliasModel: skinwidth not multiple of 4\n");
@@ -2542,7 +2522,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pheader->stverts = (u8 *)pstverts - (u8 *)pheader;
 	s32 stclamped = 0;
 	for(s32 i = 0; i < pheader->numverts; i++){
-		pstverts[i].onseam = (s32)(pinstverts[i].onseam);
+		pstverts[i].onseam = pinstverts[i].onseam;
 		// the rasterizer doesn't wrap, so keep s and t on the skin
 		s32 s = CLAMP(0, (s32)(pinstverts[i].s), pmodel->skinwidth-1);
 		s32 t = CLAMP(0, (s32)(pinstverts[i].t), pmodel->skinheight-1);
@@ -2559,9 +2539,9 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	Mod_CheckFile(pintriangles, numtris, sizeof(*pintriangles));
 	pheader->triangles = (u8 *)ptri - (u8 *)pheader;
 	for(s32 i = 0; i<pheader->numtris ; i++){
-		ptri[i].facesfront = (s32)(pintriangles[i].facesfront);
+		ptri[i].facesfront = pintriangles[i].facesfront;
 		for(s32 j = 0; j < 3; j++){
-			s32 v = (s32)(pintriangles[i].vertindex[j]);
+			s32 v = pintriangles[i].vertindex[j];
 			// the renderer indexes its vertex arrays with these
 			if(v < 0 || v >= numverts) Mod_BadFile();
 			ptri[i].vertindex[j] = v;
@@ -2609,8 +2589,8 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 	s32 width, height, size, origin[2];
 	dspriteframe_t *pinframe = (dspriteframe_t *) pin;
 	Mod_CheckFile(pinframe, 1, sizeof(*pinframe));
-	width = (s32)(pinframe->width);
-	height = (s32)(pinframe->height);
+	width = pinframe->width;
+	height = pinframe->height;
 	if(width < 0 || height < 0) Mod_BadFile();
 	Mod_CheckFile(pinframe + 1, width, height);
 	size = width * height;
@@ -2620,8 +2600,8 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 	*ppframe = pspriteframe;
 	pspriteframe->width = width;
 	pspriteframe->height = height;
-	origin[0] = (s32)(pinframe->origin[0]);
-	origin[1] = (s32)(pinframe->origin[1]);
+	origin[0] = pinframe->origin[0];
+	origin[1] = pinframe->origin[1];
 	pspriteframe->up = origin[1];
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
@@ -2634,7 +2614,7 @@ void *Mod_LoadSpriteGroup(void *pin, mspriteframe_t **ppframe)
 {
 	dspritegroup_t *pingroup = (dspritegroup_t *) pin;
 	Mod_CheckFile(pingroup, 1, sizeof(*pingroup));
-	s32 numframes = (s32)(pingroup->numframes);
+	s32 numframes = pingroup->numframes;
 	if(numframes < 1) Mod_BadFile();
 	Mod_CheckFile(pingroup + 1, numframes, sizeof(dspriteinterval_t));
 	mspritegroup_t *pspritegroup = Hunk_AllocName(sizeof(mspritegroup_t) +
@@ -2645,7 +2625,7 @@ void *Mod_LoadSpriteGroup(void *pin, mspriteframe_t **ppframe)
 	f32 *poutintervals = Hunk_AllocName(numframes*sizeof(f32),loadname);
 	pspritegroup->intervals = poutintervals;
 	for(s32 i = 0; i < numframes; i++){
-		*poutintervals = (f32)(pin_intervals->interval);
+		*poutintervals = pin_intervals->interval;
 		if(*poutintervals <= 0.0)
 			Sys_Error("Mod_LoadSpriteGroup: interval<=0");
 		poutintervals++;
@@ -2662,11 +2642,11 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 	dspriteframetype_t *pframetype;
 	dsprite_t *pin = (dsprite_t *) buffer;
 	Mod_CheckFile(pin, 1, sizeof(*pin));
-	s32 version = (s32)(pin->version);
+	s32 version = pin->version;
 	if(version != SPRITE_VERSION)
 		Sys_Error("%s has wrong version number " "(%i should be %i)",
 				mod->name, version, SPRITE_VERSION);
-	s32 numframes = (s32)(pin->numframes);
+	s32 numframes = pin->numframes;
 	if(numframes < 1) Host_Error(
 		"Mod_LoadSpriteModel: Invalid # of frames: %d\n", numframes);
 	Mod_CheckFile(pin + 1, numframes,
@@ -2675,10 +2655,10 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 	s32 size = sizeof(msprite_t) + (numframes - 1)*sizeof(psprite->frames);
 	psprite = Hunk_AllocName(size, loadname);
 	mod->cache.data = psprite;
-	psprite->type = (s32)(pin->type);
-	psprite->maxwidth = (s32)(pin->width);
-	psprite->maxheight = (s32)(pin->height);
-	psprite->beamlength = (f32)(pin->beamlength);
+	psprite->type = pin->type;
+	psprite->maxwidth = pin->width;
+	psprite->maxheight = pin->height;
+	psprite->beamlength = pin->beamlength;
 	mod->synctype = (s32)(pin->synctype);
 	psprite->numframes = numframes;
 	mod->mins[0] = mod->mins[1] = -psprite->maxwidth / 2;

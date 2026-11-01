@@ -55,15 +55,12 @@ void W_LoadWadFile()
 	if(header->identification[0]!='W'||header->identification[1]!='A'||
 		header->identification[2]!='D'||header->identification[3]!='2')
 		Sys_Error("Wad file %s doesn't have WAD2 id\n",filename);
-	wad_numlumps = (s32)(header->numlumps);
-	s32 infotableofs = (s32)(header->infotableofs);
+	wad_numlumps = header->numlumps;
+	s32 infotableofs = header->infotableofs;
 	wad_lumps = (lumpinfo_t *)(wad_base + infotableofs);
 	lumpinfo_t *lump_p = wad_lumps;
-	for(s32 i = 0; i < wad_numlumps; i++, lump_p++){
-		lump_p->filepos = (s32)(lump_p->filepos);
-		lump_p->size = (s32)(lump_p->size);
+	for(s32 i = 0; i < wad_numlumps; i++, lump_p++)
 		W_CleanupName(lump_p->name, lump_p->name);
-	}
 }
 
 static lumpinfo_t *W_GetLumpinfo(lumpinfo_t *lumps, s32 numlumps,const c8 *name)

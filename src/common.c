@@ -184,13 +184,7 @@ void MSG_WriteLong(sizebuf_t *sb, s32 c)
 	buf[3] = c>>24;
 }
 
-void MSG_WriteFloat(sizebuf_t *sb, f32 f)
-{
-	union{ f32 f; s32 l; } dat;
-	dat.f = f;
-	dat.l = (s32)(dat.l);
-	SZ_Write(sb, &dat.l, 4);
-}
+void MSG_WriteFloat(sizebuf_t *sb, f32 f) { SZ_Write(sb, &f, 4); }
 
 void MSG_WriteString(sizebuf_t *sb, const c8 *s)
 {
@@ -287,14 +281,10 @@ s32 MSG_ReadLong()
 
 f32 MSG_ReadFloat()
 {
-	union{ u8 b[4]; f32 f; s32 l; } dat;
-	dat.b[0] = net_message.data[msg_readcount];
-	dat.b[1] = net_message.data[msg_readcount+1];
-	dat.b[2] = net_message.data[msg_readcount+2];
-	dat.b[3] = net_message.data[msg_readcount+3];
+	f32 f;
+	memcpy(&f, net_message.data + msg_readcount, 4);
 	msg_readcount += 4;
-	dat.l = (s32)(dat.l);
-	return dat.f;
+	return f;
 }
 
 const c8 *MSG_ReadString()
@@ -939,8 +929,6 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 	if(Sys_FileRead(packhandle,&header,sizeof(header))!=(s32)sizeof(header)
 			|| memcmp(header.id, "PACK", 4) != 0)
 		Sys_Error("%s is not a packfile", packfile);
-	header.dirofs = (s32)(header.dirofs);
-	header.dirlen = (s32)(header.dirlen);
 	s32 numpackfiles = header.dirlen / sizeof(dpackfile_t);
 	if(header.dirlen < 0 || header.dirofs < 0)
 		Sys_Error("Invalid packfile %s(dirlen: %i, dirofs: %i)",
@@ -966,8 +954,8 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 		com_modified = 1;
 	for(s32 i = 0; i < numpackfiles; i++){ // parse the directory
 		SDL_strlcpy(newf[i].name,info[i].name,sizeof(newf[i].name));
-		newf[i].filepos = (s32)(info[i].filepos);
-		newf[i].filelen = (s32)(info[i].filelen);
+		newf[i].filepos = info[i].filepos;
+		newf[i].filelen = info[i].filelen;
 	}
 	pack_t *pack = (pack_t *) Z_Malloc(sizeof(pack_t));
 	SDL_strlcpy(pack->filename, packfile, sizeof(pack->filename));
