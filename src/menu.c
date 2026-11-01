@@ -1,6 +1,10 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
+#define M_TOGGLE(v) Cvar_SetValue(#v, !v.value)
+#define M_ADD(v, d) Cvar_SetValue(#v, v.value + d)
+#define M_CLAMP(v, d, max) Cvar_SetValue(#v, CLAMP(0, v.value + d, max))
+
 typedef struct { c8 *name; c8 *description; } level_t;
 typedef struct { c8 *description; s32 firstLevel; s32 levels; } episode_t;
 static s32 vid_line;
@@ -602,30 +606,9 @@ void M_Save_Draw()
 	M_DrawCursor(8, 32 + load_cursor * 8);
 }
 
-void M_Load_Key(s32 k)
-{
+static void M_SaveSlots_Key(s32 k)
+{ // the keys the load and save menus share
 	switch(k){
-	case K_MOUSE2:
-		if(!ui_mouse.value)break;
-		// fallthrough
-	case K_ESCAPE:
-		M_Menu_SinglePlayer_f();
-		break;
-	case K_MOUSE1:
-		if(!ui_mouse.value)break;
-		// fallthrough
-	case K_ENTER:
-		S_LocalSound("misc/menu2.wav");
-		if(!loadable[load_cursor])
-			return;
-		m_state = m_none;
-		key_dest = key_game;
-		// Host_Loadgame_f can't bring up the loading plaque because
-		// too much stack space has been used, so do it now
-		SCR_BeginLoadingPlaque();
-		// issue the load command
-		Cbuf_AddText(va("load s%i\n", load_cursor));
-		return;
 	case K_DEL:
 		if(!loadable[load_cursor])
 			return;
@@ -653,6 +636,35 @@ void M_Load_Key(s32 k)
 	}
 }
 
+void M_Load_Key(s32 k)
+{
+	switch(k){
+	case K_MOUSE2:
+		if(!ui_mouse.value)break;
+		// fallthrough
+	case K_ESCAPE:
+		M_Menu_SinglePlayer_f();
+		break;
+	case K_MOUSE1:
+		if(!ui_mouse.value)break;
+		// fallthrough
+	case K_ENTER:
+		S_LocalSound("misc/menu2.wav");
+		if(!loadable[load_cursor])
+			return;
+		m_state = m_none;
+		key_dest = key_game;
+		// Host_Loadgame_f can't bring up the loading plaque because
+		// too much stack space has been used, so do it now
+		SCR_BeginLoadingPlaque();
+		// issue the load command
+		Cbuf_AddText(va("load s%i\n", load_cursor));
+		return;
+	default:
+		M_SaveSlots_Key(k);
+	}
+}
+
 void M_Save_Key(s32 k)
 {
 	switch(k){
@@ -670,30 +682,8 @@ void M_Save_Key(s32 k)
 		key_dest = key_game;
 		Cbuf_AddText(va("save s%i\n", load_cursor));
 		return;
-	case K_DEL:
-		if(!loadable[load_cursor])
-			return;
-		delete_save = load_cursor;
-		if(SCR_ModalMessage(
-		    "Are you sure you want to\ndelete this save? (y/n)\n", 2)){
-			Cbuf_AddText(va("deletesave s%i\n", delete_save));
-			rescan_saves = 1;
-		}
-		return;
-	case K_UPARROW:
-	case K_LEFTARROW:
-		S_LocalSound("misc/menu1.wav");
-		load_cursor--;
-		if(load_cursor < 0)
-			load_cursor = MAX_SAVEGAMES - 1;
-		break;
-	case K_DOWNARROW:
-	case K_RIGHTARROW:
-		S_LocalSound("misc/menu1.wav");
-		load_cursor++;
-		if(load_cursor >= MAX_SAVEGAMES)
-			load_cursor = 0;
-		break;
+	default:
+		M_SaveSlots_Key(k);
 	}
 }
 
@@ -1116,6 +1106,13 @@ void M_DrawSlider(s32 x, s32 y, f32 range)
 		M_DrawCharacter(x + i * 8, y, 129);
 	M_DrawCharacter(x + i * 8, y, 130);
 	M_DrawCharacter(x + (SLIDER_RANGE - 1) * 8 * range, y, 131);
+}
+
+static void M_PrintVal(s32 x, s32 y, const c8 *fmt, f32 val)
+{
+	c8 temp[32];
+	snprintf(temp, sizeof(temp), fmt, val);
+	M_Print(x, y, temp);
 }
 
 void M_DrawCheckbox(s32 x, s32 y, s32 on)
@@ -1642,10 +1639,53 @@ void M_Maps_Draw()
 	M_DrawCursor(xoffset - 8, 40 + maps_cursor * 8);
 }
 
+static void M_FileList_Nav(s32 k, s32 *cursor, s32 *scroll, s32 total)
+{ // the keys that move through the map and mod lists
+	if(total <= 0) return;
+	s32 curr_i = *scroll + *cursor;
+	S_LocalSound("misc/menu1.wav");
+	switch(k){
+	case K_UPARROW:
+		if(curr_i > 0) curr_i--;
+		else curr_i = total - 1;
+		if(curr_i < *scroll)
+			*scroll = curr_i;
+		else if(curr_i >= *scroll + 19)
+			*scroll = curr_i - 18;
+		break;
+	case K_DOWNARROW:
+		if(curr_i < total - 1) curr_i++;
+		else curr_i = 0;
+		if(curr_i < *scroll)
+			*scroll = curr_i;
+		else if(curr_i >= *scroll + 19)
+			*scroll = curr_i - 18;
+		break;
+	case K_PGUP:
+	case K_AUX1:
+	case 'u':
+	case 'U':
+		curr_i -= 19;
+		if(curr_i < 0)
+			curr_i = total - 1;
+		*scroll = q_max(0, curr_i - 18);
+		break;
+	case K_PGDN:
+	case K_AUX2:
+	case 'd':
+	case 'D':
+		curr_i += 19;
+		if(curr_i >= total)
+			curr_i = 0;
+		*scroll = q_min(curr_i, q_max(0, total - 19));
+		break;
+	}
+	*cursor = curr_i - *scroll;
+}
+
 void M_Maps_Key(s32 k)
 {
 	c8 temp[40];
-	s32 curr_i = maps_scroll + maps_cursor;
 	s32 idx;
 	switch(k){
 	case K_MWHEELUP:
@@ -1689,50 +1729,16 @@ void M_Maps_Key(s32 k)
 		}
 		break;
 	case K_UPARROW:
-		if(maps_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		if(curr_i > 0) curr_i--;
-		else curr_i = maps_total - 1;
-		if(curr_i < maps_scroll)
-			maps_scroll = curr_i;
-		else if(curr_i >= maps_scroll + 19)
-			maps_scroll = curr_i - 18;
-		maps_cursor = curr_i - maps_scroll;
-		break;
 	case K_DOWNARROW:
-		if(maps_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		if(curr_i < maps_total - 1) curr_i++;
-		else curr_i = 0;
-		if(curr_i < maps_scroll)
-			maps_scroll = curr_i;
-		else if(curr_i >= maps_scroll + 19)
-			maps_scroll = curr_i - 18;
-		maps_cursor = curr_i - maps_scroll;
-		break;
 	case K_PGUP:
 	case K_AUX1:
 	case 'u':
 	case 'U':
-		if(maps_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		curr_i -= 19;
-		if(curr_i < 0)
-			curr_i = maps_total - 1;
-		maps_scroll = q_max(0, curr_i - 18);
-		maps_cursor = curr_i - maps_scroll;
-		break;
 	case K_PGDN:
 	case K_AUX2:
 	case 'd':
 	case 'D':
-		if(maps_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		curr_i += 19;
-		if(curr_i >= maps_total)
-			curr_i = 0;
-		maps_scroll = q_min(curr_i, q_max(0, maps_total - 19));
-		maps_cursor = curr_i - maps_scroll;
+		M_FileList_Nav(k, &maps_cursor, &maps_scroll, maps_total);
 		break;
 	default:
 		break;
@@ -1762,7 +1768,6 @@ void M_Mods_List_Update()
 
 void M_Palette_Draw()
 {
-	c8 temp[32];
 	s32 xoffset = 0;
 	M_DrawCursor(192, 32+palette_cursor*8);
 	M_DrawTransPic(16, 4, Draw_CachePic("gfx/qplaque.lmp"));
@@ -1777,24 +1782,15 @@ void M_Palette_Draw()
 	M_Print(xoffset, 80, "             Red Level");
 	M_Print(xoffset, 88, "           Green Level");
 	M_Print(xoffset, 96, "            Blue Level");
-	sprintf(temp, "%0.1f\n", v_brightness.value);
-	M_Print(xoffset + 204, 32, temp);
-	sprintf(temp, "%0.1f\n", v_gamma.value);
-	M_Print(xoffset + 204, 40, temp);
-	sprintf(temp, "%0.1f\n", v_contrast.value);
-	M_Print(xoffset + 204, 48, temp);
-	sprintf(temp, "%0.1f\n", v_saturation.value);
-	M_Print(xoffset + 204, 56, temp);
-	sprintf(temp, "%0.1f\n", v_vibrance.value);
-	M_Print(xoffset + 204, 64, temp);
-	sprintf(temp, "%0.1f\n", v_hue.value);
-	M_Print(xoffset + 204, 72, temp);
-	sprintf(temp, "%0.1f\n", v_redlevel.value);
-	M_Print(xoffset + 204, 80, temp);
-	sprintf(temp, "%0.1f\n", v_greenlevel.value);
-	M_Print(xoffset + 204, 88, temp);
-	sprintf(temp, "%0.1f\n", v_bluelevel.value);
-	M_Print(xoffset + 204, 96, temp);
+	M_PrintVal(xoffset + 204, 32, "%0.1f\n", v_brightness.value);
+	M_PrintVal(xoffset + 204, 40, "%0.1f\n", v_gamma.value);
+	M_PrintVal(xoffset + 204, 48, "%0.1f\n", v_contrast.value);
+	M_PrintVal(xoffset + 204, 56, "%0.1f\n", v_saturation.value);
+	M_PrintVal(xoffset + 204, 64, "%0.1f\n", v_vibrance.value);
+	M_PrintVal(xoffset + 204, 72, "%0.1f\n", v_hue.value);
+	M_PrintVal(xoffset + 204, 80, "%0.1f\n", v_redlevel.value);
+	M_PrintVal(xoffset + 204, 88, "%0.1f\n", v_greenlevel.value);
+	M_PrintVal(xoffset + 204, 96, "%0.1f\n", v_bluelevel.value);
 	M_Print(xoffset + 204, 104, "Reset");
 }
 
@@ -1951,7 +1947,6 @@ void M_Sound_Key(s32 k)
 
 void M_CSQC_Draw()
 {
-	c8 temp[32];
 	s32 xoffset = 0;
 	bool csqc_active = (cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value);
 	M_DrawCursor(192, 48+csqc_cursor*8);
@@ -1967,12 +1962,9 @@ void M_CSQC_Draw()
 	M_Print(xoffset, 64, "           HUD Scale 1");
 	M_Print(xoffset, 72, "           HUD Scale 2");
 	M_Print(xoffset + 204, 48, (s32)cl_nocsqc.value==0 ? "yes":"no");
-	sprintf(temp, "%0.1f\n", scr_sbaralpha.value);
-	M_Print(xoffset + 204, 56, temp);
-	sprintf(temp, "%0.1f\n", scr_sbarscale.value);
-	M_Print(xoffset + 204, 64, temp);
-	sprintf(temp, "%0.1f\n", scr_qchudscale.value);
-	M_Print(xoffset + 204, 72, temp);
+	M_PrintVal(xoffset + 204, 56, "%0.1f\n", scr_sbaralpha.value);
+	M_PrintVal(xoffset + 204, 64, "%0.1f\n", scr_sbarscale.value);
+	M_PrintVal(xoffset + 204, 72, "%0.1f\n", scr_qchudscale.value);
 	M_DrawTextBox(52, 158, 30, 2);
 	if(csqc_cursor == 0){
 		M_Print(64, 166, "Defined by mod's");
@@ -1984,6 +1976,17 @@ void M_CSQC_Draw()
 	}else if(csqc_cursor == 3){
 		M_Print(64, 166, "   This setting's behavior");
 		M_Print(64, 174, "  is independent of the mod");
+	}
+}
+
+static void M_CSQC_Step(s32 dir)
+{
+	S_LocalSound("misc/menu3.wav");
+	switch(csqc_cursor){
+	case 0: M_TOGGLE(cl_nocsqc); break;
+	case 1: M_CLAMP(scr_sbaralpha, dir*0.1, 1); break;
+	case 2: M_CLAMP(scr_sbarscale, dir*0.1, 4); break;
+	case 3: M_CLAMP(scr_qchudscale, dir*0.1, 4); break;
 	}
 }
 
@@ -2000,16 +2003,7 @@ void M_CSQC_Key(s32 k)
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_LEFTARROW:
-		S_LocalSound("misc/menu3.wav");
-		switch(csqc_cursor){
-		case 0: Cvar_SetValue("cl_nocsqc", !cl_nocsqc.value); break;
-		case 1: Cvar_SetValue("scr_sbaralpha",
-			CLAMP(0, scr_sbaralpha.value - 0.1, 1)); break;
-		case 2: Cvar_SetValue("scr_sbarscale",
-			CLAMP(0, scr_sbarscale.value - 0.1, 4)); break;
-		case 3: Cvar_SetValue("scr_qchudscale",
-			CLAMP(0, scr_qchudscale.value - 0.1, 4)); break;
-		}
+		M_CSQC_Step(-1);
 		break;
 	case K_MWHEELUP:
 	case K_MOUSE1:
@@ -2017,16 +2011,7 @@ void M_CSQC_Key(s32 k)
 		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
-		S_LocalSound("misc/menu3.wav");
-		switch(csqc_cursor){
-		case 0: Cvar_SetValue("cl_nocsqc", !cl_nocsqc.value); break;
-		case 1: Cvar_SetValue("scr_sbaralpha",
-			CLAMP(0, scr_sbaralpha.value + 0.1, 1)); break;
-		case 2: Cvar_SetValue("scr_sbarscale",
-			CLAMP(0, scr_sbarscale.value + 0.1, 4)); break;
-		case 3: Cvar_SetValue("scr_qchudscale",
-			CLAMP(0, scr_qchudscale.value + 0.1, 4)); break;
-		}
+		M_CSQC_Step(1);
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
@@ -2069,7 +2054,6 @@ void M_Mods_Draw()
 void M_Mods_Key(s32 k)
 {
 	c8 temp[40];
-	s32 curr_i = mods_scroll + mods_cursor;
 	s32 idx;
 	switch(k){
 	case K_MWHEELUP:
@@ -2101,50 +2085,16 @@ void M_Mods_Key(s32 k)
 		}
 		break;
 	case K_UPARROW:
-		if(mods_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		if(curr_i > 0) curr_i--;
-		else curr_i = mods_total - 1;
-		if(curr_i < mods_scroll)
-			mods_scroll = curr_i;
-		else if(curr_i >= mods_scroll + 19)
-			mods_scroll = curr_i - 18;
-		mods_cursor = curr_i - mods_scroll;
-		break;
 	case K_DOWNARROW:
-		if(mods_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		if(curr_i < mods_total - 1) curr_i++;
-		else curr_i = 0;
-		if(curr_i < mods_scroll)
-			mods_scroll = curr_i;
-		else if(curr_i >= mods_scroll + 19)
-			mods_scroll = curr_i - 18;
-		mods_cursor = curr_i - mods_scroll;
-		break;
 	case K_PGUP:
 	case K_AUX1:
 	case 'u':
 	case 'U':
-		if(mods_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		curr_i -= 19;
-		if(curr_i < 0)
-			curr_i = mods_total - 1;
-		mods_scroll = q_max(0, curr_i - 18);
-		mods_cursor = curr_i - mods_scroll;
-		break;
 	case K_PGDN:
 	case K_AUX2:
 	case 'd':
 	case 'D':
-		if(mods_total <= 0)break;
-		S_LocalSound("misc/menu1.wav");
-		curr_i += 19;
-		if(curr_i >= mods_total)
-			curr_i = 0;
-		mods_scroll = q_min(curr_i, q_max(0, mods_total - 19));
-		mods_cursor = curr_i - mods_scroll;
+		M_FileList_Nav(k, &mods_cursor, &mods_scroll, mods_total);
 		break;
 	default:
 		break;
@@ -2426,11 +2376,9 @@ void M_Display_Draw()
 	if(crosshair.value){ temp[0] = cl_crosschar.value+128; temp[1] = 0; }
 	else sprintf(temp, "Off");
 	M_Print(xoffset + 204, 56, temp);
-	sprintf(temp, "%0.2f\n", aspectr.value);
-	M_Print(xoffset + 204, 64, temp);
+	M_PrintVal(xoffset + 204, 64, "%0.2f\n", aspectr.value);
 	M_DrawCheckbox(xoffset + 204, 72, aspectr_lock.value);
-	sprintf(temp, "%0.2f\n", scr_uixscale.value);
-	M_Print(xoffset + 204, 80, temp);
+	M_PrintVal(xoffset + 204, 80, "%0.2f\n", scr_uixscale.value);
 	sprintf(temp, "%d\n", (s32)host_maxfps.value);
 	M_Print(xoffset + 204, 88, temp);
 	M_DrawCheckbox(xoffset + 204, 96, scr_showfps.value);
@@ -2524,6 +2472,74 @@ void M_Display_Draw()
 	M_Print(xoffset + 204, newwinmode==1?136:160, "Set Mode");
 }
 
+static void M_Graphics_Step(s32 dir)
+{
+	switch(graphics_cursor){
+	case 300: M_TOGGLE(r_nofog); break;
+	case 301: M_ADD(r_fognoise, dir*0.1); break;
+	case 302: M_ADD(r_fogfactor, dir*0.1); break;
+	case 303: M_ADD(r_fogscale, dir*0.1); break;
+	case 304: M_ADD(r_fogbrightness, dir*0.1); break;
+	case 305: M_CLAMP(r_fogstyle, dir, 3); break;
+	case 306: M_TOGGLE(r_fogdepthcorrection); break;
+	case 307: M_TOGGLE(r_lockfog); break;
+	case 308: M_CLAMP(r_lockfogd, dir*0.05, 1); break;
+	case 309: M_CLAMP(r_lockfogr, dir*0.05, 1); break;
+	case 310: M_CLAMP(r_lockfogg, dir*0.05, 1); break;
+	case 311: M_CLAMP(r_lockfogb, dir*0.05, 1); break;
+	case 400: M_TOGGLE(r_enableskybox); break;
+	case 401: M_CLAMP(r_skyfog, dir*0.1, 1); break;
+	case 402: M_CLAMP(r_skynoise, dir*0.1, 1); break;
+	case 403: M_TOGGLE(r_skysmooth); break;
+	case 500: M_TOGGLE(r_rgblighting); break;
+	case 501: M_TOGGLE(r_litwater); break;
+	case 502: M_TOGGLE(r_labmixpal); break;
+	case 600: M_TOGGLE(r_hlwater); break;
+	case 601: M_CLAMP(r_wateralpha, dir*0.1, 1); break;
+	case 602: M_CLAMP(r_slimealpha, dir*0.1, 1); break;
+	case 603: M_CLAMP(r_lavaalpha, dir*0.1, 1); break;
+	case 604: M_CLAMP(r_telealpha, dir*0.1, 1); break;
+	case 605: M_TOGGLE(r_novis); break;
+	case 606: M_TOGGLE(r_hlwaterquality); break;
+	case 607: M_CLAMP(r_hlripplescale, dir*0.1, 5); break;
+	case 608: M_CLAMP(r_hlwavescale, dir*0.1, 5); break;
+	case 700: M_CLAMP(r_particlescale, dir*0.1, 9); break;
+	case 701: M_CLAMP(r_particlesize, dir, 9); break;
+	case 702: M_TOGGLE(r_particlestyle); break;
+	case 703: M_CLAMP(r_particlealpha, dir*0.1, 1); break;
+	case 801: M_CLAMP(lyr_sbar, dir, 3); break;
+	case 802: M_CLAMP(lyr_menu, dir, 3); break;
+	case 803: M_CLAMP(lyr_centerprint, dir, 3); break;
+	case 804: M_CLAMP(lyr_console, dir, 3); break;
+	case 805: M_CLAMP(lyr_notify, dir, 3); break;
+	case 806: M_CLAMP(lyr_crosshair, dir, 3); break;
+	case 807:
+		if(dir < 0) break;
+		Cvar_SetValue("lyr_main", 0);
+		Cvar_SetValue("lyr_sbar", 3);
+		Cvar_SetValue("lyr_menu", 2);
+		Cvar_SetValue("lyr_centerprint", 1);
+		Cvar_SetValue("lyr_console", 2);
+		Cvar_SetValue("lyr_notify", 2);
+		Cvar_SetValue("lyr_crosshair", 2);
+		break;
+	case 900: M_CLAMP(r_mipscale, dir*0.1, 9.9); break;
+	case 901: M_CLAMP(scr_menubgstyle, dir, 3); break;
+	case 902: M_CLAMP(r_rebuildmips, dir, 2); break;
+	case 903: M_TOGGLE(r_dithertex); break;
+	case 904: M_TOGGLE(r_alphastyle); break;
+	case 905: M_TOGGLE(scr_saturntext); break;
+	case 1000: M_TOGGLE(r_lerpmodels); break;
+	case 1001: M_TOGGLE(r_lerpmove); break;
+	case 1002: Cvar_SetValue("v_gunkick",
+		!(v_gunkick.value-1)+1); break;
+	case 1003: M_CLAMP(r_lerplightstyles, dir, 2); break;
+	case 1100: M_CLAMP(r_coarseocclusion, dir, 2); break;
+	case 1101: M_CLAMP(r_entocclusion, dir, 2); break;
+	case 1102: M_CLAMP(r_bmodelocclusion, dir, 2); break;
+	}
+}
+
 void M_Graphics_Key(s32 k)
 {
 	switch(k){
@@ -2543,110 +2559,7 @@ void M_Graphics_Key(s32 k)
 		// fallthrough
 	case K_LEFTARROW:
 		S_LocalSound("misc/menu3.wav");
-		switch(graphics_cursor){
-		case 300: Cvar_SetValue("r_nofog",
-			!r_nofog.value); break;
-		case 301: Cvar_SetValue("r_fognoise",
-			r_fognoise.value - 0.1); break;
-		case 302: Cvar_SetValue("r_fogfactor",
-			r_fogfactor.value - 0.1); break;
-		case 303: Cvar_SetValue("r_fogscale",
-			r_fogscale.value - 0.1); break;
-		case 304: Cvar_SetValue("r_fogbrightness",
-			r_fogbrightness.value - 0.1); break;
-		case 305: Cvar_SetValue("r_fogstyle",
-			CLAMP(0, r_fogstyle.value - 1, 3)); break;
-		case 306: Cvar_SetValue("r_fogdepthcorrection",
-			!r_fogdepthcorrection.value); break;
-		case 307: Cvar_SetValue("r_lockfog",
-			!r_lockfog.value); break;
-		case 308: Cvar_SetValue("r_lockfogd",
-			CLAMP(0, r_lockfogd.value - 0.05, 1)); break;
-		case 309: Cvar_SetValue("r_lockfogr",
-			CLAMP(0, r_lockfogr.value - 0.05, 1)); break;
-		case 310: Cvar_SetValue("r_lockfogg",
-			CLAMP(0, r_lockfogg.value - 0.05, 1)); break;
-		case 311: Cvar_SetValue("r_lockfogb",
-			CLAMP(0, r_lockfogb.value - 0.05, 1)); break;
-		case 400: Cvar_SetValue("r_enableskybox",
-			!r_enableskybox.value); break;
-		case 401: Cvar_SetValue("r_skyfog",
-			CLAMP(0, r_skyfog.value - 0.1, 1)); break;
-		case 402: Cvar_SetValue("r_skynoise",
-			CLAMP(0, r_skynoise.value - 0.1, 1)); break;
-		case 403: Cvar_SetValue("r_skysmooth",
-			!r_skysmooth.value); break;
-		case 500: Cvar_SetValue("r_rgblighting",
-			!r_rgblighting.value); break;
-		case 501: Cvar_SetValue("r_litwater",
-			!r_litwater.value); break;
-		case 502: Cvar_SetValue("r_labmixpal",
-			!r_labmixpal.value); break;
-		case 600: Cvar_SetValue("r_hlwater",
-			!r_hlwater.value); break;
-		case 601: Cvar_SetValue("r_wateralpha",
-			CLAMP(0, r_wateralpha.value - 0.1, 1)); break;
-		case 602: Cvar_SetValue("r_slimealpha",
-			CLAMP(0, r_slimealpha.value - 0.1, 1)); break;
-		case 603: Cvar_SetValue("r_lavaalpha",
-			CLAMP(0, r_lavaalpha.value - 0.1, 1)); break;
-		case 604: Cvar_SetValue("r_telealpha",
-			CLAMP(0, r_telealpha.value - 0.1, 1)); break;
-		case 605: Cvar_SetValue("r_novis",
-			!r_novis.value); break;
-		case 606: Cvar_SetValue("r_hlwaterquality",
-			!r_hlwaterquality.value); break;
-		case 607: Cvar_SetValue("r_hlripplescale",
-			CLAMP(0, r_hlripplescale.value - 0.1, 5)); break;
-		case 608: Cvar_SetValue("r_hlwavescale",
-			CLAMP(0, r_hlwavescale.value - 0.1, 5)); break;
-		case 700: Cvar_SetValue("r_particlescale",
-			CLAMP(0, r_particlescale.value - 0.1, 9)); break;
-		case 701: Cvar_SetValue("r_particlesize",
-			CLAMP(0, r_particlesize.value - 1, 9)); break;
-		case 702: Cvar_SetValue("r_particlestyle",
-			!r_particlestyle.value); break;
-		case 703: Cvar_SetValue("r_particlealpha",
-			CLAMP(0, r_particlealpha.value - 0.1, 1)); break;
-		case 801: Cvar_SetValue("lyr_sbar",
-			CLAMP(0, lyr_sbar.value - 1, 3)); break;
-		case 802: Cvar_SetValue("lyr_menu",
-			CLAMP(0, lyr_menu.value - 1, 3)); break;
-		case 803: Cvar_SetValue("lyr_centerprint",
-			CLAMP(0, lyr_centerprint.value - 1, 3)); break;
-		case 804: Cvar_SetValue("lyr_console",
-			CLAMP(0, lyr_console.value - 1, 3)); break;
-		case 805: Cvar_SetValue("lyr_notify",
-			CLAMP(0, lyr_notify.value - 1, 3)); break;
-		case 806: Cvar_SetValue("lyr_crosshair",
-			CLAMP(0, lyr_crosshair.value - 1, 3)); break;
-		case 900: Cvar_SetValue("r_mipscale",
-			CLAMP(0, r_mipscale.value - 0.1, 9.9)); break;
-		case 901: Cvar_SetValue("scr_menubgstyle",
-			CLAMP(0, scr_menubgstyle.value - 1, 3)); break;
-		case 902: Cvar_SetValue("r_rebuildmips",
-			CLAMP(0, r_rebuildmips.value - 1, 2)); break;
-		case 903: Cvar_SetValue("r_dithertex",
-			!r_dithertex.value); break;
-		case 904: Cvar_SetValue("r_alphastyle",
-			!r_alphastyle.value); break;
-		case 905: Cvar_SetValue("scr_saturntext",
-			!scr_saturntext.value); break;
-		case 1000: Cvar_SetValue("r_lerpmodels",
-			!r_lerpmodels.value); break;
-		case 1001: Cvar_SetValue("r_lerpmove",
-			!r_lerpmove.value); break;
-		case 1002: Cvar_SetValue("v_gunkick",
-			!(v_gunkick.value-1)+1); break;
-		case 1003: Cvar_SetValue("r_lerplightstyles",
-			CLAMP(0, r_lerplightstyles.value - 1, 2)); break;
-		case 1100: Cvar_SetValue("r_coarseocclusion",
-			CLAMP(0, r_coarseocclusion.value - 1, 2)); break;
-		case 1101: Cvar_SetValue("r_entocclusion",
-			CLAMP(0, r_entocclusion.value - 1, 2)); break;
-		case 1102: Cvar_SetValue("r_bmodelocclusion",
-			CLAMP(0, r_bmodelocclusion.value - 1, 2)); break;
-		}
+		M_Graphics_Step(-1);
 		break;
 	case K_MOUSE1:
 	case K_MWHEELUP:
@@ -2718,119 +2631,7 @@ void M_Graphics_Key(s32 k)
 			Cvar_SetValue("r_particlestyle", 1);
 			Cvar_SetValue("r_skysmooth", 1);
 		}else if(graphics_cursor < 100) graphics_cursor *= 100;
-		else switch(graphics_cursor){
-		case 300: Cvar_SetValue("r_nofog",
-			!r_nofog.value); break;
-		case 301: Cvar_SetValue("r_fognoise",
-			r_fognoise.value + 0.1); break;
-		case 302: Cvar_SetValue("r_fogfactor",
-			r_fogfactor.value + 0.1); break;
-		case 303: Cvar_SetValue("r_fogscale",
-			r_fogscale.value + 0.1); break;
-		case 304: Cvar_SetValue("r_fogbrightness",
-			r_fogbrightness.value + 0.1); break;
-		case 305: Cvar_SetValue("r_fogstyle",
-			CLAMP(0, r_fogstyle.value + 1, 3)); break;
-		case 306: Cvar_SetValue("r_fogdepthcorrection",
-			!r_fogdepthcorrection.value); break;
-		case 307: Cvar_SetValue("r_lockfog",
-			!r_lockfog.value); break;
-		case 308: Cvar_SetValue("r_lockfogd",
-			CLAMP(0, r_lockfogd.value + 0.05, 1)); break;
-		case 309: Cvar_SetValue("r_lockfogr",
-			CLAMP(0, r_lockfogr.value + 0.05, 1)); break;
-		case 310: Cvar_SetValue("r_lockfogg",
-			CLAMP(0, r_lockfogg.value + 0.05, 1)); break;
-		case 311: Cvar_SetValue("r_lockfogb",
-			CLAMP(0, r_lockfogb.value + 0.05, 1)); break;
-		case 400: Cvar_SetValue("r_enableskybox",
-			!r_enableskybox.value); break;
-		case 401: Cvar_SetValue("r_skyfog",
-			CLAMP(0, r_skyfog.value + 0.1, 1)); break;
-		case 402: Cvar_SetValue("r_skynoise",
-			CLAMP(0, r_skynoise.value + 0.1, 1)); break;
-		case 403: Cvar_SetValue("r_skysmooth",
-			!r_skysmooth.value); break;
-		case 500: Cvar_SetValue("r_rgblighting",
-			!r_rgblighting.value); break;
-		case 501: Cvar_SetValue("r_litwater",
-			!r_litwater.value); break;
-		case 502: Cvar_SetValue("r_labmixpal",
-			!r_labmixpal.value); break;
-		case 600: Cvar_SetValue("r_hlwater",
-			!r_hlwater.value); break;
-		case 601: Cvar_SetValue("r_wateralpha",
-			CLAMP(0, r_wateralpha.value + 0.1, 1)); break;
-		case 602: Cvar_SetValue("r_slimealpha",
-			CLAMP(0, r_slimealpha.value + 0.1, 1)); break;
-		case 603: Cvar_SetValue("r_lavaalpha",
-			CLAMP(0, r_lavaalpha.value + 0.1, 1)); break;
-		case 604: Cvar_SetValue("r_telealpha",
-			CLAMP(0, r_telealpha.value + 0.1, 1)); break;
-		case 605: Cvar_SetValue("r_novis",
-			!r_novis.value); break;
-		case 606: Cvar_SetValue("r_hlwaterquality",
-			!r_hlwaterquality.value); break;
-		case 607: Cvar_SetValue("r_hlripplescale",
-			CLAMP(0, r_hlripplescale.value + 0.1, 5)); break;
-		case 608: Cvar_SetValue("r_hlwavescale",
-			CLAMP(0, r_hlwavescale.value + 0.1, 5)); break;
-		case 700: Cvar_SetValue("r_particlescale",
-			CLAMP(0, r_particlescale.value + 0.1, 9)); break;
-		case 701: Cvar_SetValue("r_particlesize",
-			CLAMP(0, r_particlesize.value + 1, 9)); break;
-		case 702: Cvar_SetValue("r_particlestyle",
-			!r_particlestyle.value); break;
-		case 703: Cvar_SetValue("r_particlealpha",
-			CLAMP(0, r_particlealpha.value + 0.1, 1)); break;
-		case 801: Cvar_SetValue("lyr_sbar",
-			CLAMP(0, lyr_sbar.value + 1, 3)); break;
-		case 802: Cvar_SetValue("lyr_menu",
-			CLAMP(0, lyr_menu.value + 1, 3)); break;
-		case 803: Cvar_SetValue("lyr_centerprint",
-			CLAMP(0, lyr_centerprint.value + 1, 3)); break;
-		case 804: Cvar_SetValue("lyr_console",
-			CLAMP(0, lyr_console.value + 1, 3)); break;
-		case 805: Cvar_SetValue("lyr_notify",
-			CLAMP(0, lyr_notify.value + 1, 3)); break;
-		case 806: Cvar_SetValue("lyr_crosshair",
-			CLAMP(0, lyr_crosshair.value + 1, 3)); break;
-		case 807:
-			Cvar_SetValue("lyr_main", 0);
-			Cvar_SetValue("lyr_sbar", 3);
-			Cvar_SetValue("lyr_menu", 2);
-			Cvar_SetValue("lyr_centerprint", 1);
-			Cvar_SetValue("lyr_console", 2);
-			Cvar_SetValue("lyr_notify", 2);
-			Cvar_SetValue("lyr_crosshair", 2);
-			break;
-		case 900: Cvar_SetValue("r_mipscale",
-			CLAMP(0, r_mipscale.value + 0.1, 9.9)); break;
-		case 901: Cvar_SetValue("scr_menubgstyle",
-			CLAMP(0, scr_menubgstyle.value + 1, 3)); break;
-		case 902: Cvar_SetValue("r_rebuildmips",
-			CLAMP(0, r_rebuildmips.value + 1, 2)); break;
-		case 903: Cvar_SetValue("r_dithertex",
-			!r_dithertex.value); break;
-		case 904: Cvar_SetValue("r_alphastyle",
-			!r_alphastyle.value); break;
-		case 905: Cvar_SetValue("scr_saturntext",
-			!scr_saturntext.value); break;
-		case 1000: Cvar_SetValue("r_lerpmodels",
-			!r_lerpmodels.value); break;
-		case 1001: Cvar_SetValue("r_lerpmove",
-			!r_lerpmove.value); break;
-		case 1002: Cvar_SetValue("v_gunkick",
-			!(v_gunkick.value-1)+1); break;
-		case 1003: Cvar_SetValue("r_lerplightstyles",
-			CLAMP(0, r_lerplightstyles.value + 1, 2)); break;
-		case 1100: Cvar_SetValue("r_coarseocclusion",
-			CLAMP(0, r_coarseocclusion.value + 1, 2)); break;
-		case 1101: Cvar_SetValue("r_entocclusion",
-			CLAMP(0, r_entocclusion.value + 1, 2)); break;
-		case 1102: Cvar_SetValue("r_bmodelocclusion",
-			CLAMP(0, r_bmodelocclusion.value + 1, 2)); break;
-		}
+		else M_Graphics_Step(1);
 		S_LocalSound("misc/menu3.wav");
 		break;
 	case K_UPARROW:
@@ -2970,17 +2771,13 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "On" : "Off");
 		M_Print(xoffset, 40, "Noise:");
-		snprintf(temp, sizeof(temp), "%0.1f", r_fognoise.value);
-		M_Print(xoffset + x2, 40, temp);
+		M_PrintVal(xoffset + x2, 40, "%0.1f", r_fognoise.value);
 		M_Print(xoffset, 48, "Thickness:");
-		snprintf(temp, sizeof(temp), "%0.1f", r_fogfactor.value);
-		M_Print(xoffset + x2, 48, temp);
+		M_PrintVal(xoffset + x2, 48, "%0.1f", r_fogfactor.value);
 		M_Print(xoffset, 56, "Distance:");
-		snprintf(temp, sizeof(temp), "%0.1f", r_fogscale.value);
-		M_Print(xoffset + x2, 56, temp);
+		M_PrintVal(xoffset + x2, 56, "%0.1f", r_fogscale.value);
 		M_Print(xoffset, 64, "Brightness:");
-		snprintf(temp, sizeof(temp), "%0.1f", r_fogbrightness.value);
-		M_Print(xoffset + x2, 64, temp);
+		M_PrintVal(xoffset + x2, 64, "%0.1f", r_fogbrightness.value);
 		M_Print(xoffset, 72, "Style:");
 		switch((s32)r_fogstyle.value){
 		case 0: M_Print(xoffset + x2, 72, "Noisy"); break;
@@ -2996,27 +2793,25 @@ void M_Graphics_Draw()
 			r_lockfog.value==1 ? "Off" : "On");
 		if(r_lockfog.value){
 			M_Print(xoffset, 96, "Density:");
-			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogd.value);
-			M_Print(xoffset + x2, 96, temp);
+			M_PrintVal(xoffset + x2, 96, "%0.2f",
+					r_lockfogd.value);
 			M_Print(xoffset, 104, "Red:");
-			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogr.value);
-			M_Print(xoffset + x2, 104, temp);
+			M_PrintVal(xoffset + x2, 104, "%0.2f",
+					r_lockfogr.value);
 			M_Print(xoffset, 112, "Green:");
-			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogg.value);
-			M_Print(xoffset + x2, 112, temp);
+			M_PrintVal(xoffset + x2, 112, "%0.2f",
+					r_lockfogg.value);
 			M_Print(xoffset, 120, "Blue:");
-			snprintf(temp, sizeof(temp), "%0.2f", r_lockfogb.value);
-			M_Print(xoffset + x2, 120, temp);
+			M_PrintVal(xoffset + x2, 120, "%0.2f",
+					r_lockfogb.value);
 		}
 	}else if(graphics_cursor == 4 || graphics_cursor/100 == 4){
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "Off":"On");
 		M_Print(xoffset, 40, "Sky Fog:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_skyfog.value);
-		M_Print(xoffset + x2, 40, temp);
+		M_PrintVal(xoffset + x2, 40, "%0.1f\n", r_skyfog.value);
 		M_Print(xoffset, 48, "Sky Noise:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_skynoise.value);
-		M_Print(xoffset + x2, 48, temp);
+		M_PrintVal(xoffset + x2, 48, "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset, 56, "Smooth Anim:");
 		M_Print(xoffset + x2, 56, r_skysmooth.value==0 ? "Off":"On");
 		if(graphics_cursor == 402){
@@ -3064,28 +2859,22 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 32, "Style:");
 		M_Print(xoffset+x2, 32, r_hlwater.value==0?"Classic":"HL");
 		M_Print(xoffset, 40, "Water Alpha:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_wateralpha.value);
-		M_Print(xoffset + x2, 40, temp);
+		M_PrintVal(xoffset + x2, 40, "%0.1f\n", r_wateralpha.value);
 		M_Print(xoffset, 48, "Slime Alpha:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_slimealpha.value);
-		M_Print(xoffset + x2, 48, temp);
+		M_PrintVal(xoffset + x2, 48, "%0.1f\n", r_slimealpha.value);
 		M_Print(xoffset, 56, "Lava Alpha:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_lavaalpha.value);
-		M_Print(xoffset + x2, 56, temp);
+		M_PrintVal(xoffset + x2, 56, "%0.1f\n", r_lavaalpha.value);
 		M_Print(xoffset, 64, "Tele Alpha:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_telealpha.value);
-		M_Print(xoffset + x2, 64, temp);
+		M_PrintVal(xoffset + x2, 64, "%0.1f\n", r_telealpha.value);
 		M_Print(xoffset, 72, "No VIS:");
 		M_DrawCheckbox(xoffset + x2, 72, r_novis.value);
 		if(!r_hlwater.value) return;
 		M_Print(xoffset, 80, "Quality:");
 		M_Print(xoffset+x2, 80, r_hlwaterquality.value==0?"Low":"High");
 		M_Print(xoffset, 88, "Ripple Scale:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlripplescale.value);
-		M_Print(xoffset + x2, 88, temp);
+		M_PrintVal(xoffset + x2, 88, "%0.1f\n", r_hlripplescale.value);
 		M_Print(xoffset, 96, "Wave Scale:");
-		snprintf(temp, sizeof(temp), "%0.1f\n", r_hlwavescale.value);
-		M_Print(xoffset + x2, 96, temp);
+		M_PrintVal(xoffset + x2, 96, "%0.1f\n", r_hlwavescale.value);
 	}else if(graphics_cursor == 7 || graphics_cursor/100 == 7){
 		x2 -= 32;
 		M_Print(xoffset, 32, "Scale:");
@@ -3098,8 +2887,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset + x2, 48, r_particlestyle.value==0 ?
 			"Square":"Circle");
 		M_Print(xoffset, 56, "Alpha:");
-		snprintf(temp, sizeof(temp), "%0.1f", r_particlealpha.value);
-		M_Print(xoffset + x2, 56, temp);
+		M_PrintVal(xoffset + x2, 56, "%0.1f", r_particlealpha.value);
 	}else if(graphics_cursor == 8 || graphics_cursor/100 == 8){
 		x2 += 16;
 		M_Print(xoffset, 32, "World:");
@@ -3358,6 +3146,35 @@ void M_Gamepad_Key(s32 k)
 	}
 }
 
+static void M_New_Step(s32 dir)
+{
+	S_LocalSound("misc/menu3.wav");
+	if(new_cursor == 0) M_TOGGLE(newoptions);
+	if(new_cursor == 1) M_TOGGLE(scr_centermenus);
+	else if(new_cursor == 2){ // off, quiet, loud
+		s32 s = !ui_mouse.value ? 0 : ui_mouse_sound.value ? 2 : 1;
+		s = (s + 3 + dir) % 3;
+		Cvar_SetValue("ui_mouse", s != 0);
+		Cvar_SetValue("ui_mouse_sound", s == 2);
+	}
+	else if(new_cursor == 3) M_CLAMP(sensitivityyscale, dir*0.1, 2);
+	else if(new_cursor == 4) M_CLAMP(exitstyle, dir, 2);
+	else if(new_cursor == 5){
+		M_TOGGLE(sv_autosave);
+		Cvar_SetValue("sv_autoload", sv_autosave.value);
+	}
+	else if(new_cursor == 6)
+		Cvar_SetValue("sv_autosave_interval",
+			CLAMP(1, sv_autosave_interval.value + dir, 60));
+	else if(new_cursor == 7){ // nothing, menu, demos
+		s32 s = cl_startdemos.value ? 2 : cl_automenu.value ? 1 : 0;
+		s = (s + 3 - dir) % 3;
+		Cvar_SetValue("cl_startdemos", s == 2);
+		Cvar_SetValue("cl_automenu", s == 1);
+	}
+	else if(new_cursor == 8) M_TOGGLE(con_notifycenter);
+}
+
 void M_New_Key(s32 k)
 {
 	switch(k){
@@ -3372,48 +3189,7 @@ void M_New_Key(s32 k)
 		if(!ui_mouse.value)break;
 		// fallthrough
 	case K_LEFTARROW:
-		S_LocalSound("misc/menu3.wav");
-		if(new_cursor == 0)
-			Cvar_SetValue("newoptions", !newoptions.value);
-		else if(new_cursor == 1)
-			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
-		else if(new_cursor == 2){
-			if(ui_mouse.value && ui_mouse_sound.value)
-				Cvar_SetValue("ui_mouse_sound", 0);
-			else if(ui_mouse.value && !ui_mouse_sound.value){
-				Cvar_SetValue("ui_mouse", 0);
-				Cvar_SetValue("ui_mouse_sound", 0);
-			}else{
-				Cvar_SetValue("ui_mouse", 1);
-				Cvar_SetValue("ui_mouse_sound", 1);
-			}
-		}
-		else if(new_cursor == 3)
-			Cvar_SetValue("sensitivityyscale",
-				      CLAMP(0, sensitivityyscale.value-0.1, 2));
-		else if(new_cursor == 4)
-			Cvar_SetValue("exitstyle",
-				CLAMP(0,exitstyle.value - 1, 2));
-		else if(new_cursor == 5){
-			Cvar_SetValue("sv_autosave", !sv_autosave.value);
-			Cvar_SetValue("sv_autoload", sv_autosave.value);
-		}
-		else if(new_cursor == 6)
-			Cvar_SetValue("sv_autosave_interval",
-				CLAMP(1,sv_autosave_interval.value - 1,60));
-		else if(new_cursor == 7){
-			if(cl_startdemos.value){
-				Cvar_SetValue("cl_startdemos",0);
-				Cvar_SetValue("cl_automenu",0);
-			}else if(cl_automenu.value){
-				Cvar_SetValue("cl_startdemos",1);
-				Cvar_SetValue("cl_automenu",0);
-			}else{
-				Cvar_SetValue("cl_startdemos",0);
-				Cvar_SetValue("cl_automenu",1);
-			}
-		}else if(new_cursor == 8)
-		      Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
+		M_New_Step(-1);
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
@@ -3431,49 +3207,8 @@ void M_New_Key(s32 k)
 		// fallthrough
 	case K_RIGHTARROW:
 	case K_ENTER:
-		S_LocalSound("misc/menu3.wav");
-		if(new_cursor == 0)
-			Cvar_SetValue("newoptions", !newoptions.value);
-		if(new_cursor == 1)
-			Cvar_SetValue("scr_centermenus",!scr_centermenus.value);
-		else if(new_cursor == 2){
-			if(ui_mouse.value && ui_mouse_sound.value){
-				Cvar_SetValue("ui_mouse", 0);
-				Cvar_SetValue("ui_mouse_sound", 0);
-			}else if(ui_mouse.value && !ui_mouse_sound.value){
-				Cvar_SetValue("ui_mouse_sound", 1);
-			}else{
-				Cvar_SetValue("ui_mouse", 1);
-				Cvar_SetValue("ui_mouse_sound", 0);
-			}
-		}
-		else if(new_cursor == 3)
-			Cvar_SetValue("sensitivityyscale",
-				      CLAMP(0, sensitivityyscale.value+0.1, 2));
-		else if(new_cursor == 4)
-			Cvar_SetValue("exitstyle",
-				CLAMP(0,exitstyle.value + 1, 2));
-		else if(new_cursor == 5){
-			Cvar_SetValue("sv_autosave", !sv_autosave.value);
-			Cvar_SetValue("sv_autoload", sv_autosave.value);
-		}
-		else if(new_cursor == 6)
-			Cvar_SetValue("sv_autosave_interval",
-				CLAMP(1,sv_autosave_interval.value + 1,60));
-		else if(new_cursor == 7){
-			if(cl_startdemos.value){
-				Cvar_SetValue("cl_startdemos",0);
-				Cvar_SetValue("cl_automenu",1);
-			}else if(cl_automenu.value){
-				Cvar_SetValue("cl_startdemos",0);
-				Cvar_SetValue("cl_automenu",0);
-			}else{
-				Cvar_SetValue("cl_startdemos",1);
-				Cvar_SetValue("cl_automenu",0);
-			}
-		}else if(new_cursor == 8)
-		      Cvar_SetValue("con_notifycenter",!con_notifycenter.value);
-		else if(new_cursor == 9) M_Menu_Display_f();
+		M_New_Step(1);
+		if(new_cursor == 9) M_Menu_Display_f();
 		else if(new_cursor == 10) M_Menu_Graphics_f();
 		else if(new_cursor == 11) M_Menu_Gamepad_f();
 		else if(new_cursor == 12) M_Menu_Maps_f();
@@ -4611,47 +4346,18 @@ void M_Gamepad_Mouse(s32 x, s32 y)
 
 void M_Graphics_Mouse(s32 x, s32 y)
 {
-	if(graphics_cursor < 100){
+	static const s32 rows[12] = {0,0,0,8,4,3,6,4,8,6,4,3};
+	s32 page = graphics_cursor / 100;
+	if(!page){
 		if(x >= 24 && x < 160 && y >= 32 && y < 32 + 12*8)
 			M_SetMouseCursor(&graphics_cursor, (y - 32) / 8);
-	}else if(graphics_cursor < 400){
-		if(!r_lockfog.value){
-			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
-				M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
-		}else{
-			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 12*8)
-				M_SetMouseCursor(&graphics_cursor,300+(y-32)/8);
-		}
-	}else if(graphics_cursor < 500){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
-			M_SetMouseCursor(&graphics_cursor,400+(y-32)/8);
-	}else if(graphics_cursor < 600){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
-			M_SetMouseCursor(&graphics_cursor,500+(y-32)/8);
-	}else if(graphics_cursor < 700){
-		if(!r_hlwater.value){
-			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 6*8)
-				M_SetMouseCursor(&graphics_cursor,600+(y-32)/8);
-		}else{
-			if(x >= 160 && x < 320 && y >= 32 && y < 32 + 9*8)
-				M_SetMouseCursor(&graphics_cursor,600+(y-32)/8);
-		}
-	}else if(graphics_cursor < 800){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
-			M_SetMouseCursor(&graphics_cursor,700+(y-32)/8);
-	}else if(graphics_cursor < 900){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 8*8)
-			M_SetMouseCursor(&graphics_cursor,800+(y-32)/8);
-	}else if(graphics_cursor < 1000){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 6*8)
-			M_SetMouseCursor(&graphics_cursor,900+(y-32)/8);
-	}else if(graphics_cursor < 1100){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 4*8)
-			M_SetMouseCursor(&graphics_cursor,1000+(y-32)/8);
-	}else if(graphics_cursor < 1200){
-		if(x >= 160 && x < 320 && y >= 32 && y < 32 + 3*8)
-			M_SetMouseCursor(&graphics_cursor,1100+(y-32)/8);
+		return;
 	}
+	s32 n = rows[page];
+	if(page == 3 && r_lockfog.value) n = 12;
+	if(page == 6 && r_hlwater.value) n = 9;
+	if(x >= 160 && x < 320 && y >= 32 && y < 32 + n*8)
+		M_SetMouseCursor(&graphics_cursor, page*100 + (y-32)/8);
 }
 
 void M_Mods_Mouse(s32 x, s32 y)
