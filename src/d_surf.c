@@ -34,8 +34,9 @@ void D_ClearCacheGuard()
 void D_InitCaches(void *buffer, s32 size)
 {
 	Con_DPrintf("%ik surface cache\n", size / 1024);
-	sc_size = size - GUARDSIZE;
-	sc_base = (surfcache_t *) buffer;
+	u8 *base = (u8 *)(((uintptr_t)buffer + 7) & ~(uintptr_t)7);
+	sc_size = size - GUARDSIZE - (base - (u8 *)buffer);
+	sc_base = (surfcache_t *) base;
 	sc_rover = sc_base;
 	sc_base->next = NULL;
 	sc_base->owner = NULL;
@@ -98,7 +99,8 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 		return NULL;
 	}
 	size = (uintptr_t) & ((surfcache_t *) 0)->data[size];
-	size = (size + 3) & ~3;
+	uintptr_t heightsize = (size + 3) & ~3;
+	size = (size + 7) & ~7; // the header has pointers in it
 	if(size > sc_size){
 		Con_DPrintf("D_SCAlloc: %i > cache size", size);
 		return NULL;
@@ -168,7 +170,8 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 		sc_rover = new->next;
 	new->width = width;
 	if(width > 0) // DEBUG
-		new->height = (size - sizeof(*new) + sizeof(new->data)) / width;
+		new->height = (heightsize - sizeof(*new) + sizeof(new->data))
+			/ width;
 	new->owner = NULL; // should be set properly after return
 	if(d_roverwrapped && (wrapped_this_time || sc_rover >=d_initial_rover))
 			r_cache_thrash = 1;
