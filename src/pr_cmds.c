@@ -1541,7 +1541,6 @@ static void PF_cl_drawfill()
 	f32 *size = G_VECTOR(OFS_PARM1);
 	f32 *rgb = G_VECTOR(OFS_PARM2);
 	f32 alpha = G_FLOAT(OFS_PARM3);
-	//s32 flags = G_FLOAT(OFS_PARM4);
 	f32 pos_s[2];
 	f32 size_s[2] = {size[0], size[1]};
 	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
@@ -1589,7 +1588,6 @@ static void PF_cl_drawrawstring()
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
-	//s32 flags = G_FLOAT(OFS_PARM5);
 	f32 pos_s[2];
 	f32 size_s[2] = {size[0], size[1]};
 	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
@@ -1617,7 +1615,6 @@ static void PF_cl_drawstring()
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
-	//s32 flags = G_FLOAT(OFS_PARM5);
 	f32 pos_s[2];
 	f32 size_s[2] = {size[0], size[1]};
 	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen
@@ -1682,7 +1679,6 @@ static void PF_cl_drawpic()
 	f32 *size = G_VECTOR(OFS_PARM2);
 	f32 *rgb = G_VECTOR(OFS_PARM3);
 	f32 alpha = G_FLOAT(OFS_PARM4);
-	//s32 flags = G_FLOAT(OFS_PARM5);
 	f32 srcpos[2] = {0, 0};
 	f32 srcsize[2] = {1, 1};
 	f32 pos_s[2];
@@ -1705,7 +1701,6 @@ static void PF_cl_drawsubpic()
 	f32 *srcsize = G_VECTOR(OFS_PARM4);
 	f32 *rgb = G_VECTOR(OFS_PARM5);
 	f32 alpha = G_FLOAT(OFS_PARM6);
-	//s32 flags = G_FLOAT(OFS_PARM7);
 	f32 pos_s[2];
 	f32 size_s[2] = {size[0], size[1]};
 	f32 ax = vid.width * 0.5f; // anchor to bottom center of the screen

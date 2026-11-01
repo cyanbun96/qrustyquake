@@ -385,7 +385,6 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 	COM_AddExtension(name, ".sav", sizeof(name));
 	// we can't call SCR_BeginLoadingPlaque because too much stack space has
 	// been used. The menu calls it before stuffing loadgame command
-	// SCR_BeginLoadingPlaque();
 	Con_Printf("Loading game from %s...\n", name);
 	if(developer.value && !Host_ValidateSave(name))
 		Con_Printf("WARNING: %s isn't a valid save file\n", name);

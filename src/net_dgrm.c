@@ -1076,7 +1076,6 @@ ErrorReturn:
 ErrorReturn2:
 	dfunc.Close_Socket(newsock);
 	if(m_return_onerror){
-		//IN_DeactivateForMenu();
 		key_dest = key_menu;
 		m_return_onerror = 0;
 	}

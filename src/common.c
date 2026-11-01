@@ -55,9 +55,6 @@ void COM_CloseFile(s32 h);
 void ClearLink(link_t *l){ l->prev = l->next = l; } // used for new headnodes
 void RemoveLink(link_t *l){ l->next->prev = l->prev; l->prev->next = l->next;}
 
-const c8 *COM_SkipSpace(const c8 *str)
-{ while(isspace(*str)) str++; return str; }
-
 void InsertLinkBefore(link_t *l, link_t *before)
 {
 	l->next = before;

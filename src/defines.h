@@ -4,10 +4,8 @@
 // atsb: windows and linux compatible macro definitions
 #if defined(_MSC_VER)
 #define Q_SIL static __forceinline
-#define RESTRICT
 #else
 #define Q_SIL static inline __attribute__((always_inline))
-#define RESTRICT __restrict
 #endif
 #ifndef M_PI
 #define M_PI SDL_PI_D
@@ -137,7 +135,6 @@
 #define GAME_DEATHMATCH 1 // these determine which intermission screen plays
 // note that there are some defs.qc that mirror to these numbers
 // also related to svc_strings[] in cl_parse
-#define svc_bad 0
 #define svc_nop 1 // server to client
 #define svc_disconnect 2
 #define svc_updatestat 3 // [u8] [s64]
@@ -161,7 +158,6 @@
 #define svc_particle 18 // [vec3] <variable>
 #define svc_damage 19
 #define svc_spawnstatic 20
-#define svc_spawnbinary 21
 #define svc_spawnbaseline 22
 #define svc_temp_entity 23
 #define svc_setpause 24 // [u8] on / off
@@ -290,7 +286,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define OFS_PARM4 16
 #define OFS_PARM5 19
 #define OFS_PARM6 22
-#define OFS_PARM7 25
 #define DEF_SAVEGLOBAL (1<<15)
 #define MAX_PARMS 8
 #define PROG_VERSION 6
@@ -406,7 +401,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define LERP_FINISH (1<<4)
 #ifdef SDL_PLATFORM_WINDOWS                                         // net_sys.h
 #define MAXHOSTNAMELEN 1024
-#define selectsocket select
 #define SOCKETERRNO WSAGetLastError()
 #define NET_EWOULDBLOCK WSAEWOULDBLOCK
 #define NET_ECONNREFUSED WSAECONNREFUSED
@@ -417,7 +411,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define SOCKETERRNO errno
 #define ioctlsocket ioctl
 #define closesocket close
-#define selectsocket select
 #define NET_EWOULDBLOCK EWOULDBLOCK
 #define NET_ECONNREFUSED ECONNREFUSED
 #define socketerror(x) strerror((x))
@@ -458,7 +451,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define CL_SetHudStat(stat) cl.statsf[stat] = cl.stats[stat]
 #define MAX_CL_STATS 256 // stats are integers communicated to
 #define STAT_HEALTH 0 // the client by the server
-#define STAT_FRAGS 1
 #define STAT_WEAPON 2
 #define STAT_AMMO 3
 #define STAT_ARMOR 4
@@ -493,7 +485,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define RIT_ROCKETS 512
 #define RIT_CELLS 1024
 #define RIT_LAVA_NAILGUN 4096
-#define RIT_MULTI_ROCKET 32768
 #define RIT_ARMOR1 8388608
 #define RIT_ARMOR2 16777216
 #define RIT_ARMOR3 33554432

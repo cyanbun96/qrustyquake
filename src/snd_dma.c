@@ -405,11 +405,7 @@ static void S_Update_()
 	// Updates DMA time
 	GetSoundtime();
 	// check to make sure that we haven't overshot
-	if(paintedtime < soundtime)
-	{
-		// Con_Printf("S_Update_ : overflow\n");
-		paintedtime = soundtime;
-	}
+	if(paintedtime < soundtime) paintedtime = soundtime;
 	// mix ahead of current position
 	endtime = soundtime + (u32)(_snd_mixahead.value * shm->speed);
 	samps = shm->samples >> (shm->channels - 1);

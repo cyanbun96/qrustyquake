@@ -90,7 +90,6 @@ bool SNDDMA_Init(dma_t *dma)
 			drivername, buffersize);
 	shm->buffer = (u8 *) calloc(1, buffersize);
 	if(!shm->buffer){
-		//SDL_CloseAudio();
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		shm = NULL;
 		Con_Printf("Failed allocating memory for SDL audio\n");
