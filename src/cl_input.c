@@ -99,7 +99,7 @@ f32 CL_KeyState(kbutton_t *key)
 void CL_AdjustAngles()
 { // Moves the local angle positions
 	f32 speed = host_frametime;
-	if((in_speed.state & 1) ^ (cl_alwaysrun.value != 0.0))
+	if(in_speed.state & 1)
 		speed *= cl_anglespeedkey.value;
 	if(!(in_strafe.state & 1)){
 		cl.viewangles[YAW] -= speed*cl_yawspeed.value
@@ -146,7 +146,7 @@ void CL_BaseMove(usercmd_t *cmd)
 			* CL_KeyState(&in_forward);
 		cmd->forwardmove -= cl_backspeed.value * CL_KeyState(&in_back);
 	}
-	if((in_speed.state & 1) ^ (cl_alwaysrun.value != 0.0)){
+	if(in_speed.state & 1){
 		cmd->forwardmove *= cl_movespeedkey.value;
 		cmd->sidemove *= cl_movespeedkey.value;
 		cmd->upmove *= cl_movespeedkey.value;

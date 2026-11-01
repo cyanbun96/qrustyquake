@@ -10,7 +10,6 @@ cvar_t chase_active=                                {"chase_active", "0", 0,ZR};
 cvar_t chase_back=                                  {"chase_back", "100", 0,ZR};
 cvar_t chase_right=                                  {"chase_right", "0", 0,ZR};
 cvar_t chase_up=                                       {"chase_up", "16", 0,ZR};
-cvar_t cl_alwaysrun=                                  {"cl_alwaysrun","0",1,ZR};
 cvar_t cl_anglespeedkey=                        {"cl_anglespeedkey","1.5",0,ZR};
 cvar_t cl_automenu=                                    {"cl_automenu","1",1,ZR};
 cvar_t cl_backspeed=                               {"cl_backspeed","200", 1,ZR};
