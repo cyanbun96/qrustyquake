@@ -24,6 +24,16 @@ static vec3_t box_bigbigvecs[6][2] = {{{0,-4,0},{-4,0,0} },{{0,4,0}, {0,0,-4}},
 
 s32 R_LoadSkybox(const c8 *name);
 
+static void Sky_SetFaceVecs(s32 i, s32 width, s32 height)
+{ // Manoel Kasimier - hi-res skyboxes
+	for(s32 j = 0; j < 2; j++){
+		s32 size = j ? height : width;
+		vec3_t *vecs = size == 1024 ? box_bigbigvecs[i] :
+			size == 512 ? box_bigvecs[i] : box_vecs[i];
+		VectorCopy(vecs[j], r_skytexinfo[i].vecs[j]);
+	}
+}
+
 void Sky_LoadSkyBox(const c8 *name)
 {
 	if(r_enableskybox.value == 0) return;
@@ -183,28 +193,7 @@ Con_Printf("skybox height(%d) for %s must be 256, 512, 1024", height, pathname);
 		r_skytexinfo[i].texture->width = width;
 		r_skytexinfo[i].texture->height = height;
 		r_skytexinfo[i].texture->offsets[0] = i;
-		switch(width){
-		case 1024:
-		    VectorCopy(box_bigbigvecs[i][0], r_skytexinfo[i].vecs[0]);
-		    break;
-		case 512:
-			VectorCopy(box_bigvecs[i][0], r_skytexinfo[i].vecs[0]);
-			break;
-		default:
-			VectorCopy(box_vecs[i][0], r_skytexinfo[i].vecs[0]);
-			break;
-		}
-		switch(height){
-		case 1024:
-		    VectorCopy(box_bigbigvecs[i][1], r_skytexinfo[i].vecs[1]);
-		    break;
-		case 512:
-			VectorCopy(box_bigvecs[i][1], r_skytexinfo[i].vecs[1]);
-			break;
-		default:
-			VectorCopy(box_vecs[i][1], r_skytexinfo[i].vecs[1]);
-			break;
-		}
+		Sky_SetFaceVecs(i, width, height);
 		// This is if one is already loaded and the size changed
 		if(r_skyfaces){
 			r_skyfaces[i].texturemins[0] = -(width/2);
@@ -254,28 +243,7 @@ void R_InitSkyBox()
 			height = r_skytexinfo[i].texture->height;
 		}
 		else width = height = 256;
-		switch(width){
-		case 1024:
-		    VectorCopy(box_bigbigvecs[i][0], r_skytexinfo[i].vecs[0]);
-		    break;
-		case 512:
-			VectorCopy(box_bigvecs[i][0], r_skytexinfo[i].vecs[0]);
-			break;
-		default:
-			VectorCopy(box_vecs[i][0], r_skytexinfo[i].vecs[0]);
-			break;
-		}
-		switch(height){
-		case 1024:
-		    VectorCopy(box_bigbigvecs[i][1], r_skytexinfo[i].vecs[1]);
-		    break;
-		case 512:
-			VectorCopy(box_bigvecs[i][1], r_skytexinfo[i].vecs[1]);
-			break;
-		default:
-			VectorCopy(box_vecs[i][1], r_skytexinfo[i].vecs[1]);
-			break;
-		}
+		Sky_SetFaceVecs(i, width, height);
 		r_skyfaces[i].texturemins[0] = -(width/2);
 		r_skyfaces[i].texturemins[1] = -(height/2);
 		r_skyfaces[i].extents[0] = width;

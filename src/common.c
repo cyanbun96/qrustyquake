@@ -995,17 +995,12 @@ static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 			qspak = COM_LoadPackFile(pakfile);
 			com_modified = old;
 		}
-		if(pak){
+		for(s32 j = 0; j < 2; j++){
+			pack_t *p = j ? qspak : pak;
+			if(!p) continue;
 			search = (searchpath_t*) Z_Malloc(sizeof(searchpath_t));
 			search->path_id = path_id;
-			search->pack = pak;
-			search->next = com_searchpaths;
-			com_searchpaths = search;
-		}
-		if(qspak){
-			search = (searchpath_t*) Z_Malloc(sizeof(searchpath_t));
-			search->path_id = path_id;
-			search->pack = qspak;
+			search->pack = p;
 			search->next = com_searchpaths;
 			com_searchpaths = search;
 		}

@@ -58,6 +58,18 @@ void CL_ParseBeam(model_t *m)
 		}
 }
 
+static void CL_SpikeSound(vec3_t pos)
+{
+	if(rand() % 5)
+		S_StartSound(-1, 0, cl_sfx_tink1, pos, 1, 1);
+	else{
+		s32 rnd = rand() & 3;
+		if(rnd==1)S_StartSound(-1,0,cl_sfx_ric1,pos,1,1);
+		else if(rnd==2)S_StartSound(-1,0,cl_sfx_ric2,pos,1,1);
+		else S_StartSound(-1,0,cl_sfx_ric3,pos,1,1);
+	}
+}
+
 void CL_ParseTEnt()
 {
 	dlight_t *dl;
@@ -83,28 +95,14 @@ void CL_ParseTEnt()
 		pos[1] = MSG_ReadCoord(cl.protocolflags);
 		pos[2] = MSG_ReadCoord(cl.protocolflags);
 		R_RunParticleEffect(pos, vec3_origin, 0, 10);
-		if(rand() % 5)
-			S_StartSound(-1, 0, cl_sfx_tink1, pos, 1, 1);
-		else{
-			s32 rnd = rand() & 3;
-			if(rnd==1)S_StartSound(-1,0,cl_sfx_ric1,pos,1,1);
-			else if(rnd==2)S_StartSound(-1,0,cl_sfx_ric2,pos,1,1);
-			else S_StartSound(-1,0,cl_sfx_ric3,pos,1,1);
-		}
+		CL_SpikeSound(pos);
 		break;
 	case TE_SUPERSPIKE: // super spike hitting wall
 		pos[0] = MSG_ReadCoord(cl.protocolflags);
 		pos[1] = MSG_ReadCoord(cl.protocolflags);
 		pos[2] = MSG_ReadCoord(cl.protocolflags);
 		R_RunParticleEffect(pos, vec3_origin, 0, 20);
-		if(rand() % 5)
-			S_StartSound(-1, 0, cl_sfx_tink1, pos, 1, 1);
-		else{
-			s32 rnd = rand() & 3;
-			if(rnd==1)S_StartSound(-1,0,cl_sfx_ric1,pos,1,1);
-			else if(rnd==2)S_StartSound(-1,0,cl_sfx_ric2,pos,1,1);
-			else S_StartSound(-1,0,cl_sfx_ric3,pos,1,1);
-		}
+		CL_SpikeSound(pos);
 		break;
 	case TE_GUNSHOT: // bullet hitting wall
 		pos[0] = MSG_ReadCoord(cl.protocolflags);

@@ -41,6 +41,18 @@ static inline s32 Buf_GetC(stdio_buffer_t *buf)
 s32 fgetLittleShort(FILE *f)
 { u8 b1 = fgetc(f); u8 b2 = fgetc(f); return(s16)(b1 + b2*256); }
 
+static void TGA_Pixel(stdio_buffer_t *buf, s32 bits, u8 *rgba)
+{ // reads go first: a store through rgba could alias buf and force reloads
+	u8 blue = Buf_GetC(buf);
+	u8 green = Buf_GetC(buf);
+	u8 red = Buf_GetC(buf);
+	u8 alpha = bits == 32 ? Buf_GetC(buf) : 255;
+	rgba[0] = red;
+	rgba[1] = green;
+	rgba[2] = blue;
+	rgba[3] = alpha;
+}
+
 u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 {
 	targaheader_t targa_header = {fgetc(fin),fgetc(fin),fgetc(fin),
@@ -84,6 +96,7 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 	if(targa_header.id_length != 0)
 		fseek(fin, targa_header.id_length, SEEK_CUR); // skip comment
 	stdio_buffer_t *buf = Buf_Alloc(fin);
+	s32 bits = targa_header.pixel_size;
 	s32 realrow; //johnfitz -- fix for upside-down targas
 	u8 *pixbuf;
 	if(targa_header.image_type == 1){ // Uncompressed, paletted images
@@ -113,32 +126,12 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 			realrow = upside_down ? row : rows - 1 - row;
 			pixbuf = targa_rgba + realrow*columns*4;
 			for(s32 column=0; column<columns; column++){
-				u8 red,green,blue,alphabyte;
-				switch(targa_header.pixel_size){
-				case 24:
-					blue = Buf_GetC(buf);
-					green = Buf_GetC(buf);
-					red = Buf_GetC(buf);
-					*pixbuf++ = red;
-					*pixbuf++ = green;
-					*pixbuf++ = blue;
-					*pixbuf++ = 255;
-					break;
-				case 32:
-					blue = Buf_GetC(buf);
-					green = Buf_GetC(buf);
-					red = Buf_GetC(buf);
-					alphabyte = Buf_GetC(buf);
-					*pixbuf++ = red;
-					*pixbuf++ = green;
-					*pixbuf++ = blue;
-					*pixbuf++ = alphabyte;
-					break;
-				}
+				TGA_Pixel(buf, bits, pixbuf);
+				pixbuf += 4;
 			}
 		}
 	}else if(targa_header.image_type==10){ // Runlength encoded RGB images
-		u8 red,green,blue,alphabyte,packetHeader,packetSize,j;
+		u8 packetHeader,packetSize,j;
 		for(s32 row = rows - 1; row >= 0; row--){
 			realrow = upside_down ? row : rows - 1 - row;
 			pixbuf = targa_rgba + realrow*columns*4;
@@ -146,27 +139,11 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 				packetHeader=Buf_GetC(buf);
 				packetSize = 1 + (packetHeader & 0x7f);
 				if(packetHeader & 0x80){ // run-length packet
-					switch(targa_header.pixel_size){
-					case 24:
-						blue = Buf_GetC(buf);
-						green = Buf_GetC(buf);
-						red = Buf_GetC(buf);
-						alphabyte = 255;
-						break;
-					case 32:
-						blue = Buf_GetC(buf);
-						green = Buf_GetC(buf);
-						red = Buf_GetC(buf);
-						alphabyte = Buf_GetC(buf);
-						break;
-					default:
-						blue=red=green=alphabyte=0;
-					}
+					u8 pixel[4];
+					TGA_Pixel(buf, bits, pixel);
 					for(j = 0; j < packetSize; j++){
-						*pixbuf++=red;
-						*pixbuf++=green;
-						*pixbuf++=blue;
-						*pixbuf++=alphabyte;
+						memcpy(pixbuf, pixel, 4);
+						pixbuf += 4;
 						column++;
 						if(column==columns){
 							column=0;
@@ -181,27 +158,8 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 				}
 				else{ // non run-length packet
 					for(j = 0; j < packetSize; j++){
-						switch(targa_header.pixel_size){
-						case 24:
-							blue = Buf_GetC(buf);
-							green = Buf_GetC(buf);
-							red = Buf_GetC(buf);
-							*pixbuf++ = red;
-							*pixbuf++ = green;
-							*pixbuf++ = blue;
-							*pixbuf++ = 255;
-							break;
-						case 32:
-							blue = Buf_GetC(buf);
-							green = Buf_GetC(buf);
-							red = Buf_GetC(buf);
-							alphabyte=Buf_GetC(buf);
-							*pixbuf++ = red;
-							*pixbuf++ = green;
-							*pixbuf++ = blue;
-							*pixbuf++ = alphabyte;
-							break;
-						}
+						TGA_Pixel(buf, bits, pixbuf);
+						pixbuf += 4;
 						column++;
 						if(column==columns){
 							column=0;

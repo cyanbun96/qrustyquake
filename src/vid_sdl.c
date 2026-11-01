@@ -121,6 +121,16 @@ void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
 	}
 }
 
+static void VID_CreateSurfaces()
+{
+	SDL_Surface **s[4] = {&screen, &screentop, &screenui, &screensbar};
+	for(s32 i = 0; i < 4; i++){
+		*s[i] = SDL_CreateSurfaceFrom(vid.width, vid.height,
+				SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
+		sdlpals[i] = SDL_CreateSurfacePalette(*s[i]);
+	}
+}
+
 void VID_Init()
 {
 	c8 caption[50];
@@ -212,18 +222,7 @@ void VID_Init()
 	if(!window) Sys_Error("Couldn't create window: %s", SDL_GetError());
 	window_format = SDL_GetWindowPixelFormat(window); // for VID_SetPalette
 	SDL_SetWindowMinimumSize(window, 320, 200);
-	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[0] = SDL_CreateSurfacePalette(screen);
-	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[3] = SDL_CreateSurfacePalette(screensbar);
-	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[2] = SDL_CreateSurfacePalette(screenui);
-	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[1] = SDL_CreateSurfacePalette(screentop);
+	VID_CreateSurfaces();
 	screen->pixels = screenpixels;
 	screenui->pixels = uipixels;
 	screensbar->pixels = sbarpixels;
@@ -476,18 +475,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 	SDL_DestroySurface(screentop);
 	SDL_DestroySurface(screenui);
 	SDL_DestroySurface(screensbar);
-	screen = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[0] = SDL_CreateSurfacePalette(screen);
-	screensbar = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[3] = SDL_CreateSurfacePalette(screensbar);
-	screenui = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[2] = SDL_CreateSurfacePalette(screenui);
-	screentop = SDL_CreateSurfaceFrom(vid.width, vid.height,
-			SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
-		sdlpals[1] = SDL_CreateSurfacePalette(screentop);
+	VID_CreateSurfaces();
 	scrbuffs[0] = screen; scrbuffs[1] = screentop;
 	scrbuffs[2] = screenui; scrbuffs[3] = screensbar;
 	SDL_DestroySurface(argbbuffer);

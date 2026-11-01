@@ -1043,11 +1043,12 @@ time_t Mod_GetMapDate(const c8 *map)
 	return seconds;
 }
 
-void FileList_Add(const c8 *name, const c8 *desc, filelist_item_t **list)
-{
+static filelist_item_t *FileList_Insert(const c8 *name, const c8 *desc,
+		filelist_item_t **list)
+{ // returns the new item, or NULL if the list already has that name
 	filelist_item_t *item,*cursor,*prev;
 	for(item = *list; item; item = item->next) // ignore duplicate
-		if(!strcmp(name, item->name)) return;
+		if(!strcmp(name, item->name)) return NULL;
 	item = (filelist_item_t*)Z_Malloc(sizeof(filelist_item_t));
 	SDL_strlcpy(item->name, name, sizeof(item->name));
 	if(desc) SDL_strlcpy(item->desc, desc, sizeof(item->desc));
@@ -1065,33 +1066,19 @@ void FileList_Add(const c8 *name, const c8 *desc, filelist_item_t **list)
 		item->next = prev->next;
 		prev->next = item;
 	}
+	return item;
 }
+
+void FileList_Add(const c8 *name, const c8 *desc, filelist_item_t **list)
+{ FileList_Insert(name, desc, list); }
 
 void FileList_AddMap(const c8 *name, const c8 *desc, filelist_item_t **list)
 {
-	filelist_item_t *item,*cursor,*prev;
-	for(item = *list; item; item = item->next) // ignore duplicate
-		if(!strcmp(name, item->name)) return;
-	item = (filelist_item_t *) Z_Malloc(sizeof(filelist_item_t));
-	SDL_strlcpy(item->name, name, sizeof(item->name));
-	if(desc) SDL_strlcpy(item->desc, desc, sizeof(item->desc));
+	filelist_item_t *item = FileList_Insert(name, desc, list);
+	if(!item) return;
 	item->data1 = Mod_CountMonsters(name);
 	item->data2 = Mod_CountSecrets(name);
 	item->date = Mod_GetMapDate(name);
-	// insert each entry in alphabetical order
-	if(*list == NULL || SDL_strcasecmp(item->name, (*list)->name) < 0){
-		item->next = *list; //insert at front
-		*list = item;
-	}else{ //insert later
-		prev = *list;
-		cursor = (*list)->next;
-		while(cursor && (SDL_strcasecmp(item->name, cursor->name) > 0)){
-			prev = cursor;
-			cursor = cursor->next;
-		}
-		item->next = prev->next;
-		prev->next = item;
-	}
 }
 
 void ExtraMaps_Add(const c8 *name, const c8 *game)

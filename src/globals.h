@@ -542,6 +542,7 @@ void CL_ParseTEnt();
 void CL_UpdateTEnts();
 void CL_ClearState();
 void CL_ReadFromServer();
+void CL_TranslateRanges(u8 *dest, u8 *source, s32 top, s32 bottom);
 void CL_BaseMove(usercmd_t *cmd);
 c8 *Key_KeynumToString(s32 keynum);
 void CL_StopPlayback();

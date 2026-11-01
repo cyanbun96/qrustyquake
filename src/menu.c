@@ -330,19 +330,8 @@ void M_BuildTranslationTable(s32 top, s32 bottom)
 	static u8 identityTable[256];
 	for(s32 j = 0; j < 256; j++)
 		identityTable[j] = j;
-	u8 *dest = translationTable;
-	u8 *source = identityTable;
-	memcpy(dest, source, 256);
-	if(top < 128) // the artists made some backwards ranges. sigh.
-		memcpy(dest + TOP_RANGE, source + top, 16);
-	else
-		for(s32 j = 0; j < 16; j++)
-			dest[TOP_RANGE + j] = source[top + 15 - j];
-	if(bottom < 128)
-		memcpy(dest + BOTTOM_RANGE, source + bottom, 16);
-	else
-		for(s32 j = 0; j < 16; j++)
-			dest[BOTTOM_RANGE + j] = source[bottom + 15 - j];
+	memcpy(translationTable, identityTable, 256);
+	CL_TranslateRanges(translationTable, identityTable, top, bottom);
 }
 
 void M_DrawTransPicTranslate(s32 x, s32 y, qpic_t *pic)

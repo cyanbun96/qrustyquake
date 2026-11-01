@@ -444,6 +444,18 @@ void CL_ParseClientdata()
 	CL_SetHudStat(STAT_CELLS);
 }
 
+void CL_TranslateRanges(u8 *dest, u8 *source, s32 top, s32 bottom)
+{
+	if(top < 128) // the artists made some backwards ranges. sigh.
+		memcpy(dest + TOP_RANGE, source + top, 16);
+	else for(s32 j = 0; j < 16; j++)
+		dest[TOP_RANGE+j] = source[top+15-j];
+	if(bottom < 128)
+		memcpy(dest + BOTTOM_RANGE, source + bottom, 16);
+	else for(s32 j = 0; j < 16; j++)
+		dest[BOTTOM_RANGE+j] = source[bottom+15-j];
+}
+
 void CL_NewTranslation(s32 slot)
 {
 	if(slot > cl.maxclients)
@@ -453,16 +465,8 @@ void CL_NewTranslation(s32 slot)
 	memcpy(dest, CURWORLDCMAP, sizeof(cl.scores[slot].translations));
 	s32 top = cl.scores[slot].colors & 0xf0;
 	s32 bottom =(cl.scores[slot].colors &15)<<4;
-	for(s32 i = 0; i < VID_GRADES; i++, dest += 256, source+=256){
-		if(top < 128) // the artists made some backwards ranges. sigh.
-			memcpy(dest + TOP_RANGE, source + top, 16);
-		else for(s32 j = 0; j < 16; j++)
-				dest[TOP_RANGE+j] = source[top+15-j];
-		if(bottom < 128)
-			memcpy(dest + BOTTOM_RANGE, source + bottom, 16);
-		else for(s32 j = 0; j < 16; j++)
-				dest[BOTTOM_RANGE+j] = source[bottom+15-j];
-	}
+	for(s32 i = 0; i < VID_GRADES; i++, dest += 256, source+=256)
+		CL_TranslateRanges(dest, source, top, bottom);
 }
 
 void CL_ParseStatic(s32 version) //johnfitz -- added a parameter

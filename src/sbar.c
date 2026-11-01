@@ -881,54 +881,20 @@ static inline s32 int_offs(s32 i)
 }
 
 // Pictures for the "minimalist" status bar
-#define SS 0x45 // shade
-#define BB 0x49 // base
-#define LL 0x4d // lit
-static qpic_t shield_r = { 8, 8, {
-	TT,SS,SS,SS,SS,SS, 0,TT,
-	SS,BB,BB,LL,BB,BB,SS, 0,
-	SS,BB,LL,BB,BB,BB,SS, 0,
-	SS,BB,LL,BB,BB,BB,SS, 0,
-	SS,BB,BB,BB,BB,BB,SS, 0,
-	TT,SS,BB,BB,BB,SS, 0,TT,
-	TT,TT,SS,BB,SS, 0,TT,TT,
-	TT,TT,TT,SS, 0,TT,TT,TT,
-}};
-#undef SS
-#undef BB
-#undef LL
-#define SS 0xca // shade
-#define BB 0xc6 // base
-#define LL 0xc2 // lit
-static qpic_t shield_y = { 8, 8, {
-	TT,SS,SS,SS,SS,SS, 0,TT,
-	SS,BB,BB,LL,BB,BB,SS, 0,
-	SS,BB,LL,BB,BB,BB,SS, 0,
-	SS,BB,LL,BB,BB,BB,SS, 0,
-	SS,BB,BB,BB,BB,BB,SS, 0,
-	TT,SS,BB,BB,BB,SS, 0,TT,
-	TT,TT,SS,BB,SS, 0,TT,TT,
-	TT,TT,TT,SS, 0,TT,TT,TT,
-}};
-#undef SS
-#undef BB
-#undef LL
-#define SS 0xba // shade
-#define BB 0xb6 // base
-#define LL 0xb2 // lit
-static qpic_t shield_g = { 8, 8, {
-	TT,SS,SS,SS,SS,SS, 0,TT,
-	SS,BB,BB,LL,BB,BB,SS, 0,
-	SS,BB,LL,BB,BB,BB,SS, 0,
-	SS,BB,LL,BB,BB,BB,SS, 0,
-	SS,BB,BB,BB,BB,BB,SS, 0,
-	TT,SS,BB,BB,BB,SS, 0,TT,
-	TT,TT,SS,BB,SS, 0,TT,TT,
-	TT,TT,TT,SS, 0,TT,TT,TT,
-}};
-#undef SS
-#undef BB
-#undef LL
+#define SHIELD8X8(SS, BB, LL) { 8, 8, { /* shade, base, lit */ \
+	TT,SS,SS,SS,SS,SS, 0,TT, \
+	SS,BB,BB,LL,BB,BB,SS, 0, \
+	SS,BB,LL,BB,BB,BB,SS, 0, \
+	SS,BB,LL,BB,BB,BB,SS, 0, \
+	SS,BB,BB,BB,BB,BB,SS, 0, \
+	TT,SS,BB,BB,BB,SS, 0,TT, \
+	TT,TT,SS,BB,SS, 0,TT,TT, \
+	TT,TT,TT,SS, 0,TT,TT,TT, \
+}}
+static qpic_t shield_r = SHIELD8X8(0x45, 0x49, 0x4d);
+static qpic_t shield_y = SHIELD8X8(0xca, 0xc6, 0xc2);
+static qpic_t shield_g = SHIELD8X8(0xba, 0xb6, 0xb2);
+#undef SHIELD8X8
 static qpic_t pent8x8 = { 8, 8, {
 	0x4d,0x4a,0xff,0xff,0xff,0xff,0x4a,0x4d,
 	0x4a,0x4f,0x4f,0x46,0x46,0x4f,0x4f,0x4a,
