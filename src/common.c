@@ -833,13 +833,7 @@ static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 			else return 0;
 		}
 	}
-	if(strcmp(COM_FileGetExtension(name), "pcx") != 0
-		&& strcmp(COM_FileGetExtension(name), "tga") != 0
-		&& strcmp(COM_FileGetExtension(name), "lit") != 0
-		&& strcmp(COM_FileGetExtension(name), "vis") != 0
-		&& strcmp(COM_FileGetExtension(name), "ent") != 0)
-		Con_DPrintf("FindFile: can't find %s\n", name);
-	else Con_DPrintf("FindFile: can't find %s\n", name);
+	Con_DPrintf("FindFile: can't find %s\n", name);
 	if(handle) *handle = -1;
 	if(file) *file = NULL;
 	com_filesize = -1;
@@ -968,7 +962,6 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 {
 	c8 pakfile[MAX_OSPATH+32];
-	bool been_here = 0;
 	SDL_strlcpy(com_gamedir, va("%s/%s", base, dir), sizeof(com_gamedir));
 	COM_FixPathCase(com_gamedir, strlen(base));
 	u32 path_id = com_searchpaths ? com_searchpaths->path_id << 1 : 1U;
@@ -985,7 +978,6 @@ static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 		if(i != 0 || path_id != 1 || fitzmode) qspak = NULL;
 		else{
 			bool old = com_modified;
-			if(been_here) base = host_parms.userdir;
 			snprintf(pakfile, sizeof(pakfile),
 					"%s/quakespasm.pak", base);
 			COM_FixPathCase(pakfile, strlen(base));
@@ -1279,7 +1271,6 @@ bool LOC_Init()
 	c8 *cursor = localization.text;
 	if((u8)(cursor[0])==0xEF&&(u8)(cursor[1])==0xBB&&(u8)(cursor[2])==0xBF)
 		cursor += 3; // skip BOM
-	s32 warnings = 0;
 	s32 lineno = 0;
 	while(*cursor){
 		c8 *line, *equals;
@@ -1372,8 +1363,6 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 		}
 		if(*cursor) *cursor++ = 0; //terminate line and advance to next
 	}
-	if(developer.value >= 2.f && warnings > 0)
-		Sys_Printf("%d strings with unprintable characters\n",warnings);
 	// hash all entries
 	localization.numindices = localization.numentries * 2; //50% load factor
 	if(localization.numindices == 0){
@@ -1405,7 +1394,7 @@ Con_Printf("LOC_LoadFile: unrecognized escape sequence \\%c on line %d\n",
 
 const c8* LOC_GetRawString(const c8 *key)
 { // Returns localized string if available, or NULL otherwise
-	if(!localization.numindices || !key || !*key || *key != '$')return NULL;
+	if(!localization.numindices || !key || *key != '$') return NULL;
 	key++;
 	u32 pos = COM_HashString(key) % localization.numindices;
 	u32 end = pos;

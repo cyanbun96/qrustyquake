@@ -216,7 +216,6 @@ dma_t *shm = NULL;                                                  // snd_dma.c
 channel_t snd_channels[MAX_CHANNELS];
 s32 total_channels;
 s32 paintedtime; // sample PAIRS
-s32 s_rawend;
 server_t sv;                                                        // sv_main.c
 server_static_t svs;
 globalvars_t *pr_global_struct;                                    // pr_edict.c

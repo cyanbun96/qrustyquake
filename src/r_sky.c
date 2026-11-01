@@ -161,7 +161,6 @@ s32 R_LoadSkybox(const c8 *name)
 				break;
 			default: // We aren't good
 Con_Printf("skybox width(%d) for %s must be 256, 512, 1024", width, pathname);
-				pic = origpic;
 				Hunk_FreeToLowMark(mark);
 				if(final_pic != origpic)
 					free(final_pic);
@@ -174,7 +173,6 @@ Con_Printf("skybox width(%d) for %s must be 256, 512, 1024", width, pathname);
 				break;
 			default:
 Con_Printf("skybox height(%d) for %s must be 256, 512, 1024", height, pathname);
-				pic = origpic;
 				Hunk_FreeToLowMark(mark);
 				if(final_pic != origpic)
 					free(final_pic);
@@ -217,7 +215,6 @@ Con_Printf("skybox height(%d) for %s must be 256, 512, 1024", height, pathname);
 		else
 	Con_DPrintf("Warning: No surface to load yet for WinQuake skybox");
 		memcpy(r_skypixels[i], pic, width*height);
-		pic = origpic;
 		if(freescaled) free(scaled);
 		Hunk_FreeToLowMark(mark);
 		if(final_pic != origpic)

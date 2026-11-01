@@ -201,8 +201,6 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 							*pixbuf++ = blue;
 							*pixbuf++ = alphabyte;
 							break;
-						default:
-						    blue=red=green=alphabyte=0;
 						}
 						column++;
 						if(column==columns){

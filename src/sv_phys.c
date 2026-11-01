@@ -77,11 +77,8 @@ void SV_Impact(edict_t *e1, edict_t *e2)
 	pr_global_struct->other = old_other;
 }
 
-s32 ClipVelocity(vec3_t in, vec3_t normal, vec3_t out, f32 overbounce)
+static void ClipVelocity(vec3_t in, vec3_t normal, vec3_t out, f32 overbounce)
 { // Slide off of the impacting object
-	s32 blocked = 0;
-	if(normal[2] > 0) blocked |= 1; // floor
-	if(!normal[2]) blocked |= 2; // step/wall
 	f32 backoff = DotProduct(in, normal) * overbounce;
 	for(s32 i = 0; i < 3; i++){
 		f32 change = normal[i]*backoff;
@@ -89,7 +86,6 @@ s32 ClipVelocity(vec3_t in, vec3_t normal, vec3_t out, f32 overbounce)
 		if(out[i] > -STOP_EPSILON && out[i] < STOP_EPSILON)
 			out[i] = 0;
 	}
-	return blocked;
 }
 
 // The basic solid body movement clip that slides along multiple planes

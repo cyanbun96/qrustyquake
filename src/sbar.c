@@ -39,7 +39,7 @@ static s32 iposx[12]; // classic items
 static s32 iposy;
 
 inline static s32 Sbar_ColorForMap(s32 m)
-{ return m < 128 ? m + 8 : m + 8; }
+{ return m + 8; }
 inline static void Sbar_ShowScores() // Tab key down
 { if(sb_showscores) return; sb_showscores = 1; sb_updates = 0; }
 inline static void Sbar_DontShowScores() // Tab key up
@@ -319,7 +319,6 @@ void Sbar_CalcPos()
 			npos[i][1] = HH - 32*SCL;
 		}
 		break;
-		break;
 	}
 	switch((s32)scr_hudstyle.value){ // weapons
 	case 8: // classic(no bg)
@@ -425,7 +424,7 @@ void Sbar_ItemsModern()
 	if(cl.items & IT_INVULNERABILITY || cl.stats[STAT_ARMOR] > 0)
 		y -= 24*SCL; // armor is visible, start above it
 	for(s32 i = 2; i < 6; i++)
-		if((cl.items & (1<<(17+i))) && (!hipnotic || (i > 1))){
+		if(cl.items & (1<<(17+i))){
 			Draw_TransPicScaled(x, y, sb_items[i], SCL);
 			y -= 16*SCL;
 		}

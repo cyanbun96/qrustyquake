@@ -2373,7 +2373,7 @@ bool nameInList(const c8 *list, const c8 *name)
 		tmp[i] = '\0';
 		if(!strcmp(name, tmp)) //compare it to the model name
 			return 1;
-		while(*s && *s == ',')
+		while(*s == ',')
 			s++; // search forwards to next comma or end of string
 	}
 	return 0;

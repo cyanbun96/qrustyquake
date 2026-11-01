@@ -261,20 +261,6 @@ void S_PaintChannels(s32 endtime, bool paused)
 			S_LowpassFilter(((s32 *)paintbuffer) + 1, 2,
 					end - paintedtime, &memory_r);
 		}
-		// paint in the music
-		if(s_rawend >= paintedtime){ //copy from streaming sound source
-			s32 stop = (end < s_rawend) ? end : s_rawend;
-			for(s32 i = paintedtime; i < stop; i++){
-				s32 s = i & (MAX_RAW_SAMPLES - 1);
-				static portable_samplepair_t
-					s_rawsamples[MAX_RAW_SAMPLES];
-				// lower music by 6db to match sfx
-				paintbuffer[i - paintedtime].left +=
-					s_rawsamples[s].left / 2;
-				paintbuffer[i - paintedtime].right +=
-					s_rawsamples[s].right / 2;
-			}
-		}
 		S_TransferPaintBuffer(end); // transfer according to DMA format
 		paintedtime = end;
 	}

@@ -56,8 +56,7 @@ void Fog_ParseServerMessage()
 	f32 red = MSG_ReadByte() / 255.0;
 	f32 green = MSG_ReadByte() / 255.0;
 	f32 blue = MSG_ReadByte() / 255.0;
-	f32 time = MSG_ReadShort() / 100.0;
-	if(time < 0.0f) time = 0.0f;
+	MSG_ReadShort(); // fade time, unused
 	Fog_Update(density, red, green, blue);
 }
 

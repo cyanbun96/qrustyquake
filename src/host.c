@@ -299,9 +299,8 @@ f64 Host_GetFrameInterval()
 static void Host_AdvanceTime(f64 dt)
 {
 	realtime += dt;
-	static f64 host_rawframetime;
 	static f64 oldrealtime; // last frame run
-	host_frametime = host_rawframetime = realtime - oldrealtime;
+	host_frametime = realtime - oldrealtime;
 	oldrealtime = realtime;
 	if(host_timescale.value > 0)
 		host_frametime *= host_timescale.value;

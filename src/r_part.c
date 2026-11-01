@@ -38,7 +38,6 @@ void R_EntityParticles(entity_t *ent)
 		angle = cl.time * avelocities[i][1];
 		f32 sp = sin(angle);
 		f32 cp = cos(angle);
-		angle = cl.time * avelocities[i][2];
 		vec3_t forward;
 		forward[0] = cp * cy;
 		forward[1] = cp * sy;

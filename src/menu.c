@@ -22,7 +22,6 @@ static s32 setup_oldbottom;
 static s32 setup_top;
 static s32 setup_bottom;
 static s32 m_net_cursor;
-static s32 m_net_items;
 static s32 options_cursor;
 static s32 options_cursor_max = 12;
 static s32 keys_cursor;
@@ -946,8 +945,7 @@ void M_Menu_Net_f()
 	key_dest = key_menu;
 	m_state = m_net;
 	m_entersound = 1;
-	m_net_items = 4;
-	if(m_net_cursor >= m_net_items)
+	if(m_net_cursor >= 4)
 		m_net_cursor = 0;
 	m_net_cursor--;
 	M_Net_Key(K_DOWNARROW);
@@ -975,11 +973,6 @@ void M_Net_Draw()
 	else
 		p = Draw_CachePic("gfx/dim_tcp.lmp");
 	M_DrawTransPic(72, f, p);
-	if(m_net_items == 5){ // JDC, could just be removed
-		f += 19;
-		p = Draw_CachePic("gfx/netmen5.lmp");
-		M_DrawTransPic(72, f, p);
-	}
 	f = (320 - 26 * 8) / 2;
 	M_DrawTextBox(f, 134, 24, 4);
 	f += 8;
@@ -1004,13 +997,13 @@ again:
 		break;
 	case K_DOWNARROW:
 		S_LocalSound("misc/menu1.wav");
-		if(++m_net_cursor >= m_net_items)
+		if(++m_net_cursor >= 4)
 			m_net_cursor = 0;
 		break;
 	case K_UPARROW:
 		S_LocalSound("misc/menu1.wav");
 		if(--m_net_cursor < 0)
-			m_net_cursor = m_net_items - 1;
+			m_net_cursor = 3;
 		break;
 	case K_MOUSE1:
 		if(!ui_mouse.value)break;
@@ -3239,10 +3232,8 @@ void M_New_Draw()
 	M_DrawCheckbox(xoffset + 204, 40, scr_centermenus.value);
 	M_Print(xoffset, 48, "              UI Mouse");
 	if(!ui_mouse.value)M_Print(xoffset + 204, 48, "Off");
-	else if(ui_mouse.value && !ui_mouse_sound.value)
-		M_Print(xoffset + 204, 48, "Quiet");
-	else if(ui_mouse.value && ui_mouse_sound.value)
-		M_Print(xoffset + 204, 48, "Loud");
+	else if(!ui_mouse_sound.value) M_Print(xoffset + 204, 48, "Quiet");
+	else M_Print(xoffset + 204, 48, "Loud");
 	if(new_cursor == 2){
 		M_DrawTextBox(52, 166, 30, 2);
 		M_Print(64, 174, "     - Enter        - Escape");
@@ -3927,10 +3918,7 @@ void M_LanConfig_Key(s32 key)
 	if(StartingGame && lanConfig_cursor == 2)
 		lanConfig_cursor = (key == K_UPARROW);
 	s32 l = atoi(lanConfig_portname);
-	if(l > 65535)
-		l = lanConfig_port;
-	else
-		lanConfig_port = l;
+	if(l <= 65535) lanConfig_port = l;
 	sprintf(lanConfig_portname, "%u", lanConfig_port);
 }
 

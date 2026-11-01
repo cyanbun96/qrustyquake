@@ -452,8 +452,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		}
 		if(i == sizeof(str) - 1) Sys_Error("Loadgame buffer overflow");
 		str[i] = 0;
-		const c8 *start = str;
-		start = COM_Parse(str);
+		const c8 *start = COM_Parse(str);
 		if(!com_token[0]) break; // end of file
 		if(strcmp(com_token,"{"))Sys_Error("First token isn't a brace");
 		if(entnum == -1){ ED_ParseGlobals(start);
@@ -464,7 +463,7 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 				memset(ent, 0, qcvm->edict_size);
 				ent->baseline.scale = ENTSCALE_DEFAULT;
 			}
-			start = ED_ParseEdict(start, ent);
+			ED_ParseEdict(start, ent);
 			if(!ent->free) // link it into the bsp tree
 				SV_LinkEdict(ent, false);
 		}
@@ -843,7 +842,7 @@ void Host_Kick_f() // Kicks a user off of the server
 					message++;
 				message += strlen(Cmd_Argv(2)); // skip number
 			}
-			while(*message && *message == ' ') message++;
+			while(*message == ' ') message++;
 		}
 		if(message) SV_ClientPrintf("Kicked by %s: %s\n", who, message);
 		else SV_ClientPrintf("Kicked by %s\n", who);

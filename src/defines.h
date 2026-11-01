@@ -39,7 +39,6 @@
 	do{G_FLOAT((r)+0) = x; G_FLOAT((r)+1) = y; G_FLOAT((r)+2) = z; }while(0)
 #define MAX_CHANNELS 1024                                           // q_sound.h
 #define MAX_DYNAMIC_CHANNELS 128
-#define MAX_RAW_SAMPLES 8192
 #define SND_LOCAL_CHAN -2 // entchannel of sounds that ignore the pause
 #define NET_HEADERSIZE (2 * sizeof(u32))                           // net_defs.h
 #define NETFLAG_LENGTH_MASK 0x0000ffff // Must fit NET_MAXMESSAGE

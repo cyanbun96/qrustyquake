@@ -102,17 +102,15 @@ static c8 *PF_VarString(s32 first)
 	static c8 out[1024];
 	const c8 *format;
 	out[0] = 0;
-	size_t s = 0;
 	if(first >= qcvm->argc)
 		return out;
 	format = LOC_GetString(G_STRING((OFS_PARM0 + first * 3)));
 	if(LOC_HasPlaceholders(format)){
 		s32 offset = first + 1;
-		s = LOC_Format(format,PF_GetStringArg,&offset,out,sizeof(out));
+		LOC_Format(format,PF_GetStringArg,&offset,out,sizeof(out));
 	}else for(s32 i = first; i < qcvm->argc; i++){
-		s = SDL_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)),
-				sizeof(out));
-		if(s >= sizeof(out)){
+		if(SDL_strlcat(out, LOC_GetString(G_STRING(OFS_PARM0+i*3)),
+				sizeof(out)) >= sizeof(out)){
 		      Con_DPrintf("PF_VarString: overflow(string truncated)\n");
 			return out;
 		}
@@ -1312,7 +1310,7 @@ static void PF_stov()
 	G_VECTOR(OFS_RETURN)[0] = atof(com_token);
 	s = COM_Parse(s);
 	G_VECTOR(OFS_RETURN)[1] = atof(com_token);
-	s = COM_Parse(s);
+	COM_Parse(s);
 	G_VECTOR(OFS_RETURN)[2] = atof(com_token);
 }
 

@@ -1263,7 +1263,6 @@ enum sendsignon_e {
 typedef struct client_s {
 	bool active; // 0 = client is free
 	bool spawned; // 0 = don't send datagrams
-	bool dropasap; // has been told to go to another level
 	enum sendsignon_e sendsignon; // only valid before spawned
 	s32 signonidx;
 	f64 last_message; // reliable messages must be sent periodically

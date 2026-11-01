@@ -579,8 +579,7 @@ s32 Datagram_Init()
 	banMask.s_addr = INADDR_NONE;
 	myDriverLevel = net_driverlevel;
 	Cmd_AddCommand("net_stats", NET_Stats_f);
-	s32 safemode = 0;
-	if(safemode || COM_CheckParm("-nolan"))
+	if(COM_CheckParm("-nolan"))
 		return -1;
 	s32 num_inited = 0;
 	for(s32 i = 0; i < net_numlandrivers; i++){

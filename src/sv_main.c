@@ -761,22 +761,17 @@ void SV_SendClientMessages()
 			host_client->message.overflowed = 0;
 			continue;
 		}
-		if(host_client->message.cursize || host_client->dropasap){
-			if(!NET_CanSendMessage(host_client->netconnection)){
+		if(host_client->message.cursize){
+			if(!NET_CanSendMessage(host_client->netconnection))
 				continue;
-			}
-			if(host_client->dropasap)
-				SV_DropClient(0); // went to another level
-			else{
-				if(NET_SendMessage(host_client->netconnection,
-						&host_client->message) == -1)
-					//if the message couldn't send, kick off
-					SV_DropClient(1);
-				SZ_Clear(&host_client->message);
-				host_client->last_message = realtime;
-				if(host_client->sendsignon == PRESPAWN_FLUSH)
-					host_client->sendsignon = PRESPAWN_DONE;
-			}
+			if(NET_SendMessage(host_client->netconnection,
+					&host_client->message) == -1)
+				//if the message couldn't send, kick off
+				SV_DropClient(1);
+			SZ_Clear(&host_client->message);
+			host_client->last_message = realtime;
+			if(host_client->sendsignon == PRESPAWN_FLUSH)
+				host_client->sendsignon = PRESPAWN_DONE;
 		}
 	}
 	SV_CleanupEnts(); // clear muzzle flashes

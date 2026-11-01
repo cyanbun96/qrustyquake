@@ -98,18 +98,10 @@ f32 CL_KeyState(kbutton_t *key)
 	bool impulseup = key->state & 4;
 	bool down = key->state & 1;
 	f32 val = 0;
-	if(impulsedown && !impulseup){
-		if(down) val = 0.5; // pressed and held this frame
-		else val = 0; // I_Error();
-	}
-	if(impulseup && !impulsedown){
-		if(down) val = 0; // I_Error();
-		else val = 0; // released this frame
-	}
-	if(!impulsedown && !impulseup){
-		if(down) val = 1.0; // held the entire frame
-		else val = 0; // up the entire frame
-	}
+	if(impulsedown && !impulseup && down)
+		val = 0.5; // pressed and held this frame
+	if(!impulsedown && !impulseup && down)
+		val = 1.0; // held the entire frame
 	if(impulsedown && impulseup){
 		if(down) val = 0.75; // released and re-pressed this frame
 		else val = 0.25; // pressed and released this frame

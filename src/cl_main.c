@@ -384,7 +384,7 @@ void CL_RelinkEntities()
 	}
 }
 
-s32 CL_ReadFromServer()
+void CL_ReadFromServer()
 { // Read all incoming data from the server
 	cl.oldtime = cl.time;
 	cl.time += host_frametime;
@@ -397,12 +397,11 @@ s32 CL_ReadFromServer()
 			break;
 		cl.last_received_message = realtime;
 		CL_ParseServerMessage();
-	}while(ret && cls.state == ca_connected);
+	}while(cls.state == ca_connected);
 	if(cl_shownet.value)
 		Con_Printf("\n");
 	CL_RelinkEntities();
 	CL_UpdateTEnts(); // bring the links up to date
-	return 0;
 }
 
 void CL_AccumulateCmd() // Spike: split from CL_SendCmd, to do clientside
