@@ -36,7 +36,8 @@ void D_DrawSolidSurface(surf_t *surf, s32 color)
 static inline s64 D_Adjust(const vec3_t org, const vec3_t axis, f32 ofs,
 		f32 t, s64 mins)
 {
-	f32 d = DotProduct(org, axis) * 0x10000 + 0.5f;
+	f32 d = org[0] * axis[0] + (org[1] * axis[1] + org[2] * axis[2]);
+	d = d * 0x10000 + 0.5f;
 	return (s64)(f32)((f64)((s64)d - mins) + ofs * t);
 }
 

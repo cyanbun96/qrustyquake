@@ -13,6 +13,14 @@ static bool r_lastvertvalid;
 static bool makeleftedge, makerightedge;
 static u8 r_edgerev; // direction of the face currently being walked
 
+// The order WinQuake's compiler used, which matters under chop rounding, and
+// the same goes for the order of the multiplications by distinv below
+static inline f32 R_PlaneDot(const mplane_t *pplane)
+{
+	const f32 *n = pplane->normal;
+	return (n[2] * modelorg[2] + n[1] * modelorg[1]) + n[0] * modelorg[0];
+}
+
 void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 {
 	vec3_t local, transformed;
@@ -361,9 +369,9 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	mplane_t *pplane = fa->plane;
 	vec3_t p_normal;
 	TransformVector(pplane->normal, p_normal);
-	f32 distinv = 1.0/(pplane->dist-DotProduct(modelorg, pplane->normal));
-	surface_p->d_zistepu = p_normal[0] * xscaleinv * distinv;
-	surface_p->d_zistepv = -p_normal[1] * yscaleinv * distinv;
+	f32 distinv = 1.0 / (pplane->dist - R_PlaneDot(pplane));
+	surface_p->d_zistepu = (p_normal[0] * distinv) * xscaleinv;
+	surface_p->d_zistepv = -((p_normal[1] * distinv) * yscaleinv);
 	surface_p->d_ziorigin = p_normal[2] * distinv -
 		xcenter * surface_p->d_zistepu - ycenter * surface_p->d_zistepv;
 	surface_p++;
@@ -437,9 +445,9 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 	mplane_t *pplane = psurf->plane;
 	vec3_t p_normal;
 	TransformVector(pplane->normal, p_normal);
-	f32 distinv = 1.0/(pplane->dist-DotProduct(modelorg,pplane->normal));
-	surface_p->d_zistepu = p_normal[0] * xscaleinv * distinv;
-	surface_p->d_zistepv = -p_normal[1] * yscaleinv * distinv;
+	f32 distinv = 1.0 / (pplane->dist - R_PlaneDot(pplane));
+	surface_p->d_zistepu = (xscaleinv * distinv) * p_normal[0];
+	surface_p->d_zistepv = -((yscaleinv * distinv) * p_normal[1]);
 	surface_p->d_ziorigin = p_normal[2] * distinv -
 		xcenter * surface_p->d_zistepu - ycenter * surface_p->d_zistepv;
 	surface_p++;

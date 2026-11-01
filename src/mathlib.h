@@ -161,7 +161,9 @@ Q_SIL s32 BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, mplane_t *p)
 
 Q_SIL void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
-	f32 angle = angles[YAW] * (M_PI * 2 / 360);
+	// WinQuake's compiler inlined sin and cos with the angle still in an
+	// x87 register, so it was never rounded to f32
+	f64 angle = angles[YAW] * (M_PI * 2 / 360);
 	f32 sy = sin(angle);
 	f32 cy = cos(angle);
 	angle = angles[PITCH] * (M_PI * 2 / 360);
