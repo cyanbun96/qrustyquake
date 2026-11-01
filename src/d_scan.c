@@ -740,40 +740,18 @@ void D_DrawZSpans(espan_t *pspan)
 }
 
 void D_DrawZSpansTrans(espan_t *pspan)
-{
+{ // holes stay open, so every pixel is tested on its own
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
 	do{
 		s16 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-		s32 count = pspan->count;
 		f32 du = (f32)pspan->u; // calculate the initial 1/z
 		f32 dv = (f32)pspan->v;
 		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		if((intptr_t) pdest & 0x02){
-			if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
-					*pdest < (s16)(izi >> 16))
-				*pdest = (s16)(izi >> 16);
-			pdest++;
-			izi += izistep;
-			count--;
-		}
-		s32 doublecount = count >> 1;
-		if(doublecount > 0){
-			do{
-				u32 ltemp = izi >> 16;
-				izi += izistep;
-				ltemp |= izi & 0xFFFF0000;
-				izi += izistep;
-				if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
-						*pdest < (s16)ltemp)
-					*(s32 *)pdest = ltemp;
-				pdest += 2;
-			}while(--doublecount > 0);
-		}
-		if(count & 1){
-			if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
-					*pdest < (s16)(izi >> 16))
-				*pdest = (s16)(izi >> 16);
+		for(s32 i = 0; i < pspan->count; i++, pdest++, izi += izistep){
+			s16 z = izi >> 16;
+			if(cutoutbuf[pdest-d_pzbuffer] == 1 && *pdest < z)
+				*pdest = z;
 		}
 	}while((pspan = pspan->pnext) != NULL);
 }
