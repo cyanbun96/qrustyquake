@@ -145,12 +145,9 @@ static edge_t *R_SortNewEdges(edge_t *list)
 	for(edge_t *e = list; e; e = e->next){
 		if(n == ne_cap){
 			s64 cap = ne_cap ? ne_cap * 2 : 1024;
-			u64 *k = malloc(2 * cap * sizeof(*k));
-			if(!k)
+			ne_keys = realloc(ne_keys, 2 * cap * sizeof(*ne_keys));
+			if(!ne_keys)
 				Sys_Error("R_SortNewEdges: out of memory");
-			memcpy(k, ne_keys, n * sizeof(*k));
-			free(ne_keys);
-			ne_keys = k;
 			ne_cap = cap;
 		}
 		u64 idx = (u64)(e - r_edges);

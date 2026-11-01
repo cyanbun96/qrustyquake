@@ -413,7 +413,7 @@ void Sbar_ItemsClassic()
 		if(cl.items & (1 << (29 + i)))
 			Draw_TransPicScaled(iposx[i+6],iposy,rsb_items[i],SCL);
 	for(s32 i = 0; !rogue && i < 4; i++) // sigils
-		if(cl.items & (1 << (28 + i)))
+		if(cl.items & (1u << (28 + i)))
 			Draw_TransPicScaled(iposx[8+i],iposy, sb_sigil[i], SCL);
 }
 
