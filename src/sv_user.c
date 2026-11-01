@@ -302,46 +302,16 @@ nextmsg:
 					break;
 				}
 				ret = 0;
-				if(SDL_strncasecmp(s, "status", 6) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "god", 3) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "notarget", 8) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "fly", 3) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "name", 4) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "noclip", 6) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "setpos", 6) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "say", 3) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "say_team", 8) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "tell", 4) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "color", 5) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "kill", 4) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "pause", 5) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "spawn", 5) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "begin", 5) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "prespawn", 8) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "kick", 4) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "ping", 4) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "give", 4) == 0)
-					ret = 1;
-				else if(SDL_strncasecmp(s, "ban", 3) == 0)
-					ret = 1;
+				static const c8 *const clcmds[] = {"status",
+					"god", "notarget", "fly", "name",
+					"noclip", "setpos", "say", "say_team",
+					"tell", "color", "kill", "pause",
+					"spawn", "begin", "prespawn", "kick",
+					"ping", "give", "ban"};
+				for(u32 i = 0; i < Q_COUNTOF(clcmds); i++)
+					if(!SDL_strncasecmp(s, clcmds[i],
+							strlen(clcmds[i])))
+						ret = 1;
 				if(ret == 1)
 					Cmd_ExecuteString(s, src_client);
 				else

@@ -54,42 +54,28 @@ void KeyUp(kbutton_t *b)
 	b->state |= 4; // impulse up
 }
 
-void IN_KLookDown(){KeyDown(&in_klook);}
-void IN_KLookUp(){KeyUp(&in_klook);}
+#define KBUTTON(n, b) void IN_##n##Down(){KeyDown(&b);} \
+	void IN_##n##Up(){KeyUp(&b);}
+KBUTTON(KLook, in_klook)
 void IN_MLookDown(){KeyDown(&in_mlook);}
 void IN_MLookUp(){ KeyUp(&in_mlook);
 	if( !(in_mlook.state&1) && lookspring.value)
 		V_StartPitchDrift(); }
-void IN_UpDown(){KeyDown(&in_up);}
-void IN_UpUp(){KeyUp(&in_up);}
-void IN_DownDown(){KeyDown(&in_down);}
-void IN_DownUp(){KeyUp(&in_down);}
-void IN_LeftDown(){KeyDown(&in_left);}
-void IN_LeftUp(){KeyUp(&in_left);}
-void IN_RightDown(){KeyDown(&in_right);}
-void IN_RightUp(){KeyUp(&in_right);}
-void IN_ForwardDown(){KeyDown(&in_forward);}
-void IN_ForwardUp(){KeyUp(&in_forward);}
-void IN_BackDown(){KeyDown(&in_back);}
-void IN_BackUp(){KeyUp(&in_back);}
-void IN_LookupDown(){KeyDown(&in_lookup);}
-void IN_LookupUp(){KeyUp(&in_lookup);}
-void IN_LookdownDown(){KeyDown(&in_lookdown);}
-void IN_LookdownUp(){KeyUp(&in_lookdown);}
-void IN_MoveleftDown(){KeyDown(&in_moveleft);}
-void IN_MoveleftUp(){KeyUp(&in_moveleft);}
-void IN_MoverightDown(){KeyDown(&in_moveright);}
-void IN_MoverightUp(){KeyUp(&in_moveright);}
-void IN_SpeedDown(){KeyDown(&in_speed);}
-void IN_SpeedUp(){KeyUp(&in_speed);}
-void IN_StrafeDown(){KeyDown(&in_strafe);}
-void IN_StrafeUp(){KeyUp(&in_strafe);}
-void IN_AttackDown(){KeyDown(&in_attack);}
-void IN_AttackUp(){KeyUp(&in_attack);}
-void IN_UseDown(){KeyDown(&in_use);}
-void IN_UseUp(){KeyUp(&in_use);}
-void IN_JumpDown(){KeyDown(&in_jump);}
-void IN_JumpUp(){KeyUp(&in_jump);}
+KBUTTON(Up, in_up)
+KBUTTON(Down, in_down)
+KBUTTON(Left, in_left)
+KBUTTON(Right, in_right)
+KBUTTON(Forward, in_forward)
+KBUTTON(Back, in_back)
+KBUTTON(Lookup, in_lookup)
+KBUTTON(Lookdown, in_lookdown)
+KBUTTON(Moveleft, in_moveleft)
+KBUTTON(Moveright, in_moveright)
+KBUTTON(Speed, in_speed)
+KBUTTON(Strafe, in_strafe)
+KBUTTON(Attack, in_attack)
+KBUTTON(Use, in_use)
+KBUTTON(Jump, in_jump)
 void IN_Impulse(){in_impulse=atoi(Cmd_Argv(1));}
 
 f32 CL_KeyState(kbutton_t *key)

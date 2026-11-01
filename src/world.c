@@ -147,6 +147,18 @@ void SV_UnlinkEdict(edict_t *ent)
 
 // Spike -- just builds a list of entities within the area, rather than walking
 // them and risking the list getting corrupt.
+static bool SV_TouchesTrigger(edict_t *ent, edict_t *touch)
+{
+	return touch != ent && touch->v.touch
+		&& touch->v.solid == SOLID_TRIGGER
+		&& ent->v.absmin[0] <= touch->v.absmax[0]
+		&& ent->v.absmin[1] <= touch->v.absmax[1]
+		&& ent->v.absmin[2] <= touch->v.absmax[2]
+		&& ent->v.absmax[0] >= touch->v.absmin[0]
+		&& ent->v.absmax[1] >= touch->v.absmin[1]
+		&& ent->v.absmax[2] >= touch->v.absmin[2];
+}
+
 static void SV_AreaTriggerEdicts(edict_t *ent, areanode_t *node, edict_t **list,
 		s32 *listcount, const s32 listspace )
 {
@@ -155,14 +167,7 @@ static void SV_AreaTriggerEdicts(edict_t *ent, areanode_t *node, edict_t **list,
 	for(link_t*l=node->trigger_edicts.next;l!=&node->trigger_edicts;l=next){ 
 		next = l->next;
 		edict_t *touch = EDICT_FROM_AREA(l);
-		if(touch == ent) continue;
-		if(!touch->v.touch || touch->v.solid != SOLID_TRIGGER) continue;
-		if(ent->v.absmin[0] > touch->v.absmax[0]
-		|| ent->v.absmin[1] > touch->v.absmax[1]
-		|| ent->v.absmin[2] > touch->v.absmax[2]
-		|| ent->v.absmax[0] < touch->v.absmin[0]
-		|| ent->v.absmax[1] < touch->v.absmin[1]
-		|| ent->v.absmax[2] < touch->v.absmin[2] ) continue;
+		if(!SV_TouchesTrigger(ent, touch)) continue;
 		if(*listcount == listspace) return; // should never happen
 		list[*listcount] = touch;
 		(*listcount)++;
@@ -189,14 +194,7 @@ void SV_TouchLinks(edict_t *ent)
 		edict_t *touch = list[i];
 		// re-validate in case of PR_ExecuteProgram having side effects
 		// that make edicts later in the list no longer touch
-		if(touch == ent) continue;
-		if(!touch->v.touch || touch->v.solid != SOLID_TRIGGER) continue;
-		if(ent->v.absmin[0] > touch->v.absmax[0]
-		|| ent->v.absmin[1] > touch->v.absmax[1]
-		|| ent->v.absmin[2] > touch->v.absmax[2]
-		|| ent->v.absmax[0] < touch->v.absmin[0]
-		|| ent->v.absmax[1] < touch->v.absmin[1]
-		|| ent->v.absmax[2] < touch->v.absmin[2] ) continue;
+		if(!SV_TouchesTrigger(ent, touch)) continue;
 		old_self = pr_global_struct->self;
 		old_other = pr_global_struct->other;
 		pr_global_struct->self = EDICT_TO_PROG(touch);

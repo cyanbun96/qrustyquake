@@ -300,26 +300,18 @@ void V_ModifyPalette(u8 *basepal, u8 *newpal)
 		s32 g = basepal[1];
 		s32 b = basepal[2];
 		basepal += 3;
-		s32 p = (cl.cshifts[CSHIFT_CONTENTS].percent *
-		  gl_cshiftpercent.value*gl_cshiftpercent_contents.value)/10000;
-		r += (p*(cl.cshifts[CSHIFT_CONTENTS].destcolor[0]-r))>>8;
-		g += (p*(cl.cshifts[CSHIFT_CONTENTS].destcolor[1]-g))>>8;
-		b += (p*(cl.cshifts[CSHIFT_CONTENTS].destcolor[2]-b))>>8;
-		p = (cl.cshifts[CSHIFT_DAMAGE].percent *
-		    gl_cshiftpercent.value*gl_cshiftpercent_damage.value)/10000;
-		r += (p*(cl.cshifts[CSHIFT_DAMAGE].destcolor[0]-r))>>8;
-		g += (p*(cl.cshifts[CSHIFT_DAMAGE].destcolor[1]-g))>>8;
-		b += (p*(cl.cshifts[CSHIFT_DAMAGE].destcolor[2]-b))>>8;
-		p = (cl.cshifts[CSHIFT_BONUS].percent *
-		     gl_cshiftpercent.value*gl_cshiftpercent_bonus.value)/10000;
-		r += (p*(cl.cshifts[CSHIFT_BONUS].destcolor[0]-r))>>8;
-		g += (p*(cl.cshifts[CSHIFT_BONUS].destcolor[1]-g))>>8;
-		b += (p*(cl.cshifts[CSHIFT_BONUS].destcolor[2]-b))>>8;
-		p = (cl.cshifts[CSHIFT_POWERUP].percent *
-		   gl_cshiftpercent.value*gl_cshiftpercent_powerup.value)/10000;
-		r += (p*(cl.cshifts[CSHIFT_POWERUP].destcolor[0]-r))>>8;
-		g += (p*(cl.cshifts[CSHIFT_POWERUP].destcolor[1]-g))>>8;
-		b += (p*(cl.cshifts[CSHIFT_POWERUP].destcolor[2]-b))>>8;
+		for(s32 j = 0; j < NUM_CSHIFTS; j++){
+			static cvar_t *const pct[NUM_CSHIFTS] = {
+				&gl_cshiftpercent_contents,
+				&gl_cshiftpercent_damage,
+				&gl_cshiftpercent_bonus,
+				&gl_cshiftpercent_powerup};
+			s32 p = (cl.cshifts[j].percent *
+				gl_cshiftpercent.value*pct[j]->value)/10000;
+			r += (p*(cl.cshifts[j].destcolor[0]-r))>>8;
+			g += (p*(cl.cshifts[j].destcolor[1]-g))>>8;
+			b += (p*(cl.cshifts[j].destcolor[2]-b))>>8;
+		}
 		u8 r2 = CLAMP(0, gammatable[r] * v_redlevel.value, 255);
 		u8 g2 = CLAMP(0, gammatable[g] * v_greenlevel.value, 255);
 		u8 b2 = CLAMP(0, gammatable[b] * v_bluelevel.value, 255);
