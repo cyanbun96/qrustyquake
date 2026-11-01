@@ -752,7 +752,8 @@ void D_DrawZSpansTrans(espan_t *pspan)
 		if((intptr_t) pdest & 0x02){
 			if(cutoutbuf[(pdest-d_pzbuffer)] == 1 &&
 					*pdest < (s16)(izi >> 16))
-				*pdest++ = (s16)(izi >> 16);
+				*pdest = (s16)(izi >> 16);
+			pdest++;
 			izi += izistep;
 			count--;
 		}
