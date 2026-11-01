@@ -118,7 +118,7 @@ void Host_InitLocal()
 void Host_WriteConfiguration()
 { // Writes key bindings and archived cvars to config.cfg dedicated servers
   // initialize the host but don't parse and set the config.cfg cvars
-	if(host_initialized & !isDedicated){
+	if(host_initialized && cls.state != ca_dedicated){
 		FILE *f = fopen(va("%s/config.cfg", com_gamedir), "w");
 		if(!f){
 			Con_Printf("Couldn't write config.cfg.\n");

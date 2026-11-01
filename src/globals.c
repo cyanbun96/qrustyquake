@@ -149,7 +149,6 @@ qpic_t *draw_disc;
 quakeparms_t host_parms;                                               // host.c
 f32 host_netinterval;
 bool host_initialized; // 1 if into command execution
-bool isDedicated;
 f64 host_frametime;
 f64 realtime; // without any filtering or bounding
 s32 host_framecount;

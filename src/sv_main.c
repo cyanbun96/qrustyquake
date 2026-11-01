@@ -881,7 +881,8 @@ void SV_SendReconnect()
 	MSG_WriteChar(&msg, svc_stufftext);
 	MSG_WriteString(&msg, "reconnect\n");
 	NET_SendToAll(&msg, 5.0);
-	if(!isDedicated) Cmd_ExecuteString("reconnect\n", src_command);
+	if(cls.state != ca_dedicated)
+		Cmd_ExecuteString("reconnect\n", src_command);
 }
 
 void SV_SaveSpawnparms() // Grabs the current state of each client for saving

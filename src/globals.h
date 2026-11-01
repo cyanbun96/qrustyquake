@@ -709,7 +709,6 @@ EX s32 drawlayer;                                                      // draw.c
 EX quakeparms_t host_parms;                                            // host.c
 EX f32 host_netinterval;
 EX bool host_initialized;
-EX bool isDedicated;
 EX f64 host_frametime;
 EX f64 realtime;
 EX s32 host_framecount;
