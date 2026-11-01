@@ -519,7 +519,7 @@ void R_AnimateLight();
 s32 R_LightPoint(vec3_t p, f32 ofs);
 void R_SetupFrame();
 void R_SplitEntityOnNode2(mnode_t *node);
-void R_MarkLights(dlight_t *light, s32 bit, mnode_t *node);
+void R_MarkLights(dlight_t *light, u64 bit, mnode_t *node);
 u8 rgbtoi_lab(u8 r, u8 g, u8 b);
 u8 rgbtoi(u8 r, u8 g, u8 b);
 void R_BuildLitLUT();

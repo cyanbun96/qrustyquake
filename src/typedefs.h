@@ -131,7 +131,7 @@ typedef struct msurface_s { // pointers first, no padding on 64 bit
 	s32 firstedge; // look up in model->surfedges[], negative numbers
 	s32 numedges; // are backwards edges
 	s32 dlightframe;
-	s32 dlightbits;
+	u64 dlightbits; // one bit per MAX_DLIGHTS
 	s32 texturemins[2];
 	s16 extents[2];
 	u8 styles[MAXLIGHTMAPS];

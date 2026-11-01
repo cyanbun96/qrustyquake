@@ -21,7 +21,7 @@ void R_AnimateLight() // light animations
 	}
 }
 
-void R_MarkLights(dlight_t *light, s32 bit, mnode_t *node)
+void R_MarkLights(dlight_t *light, u64 bit, mnode_t *node)
 {
 	if(node->contents < 0)
 		return;
@@ -57,7 +57,7 @@ void R_PushDlights()
 	for(s32 i = 0; i < MAX_DLIGHTS; i++, l++){
 		if(l->die < cl.time || !l->radius)
 			continue;
-		R_MarkLights(l, 1 << i, cl.worldmodel->nodes);
+		R_MarkLights(l, 1ULL << i, cl.worldmodel->nodes);
 	}
 }
 

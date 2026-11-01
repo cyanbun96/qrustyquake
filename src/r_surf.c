@@ -31,7 +31,7 @@ void R_AddDynamicLights()
 		return; // R_BuildLightMap only fills that much
 	mtexinfo_t *tex = surf->texinfo;
 	for(s32 lnum = 0; lnum < MAX_DLIGHTS; lnum++){
-		if(!(surf->dlightbits & (1 << lnum)))
+		if(!(surf->dlightbits & (1ULL << lnum)))
 			continue; // not lit by this light
 		f32 rad = cl_dlights[lnum].radius;
 		f32 dist = DotProduct(cl_dlights[lnum].origin,
