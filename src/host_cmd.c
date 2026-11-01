@@ -209,7 +209,7 @@ void Host_Changelevel_f()
 	}
 	//johnfitz -- check for client having map before anything else
 	SDL_snprintf(level, sizeof(level), "maps/%s.bsp", Cmd_Argv(1));
-	if(!COM_FileExists(level, NULL))
+	if(!COM_FileExists(level))
 		Host_Error("cannot find map %s", level);
 	SDL_strlcpy(level, Cmd_Argv(1), sizeof(level));
 	if(!strcmp(sv.name, level) && Host_AutoLoad())

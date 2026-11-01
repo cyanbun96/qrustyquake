@@ -104,7 +104,7 @@ qpic_t *Draw_CachePic(c8 *path)
 	qpic_t *dat = Cache_Check(&pic->cache);
 	if(dat)
 		return dat;
-	COM_LoadCacheFile(path, &pic->cache, NULL); // load the pic from disk
+	COM_LoadCacheFile(path, &pic->cache); // load the pic from disk
 	dat = (qpic_t *) pic->cache.data;
 	if(!dat)
 		Sys_Error("Draw_CachePic: failed to load %s", path);

@@ -12,15 +12,10 @@ static s32 maxqcpics;
 static u32 qctoken_count;
 static struct {
 	c8 name[MAX_QPATH];
-	u32 flags;
 	qpic_t *pic;
 	bool malloced;
 } *qcpics;
-static struct {
-	c8 *token;
-	u32 start;
-	u32 end;
-} qctoken[MAXQCTOKENS];
+static c8 *qctoken[MAXQCTOKENS];
 
 
 void PF_Fixme(){ if(developer.value)PR_RunError("unimplemented builtin"); }
@@ -52,7 +47,6 @@ static qpic_t *DrawQC_CachePic(const c8 *picname1, u32 flags)
 		qcpics = realloc(qcpics, maxqcpics * sizeof(*qcpics));
 	}
 	strcpy(qcpics[i].name, picname);
-	qcpics[i].flags = flags;
 	qcpics[i].pic = NULL;
 	qcpics[i].malloced = false;
 	qcpics[i].pic = Draw_TryCachePic(picname);
@@ -69,7 +63,7 @@ static qpic_t *DrawQC_CachePic(const c8 *picname1, u32 flags)
 	return qcpics[i].pic;
 }
 
-void PR_ReloadPics(SDL_UNUSED bool purge)
+void PR_ReloadPics()
 {
 	for(s32 i = 0; i < (s32)numqcpics; i++){
 		if(qcpics[i].pic && qcpics[i].malloced){
@@ -157,7 +151,7 @@ static void PF_setorigin()
 	SV_LinkEdict(e, 0);
 }
 
-static void SetMinMaxSize(edict_t*e,f32*minvec,f32*maxvec,SDL_UNUSED bool rot)
+static void SetMinMaxSize(edict_t *e, f32 *minvec, f32 *maxvec)
 {
 	for(s32 i = 0; i < 3; i++)
 		if(minvec[i] > maxvec[i]) PR_RunError("backwards mins/maxs");
@@ -175,7 +169,7 @@ static void PF_setsize() // the size box is rotated by the current angle
 	edict_t *e = G_EDICT(OFS_PARM0);
 	f32 *minvec = G_VECTOR(OFS_PARM1);
 	f32 *maxvec = G_VECTOR(OFS_PARM2);
-	SetMinMaxSize(e, minvec, maxvec, false);
+	SetMinMaxSize(e, minvec, maxvec);
 }
 
 static void PF_setmodel()
@@ -194,46 +188,33 @@ static void PF_setmodel()
 	model_t *mod = sv.models[(s32)e->v.modelindex]; // Mod_ForName(m, true);
 	if(mod){//johnfitz -- correct physics cullboxes for bmodels
 		if(mod->type == mod_brush)
-			SetMinMaxSize(e, mod->clipmins, mod->clipmaxs, true);
-		else SetMinMaxSize(e, mod->mins, mod->maxs, true);
-	}else SetMinMaxSize(e, vec3_origin, vec3_origin, true);
+			SetMinMaxSize(e, mod->clipmins, mod->clipmaxs);
+		else SetMinMaxSize(e, mod->mins, mod->maxs);
+	}else SetMinMaxSize(e, vec3_origin, vec3_origin);
 }
 
 static void PF_bprint() // broadcast print to everyone on server
 { c8 *s = PF_VarString(0); SV_BroadcastPrintf("%s", s); }
 
-static s32 tokenizeqc(const c8 *str, SDL_UNUSED bool dpfuckage)
+//KRIMZON_SV_PARSECLIENTCOMMAND added this - note that for compatibility
+//with DP, this tokenize builtin is veeery vauge and doesn't match the console
+static void PF_Tokenize()
 {
-	const c8 *start = str;
-	while(qctoken_count > 0){
-		qctoken_count--;
-		free(qctoken[qctoken_count].token);
-	}
-	qctoken_count = 0;
+	const c8 *str = G_STRING(OFS_PARM0);
+	while(qctoken_count > 0)
+		free(qctoken[--qctoken_count]);
 	while(qctoken_count < MAXQCTOKENS){
-		//skip whitespace here so the token's start is accurate
 		while(*str && *(const u8*)str <= ' ')
 			str++;
 		if(!*str)
 			break;
-		qctoken[qctoken_count].start = str - start;
 		str = COM_Parse(str);
 		if(!str)
 			break;
-		qctoken[qctoken_count].token = strdup(com_token);
-		qctoken[qctoken_count].end = str - start;
-		qctoken_count++;
+		qctoken[qctoken_count++] = strdup(com_token);
 	}
-	return qctoken_count;
+	G_FLOAT(OFS_RETURN) = qctoken_count;
 }
-
-//KRIMZON_SV_PARSECLIENTCOMMAND added these two - note that for compatibility
-//with DP, this tokenize builtin is veeery vauge and doesn't match the console
-static void PF_Tokenize()
-{ G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), true); }
-
-static void PF_tokenize_console()
-{ G_FLOAT(OFS_RETURN) = tokenizeqc(G_STRING(OFS_PARM0), false); }
 
 static void PF_ArgV()
 {
@@ -244,7 +225,7 @@ static void PF_ArgV()
 		G_INT(OFS_RETURN) = 0;
 	else{
 		c8 *ret = PR_GetTempString();
-		SDL_strlcpy(ret, qctoken[idx].token, STRINGTEMP_LENGTH);
+		SDL_strlcpy(ret, qctoken[idx], STRINGTEMP_LENGTH);
 		G_INT(OFS_RETURN) = PR_SetEngineString(ret);
 	}
 }
@@ -2089,7 +2070,7 @@ builtindef_t pr_builtindefs[] = {
 {"atan", PF_BOTH(PF_atan), 473, DP_QC_ASINACOSATANATAN2TAN}, 
 {"atan2", PF_BOTH(PF_atan2), 474, DP_QC_ASINACOSATANATAN2TAN}, 
 {"tan", PF_BOTH(PF_tan), 475, DP_QC_ASINACOSATANATAN2TAN}, 
-{"tokenize_console", PF_BOTH(PF_tokenize_console), 514, DP_QC_TOKENIZE_CONSOLE}, 
+{"tokenize_console", PF_BOTH(PF_Tokenize), 514, DP_QC_TOKENIZE_CONSOLE}, 
 {"sprintf", PF_BOTH(PF_sprintf), 627, DP_QC_SPRINTF}, 
 };
 s32 pr_numbuiltindefs = Q_COUNTOF(pr_builtindefs);

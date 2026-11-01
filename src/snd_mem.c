@@ -60,7 +60,7 @@ sfxcache_t *S_LoadSound(sfx_t *s)
 	if(sc) return sc; // see if still in memory
 	SDL_strlcpy(namebuffer, "sound/", sizeof(namebuffer)); // load it in
 	SDL_strlcat(namebuffer, s->name, sizeof(namebuffer));
-	u8 *data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf), 0);
+	u8 *data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf));
 	if(!data){
 		Con_Printf("Couldn't load %s\n", namebuffer);
 		return NULL;

@@ -28,17 +28,16 @@ bool CDAudio_Init()
 // they're iterated in CDAudio_Play() the most common formats for Quake mod
 // music will come up first
 static struct music_format {
-	const c8 *name;
 	s32 num_extensions;
 	const c8 **extensions;
 } music_formats[] = {
-	{"OGG", 1, (const c8 *[]){".ogg"}},
-	{"OPUS", 2, (const c8 *[]){".ogg", ".opus"}},
-	{"MP3", 1, (const c8 *[]){".mp3"}},
-	{"FLAC", 1, (const c8 *[]){".flac"}},
-	{"MID", 2, (const c8 *[]){".mid", ".midi"}},
-	{"MOD", 1, (const c8 *[]){".mod"}},
-	{"WAVPACK", 2, (const c8 *[]){".wav", ".wv"}}
+	{1, (const c8 *[]){".ogg"}},
+	{2, (const c8 *[]){".ogg", ".opus"}},
+	{1, (const c8 *[]){".mp3"}},
+	{1, (const c8 *[]){".flac"}},
+	{2, (const c8 *[]){".mid", ".midi"}},
+	{1, (const c8 *[]){".mod"}},
+	{2, (const c8 *[]){".wav", ".wv"}}
 };
 static MIX_Mixer *mixer = 0;
 static MIX_Audio *current_music = 0;

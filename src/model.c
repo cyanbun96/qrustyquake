@@ -1884,9 +1884,6 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 	hull->clip_mins[0] = -16;
 	hull->clip_mins[1] = -16;
 	hull->clip_mins[2] = -24;
-	hull->clip_maxs[0] = 16;
-	hull->clip_maxs[1] = 16;
-	hull->clip_maxs[2] = 32;
 	hull = &loadmodel->hulls[2];
 	hull->clipnodes = out;
 	hull->firstclipnode = 0;
@@ -1895,9 +1892,6 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 	hull->clip_mins[0] = -32;
 	hull->clip_mins[1] = -32;
 	hull->clip_mins[2] = -24;
-	hull->clip_maxs[0] = 32;
-	hull->clip_maxs[1] = 32;
-	hull->clip_maxs[2] = 64;
 	if(bsp2){ for(s32 i = 0; i < count; i++, out++, inl++){ // johnfitz
 		out->planenum = inl->planenum;//bounds check
 		if(out->planenum < 0 || out->planenum >= loadmodel->numplanes)
@@ -2238,7 +2232,6 @@ static void Mod_CheckFile(const void *p, s64 count, s64 size)
 }
 
 void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
-	SDL_UNUSED trivertx_t *pbboxmin, SDL_UNUSED trivertx_t *pbboxmax,
 	aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame, s32 recursed){
 	// released models can end partway through their frames, e.g. Impel's
 	// null.mdl has no data for its only one, so missing bytes read as zero
@@ -2282,7 +2275,6 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 }
 
 void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
-		SDL_UNUSED trivertx_t *pbboxmin,SDL_UNUSED trivertx_t *pbboxmax,
 		aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame)
 {
 	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
@@ -2311,8 +2303,7 @@ void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 	void *ptemp = (void *)pin_intervals;
 	for(s32 i = 0; i < numframes; i++)
 		ptemp = Mod_LoadAliasFrame(ptemp, &paliasgroup->frames[i].frame,
-			numv, &paliasgroup->frames[i].bboxmin,
-			&paliasgroup->frames[i].bboxmax, pheader, name,frame,1);
+			numv, pheader, name, frame, 1);
 	return ptemp;
 }
 
@@ -2492,8 +2483,6 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 			pinmodel->scale[i];
 		pmodel->scale_origin[i] = pheader->scale_origin[i] =
 			pinmodel->scale_origin[i];
-		pmodel->eyeposition[i] = pheader->eyeposition[i] =
-			pinmodel->eyeposition[i];
 	}
 	if(pmodel->skinwidth & 0x03)
 	    Con_DPrintf("Mod_LoadAliasModel: skinwidth not multiple of 4\n");
@@ -2556,13 +2545,11 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 		if(frametype == ALIAS_SINGLE)
 			pframetype = (daliasframetype_t *) Mod_LoadAliasFrame(
 				pframetype + 1, &pheader->frames[i].frame,
-				pmodel->numverts, &pheader->frames[i].bboxmin,
-				&pheader->frames[i].bboxmax, pheader,
+				pmodel->numverts, pheader,
 				pheader->frames[i].name, &pheader->frames[i],0);
 		else pframetype = (daliasframetype_t *) Mod_LoadAliasGroup(
 				pframetype + 1, &pheader->frames[i].frame,
-				pmodel->numverts, &pheader->frames[i].bboxmin,
-				&pheader->frames[i].bboxmax, pheader,
+				pmodel->numverts, pheader,
 				pheader->frames[i].name, &pheader->frames[i]);
 	}
 	pheader->numposes = posenum; // Baker: Watch this and compare vs. Mark V

@@ -623,7 +623,7 @@ void Host_Init()
 			Sys_Error("TexMgr_LoadPalette: colormap read error");
 		fclose(f);
 		IN_Init();
-		VID_Init(host_basepal);
+		VID_Init();
 		Draw_Init();
 		SCR_Init();
 		R_Init();

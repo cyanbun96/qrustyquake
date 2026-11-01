@@ -315,7 +315,7 @@ void SCR_SetUpToDrawConsole()
 void SCR_DrawConsole()
 {
 	if(scr_con_current){
-		Con_DrawConsole(scr_con_current, 1);
+		Con_DrawConsole(scr_con_current);
 		clearconsole = 0;
 	}else
 		if(key_dest == key_game || key_dest == key_message)
@@ -344,7 +344,7 @@ void SCR_ScreenShot_f()
 
 void SCR_BeginLoadingPlaque()
 {
-	S_StopAllSounds(1);
+	S_StopAllSounds();
 	if(cls.state != ca_connected || cls.signon != SIGNONS)
 		return;
 	Con_ClearNotify(); // redraw with no console and the loading plaque

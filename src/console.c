@@ -165,8 +165,8 @@ void Con_Linefeed()
 
 // Handles cursor positioning, line wrapping, etc
 // All console printing must go through this in order to be logged to disk
-// If no console is visible, the notify window will pop up(if notify != 0).
-void Con_Print(c8 *txt, s32 notify)
+// If no console is visible, the notify window will pop up.
+void Con_Print(c8 *txt)
 {
 	static s32 cr;
 	if(!con_initialized) return;
@@ -190,7 +190,7 @@ void Con_Print(c8 *txt, s32 notify)
 		if(cr){ con_current--; cr = 0; }
 		if(!con_x){
 			Con_Linefeed();
-			if(con_current >= 0 && notify) // top-left overlay
+			if(con_current >= 0) // top-left overlay
 				con_times[con_current%NUM_CON_TIMES] = realtime;
 		}
 		switch(c){
@@ -230,7 +230,7 @@ void Con_Printf(const c8 *fmt, ...)
 		Con_DebugLog(va("%s/qconsole.log", com_gamedir), "%s", msg);
 	if(!con_initialized || cls.state == ca_dedicated)
 		return;
-	Con_Print(msg, 1); // write it to the scrollable buffer
+	Con_Print(msg); // write it to the scrollable buffer
 }
 
 void Con_DPrintf(c8 *fmt, ...)
@@ -334,8 +334,8 @@ void Con_DrawNotify()
 	drawlayer = lyr_main.value;
 }
 
-void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
-{ // Typing input line at the bottom should only be drawn if typing is allowed
+void Con_DrawConsole(s32 lines) // Draws console with solid bg
+{
 	if(lines <= 0 || key_dest == key_menu) return;
 	drawlayer = lyr_console.value;
 	Draw_ConsoleBackground(lines); // draw the background
@@ -349,7 +349,7 @@ void Con_DrawConsole(s32 lines, bool drawinput) // Draws console with solid bg
 		for(s32 x = 0; x < con_linewidth; x++)
 			Draw_CharacterScaled(((x + 1) << 3) * uiscale, y,
 					     text[x], uiscale, 0);
-	} // draw the input prompt, user text and cursor if desired
-	if(drawinput) Con_DrawInput();
+	}
+	Con_DrawInput(); // draw the input prompt, user text and cursor
 	drawlayer = lyr_main.value;
 }

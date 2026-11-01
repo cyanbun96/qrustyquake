@@ -20,7 +20,6 @@ typedef struct {
 	s32 sfrac, tfrac, light, zi;
 } spanpackage_t;
 typedef struct {
-	s32 isflattop;
 	s32 numleftedges;
 	s32 *pleftedgevert0;
 	s32 *pleftedgevert1;
@@ -53,18 +52,18 @@ static u8 *skintable[MAX_LBM_HEIGHT];
 static s32 ubasestep, errorterm, erroradjustup, erroradjustdown;
 
 edgetable edgetables[12] = {
-	{ 0, 1, r_p0, r_p2, NULL, 2, r_p0, r_p1, r_p2 },
-	{ 0, 2, r_p1, r_p0, r_p2, 1, r_p1, r_p2, NULL },
-	{ 1, 1, r_p0, r_p2, NULL, 1, r_p1, r_p2, NULL },
-	{ 0, 1, r_p1, r_p0, NULL, 2, r_p1, r_p2, r_p0 },
-	{ 0, 2, r_p0, r_p2, r_p1, 1, r_p0, r_p1, NULL },
-	{ 0, 1, r_p2, r_p1, NULL, 1, r_p2, r_p0, NULL },
-	{ 0, 1, r_p2, r_p1, NULL, 2, r_p2, r_p0, r_p1 },
-	{ 0, 2, r_p2, r_p1, r_p0, 1, r_p2, r_p0, NULL },
-	{ 0, 1, r_p1, r_p0, NULL, 1, r_p1, r_p2, NULL },
-	{ 1, 1, r_p2, r_p1, NULL, 1, r_p0, r_p1, NULL },
-	{ 1, 1, r_p1, r_p0, NULL, 1, r_p2, r_p0, NULL },
-	{ 0, 1, r_p0, r_p2, NULL, 1, r_p0, r_p1, NULL },
+	{ 1, r_p0, r_p2, NULL, 2, r_p0, r_p1, r_p2 },
+	{ 2, r_p1, r_p0, r_p2, 1, r_p1, r_p2, NULL },
+	{ 1, r_p0, r_p2, NULL, 1, r_p1, r_p2, NULL },
+	{ 1, r_p1, r_p0, NULL, 2, r_p1, r_p2, r_p0 },
+	{ 2, r_p0, r_p2, r_p1, 1, r_p0, r_p1, NULL },
+	{ 1, r_p2, r_p1, NULL, 1, r_p2, r_p0, NULL },
+	{ 1, r_p2, r_p1, NULL, 2, r_p2, r_p0, r_p1 },
+	{ 2, r_p2, r_p1, r_p0, 1, r_p2, r_p0, NULL },
+	{ 1, r_p1, r_p0, NULL, 1, r_p1, r_p2, NULL },
+	{ 1, r_p2, r_p1, NULL, 1, r_p0, r_p1, NULL },
+	{ 1, r_p1, r_p0, NULL, 1, r_p2, r_p0, NULL },
+	{ 1, r_p0, r_p2, NULL, 1, r_p0, r_p1, NULL },
 };
 
 void D_PolysetDrawSpans(spanpackage_t * pspanpackage);

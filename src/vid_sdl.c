@@ -121,7 +121,7 @@ void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
 	}
 }
 
-void VID_Init(SDL_UNUSED u8 *palette)
+void VID_Init()
 {
 	c8 caption[50];
 	Cvar_RegisterVariable(&_windowed_mouse);

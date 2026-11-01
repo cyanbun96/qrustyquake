@@ -42,7 +42,7 @@ static cache_system_t cache_head;
 void Cache_FreeLow(s32 new_low_hunk);
 void Cache_FreeHigh(s32 new_high_hunk);
 cache_system_t *Cache_TryAlloc(s32 size, bool nobottom);
-void Cache_Free(cache_user_t *c, bool freetextures);
+void Cache_Free(cache_user_t *c);
 void Hunk_FreeToHighMark(s32 mark);
 
 void Z_Free(void *ptr)
@@ -74,10 +74,9 @@ void Z_Free(void *ptr)
 }
 
 
-static void *Z_TagMalloc(s32 size, s32 tag)
+static void *Z_TagMalloc(s32 size)
 {
 	memblock_t *start, *rover, *newblock, *base;
-	if(!tag) Sys_Error("Z_TagMalloc: tried to use a 0 tag");
 	// scan through the block list looking for the first free block
 	// of sufficient size
 	size += sizeof(memblock_t); // account for size of block header
@@ -104,7 +103,7 @@ static void *Z_TagMalloc(s32 size, s32 tag)
 		base->next = newblock;
 		base->size = size;
 	}
-	base->tag = tag; // no longer a free block
+	base->tag = 1; // no longer a free block
 	mainzone->rover = base->next; // next allocation will start looking here
 	base->id = ZONEID;
 	// marker for memory trash testing
@@ -129,7 +128,7 @@ static void Z_CheckHeap()
 void *Z_Malloc(s32 size)
 {
 	Z_CheckHeap(); // DEBUG
-	void *buf = Z_TagMalloc(size, 1);
+	void *buf = Z_TagMalloc(size);
 	if(!buf) Sys_Error("Z_Malloc: failed on allocation of %i bytes", size);
 	memset(buf, 0, size);
 	return buf;
@@ -147,7 +146,7 @@ void *Z_Realloc(void *ptr, s32 size)
 	old_size -= (4 + (s32)sizeof(memblock_t)); // see Z_TagMalloc()
 	void *old_ptr = ptr;
 	Z_Free(ptr);
-	ptr = Z_TagMalloc(size, 1);
+	ptr = Z_TagMalloc(size);
 	if(!ptr) Sys_Error("Z_Realloc: failed on allocation of %i bytes", size);
 	if(ptr != old_ptr) memmove(ptr, old_ptr, q_min(old_size, size));
 	if(old_size < size) memset((u8 *)ptr + old_size, 0, size - old_size);
@@ -174,9 +173,8 @@ void Hunk_Check()
 	}
 }
 
-// If "all" is specified, every single allocation is printed.
-// Otherwise, allocations with the same name will be totaled up before printing.
-void Hunk_Print(bool all)
+// Allocations with the same name are totaled up before printing.
+void Hunk_Print_f()
 {
 	c8 name[HUNKNAME_LEN];
 	s32 sum = 0;
@@ -203,21 +201,17 @@ void Hunk_Print(bool all)
 		hunk_t *next = (hunk_t *)((u8 *)h+h->size);
 		totalblocks++;
 		sum += h->size;
-		memcpy(name, h->name, HUNKNAME_LEN); // print the single block
-		if(all) Con_Printf("%8p :%8i %8s\n",h, h->size, name);
+		memcpy(name, h->name, HUNKNAME_LEN);
 		if(next == endlow || next == endhigh ||
 				strncmp(h->name, next->name, HUNKNAME_LEN - 1)){
-			if(!all) Con_Printf(" :%8i %8s(TOTAL)\n",sum, name);
+			Con_Printf(" :%8i %8s(TOTAL)\n",sum, name);
 			sum = 0;
 		}
 		h = next;
 	}
 	Con_Printf("-------------------------\n");
 	Con_Printf("%8i total blocks\n", totalblocks);
-
 }
-
-void Hunk_Print_f() { Hunk_Print(0); }
 
 void *Hunk_AllocInternal(s32 size, const c8 *name, bool clear)
 {
@@ -320,9 +314,9 @@ void Cache_Move( cache_system_t *c)
 		memcpy( new_cs+1, c+1, c->size - sizeof(cache_system_t) );
 		new_cs->user = c->user;
 		memcpy(new_cs->name, c->name, sizeof(new_cs->name));
-		Cache_Free(c->user, 0); //johnfitz -- added second argument
+		Cache_Free(c->user);
 		new_cs->user->data = (void *)(new_cs+1);
-	} else Cache_Free(c->user, 1); // tough luck...
+	} else Cache_Free(c->user); // tough luck...
 }
 
 
@@ -348,7 +342,7 @@ void Cache_FreeHigh(s32 new_high_hunk)
 		if((u8 *)c + c->size <= hunk_base + hunk_size - new_high_hunk)
 			return; // there is space to grow the hunk
 		if(c == prev)
-			Cache_Free(c->user, 1); // didn't move out of the way
+			Cache_Free(c->user); // didn't move out of the way
 		else {
 			Cache_Move(c); // try to move it
 			prev = c;
@@ -428,7 +422,7 @@ cache_system_t *Cache_TryAlloc(s32 size, bool nobottom)
 void Cache_Flush()
 { // Throw everything out, so new data will be demand cached
 	while(cache_head.next != &cache_head)
-		Cache_Free( cache_head.next->user, 1); // reclaim the space
+		Cache_Free(cache_head.next->user); // reclaim the space
 }
 
 void Cache_Report()
@@ -445,7 +439,7 @@ void Cache_Init()
 }
 
 
-void Cache_Free(cache_user_t *c, SDL_UNUSED bool freetextures)
+void Cache_Free(cache_user_t *c)
 { // Frees the memory and removes it from the LRU list
 	if(!c->data) Sys_Error("Cache_Free: not allocated");
 	cache_system_t *cs = ((cache_system_t *)c->data) - 1;
@@ -481,7 +475,7 @@ void *Cache_Alloc(cache_user_t *c, s32 size, const c8 *name)
 		// free the least recently used cahedat
 		if(cache_head.lru_prev == &cache_head)
 			Sys_Error("Cache_Alloc: out of memory");
-		Cache_Free(cache_head.lru_prev->user, 1);
+		Cache_Free(cache_head.lru_prev->user);
 	}
 	return Cache_Check(c);
 }

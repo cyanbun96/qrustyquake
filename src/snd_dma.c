@@ -11,7 +11,6 @@ static void S_Play();
 static void S_PlayVol();
 static void S_SoundList();
 static void S_Update_();
-static void S_StopAllSoundsC();
 static bool snd_initialized = 0;
 static vec3_t listener_origin;
 static vec3_t listener_right;
@@ -79,7 +78,7 @@ void S_Init()
 	Con_Printf("\nSound Initialization\n");
 	Cmd_AddCommand("play", S_Play);
 	Cmd_AddCommand("playvol", S_PlayVol);
-	Cmd_AddCommand("stopsound", S_StopAllSoundsC);
+	Cmd_AddCommand("stopsound", S_StopAllSounds);
 	Cmd_AddCommand("soundlist", S_SoundList);
 	Cmd_AddCommand("soundinfo", S_SoundInfo_f);
 	s32 i = COM_CheckParm("-sndspeed");
@@ -98,7 +97,7 @@ void S_Init()
 	if(sound_started == 0) return;
 	ambient_sfx[0] = S_PrecacheSound("ambience/water1.wav");
 	ambient_sfx[1] = S_PrecacheSound("ambience/wind2.wav");
-	S_StopAllSounds(1);
+	S_StopAllSounds();
 }
 
 void S_Shutdown()
@@ -242,17 +241,15 @@ void S_StopSound(s32 entnum, s32 entchannel)
 		}
 }
 
-void S_StopAllSounds(bool clear)
+void S_StopAllSounds()
 {
 	if(!sound_started) return;
 	total_channels = MAX_DYNAMIC_CHANNELS + NUM_AMBIENTS; // no statics
 	for(s32 i = 0; i < MAX_CHANNELS; i++)
 		if(snd_channels[i].sfx) snd_channels[i].sfx = NULL;
 	memset(snd_channels, 0, MAX_CHANNELS * sizeof(channel_t));
-	if(clear) S_ClearBuffer();
+	S_ClearBuffer();
 }
-
-static void S_StopAllSoundsC(){ S_StopAllSounds(1); }
 
 void S_ClearBuffer()
 {
@@ -384,7 +381,7 @@ static void GetSoundtime()
 		if(paintedtime > 0x40000000){//chop things to avoid 32bit limits
 			buffers = 0;
 			paintedtime = fullsamples;
-			S_StopAllSounds(1);
+			S_StopAllSounds();
 		}
 	}
 	oldsamplepos = samplepos;

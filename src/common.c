@@ -840,11 +840,8 @@ static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 	return com_filesize;
 }
 
-bool COM_FileExists(const c8 *filename, u32 *path_id)
-{ // Returns whether the file is found in the quake filesystem.
-	s32 ret = COM_FindFile(filename, NULL, NULL, path_id);
-	return (ret == -1) ? false : true;
-}
+bool COM_FileExists(const c8 *filename)
+{ return COM_FindFile(filename, NULL, NULL, NULL) != -1; }
 
 // filename never has a leading slash, but may contain directory walks.
 // Returns a handle and a length. It may actually be inside a pak file.
@@ -892,19 +889,18 @@ u8 *COM_LoadFile(const c8 *path, s32 usehunk, u32 *path_id)
 u8 *COM_LoadHunkFile(const c8 *path, u32 *path_id)
 { return COM_LoadFile(path, LOADFILE_HUNK, path_id); }
 
-void COM_LoadCacheFile(const c8 *path, struct cache_user_s *cu, u32 *path_id)
+void COM_LoadCacheFile(const c8 *path, struct cache_user_s *cu)
 {
 	loadcache = cu;
-	COM_LoadFile(path, LOADFILE_CACHE, path_id);
+	COM_LoadFile(path, LOADFILE_CACHE, NULL);
 }
 
 
-u8 *COM_LoadStackFile(const c8 *path, void *buffer, s32 bufsize, u32 *path_id)
+u8 *COM_LoadStackFile(const c8 *path, void *buffer, s32 bufsize)
 { // uses temp hunk if larger than bufsize
 	loadbuf = (u8 *)buffer;
 	loadsize = bufsize;
-	u8 *buf = COM_LoadFile(path, LOADFILE_STACK, path_id);
-	return buf;
+	return COM_LoadFile(path, LOADFILE_STACK, NULL);
 }
 
 

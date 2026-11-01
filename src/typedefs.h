@@ -326,7 +326,6 @@ typedef struct {
 	s32 firstclipnode;
 	s32 lastclipnode;
 	vec3_t clip_mins;
-	vec3_t clip_maxs;
 } hull_t;
 typedef struct mspriteframe_s {
 	s32 width, height;
@@ -360,8 +359,6 @@ typedef struct {
 	c8 name[16];
 } maliasframedesc_t;
 typedef struct {
-	trivertx_t bboxmin;
-	trivertx_t bboxmax;
 	s32 frame;
 } maliasgroupframedesc_t;
 typedef struct {
@@ -375,7 +372,6 @@ typedef struct mtriangle_s {
 typedef struct {
 	vec3_t scale;
 	vec3_t scale_origin;
-	vec3_t eyeposition;
 	s32 skinwidth;
 	s32 skinheight;
 	s32 numverts;
@@ -975,12 +971,8 @@ struct pr_extglobals_s {
 	QCEXTGLOBAL_FLOAT(player_localentnum)\
 //end
 #define QCEXTGLOBAL_FLOAT(n) f32 *n;
-#define QCEXTGLOBAL_INT(n) s32 *n;
-#define QCEXTGLOBAL_VECTOR(n) f32 *n;
 	QCEXTGLOBALS_CSQC
 #undef QCEXTGLOBAL_FLOAT
-#undef QCEXTGLOBAL_INT
-#undef QCEXTGLOBAL_VECTOR
 };
 //various fields that might be wanted by the engine. -1 == invalid
 struct pr_extfields_s {

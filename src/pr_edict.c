@@ -165,10 +165,10 @@ static func_t PR_FindExtFunction(const c8 *entryname)
 	return 0;
 }
 
-static void *PR_FindExtGlobal(s32 type, const c8 *name)
+static void *PR_FindExtGlobal(const c8 *name)
 {
 	ddef_t *def = ED_FindGlobal(name);
-	if(def && (def->type&~DEF_SAVEGLOBAL) == type && 
+	if(def && (def->type&~DEF_SAVEGLOBAL) == ev_float && 
 			def->ofs < qcvm->progs->numglobals)
 		return qcvm->globals + def->ofs;
 	return NULL;
@@ -212,11 +212,7 @@ void PR_EnableExtensions()
 #define QCEXTFUNC(n,t) \
 	qcvm->extfuncs.n = PR_FindExtFunction(#n);
 #define QCEXTGLOBAL_FLOAT(n) \
-	qcvm->extglobals.n = PR_FindExtGlobal(ev_float, #n);
-#define QCEXTGLOBAL_INT(n) \
-	qcvm->extglobals.n = PR_FindExtGlobal(ev_ext_integer, #n);
-#define QCEXTGLOBAL_VECTOR(n) \
-	qcvm->extglobals.n = PR_FindExtGlobal(ev_vector, #n);
+	qcvm->extglobals.n = PR_FindExtGlobal(#n);
 	if(qcvm == &cl.qcvm){//csqc
 		QCEXTFUNCS_CS
 			QCEXTGLOBALS_CSQC
@@ -224,8 +220,6 @@ void PR_EnableExtensions()
 		QCEXTFUNCS_SV
 	}
 #undef QCEXTGLOBAL_FLOAT
-#undef QCEXTGLOBAL_INT
-#undef QCEXTGLOBAL_VECTOR
 #undef QCEXTFUNC
 	u32 numautocvars = 0;
 	for(u32 i = 0; i < (u32)qcvm->progs->numglobaldefs; i++){
@@ -1170,7 +1164,7 @@ void PR_ShutdownExtensions()
 { // called at map end
 	PR_UnzoneAll();
 	if(qcvm == &cl.qcvm)
-		PR_ReloadPics(true);
+		PR_ReloadPics();
 }
 
 void PR_ClearProgs(qcvm_t *vm)
