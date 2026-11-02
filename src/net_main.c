@@ -423,7 +423,6 @@ void NET_Init()
 {
 	s32 i = COM_CheckParm("-port");
 	if(!i) i = COM_CheckParm("-udpport");
-	if(!i) i = COM_CheckParm("-ipxport");
 	if(i){
 		if(i < com_argc - 1)
 			default_net_hostport = atoi(com_argv[i + 1]);
@@ -467,9 +466,6 @@ void NET_Init()
 	// therefore the i == 0 check is correct
 	if(i == 0 && cls.state == ca_dedicated)
 		Sys_Error("Network not available!");
-	static c8 my_ipx_address[NET_NAMELEN];
-	if(*my_ipx_address)
-		Con_DPrintf("IPX address %s\n", my_ipx_address);
 	if(*my_tcpip_address)
 		Con_DPrintf("TCP/IP address %s\n", my_tcpip_address);
 }

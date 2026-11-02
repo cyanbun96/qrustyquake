@@ -15,8 +15,6 @@ static void Max_Fps_f(cvar_t *var)
 		if(host_netinterval)
 			Con_Printf("Disabling renderer/network isolation.\n");
 		host_netinterval = 0;
-		if(var->value > 72)
-			Con_Printf("host_maxfps above 72 breaks physics.\n");
 	}
 }
 

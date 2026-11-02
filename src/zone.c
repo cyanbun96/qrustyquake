@@ -127,7 +127,7 @@ static void Z_CheckHeap()
 
 void *Z_Malloc(s32 size)
 {
-	Z_CheckHeap(); // DEBUG
+	Z_CheckHeap();
 	void *buf = Z_TagMalloc(size);
 	if(!buf) Sys_Error("Z_Malloc: failed on allocation of %i bytes", size);
 	memset(buf, 0, size);

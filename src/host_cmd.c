@@ -507,7 +507,7 @@ void Host_DeleteSave_f()
 	c8 name[MAX_OSPATH + 2];
 	snprintf(name, sizeof(name), "%s/%s", com_gamedir, arg);
 	COM_AddExtension(name, ".sav", sizeof(name));
-	SDL_PathInfo info;;
+	SDL_PathInfo info;
 	if(!SDL_GetPathInfo(name, &info)){
 		Con_Printf("ERROR: couldn't find %s\n", name);
 		return;
