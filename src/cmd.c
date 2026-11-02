@@ -140,6 +140,10 @@ void Cmd_Exec_f()
 		return;
 	}
 	Con_Printf("execing %s\n", Cmd_Argv(1));
+	// runs after the file: unless locked, its scr_uiscale is just the
+	// automatic value for whatever resolution it was saved at
+	if(!strcmp(Cmd_Argv(1), "config.cfg") && cls.state != ca_dedicated)
+		Cbuf_InsertText("vid_autouiscale");
 	Cbuf_InsertText(f);
 	Hunk_FreeToLowMark(mark);
 }

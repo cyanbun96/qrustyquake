@@ -2192,7 +2192,7 @@ void M_Display_Key(s32 k)
 	case K_RIGHTARROW:
 	case K_ENTER:
 		S_LocalSound("misc/menu3.wav");
-		if(display_cursor == 0 && scr_uiscale.value < (vid.width / 320))
+		if(display_cursor == 0 && scr_uiscale.value < VID_MaxUIScale())
 			Cvar_SetValue("scr_uiscale", scr_uiscale.value + 1);
 		else if(display_cursor == 1) Cvar_SetValue("scr_lockuiscale",
 				scr_lockuiscale.value ? 0 : 1);
@@ -2243,15 +2243,13 @@ void M_Display_Key(s32 k)
 		}else if(display_cursor == 12 && newwinmode == 1 && moden){
 			if(display_sel_moden == 0) display_sel_moden = moden-1;
 			else display_sel_moden--;
-		}else if(display_cursor == 13 && newwinmode == 1 && moden){
-			VID_SetMode(0,mode->w, mode->h, newwinmode);
+		}else if(display_cursor == 13 && newwinmode == 1 && moden
+			   && VID_SizeOK(mode->w, mode->h)){
+			VID_SetMode(-1, mode->w, mode->h, newwinmode);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
-		}else if(display_cursor == 14
-			   && atoi(customwidthstr) >= 320
-			   && atoi(customheightstr) >= 200
-			   && atoi(customwidthstr) <= MAXWIDTH
-			   && atoi(customheightstr) <= MAXHEIGHT){
-			VID_SetMode(0, atoi(customwidthstr),
+		}else if(display_cursor == 14 && VID_SizeOK(
+			   atoi(customwidthstr), atoi(customheightstr))){
+			VID_SetMode(-1, atoi(customwidthstr),
 				    atoi(customheightstr), newwinmode);
 			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		}
@@ -3350,11 +3348,7 @@ void M_Video_Key(s32 key)
 	case 'T':
 	case 't':
 		S_LocalSound("misc/menu1.wav");
-		vid_realmode = vid_modenum;
-		vid_testingmode = 1;
-		vid_testendtime = realtime + 5.0;
-		VID_SetMode(vid_line, 0, 0, 0);
-		printf("VID_LINE: %d\n", vid_line);
+		VID_TestMode(vid_line);
 		break;
 	case 'D':
 	case 'd':
@@ -4374,6 +4368,13 @@ void M_Maps_Mouse(s32 x, s32 y)
 
 void M_MouseCursor(s32 x, s32 y)
 {
+	if(lyr_menu.value >= 2){ // these layers are scaled around the center
+		s32 cx = vid.width / 2, cy = vid.height / 2;
+		if(scr_uixscale.value > 0)
+			x = cx + (x - cx) / scr_uixscale.value;
+		if(scr_uiyscale.value > 0)
+			y = cy + (y - cy) / scr_uiyscale.value;
+	}
 	s32 menu_origin_x = (vid.width - 320 * uiscale) >> 1;
 	s32 menu_origin_y = scr_centermenus.value ?
 		((vid.height / uiscale - 200) / 2) * uiscale : 0;

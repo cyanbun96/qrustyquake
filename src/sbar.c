@@ -1094,7 +1094,7 @@ void Sbar_Draw()
 	oldhudstyle = scr_hudstyle.value;
 	if(force_vanilla) scr_hudstyle.value = 0;
 	if(sb_lines && WW/SCL > 320)
-		Draw_TileClear(0, HH - sb_lines/SCL, WW, sb_lines/SCL);
+		Draw_TileClear(0, HH - sb_lines, WW, sb_lines);
 	if(scr_hudstyle.value == 0 || scr_hudstyle.value == 4)
 		Sbar_DrawBg();
 	if(cl.gametype==GAME_DEATHMATCH&&(sb_showscores||scr_sidescore.value))

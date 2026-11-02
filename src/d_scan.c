@@ -102,12 +102,15 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 	for(s32 v = 0; v < scr_vrect.height; v++, dest += vid.width){
 		s32 *col = &column[turb[v]];
 		u8 **row = &rowptr[v];
-		for(s32 u = 0; u < scr_vrect.width; u += 4){
+		s32 u = 0;
+		for(; u < (scr_vrect.width & ~3); u += 4){
 			dest[u + 0] = row[turb[u + 0]][col[u + 0]];
 			dest[u + 1] = row[turb[u + 1]][col[u + 1]];
 			dest[u + 2] = row[turb[u + 2]][col[u + 2]];
 			dest[u + 3] = row[turb[u + 3]][col[u + 3]];
 		}
+		for(; u < scr_vrect.width; u++)
+			dest[u] = row[turb[u]][col[u]];
 	}
 }
 
@@ -308,9 +311,9 @@ Q_SIL s32 D_DitherIndex(s32 x, s32 y)
 
 Q_SIL void D_PixelScreenPos(const u8 *pdest, s32 *x, s32 *y)
 {
-	s32 pixel_index = (s32)(pdest - (u8 *)screen->pixels);
-	*y = pixel_index / scr_vrect.width;
-	*x = pixel_index - *y * scr_vrect.width;
+	s32 pixel_index = (s32)(pdest - (u8 *)d_viewbuffer);
+	*y = pixel_index / screenwidth;
+	*x = pixel_index - *y * screenwidth;
 }
 
 Q_SIL u8 D_TurbSample(const u8 *pbase, const s32 *turb, f32 time,

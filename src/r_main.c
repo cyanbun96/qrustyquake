@@ -277,7 +277,7 @@ void R_InitTurb()
 }
 
 void R_ViewChangedCallback(SDL_UNUSED cvar_t *cvar)
-{ R_ViewChanged(&r_refdef.vrect, sb_lines, pixelAspect); }
+{ vid.recalc_refdef = 1; }
 
 void R_Init()
 {
@@ -443,11 +443,13 @@ void R_SetVrect(vrect_t *pvrectin, vrect_t *pvrect, s32 lineadj)
 		size = 96.0 / pvrectin->width;
 		pvrect->width = 96; // min for icons
 	}
-	pvrect->width &= ~7;
+	if(pvrect->width < pvrectin->width) // a full view fills any screen
+		pvrect->width &= ~7;
 	pvrect->height = pvrectin->height * size;
-	if(pvrect->height > pvrectin->height - lineadj)
-		pvrect->height = pvrectin->height - lineadj;
-	pvrect->height &= ~1;
+	if(pvrect->height >= h)
+		pvrect->height = h;
+	else
+		pvrect->height &= ~1;
 	pvrect->x = (pvrectin->width - pvrect->width) / 2;
 	pvrect->y = (h - pvrect->height) / 2;
 }
@@ -462,7 +464,8 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	r_refdef.horizontalFieldOfView = 2.0 * tan(r_refdef.fov_x / 360 * M_PI);
 	r_refdef.fvrectx = (f32)r_refdef.vrect.x;
 	r_refdef.fvrectx_adj = (f32)r_refdef.vrect.x - 0.5;
-	r_refdef.vrect_x_adj_shift20 = (r_refdef.vrect.x << 20) + (1 << 19) - 1;
+	r_refdef.vrect_x_adj_shift20 =
+		((s64)r_refdef.vrect.x << 20) + (1 << 19) - 1;
 	r_refdef.fvrecty = (f32)r_refdef.vrect.y;
 	r_refdef.fvrecty_adj = (f32)r_refdef.vrect.y - 0.5;
 	r_refdef.vrectright = r_refdef.vrect.x + r_refdef.vrect.width;

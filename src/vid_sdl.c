@@ -13,6 +13,9 @@ static SDL_Palette *sdlpals[4]; // indexed like scrbuffs
 static u32 pallut[4][256]; // the same palettes in window_format
 static s32 renderscale;
 static s32 scalemode;
+// what a mode test from the video menu returns to
+static s32 testwidth, testheight, testwinmode, testwinw, testwinh;
+static u32 testuiscale;
 
 void VID_CalcScreenDimensions(cvar_t *cvar);
 void VID_AllocBuffers();
@@ -108,17 +111,34 @@ void VID_SetBorderless()
 	SDL_SetWindowFullscreen(window, 1);
 }
 
+bool VID_SizeOK(s32 w, s32 h)
+{ return w >= 320 && w <= MAXWIDTH && h >= 200 && h <= MAXHEIGHT; }
+
+s32 VID_MaxUIScale()
+{ // the biggest scale that fits the 320x200 UI in both directions
+	s32 w = vid.width / 320, h = vid.height / 200;
+	return w < h ? w : h;
+}
+
 void VID_UpdateUIScale(SDL_UNUSED cvar_t *cvar)
 {
-	if(vid.width / 320 >= scr_uiscale.value && scr_uiscale.value >= 1){
+	if(VID_MaxUIScale() >= scr_uiscale.value && scr_uiscale.value >= 1){
 		uiscale = scr_uiscale.value;
 		vid.recalc_refdef = 1;
 	}else{
 		Con_Printf("Invalid UI scale value %d\n",
 				(s32)scr_uiscale.value);
-		Con_Printf("Max %d for current resolution\n", vid.width/320);
+		Con_Printf("Max %d for current resolution\n",
+				VID_MaxUIScale());
 		Cvar_SetValue("scr_uiscale", uiscale);
 	}
+}
+
+void VID_AutoUIScale()
+{ // a locked scale only has to keep fitting
+	if(!scr_lockuiscale.value || (s32)uiscale > VID_MaxUIScale())
+		uiscale = VID_MaxUIScale();
+	Cvar_SetValue("scr_uiscale", uiscale);
 }
 
 static void VID_CreateSurfaces()
@@ -151,6 +171,7 @@ void VID_Init()
 	Cvar_SetCallback(&realheight, vid_callback);
 	Cvar_SetCallback(&scr_uiscale, VID_UpdateUIScale);
 	Cmd_AddCommand("vid_fullscreen", VID_VidFullscreenCommand_f);
+	Cmd_AddCommand("vid_autouiscale", VID_AutoUIScale);
 	// Set up display mode(width and height)
 	vid.width = 320;
 	vid.height = 240;
@@ -180,8 +201,7 @@ void VID_Init()
 	renderscale = VID_GetConfigCvar(cfg, "r_renderscale");
 	if(cfg) fclose(cfg);
 	if(renderscale < 1) renderscale = 1;
-	if(confwidth >= 320 && confheight >= 200 &&
-		confwidth <= MAXWIDTH && confheight <= MAXHEIGHT){
+	if(VID_SizeOK(confwidth, confheight)){
 		vid.width = confwidth;
 		vid.height = confheight;
 		Sys_Printf("Using vid_cwidth x vid_cheight to set mode\n");
@@ -211,6 +231,9 @@ void VID_Init()
 		if(!vid.height)
 			Sys_Error("VID: Bad window height\n");
 	}
+	if(!VID_SizeOK(vid.width, vid.height))
+		Sys_Error("VID: Size must be from 320x200 to %dx%d\n",
+				MAXWIDTH, MAXHEIGHT);
 	vimmode = COM_CheckParm("-vimmode");
 	if(vid.width > 1280 || vid.height > 1024)
 		Sys_Printf("vanilla maximum resolution is 1280x1024\n");
@@ -269,6 +292,7 @@ void VID_Init()
 	else vid_modenum = VID_DetermineMode(win);
 	if(vid_modenum < 0) Con_Printf("WARNING: non-standard video mode\n");
 	else Con_Printf("Detected video mode %d\n", vid_modenum);
+	Cvar_SetROM("vid_mode", va("%d", vid_modenum));
 	SDLWindowFlags = SDL_GetWindowFlags(window);
 	realwidth.value = 0;
 	VID_CalcScreenDimensions(0);
@@ -279,10 +303,12 @@ void VID_Shutdown(){ SDL_QuitSubSystem(SDL_INIT_VIDEO); }
 
 void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 {
-	if(scr_lockuiscale.value == 0) uiscale = vid.width / 320;
-	if(uiscale * 200 > vid.height)
-		uiscale = 1; // For weird resolutions like 800x200
-	Cvar_SetValue("scr_uiscale", uiscale);
+	static u32 scalewidth, scaleheight;
+	if(vid.width != scalewidth || vid.height != scaleheight){
+		scalewidth = vid.width; // resizing the window keeps the scale
+		scaleheight = vid.height;
+		VID_AutoUIScale();
+	}
 	blitRect.x = 0;
 	blitRect.y = 0;
 	blitRect.w = vid.width;
@@ -366,15 +392,15 @@ void VID_Update()
 	static SDL_Rect scRect;
 	scRect.w = vid.width * (scr_uixscale.value>0 ? scr_uixscale.value : 1);
 	scRect.h = vid.height * (scr_uiyscale.value>0 ? scr_uiyscale.value : 1);
-	scRect.x = (vid.width - scRect.w) / 2;
-	scRect.y = (vid.height - scRect.h) / 2;
+	scRect.x = ((s32)vid.width - scRect.w) / 2;
+	scRect.y = ((s32)vid.height - scRect.h) / 2;
 	static SDL_Rect scRect2;
 	scRect2.w = vid.width * renderscale * (scr_uixscale.value>0 ?
 			scr_uixscale.value : 1);
 	scRect2.h = vid.height * renderscale * (scr_uiyscale.value>0 ?
 			scr_uiyscale.value : 1);
-	scRect2.x = (vid.width*renderscale - scRect2.w) / 2;
-	scRect2.y = (vid.height*renderscale - scRect2.h) / 2;
+	scRect2.x = ((s32)vid.width*renderscale - scRect2.w) / 2;
+	scRect2.y = ((s32)vid.height*renderscale - scRect2.h) / 2;
 	if(SDL_LockTexture(texture,0, &argbbuffer->pixels, &argbbuffer->pitch)){
 		if(blitscreensbar)
 			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
@@ -409,15 +435,11 @@ void VID_Update()
 	SDL_RenderClear(renderer);
 	SDL_RenderTexture(renderer, texture, NULL, &destRect);
 	SDL_RenderPresent(renderer);
-	if(vid_testingmode){
-		if(realtime >= vid_testendtime){
-			VID_SetMode(vid_realmode, 0, 0, 0);
-			vid_testingmode = 0;
-		}
-	}else if((s32)vid_mode.value != vid_realmode && vid_realmode != -1){
-		VID_SetMode((s32)vid_mode.value, 0, 0, 0);
-		Cvar_SetValue("vid_mode", (f32)vid_modenum);
-		vid_realmode = vid_modenum;
+	if(vid_testingmode && realtime >= vid_testendtime){
+		VID_SetMode(vid_realmode, testwidth, testheight, testwinmode);
+		if(!testwinmode) SDL_SetWindowSize(window, testwinw, testwinh);
+		Cvar_SetValue("scr_uiscale", testuiscale);
+		vid_testingmode = 0;
 	}
 	// unused layers aren't drawn to, so they stay clear from AllocBuffers
 	if(blitscreentop) memset(screentop->pixels, 255, vid.width*vid.height);
@@ -465,12 +487,11 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 	if(custw && custh){
 		vid.width = custw;
 		vid.height = custh;
-		vid_modenum = -1;
 	}else{
 		vid.width = oldmodes[modenum * 2];
 		vid.height = oldmodes[modenum * 2 + 1];
-		vid_modenum = modenum;
 	}
+	vid_modenum = modenum;
 	SDL_DestroySurface(screen);
 	SDL_DestroySurface(screentop);
 	SDL_DestroySurface(screenui);
@@ -519,7 +540,8 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 	}
 	realwidth.value = 0;
 	VID_CalcScreenDimensions(0);
-	Cvar_SetValue("vid_mode", (f32)vid_modenum);
+	Cvar_SetROM("vid_mode", va("%d", vid_modenum));
+	if(vid_testingmode) return; // the config keeps the mode to return to
 	Cvar_SetValue("vid_cwidth", (f32)custw);
 	Cvar_SetValue("vid_cheight", (f32)custh);
 	Cvar_SetValue("vid_cwmode", (f32)custwinm);
@@ -540,12 +562,11 @@ void VID_VidSetModeCommand_f()
 	case 4:
 		custw = atoi(Cmd_Argv(1));
 		custh = atoi(Cmd_Argv(2));
-		if(custw<320||custw>MAXWIDTH||custh<200||custh>MAXHEIGHT){
+		if(!VID_SizeOK(custw, custh)){
 			Con_Printf("320 <= width <= %d\n", MAXWIDTH);
 			Con_Printf("200 <= height <= %d\n", MAXHEIGHT);
 			return;
 		}
-		vid_realmode = -1;
 		VID_SetMode(-1, custw, custh, atoi(Cmd_Argv(3)));
 		break;
 	}
@@ -585,6 +606,19 @@ s32 VID_GetWinMode()
 	return SDL_GetWindowFullscreenMode(window) ? 1 : 2;
 }
 
+void VID_TestMode(s32 modenum)
+{ // VID_Update puts everything back when the time runs out
+	vid_realmode = vid_modenum;
+	testwidth = vid.width;
+	testheight = vid.height;
+	testwinmode = VID_GetWinMode();
+	SDL_GetWindowSize(window, &testwinw, &testwinh);
+	testuiscale = uiscale;
+	vid_testingmode = 1;
+	vid_testendtime = realtime + 5.0;
+	VID_SetMode(modenum, 0, 0, 0);
+}
+
 void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar)
 {
 	if((s32)r_renderscale.value < 1)
@@ -593,9 +627,7 @@ void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar)
 		return; // e.g. config.cfg, VID_Init already used it
 	renderscale = r_renderscale.value;
 	s32 winm = VID_GetWinMode(); // keep the current window mode
-	VID_SetMode(-1, vid.width, vid.height, winm);
-	vid_modenum = VID_DetermineMode(!winm);
-	Cvar_SetValue("vid_mode", (f32)vid_modenum);
+	VID_SetMode(VID_DetermineMode(!winm), vid.width, vid.height, winm);
 }
 
 void VID_SetScaleModeCommand_f()

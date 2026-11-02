@@ -74,6 +74,8 @@ void D_ViewChanged()
 		d_pix_min = 1;
 	d_pix_max = (s32)((f32)r_refdef.vrect.width / (320.0 / 4.0) + 0.5);
 	d_pix_shift = 8 - (s32)((f32)r_refdef.vrect.width / 320.0 + 0.5);
+	if(d_pix_shift < 0)
+		d_pix_shift = 0;
 	if(d_pix_max < 1)
 		d_pix_max = 1;
 	d_vrectx = r_refdef.vrect.x;
@@ -462,16 +464,8 @@ void Draw_ConsoleBackground(s32 lines)
 		else{
 			s32 f = 0;
 			s32 fstep = conback->width * 0x10000 / vid.width;
-			for(u32 x = 0; x < vid.width; x += 4){
+			for(u32 x = 0; x < vid.width; x++, f += fstep)
 				dest[x] = src[f >> 16];
-				f += fstep;
-				dest[x + 1] = src[f >> 16];
-				f += fstep;
-				dest[x + 2] = src[f >> 16];
-				f += fstep;
-				dest[x + 3] = src[f >> 16];
-				f += fstep;
-			}
 		}
 	}
 	drawlayer = olddrawlayer;
@@ -612,14 +606,15 @@ void Draw_FadeScreen()
 			pdest[i] = brightness_lut[pdest[i]];
 		return;
 	}
-	for(u32 y = 0; y < vid.height / uiscale; y++) // winquake
-		for(u32 i = 0; i < uiscale; i++){
+	for(u32 y = 0; y * uiscale < vid.height; y++) // winquake
+		for(u32 i = 0; i < uiscale && y*uiscale+i < vid.height; i++){
 			u8 *pbuf = (u8*)scrbuffs[0]->pixels + vid.width * y
 				* uiscale + vid.width * i;
 			u32 t = (y & 1) << 1;
-			for(u32 x = 0; x < vid.width / uiscale; x++)
+			for(u32 x = 0; x * uiscale < vid.width; x++)
 				if((x & 3) != t)
-					for(u32 j = 0; j < uiscale; j++)
+					for(u32 j = 0; j < uiscale &&
+						x*uiscale+j < vid.width; j++)
 						pbuf[x * uiscale + j] = 0;
 		}
 }
