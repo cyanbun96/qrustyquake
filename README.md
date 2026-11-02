@@ -26,7 +26,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - High resolution support
   
-  - Maximum tested is 16K, 2000 times bigger that 320x200
+  - Maximum tested is 16K, 2000 times bigger than 320x200
   
   - Defined by MAXHEIGHT and MAXWIDTH in r_shared.h
   
@@ -100,7 +100,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
   
   - Render-server separation for 72<FPS
 
-- Expanded limits, Fitzquake protocol allowing for moden mod support
+- Expanded limits, Fitzquake protocol allowing for modern mod support
   
   - 2026 rerelease/DotM support, requires the "id1" folder from the KEX version to support mg3 properly
 
@@ -158,7 +158,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
     
     - Mix (default) - emulates the hardware-accelerated translucency by mixing the surface colors
     
-    - Dither - much less memory-hungry option, but with less gradual translusency levels
+    - Dither - much less memory-hungry option, but with less gradual translucency levels
   
   - Cubemapped skyboxes ("sky filename_"), only .tga format for now
     
@@ -204,7 +204,7 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
     
     - r_particlestyle 0 - square, 1 - circle
     
-    - r_particlealpha [0-1] for translusency, affected by r_alphastyle
+    - r_particlealpha [0-1] for translucency, affected by r_alphastyle
   
   - r_mipscale for LOD distance adjustment
 
