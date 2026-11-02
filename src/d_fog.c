@@ -181,14 +181,14 @@ static inline f32 compute_fog_lut(s32 z)
 	return fog_factor_lut[idx];
 }
 
-static void R_FogMix(u8 *pdest, const s16 *zb, s32 area, const f32 *zadj)
+static void R_FogMix(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 {
 	const s32 *bias = randarr;
 	const f32 *lut = fog_mix_lut;
 	const u8 *mix = &color_mix_lut[0][fog_pal_index][0];
 	const s32 stride = sizeof(color_mix_lut[0]);
-	for(s32 i = 0; i < area; ++i){
-		s32 z = zb[i] + bias[(area - i) & (RANDARR_SIZE - 1)] + 32768;
+	for(s32 i = 0; i < w; ++i){
+		s32 z = zb[i] + bias[(n - i) & (RANDARR_SIZE - 1)] + 32768;
 		if(z < 0) z = 0;
 		if(z > 65535) z = 65535;
 		f32 ffactor = lut[z / FOG_FACTOR_LUT_DOWNSAMPLE];
@@ -196,6 +196,67 @@ static void R_FogMix(u8 *pdest, const s16 *zb, s32 area, const f32 *zadj)
 			ffactor *= zadj[i];
 		s32 lut_idx = (s32)(ffactor * FOG_LUT_LEVELS);
 		pdest[i] = mix[pdest[i] * stride + lut_idx];
+	}
+}
+
+// w pixels of one view row, n is how many of the view's pixels are left
+static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
+{
+	switch((s32)r_fogstyle.value + (r_fogdepthcorrection.value?10:0)){
+	case 0: // noisy
+		for(s32 i = 0; i < w; ++i){
+			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
+			f32 ffactor = compute_fog_lut(zb[i]+bias)
+							*r_fogfactor.value;
+			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
+				pdest[i] = fog_pal_index;
+		} break;
+	case 2: // dither + noise
+		for(s32 i = 0; i < w; ++i){
+			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
+			f32 ffactor = compute_fog_lut(zb[i]+bias)
+							*r_fogfactor.value;
+			ffactor -= bias*0.05;
+			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
+				pdest[i] = fog_pal_index;
+		} break;
+	case 1: // dither
+		for(s32 i = 0; i < w; ++i){
+			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
+			f32 ffactor = compute_fog_lut(zb[i]+bias)
+							*r_fogfactor.value;
+			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
+		} break;
+	default: case 3: // mix
+		R_FogMix(pdest, zb, w, n, NULL);
+		break;
+	case 10: // depth-corrected, noisy
+		for(s32 i = 0; i < w; ++i){
+			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
+			f32 ffactor = compute_fog_lut(zb[i]+bias)
+						*r_fogfactor.value*zadj[i];
+			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
+				pdest[i] = fog_pal_index;
+		} break;
+	case 12: // depth-corrected, dither + noise
+		for(s32 i = 0; i < w; ++i){
+			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
+			f32 ffactor = compute_fog_lut(zb[i]+bias)
+						*r_fogfactor.value*zadj[i];
+			ffactor -= bias*0.05;
+			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
+				pdest[i] = fog_pal_index;
+		} break;
+	case 11: // depth-corrected, dither
+		for(s32 i = 0; i < w; ++i){
+			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
+			f32 ffactor = compute_fog_lut(zb[i]+bias)
+						*r_fogfactor.value*zadj[i];
+			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
+		} break;
+	case 13: // depth-corrected, mix
+		R_FogMix(pdest, zb, w, n, zadj);
+		break;
 	}
 }
 
@@ -209,63 +270,15 @@ void R_DrawFog()
 		R_InitFogLUT();
 	if(r_fogdepthcorrection.value) R_InitDepthCorrection();
 	sb_updates = 0; // draw sbar over fog
-	s32 j = 0;
-	u8 *pdest = screen->pixels;
-	s32 area = scr_vrect.width * scr_vrect.height;
-	switch((s32)r_fogstyle.value + (r_fogdepthcorrection.value?10:0)){
-	case 0: // noisy
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-							*r_fogfactor.value;
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 2: // dither + noise
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-							*r_fogfactor.value;
-			ffactor -= bias*0.05;
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 1: // dither
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-							*r_fogfactor.value;
-			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
-		} break;
-	default: case 3: // mix
-		R_FogMix(pdest, d_pzbuffer, area, NULL);
-		break;
-	case 10: // depth-corrected, noisy
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-						*r_fogfactor.value*zadjarr[i];
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 12: // depth-corrected, dither + noise
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-						*r_fogfactor.value*zadjarr[i];
-			ffactor -= bias*0.05;
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 11: // depth-corrected, dither
-		for(s32 i = 0; i < area; ++i){
-			s32 bias = randarr[(area-j++)%RANDARR_SIZE];
-			f32 ffactor = compute_fog_lut(d_pzbuffer[i]+bias)
-						*r_fogfactor.value*zadjarr[i];
-			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
-		} break;
-	case 13: // depth-corrected, mix
-		R_FogMix(pdest, d_pzbuffer, area, zadjarr);
-		break;
+	s32 w = scr_vrect.width;
+	s32 ofs = scr_vrect.y * vid.width + scr_vrect.x;
+	u8 *pdest = vid.buffer + ofs; // the screen and z buffer are vid.width
+	const s16 *zb = d_pzbuffer + ofs; // wide, the view can be narrower
+	const f32 *zadj = r_fogdepthcorrection.value ? zadjarr : NULL;
+	for(s32 n = w * scr_vrect.height; n > 0; n -= w){
+		R_FogRow(pdest, zb, w, n, zadj);
+		pdest += vid.width;
+		zb += vid.width;
+		if(zadj) zadj += w;
 	}
 }
