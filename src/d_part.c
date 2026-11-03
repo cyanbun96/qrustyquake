@@ -52,12 +52,12 @@ void D_DrawParticle(particle_t *pparticle)
 	f32 zi = 1.0 / transformed[2]; // project the point
 	s32 u = (s32)(xcenter + zi * transformed[0] + 0.5);
 	s32 v = (s32)(ycenter - zi * transformed[1] + 0.5);
-	s32 izi = (s32)(zi * 0x8000);
+	s32 izi = (s32)(zi * 0x8000 * 0x10000);
 	s32 pix;
 	if(r_particlesize.value){
 		pix = r_particlesize.value;
 	}else{
-		pix = izi >> d_pix_shift;
+		pix = (izi >> 16) >> d_pix_shift;
 		if(pix < d_pix_min) pix = d_pix_min;
 		else if(pix > d_pix_max) pix = d_pix_max;
 	}
@@ -77,7 +77,7 @@ void D_DrawParticle(particle_t *pparticle)
 	s32 cy1 = y1 > r_refdef.vrectbottom ? r_refdef.vrectbottom : y1;
 	s32 draw_w = cx1 - cx0;
 	s32 draw_h = cy1 - cy0;
-	s16 *pz = d_pzbuffer +(d_zwidth * cy0) + cx0;
+	s32 *pz = d_pzbuffer +(d_zwidth * cy0) + cx0;
 	u8 *pdest = d_viewbuffer + d_scantable[cy0] + cx0;
 #define MIX_PIXEL color_mix_lut[pdest[x]][(s32)pparticle->color][part_alpha]
 	if(r_particlestyle.value == 1 && part_alpha == FOG_LUT_LEVELS){// circle

@@ -14,7 +14,7 @@ typedef struct {
 } polysetstyle_t;
 typedef struct {
 	void *pdest;
-	s16 *pz;
+	s32 *pz;
 	s32 count;
 	u8 *ptex;
 	s32 sfrac, tfrac, light, zi;
@@ -40,7 +40,7 @@ static s32 d_aspancount, d_countextrastep;
 static spanpackage_t *a_spans;
 static spanpackage_t *d_pedgespanpackage;
 static u8 *d_pdest, *d_ptex;
-static s16 *d_pz;
+static s32 *d_pz;
 static s32 d_sfrac, d_tfrac, d_light, d_zi;
 static s32 d_ptexextrastep, d_sfracextrastep;
 static s32 d_tfracextrastep, d_lightextrastep, d_pdestextrastep;
@@ -134,12 +134,12 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 		if(fv->v[0]<r_refdef.vrectright&&fv->v[1]<r_refdef.vrectbottom){
 			if(fv->v[0] < 0 || fv->v[1] < 0)
 				continue; // zbuf segfault
-			s16 *zbuf = zspantable[fv->v[1]] + fv->v[0];
-			if(zbuf - d_pzbuffer > (s32)(vid.width * vid.height
-					*sizeof(s16)) || zbuf < d_pzbuffer){
+			s32 *zbuf = zspantable[fv->v[1]] + fv->v[0];
+			if(zbuf - d_pzbuffer >= (s32)(vid.width * vid.height)
+					|| zbuf < d_pzbuffer){
 				continue; // zbuf segfault
 			}
-			s32 z = fv->v[5] >> 16;
+			s32 z = fv->v[5];
 			if(!(z >= *zbuf))
 				continue;
 			s32 s = fv->v[2] >> 16;
@@ -317,11 +317,11 @@ split: // split this edge
 	if(new[0] < 0 || new[1] < 0 || new[1] >= r_refdef.fvrectbottom
 			|| new[0] >= r_refdef.fvrectright)
 		goto nodraw; // zbuf segfault
-	s16 *zbuf = zspantable[new[1]] + new[0];
-	if(zbuf - d_pzbuffer > (s32)(vid.width * vid.height * sizeof(s16))
+	s32 *zbuf = zspantable[new[1]] + new[0];
+	if(zbuf - d_pzbuffer >= (s32)(vid.width * vid.height)
 			|| zbuf < d_pzbuffer)
 		goto nodraw; // zbuf segfault
-	s32 z = new[5] >> 16;
+	s32 z = new[5];
 	if(z >= *zbuf){
 		*zbuf = z;
 		s32 s = new[2] >> 16;
@@ -516,7 +516,7 @@ Q_SIL u8 D_PolysetDitheredTexel(const u8 *ptex, s32 sfrac, s32 tfrac,
 }
  
 Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
-		u8 *pdest, s16 *pz, s32 zi)
+		u8 *pdest, s32 *pz, s32 zi)
 {
 	s32 pix = st->colormap[texel + (light & 0xFF00)];
 	if(pix == 0xFF)
@@ -534,7 +534,7 @@ Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
 	default:
 		*pdest = pix;
 	}
-	*pz = zi >> 16;
+	*pz = zi;
 }
  
 Q_SIL void D_PolysetClampSpanLight(s32 *light, s32 *lstep, s32 count)
@@ -556,7 +556,7 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 		const polysetstyle_t *st, s32 sample)
 {
 	u8 *pdest = span->pdest;
-	s16 *pz = span->pz;
+	s32 *pz = span->pz;
 	u8 *ptex = span->ptex;
 	s32 sfrac = span->sfrac;
 	s32 light = span->light;
@@ -569,7 +569,7 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	u32 tlstep = ((u32)a_tstepxfrac << 16) | (lstep & 0xFFFF);
 	s32 skinwidth = r_affinetridesc.skinwidth;
 	do{
-		if((zi >> 16) >= *pz){
+		if(zi >= *pz){
 			u8 texel = sample == TEXSAMPLE_DITHERED ?
 			  D_PolysetDitheredTexel(ptex, sfrac, tl >> 16,
 				  pdest) : *ptex;
@@ -603,9 +603,9 @@ Q_SIL s32 D_PolysetNextSpanWidth(const spanpackage_t *span)
 Q_SIL s32 D_PolysetSpanInBounds(const spanpackage_t *span, s32 count)
 {
 	const u8 *dest = span->pdest;
-	const s16 *pz = span->pz;
+	const s32 *pz = span->pz;
 	const u8 *dest_end = d_viewbuffer + vid.width * vid.height;
-	const s16 *z_end = d_pzbuffer + vid.width * vid.height;
+	const s32 *z_end = d_pzbuffer + vid.width * vid.height;
 	return dest >= d_viewbuffer && dest + count <= dest_end &&
 		pz >= d_pzbuffer && pz + count <= z_end;
 }

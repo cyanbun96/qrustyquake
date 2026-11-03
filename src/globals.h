@@ -323,7 +323,7 @@ trace_t SV_Move(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, s32 type,
 EX f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                       // d_local.h
 EX f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
 EX f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
-EX s16 *d_pzbuffer;
+EX s32 *d_pzbuffer; // 1/z * 0x8000 * 0x10000, WinQuake kept the top 16 bits
 EX u32 d_zwidth;
 EX u8 *d_viewbuffer;
 EX u8 fog_pal_index;
@@ -711,7 +711,7 @@ EX f32 d_scalemip[NUM_MIPS - 1];
 EX s32 d_pix_min, d_pix_max, d_pix_shift;                          // d_modech.c
 EX s32 d_vrectx, d_vrecty;
 EX s32 d_scantable[MAXHEIGHT];
-EX s16 *zspantable[MAXHEIGHT];
+EX s32 *zspantable[MAXHEIGHT];
 EX bool r_cache_thrash;                                              // d_surf.c
 EX surfcache_t *sc_rover;
 EX s32 r_lightonly;

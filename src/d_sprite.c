@@ -25,11 +25,11 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 			pspan->count = vid.width - pspan->u;
 		s32 count = pspan->count;
 		u8 *pdest = d_viewbuffer + (screenwidth*pspan->v) + pspan->u;
-		s16 *pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+		s32 *pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
 		if(pdest < d_viewbuffer
 			|| pdest+count > d_viewbuffer+vid.width*vid.height)
 			goto NextSpan;
-		if(pz<d_pzbuffer || pz+count>d_pzbuffer+vid.width*vid.height*2)
+		if(pz<d_pzbuffer || pz+count>d_pzbuffer+vid.width*vid.height)
 			goto NextSpan;
 		// calculate the initial s/z, t/z, 1/z, s, and t and clamp
 		f32 du = (f32)pspan->u;
@@ -108,8 +108,8 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 			do{
 				u8 btemp = *(pbase + (s >> 16) +
 						(t >> 16) * cachewidth);
-				if(btemp != 255 && *pz <= (izi >> 16)){
-					*pz = izi >> 16;
+				if(btemp != 255 && *pz <= izi){
+					*pz = izi;
 					*pdest = btemp;
 				}
 				izi += izistep;

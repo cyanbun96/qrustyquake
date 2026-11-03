@@ -18,8 +18,8 @@ static f32 old_noisebias = -1234;
 static f32 *zadjarr = 0;
 // Sky gets map_skyfog instead of fog by distance, but it keeps its real z to
 // hide what's behind it. So this remembers the z it wrote: a pixel still shows
-// sky where the z-buffer holds that value. Low 16 bits z, high 16 the frame.
-static u32 *fog_skyz = 0;
+// sky where the z-buffer holds that value. Low 32 bits z, high 32 the frame.
+static u64 *fog_skyz = 0;
 static s32 fog_skyz_size = 0;
 static u32 fog_skyrow[MAXHEIGHT]; // frame this row last got sky on
 
@@ -192,14 +192,15 @@ static inline f32 compute_fog_lut(s32 z)
 	return fog_factor_lut[idx];
 }
 
-static void R_FogMix(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
+static void R_FogMix(u8 *pdest, const s32 *zb, s32 w, s32 n, const f32 *zadj)
 {
 	const s32 *bias = randarr;
 	const f32 *lut = fog_mix_lut;
 	const u8 *mix = &color_mix_lut[0][fog_pal_index][0];
 	const s32 stride = sizeof(color_mix_lut[0]);
 	for(s32 i = 0; i < w; ++i){
-		s32 z = zb[i] + bias[(n - i) & (RANDARR_SIZE - 1)] + 32768;
+		s32 z = (zb[i] >> 16) + bias[(n - i) & (RANDARR_SIZE - 1)]
+			+ 32768;
 		if(z < 0) z = 0;
 		if(z > 65535) z = 65535;
 		f32 ffactor = lut[z / FOG_FACTOR_LUT_DOWNSAMPLE];
@@ -211,13 +212,13 @@ static void R_FogMix(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 }
 
 // w pixels of one view row, n is how many of the view's pixels are left
-static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
+static void R_FogRow(u8 *pdest, const s32 *zb, s32 w, s32 n, const f32 *zadj)
 {
 	switch((s32)r_fogstyle.value + (r_fogdepthcorrection.value?10:0)){
 	case 0: // noisy
 		for(s32 i = 0; i < w; ++i){
 			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut(zb[i]+bias)
+			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
 							*r_fogfactor.value;
 			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
 				pdest[i] = fog_pal_index;
@@ -225,7 +226,7 @@ static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 	case 2: // dither + noise
 		for(s32 i = 0; i < w; ++i){
 			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut(zb[i]+bias)
+			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
 							*r_fogfactor.value;
 			ffactor -= bias*0.05;
 			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
@@ -234,7 +235,7 @@ static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 	case 1: // dither
 		for(s32 i = 0; i < w; ++i){
 			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut(zb[i]+bias)
+			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
 							*r_fogfactor.value;
 			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
 		} break;
@@ -244,7 +245,7 @@ static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 	case 10: // depth-corrected, noisy
 		for(s32 i = 0; i < w; ++i){
 			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut(zb[i]+bias)
+			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
 						*r_fogfactor.value*zadj[i];
 			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
 				pdest[i] = fog_pal_index;
@@ -252,7 +253,7 @@ static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 	case 12: // depth-corrected, dither + noise
 		for(s32 i = 0; i < w; ++i){
 			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut(zb[i]+bias)
+			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
 						*r_fogfactor.value*zadj[i];
 			ffactor -= bias*0.05;
 			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
@@ -261,7 +262,7 @@ static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 	case 11: // depth-corrected, dither
 		for(s32 i = 0; i < w; ++i){
 			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut(zb[i]+bias)
+			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
 						*r_fogfactor.value*zadj[i];
 			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
 		} break;
@@ -281,27 +282,27 @@ void R_FogMarkSky(const espan_t *span)
 		if(!fog_skyz) Sys_Error("R_FogMarkSky: out of memory");
 		fog_skyz_size = size;
 	}
-	u32 stamp = (u32)r_framecount << 16;
+	u64 stamp = (u64)r_framecount << 32;
 	for(; span; span = span->pnext){
 		s32 ofs = d_zwidth * span->v + span->u;
 		for(s32 i = 0; i < span->count; i++)
-			fog_skyz[ofs + i] = stamp | (u16)d_pzbuffer[ofs + i];
+			fog_skyz[ofs + i] = stamp | (u32)d_pzbuffer[ofs + i];
 		fog_skyrow[span->v] = (u32)r_framecount;
 	}
 }
 
 // R_FogRow for a row with sky on it, on the runs of pixels between the sky
-static void R_FogRowAroundSky(u8 *pdest, const s16 *zb, s32 w, s32 n,
-		const f32 *zadj, const u32 *sky)
+static void R_FogRowAroundSky(u8 *pdest, const s32 *zb, s32 w, s32 n,
+		const f32 *zadj, const u64 *sky)
 {
-	u32 stamp = (u32)r_framecount << 16;
+	u64 stamp = (u64)r_framecount << 32;
 	for(s32 x = 0; x < w;){
-		if(sky[x] == (stamp | (u16)zb[x])){
+		if(sky[x] == (stamp | (u32)zb[x])){
 			x++;
 			continue;
 		}
 		s32 end = x + 1;
-		while(end < w && sky[end] != (stamp | (u16)zb[end]))
+		while(end < w && sky[end] != (stamp | (u32)zb[end]))
 			end++;
 		R_FogRow(pdest + x, zb + x, end - x, n - x,
 				zadj ? zadj + x : NULL);
@@ -322,7 +323,7 @@ void R_DrawFog()
 	s32 w = scr_vrect.width;
 	s32 ofs = scr_vrect.y * vid.width + scr_vrect.x;
 	u8 *pdest = vid.buffer + ofs; // the screen and z buffer are vid.width
-	const s16 *zb = d_pzbuffer + ofs; // wide, the view can be narrower
+	const s32 *zb = d_pzbuffer + ofs; // wide, the view can be narrower
 	const f32 *zadj = r_fogdepthcorrection.value ? zadjarr : NULL;
 	s32 v = scr_vrect.y;
 	for(s32 n = w * scr_vrect.height; n > 0; n -= w, v++){

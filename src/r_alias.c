@@ -503,20 +503,20 @@ void R_AliasDrawModel(alight_t *plighting)
 // or two outside the projected triangle, so the nearest depth is inflated and
 // the rectangle padded. Both only ever make the test refuse to cull.
 #define ENTOCC_ZMARGIN 1.0625f // nearest 1/z of the bounds, +6.25%
-#define ENTOCC_ZSLACK 2 // plus two z-buffer units
+#define ENTOCC_ZSLACK 2 // plus two units of 1/z * 0x8000
 #define ENTOCC_PAD 2 // pixels
 
 // Is every z-buffer value in this (inclusive) rectangle strictly greater than
-// zbound? The rasterizer draws a pixel when (zi >> 16) >= *pz, so if all
-// stored values are > zbound >= any pixel it could produce, nothing is drawn.
+// zbound? The rasterizer draws a pixel when zi >= *pz, so if all stored
+// values are > zbound >= any pixel it could produce, nothing is drawn.
 static bool R_ZBufferRectBehind(s32 x0, s32 y0, s32 x1, s32 y1, s32 zbound)
 {
 	for(s32 y = y0; y <= y1; y++){
-		const s16 *row = d_pzbuffer + (size_t)y * d_zwidth;
+		const s32 *row = d_pzbuffer + (size_t)y * d_zwidth;
 		for(s32 x = x0; x <= x1;){
 			s32 n = x1 - x + 1;
 			if(n > 64) n = 64;
-			s16 m = row[x];
+			s32 m = row[x];
 			for(s32 i = 1; i < n; i++)
 				m = row[x + i] < m ? row[x + i] : m;
 			if(m <= zbound)
@@ -584,10 +584,11 @@ static bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
 	if(y1 > vy1) y1 = vy1;
 	if(x0 > x1 || y0 > y1)
 		return 0;
-	// the stored value is (s16)(zi * 0x8000), same scale as the rasterizer
-	f32 zbound = (1.0f / zmin) * 32768.0f * ENTOCC_ZMARGIN + ENTOCC_ZSLACK;
-	if(zbound >= 32767.0f)
-		return 0; // too close for the s16 buffer to prove anything
+	// stored as (s32)(zi * 0x8000 * 0x10000), as in the rasterizer
+	f64 zbound = ((1.0 / zmin) * 32768.0 * ENTOCC_ZMARGIN + ENTOCC_ZSLACK)
+		* 0x10000;
+	if(zbound >= 2147483647.0)
+		return 0; // too close for the s32 buffer to prove anything
 	*rx0 = x0; *ry0 = y0; *rx1 = x1; *ry1 = y1;
 	*rzbound = (s32)zbound;
 	return 1;

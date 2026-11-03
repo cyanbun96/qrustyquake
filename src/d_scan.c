@@ -4,7 +4,7 @@
 
 typedef struct {
 	u8 *pdest;
-	s16 *zp;
+	s32 *zp;
 	s32 iz;
 	s32 s, t;
 	s32 sstep, tstep;
@@ -74,7 +74,7 @@ static struct {
 	s32 mode;
 } turblight;
 static s32 *r_turb_turb;
-static s16 *pz; // Manoel Kasimier - translucent water
+static s32 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
 static u8 cutoutbuf[MAXHEIGHT*MAXWIDTH];
 static f32 dist_lut[DIST_LUT_SIZE];
@@ -291,7 +291,7 @@ Q_SIL void D_SpanWalkEndChunk(spanwalk_t *w)
 Q_SIL void D_SpanDepthSetup()
 { izistep = (s32)(d_zistepu * 0x8000 * 0x10000); }
 
-Q_SIL s16 *D_SpanDepthPtr(const espan_t *pspan)
+Q_SIL s32 *D_SpanDepthPtr(const espan_t *pspan)
 { return d_pzbuffer + (d_zwidth * pspan->v) + pspan->u; }
 
 Q_SIL s32 D_SpanDepthStart(f32 zi)
@@ -301,7 +301,7 @@ Q_SIL void D_SpanDepthBegin(const espan_t *pspan, f32 zi)
 { pz = D_SpanDepthPtr(pspan); izi = D_SpanDepthStart(zi); }
 
 Q_SIL s32 D_SpanDepthPass()
-{ return *pz <= (izi >> 16); }
+{ return *pz <= izi; }
 
 Q_SIL void D_SpanDepthStep()
 { izi += izistep; pz++; }
@@ -341,7 +341,7 @@ Q_SIL u8 D_TurbSample(const u8 *pbase, const s32 *turb, f32 time,
 Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 {
 	u8 *pdest = c->pdest;
-	s16 *zp = c->zp;
+	s32 *zp = c->zp;
 	s32 iz = c->iz;
 	s32 s = c->s;
 	s32 t = c->t;
@@ -371,7 +371,7 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	do{
 		s32 draw = 1;
 		if(trans != TURBTRANS_OPAQUE){
-			draw = *zp <= (iz >> 16);
+			draw = *zp <= iz;
 			if(draw && trans == TURBTRANS_DITHERED)
 				draw = D_Dither(pdest, ditherthresh);
 		}
@@ -715,30 +715,14 @@ void D_DrawZSpans(espan_t *pspan)
 {
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
 	do{
-		s16 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-		s32 count = pspan->count;
+		s32 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+		s32 count = pspan->count; // local: s32 stores may alias it
 		f32 du = (f32)pspan->u; // calculate the initial 1/z
 		f32 dv = (f32)pspan->v;
 		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		if((intptr_t) pdest & 0x02){
-			*pdest++ = (s16)(izi >> 16);
-			izi += izistep;
-			count--;
-		}
-		s32 doublecount = count >> 1;
-		if(doublecount > 0){
-			do{
-				u32 ltemp = izi >> 16;
-				izi += izistep;
-				ltemp |= izi & 0xFFFF0000;
-				izi += izistep;
-				*(s32 *)pdest = ltemp;
-				pdest += 2;
-			}while(--doublecount > 0);
-		}
-		if(count & 1)
-			*pdest = (s16)(izi >> 16);
+		for(s32 i = 0; i < count; i++, izi += izistep)
+			pdest[i] = izi;
 	}while((pspan = pspan->pnext) != NULL);
 }
 
@@ -746,15 +730,14 @@ void D_DrawZSpansTrans(espan_t *pspan)
 { // holes stay open, so every pixel is tested on its own
 	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
 	do{
-		s16 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+		s32 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+		s32 count = pspan->count;
 		f32 du = (f32)pspan->u; // calculate the initial 1/z
 		f32 dv = (f32)pspan->v;
 		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		for(s32 i = 0; i < pspan->count; i++, pdest++, izi += izistep){
-			s16 z = izi >> 16;
-			if(cutoutbuf[pdest-d_pzbuffer] == 1 && *pdest < z)
-				*pdest = z;
-		}
+		for(s32 i = 0; i < count; i++, pdest++, izi += izistep)
+			if(cutoutbuf[pdest-d_pzbuffer] == 1 && *pdest < izi)
+				*pdest = izi;
 	}while((pspan = pspan->pnext) != NULL);
 }

@@ -88,7 +88,7 @@ s32 bbextents, bbextentt;
 u8 *cacheblock;
 s32 cachewidth, cacheheight;
 u8 *d_viewbuffer;
-s16 *d_pzbuffer;
+s32 *d_pzbuffer;
 u32 d_zwidth;
 kbutton_t in_mlook, in_strafe;                                     // cl_input.c
 s32 jaxis_move_x = 0;                                                // in_sdl.c
@@ -138,7 +138,7 @@ f32 d_scalemip[NUM_MIPS - 1];
 s32 d_pix_min, d_pix_max, d_pix_shift;                             // d_modech.c
 s32 d_vrectx, d_vrecty;
 s32 d_scantable[MAXHEIGHT];
-s16 *zspantable[MAXHEIGHT];
+s32 *zspantable[MAXHEIGHT];
 u32 sb_updates; // if >= vid.numpages, no update needed                // sbar.c
 s32 sb_lines; // scan lines to draw
 bool r_cache_thrash; // set if surface cache is thrashing            // d_surf.c
