@@ -363,7 +363,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_lerpmodels);
 	Cvar_RegisterVariable(&r_lerpmove);
 	Cvar_RegisterVariable(&r_lerplightstyles);
-	Cvar_SetCallback(&r_labmixpal, R_BuildColorMixLUT);
+	Cvar_SetCallback(&r_labmixpal, R_LabMixPalChanged);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
 	Cvar_SetCallback(&r_wateralpha, R_SetWateralpha_f);
@@ -391,24 +391,31 @@ void R_Init()
 void Pal_ParseWorldspawn()
 { // called at map load
 	c8 key[128], value[4096];
+	bool found = 0;
 	const c8 *data = COM_Parse(cl.worldmodel->entities);
-	if(!data || com_token[0] != '{') return; // error
+	if(!data || com_token[0] != '{'){ // error
+		ResetWorldPal();
+		return;
+	}
 	while(COM_ParseEntityPair(&data, key, value)){
 		if(!strcmp("palette", key)){
-			c8 pal[MAX_OSPATH];
+			c8 pal[MAX_OSPATH] = "";
 			c8 cmap[MAX_OSPATH];
-			sscanf(value, "%s", pal);
+			sscanf(value, "%259s", pal); // fits any MAX_OSPATH
 			SDL_strlcpy(cmap, pal, MAX_OSPATH);
 			SDL_strlcat(cmap, "_colormap", MAX_OSPATH);
 			Con_DPrintf("Requested palettes %s %s\n", pal, cmap);
-			SetWorldPal(pal, cmap);
+			found = SetWorldPal(pal, cmap);
 		}
 	}
+	if(!found) ResetWorldPal();
 	Fog_SetPalIndex(0);
 }
 
 void R_NewMap()
 {
+	skybox_name[0] = 0; // before a new palette can try to reload it
+	lit_loaded = cl.worldmodel->haslit;
 	Pal_ParseWorldspawn();
 	R_InitSkyBox(); // Manoel Kasimier - skyboxes
 	// clear out efrags in case the level hasn't been reloaded
@@ -420,7 +427,6 @@ void R_NewMap()
 	r_maxsurfsseen = 0;
 	r_dowarpold = 0;
 	r_viewchanged = 0;
-	skybox_name[0] = 0;
 	for(s32 i = 0; i < r_numskies; ++i)
 		r_skies[i].made = 0;
 	Sky_NewMap();
@@ -655,17 +661,23 @@ static void R_SetupAliasTint(alight_t *light, s32 lit)
 		alias_tint[i] = (lightcolor[i] + white) * (3 * 256) / sum;
 }
  
+// r_ambient, which R_LightPoint() applied in WinQuake. Here it leaves the zero
+// test for a second sample working, and R_SetupAliasTint() takes it as white
+static inline s32 R_WithAmbient(s32 light)
+{ return light < r_refdef.ambientlight ? r_refdef.ambientlight : light; }
+
 static void R_SetupAliasEntityLighting(alight_t *lighting)
 {
-	s32 j = R_LightPoint(currententity->origin, 0.f);
-	if(!j)
-		j = R_LightPoint(currententity->origin,
+	s32 lit = R_LightPoint(currententity->origin, 0.f);
+	if(!lit)
+		lit = R_LightPoint(currententity->origin,
 				currententity->model->maxs[2]*0.5f);
+	s32 j = R_WithAmbient(lit);
 	lighting->ambientlight = j;
 	lighting->shadelight = j;
 	lighting->plightvec = aliaslightvec;
 	R_AddDlightsToAliasLight(lighting, currententity->origin);
-	R_SetupAliasTint(lighting, j);
+	R_SetupAliasTint(lighting, lit);
 	R_ClampAliasLighting(lighting);
 }
  
@@ -723,14 +735,15 @@ void R_DrawEntitiesOnList()
  
 static void R_SetupViewModelLighting()
 {
-	s32 j = R_LightPoint(currententity->origin, 0.f);
-	if(j < 24)
-		j = 24; // always give some light on the gun
+	s32 lit = R_LightPoint(currententity->origin, 0.f);
+	if(lit < 24)
+		lit = 24; // always give some light on the gun
+	s32 j = R_WithAmbient(lit);
 	r_viewlighting.ambientlight = j;
 	r_viewlighting.shadelight = j;
 	r_viewlighting.plightvec = aliaslightvec;
 	R_AddDlightsToAliasLight(&r_viewlighting, currententity->origin);
-	R_SetupAliasTint(&r_viewlighting, j);
+	R_SetupAliasTint(&r_viewlighting, lit);
 	R_ClampAliasLighting(&r_viewlighting);
 }
  
@@ -756,19 +769,12 @@ static f64 R_ClipPlaneDist(vec3_t point, s32 i)
 	return d;
 }
  
-static f32 R_BmodelBoundingRadius(model_t *clmodel)
-{
-	f32 dx = clmodel->maxs[0] - clmodel->mins[0];
-	f32 dy = clmodel->maxs[1] - clmodel->mins[1];
-	f32 dz = clmodel->maxs[2] - clmodel->mins[2];
-	return sqrtf(dx*dx + dy*dy + dz*dz) * 0.5f + 8.0f;
-}
- 
 static s32 R_BmodelCheckRotated(model_t *clmodel)
 {
 	s32 clipflags = 0;
-	f32 radius = R_BmodelBoundingRadius(clmodel);
- 
+	// the model turns around its origin, so measure from there, not from
+	// the middle of its box, which can be far away from it
+	f32 radius = clmodel->rmaxs[0];
 	for(s32 i = 0; i < 4; i++){
 		f64 d = R_ClipPlaneDist(currententity->origin, i);
 		if(d <= -radius)
@@ -825,11 +831,14 @@ static s32 R_SetupBmodelAlpha(entity_t *ent)
 }
  
 static void R_BmodelWorldBounds(entity_t *ent, f32 *minmaxs)
-{
+{ // a turned model can be anywhere within its distance from its origin
 	model_t *clmodel = ent->model;
+	bool rotated = ent->angles[0] || ent->angles[1] || ent->angles[2];
+	const f32 *mn = rotated ? clmodel->rmins : clmodel->mins;
+	const f32 *mx = rotated ? clmodel->rmaxs : clmodel->maxs;
 	for(s32 j = 0; j < 3; j++){
-		minmaxs[j] = ent->origin[j] + clmodel->mins[j];
-		minmaxs[3 + j] = ent->origin[j] + clmodel->maxs[j];
+		minmaxs[j] = ent->origin[j] + mn[j];
+		minmaxs[3 + j] = ent->origin[j] + mx[j];
 	}
 }
  
@@ -872,35 +881,6 @@ static void R_DrawBmodelPolygons(model_t *clmodel, f32 *minmaxs, s32 clipflags)
 	currententity->topnode = NULL;
 }
 
-// Can nothing of this entity show up, because opaque world faces nearer than
-// all of it cover everything it could be drawn on?
-static bool R_BmodelOccluded(model_t *clmodel, f32 *minmaxs)
-{
-	vec3_t mn, mx;
-	if(currententity->angles[0] || currententity->angles[1] ||
-			currententity->angles[2]){
-		// it turns around its origin, so anything in the box can end up
-		// anywhere within its distance from the origin
-		f32 r2 = 0;
-		for(s32 k = 0; k < 3; k++){
-			f32 a=fabsf(clmodel->mins[k]),b=fabsf(clmodel->maxs[k]);
-			f32 e = a > b ? a : b;
-			r2 += e * e;
-		}
-		f32 r = sqrtf(r2);
-		for(s32 k = 0; k < 3; k++){
-			mn[k] = currententity->origin[k] - r;
-			mx[k] = currententity->origin[k] + r;
-		}
-	}else{
-		for(s32 k = 0; k < 3; k++){
-			mn[k] = minmaxs[k];
-			mx[k] = minmaxs[3 + k];
-		}
-	}
-	return R_CoarseOcclusionTestBox(mn, mx);
-}
-
 static void R_RestoreWorldView(vec3_t oldorigin)
 {
 	VectorCopy(base_vpn, vpn);
@@ -929,7 +909,9 @@ static void R_DrawBrushEntity(vec3_t oldorigin)
 		return;
 	r_bmodel_occ_faces = r_bmodel_occ_active && !r_alphapass &&
 		cur_ent_alpha >= 1;
-	if(r_bmodel_occ_faces && R_BmodelOccluded(clmodel, minmaxs)){
+	// can nothing of it show up, because opaque world faces nearer than
+	// all of it cover everything it could be drawn on?
+	if(r_bmodel_occ_faces && R_CoarseOcclusionTestBox(minmaxs, minmaxs+3)){
 		r_bmodels_occluded++; // skips everything below
 		r_bmodel_occ_faces = 0;
 		return;
@@ -1010,7 +992,7 @@ void R_RenderView()
 	if(r_speeds.value) d_times[12] = Sys_DoubleTime();
 	if(r_dowarp) D_WarpScreen();
 	if(r_speeds.value) d_times[13] = Sys_DoubleTime();
-	if(fog_density < 1) R_DrawFog();
+	R_DrawFog();
 	if(r_speeds.value) d_times[14] = Sys_DoubleTime();
 	V_SetContentsColor(r_viewleaf->contents);
 	if(r_showtris.value){

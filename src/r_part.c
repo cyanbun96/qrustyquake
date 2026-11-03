@@ -201,12 +201,10 @@ void R_RunParticleEffect(vec3_t org, vec3_t dir, s32 color, s32 count)
 			p->ramp = rand() & 3;
 			if(i & 1){
 				p->type = pt_explode;
-				for(s32 j = 0; j < 3; j++)
-					RandomExplosionParticle(p, org);
+				RandomExplosionParticle(p, org);
 			}else{
 				p->type = pt_explode2;
-				for(s32 j = 0; j < 3; j++)
-					RandomExplosionParticle(p, org);
+				RandomExplosionParticle(p, org);
 			}
 		}else{
 			p->die = cl.time + 0.1 * (rand() % 5);

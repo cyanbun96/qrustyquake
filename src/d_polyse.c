@@ -509,13 +509,10 @@ Q_SIL u8 D_PolysetDitheredTexel(const u8 *ptex, s32 sfrac, s32 tfrac,
 	if(t < 0) t = 0;
 	if(s >= smax) s = smax;
 	if(t >= tmax) t = tmax;
-	u8 texel = skin[(s >> 16) + (t >> 16) * skinw];
-// The single shotgun model would sometimes get bright blue texels, which should
-// be unused as it's the "transparent" color for model skins
-// Same with 0xd3 on the torch model
-	if(texel == 0xd0 || texel == 0xd3)
-		texel = 0;
-	return texel;
+	s32 i = (s >> 16) + (t >> 16) * skinw;
+	// the offset can step off the triangles, onto whatever is around them
+	const u8 *mask = r_affinetridesc.pskinmask;
+	return mask[i >> 3] & (1 << (i & 7)) ? skin[i] : *ptex;
 }
  
 Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
@@ -693,7 +690,7 @@ void D_RasterizeAliasPolySmooth()
 	s32 *prightbottom = pedgetable->prightedgevert1;
 	u32 initialleftheight = pleftbottom[1] - plefttop[1];
 	u32 initialrightheight = prightbottom[1] - prighttop[1];
-	if(initialleftheight>=vid.height || initialrightheight>=vid.height)
+	if(initialleftheight>vid.height || initialrightheight>vid.height)
 		return; // broken alias model
 	// set the s, t, and light gradients, which are consistent across the
 	// triangle because being a triangle, things are affine

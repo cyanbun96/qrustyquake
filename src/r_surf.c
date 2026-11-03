@@ -13,10 +13,13 @@ static s32 r_stepback;
 static s32 r_lightwidth;
 static s32 r_numvblocks;
 static u8 *r_sourcemax;
-#define BLOCKLIGHTS_SIZE (2000 / 16 + 1) // fits surface extents up to 2000
+// fits the biggest surface a cache block can hold, 256 texels at mip 3
+#define BLOCKLIGHTS_SIZE (2048 / 16 + 1)
+#define HALFLIGHTS_SIZE (BLOCKLIGHTS_SIZE * 2 - 1)
 static u32 blocklights[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
 static u32 blocklights_g[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
 static u32 blocklights_b[BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE];
+static u32 halflights[3][HALFLIGHTS_SIZE * HALFLIGHTS_SIZE];
 
 void R_DrawSurfaceBlock();
 void R_DrawSurfaceBlockRGB();
@@ -134,8 +137,8 @@ void R_BuildLightMap()
 			t = 64;
 		blocklights_b[i] = t;
 	}
-	if(!r_rgblighting.value) // mono: average the channels per sample
-		for(s32 i = 0; i < size; i++)
+	if(!lit_loaded || !r_rgblighting.value) // only blocklights gets drawn,
+		for(s32 i = 0; i < size; i++) // so average in coloured dlights
 			blocklights[i] = (blocklights[i] + blocklights_g[i]
 					+ blocklights_b[i]) / 3;
 }
@@ -204,8 +207,30 @@ static void R_DrawSurfaceLight()
 	R_DrawLightChannel(blocklights_b, dest + 2, 4);
 }
 
+// Textures that tile every 8 texels get blocks half the size of a lightmap
+// sample, so they need lights at that spacing: the samples, and what's between
+static void R_HalveLightSteps(u32 **lights, s32 smax, s32 tmax)
+{
+	for(s32 c = 0; c < 3; c++){
+		u32 *out = halflights[c];
+		for(s32 t = 0; t < tmax * 2 - 1; t++){
+			const u32 *a = lights[c] + (t >> 1) * smax;
+			const u32 *b = a + (t & 1) * smax;
+			for(s32 s = 0; s < smax * 2 - 1; s++){
+				s32 s0 = s >> 1, s1 = s0 + (s & 1);
+				*out++ = (a[s0] + a[s1] + b[s0] + b[s1]) >> 2;
+			}
+		}
+		lights[c] = halflights[c];
+	}
+}
+
 s32 R_DrawSurface()
 { // Reworked to support 8-aligned textures by Izhido
+	s32 lwidth = (r_drawsurf.surf->extents[0] >> 4) + 1;
+	s32 lheight = (r_drawsurf.surf->extents[1] >> 4) + 1;
+	if(lwidth * lheight > BLOCKLIGHTS_SIZE * BLOCKLIGHTS_SIZE)
+		return 1; // only other surfaces have their extents limited
 	R_BuildLightMap(); // calculate the lightings
 	if(r_lightonly){
 		R_DrawSurfaceLight();
@@ -219,18 +244,19 @@ s32 R_DrawSurface()
 	// << 16 from a source range of 0 - 255
 	s32 texwidth = mt->width >> r_drawsurf.surfmip;
 	static s32 r_numhblocks;
+	u32 *lights[3] = { blocklights, blocklights_g, blocklights_b };
 	if((mt->width & 15) || (mt->height & 15)){
 		blocksize = 8 >> r_drawsurf.surfmip;
 		blockdivshift = 3 - r_drawsurf.surfmip;
-		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
-		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
+		R_HalveLightSteps(lights, lwidth, lheight);
+		r_lightwidth = lwidth * 2 - 1;
 	}else{
 		blocksize = 16 >> r_drawsurf.surfmip;
 		blockdivshift = 4 - r_drawsurf.surfmip;
-		r_lightwidth = (r_drawsurf.surf->extents[0] >> 4) + 1;
-		r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
-		r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
+		r_lightwidth = lwidth;
 	}
+	r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
+	r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
 	s32 smax = mt->width >> r_drawsurf.surfmip;
 	s32 twidth = texwidth;
 	s32 tmax = mt->height >> r_drawsurf.surfmip;
@@ -249,9 +275,9 @@ s32 R_DrawSurface()
 				+ (tmax << 16)) % tmax) * twidth)];
 	u8 *pcolumndest = r_drawsurf.surfdat;
 	for(s32 u = 0; u < r_numhblocks; u++){
-		r_lightptr = blocklights + u;
-		r_lightptr_g = blocklights_g + u;
-		r_lightptr_b = blocklights_b + u;
+		r_lightptr = lights[0] + u;
+		r_lightptr_g = lights[1] + u;
+		r_lightptr_b = lights[2] + u;
 		prowdestbase = pcolumndest;
 		pbasesource = basetptr + soffset;
 		if(!lit_loaded || !r_rgblighting.value)

@@ -1008,7 +1008,11 @@ static void COM_AddGameDirectory(const c8 *base, const c8 *dir)
 	}
 }
 
-void SetWorldPal(c8 *path, c8 *cmappath)
+// What "worldpal" set, a map's own palette only lasts as long as the map
+static c8 userpalname[MAX_OSPATH];
+static c8 usercmapname[MAX_OSPATH];
+
+bool SetWorldPal(c8 *path, c8 *cmappath)
 {
 	u8 worldpalbuf[768];
 	c8 ppath[MAX_OSPATH] = "gfx/";
@@ -1016,26 +1020,43 @@ void SetWorldPal(c8 *path, c8 *cmappath)
 	SDL_strlcat(ppath, ".lmp", MAX_OSPATH);
 	FILE *f;
 	COM_FOpenFile(ppath, &f, NULL);
-	if(!f){Con_Printf("Couldn't load %s\n", ppath); return;}
-	if(fread(worldpalbuf, 768, 1, f) != 1)
-		{Con_Printf("Failed reading %s\n", ppath); fclose(f); return;}
+	if(!f){Con_Printf("Couldn't load %s\n", ppath); return 0;}
+	if(fread(worldpalbuf, 768, 1, f) != 1){
+		Con_Printf("Failed reading %s\n", ppath);
+		fclose(f);
+		return 0;
+	}
 	fclose(f);
 	u8 worldcmapbuf[256*64];
 	c8 cmpath[MAX_OSPATH] = "gfx/";
 	SDL_strlcat(cmpath, cmappath, MAX_OSPATH);
 	SDL_strlcat(cmpath, ".lmp", MAX_OSPATH);
 	COM_FOpenFile(cmpath, &f, NULL);
-	if(!f){Con_Printf("Couldn't load %s\n", cmpath); return;}
-	if(fread(worldcmapbuf, 256*64, 1, f) != 1)
-		{Con_Printf("Failed reading %s\n", cmpath); fclose(f); return;}
+	if(!f){Con_Printf("Couldn't load %s\n", cmpath); return 0;}
+	if(fread(worldcmapbuf, 256*64, 1, f) != 1){
+		Con_Printf("Failed reading %s\n", cmpath);
+		fclose(f);
+		return 0;
+	}
 	fclose(f);
 	Con_DPrintf("Setting %s %s\n", ppath, cmpath);
 	memcpy(worldpal, worldpalbuf, 768);
 	SDL_strlcpy(worldpalname, path, MAX_OSPATH);
-	refresh_palette++;
 	memcpy(worldcmap, worldcmapbuf, 64*256);
 	SDL_strlcpy(worldcmapname, cmappath, MAX_OSPATH);
-	fog_lut_built = lit_lut_initialized = 0;
+	R_WorldPalChanged();
+	return 1;
+}
+
+void ResetWorldPal()
+{ // for maps that don't ask for a palette of their own
+	if(!strcmp(worldpalname, userpalname) &&
+			!strcmp(worldcmapname, usercmapname))
+		return;
+	if(userpalname[0] && SetWorldPal(userpalname, usercmapname))
+		return;
+	worldpalname[0] = worldcmapname[0] = 0;
+	R_WorldPalChanged();
 }
 
 void SetUiPal(c8 *path)
@@ -1064,7 +1085,10 @@ static void COM_WorldPal_f()
 		    Con_Printf("Current: %s %s\n", worldpalname, worldcmapname);
 		return;
 	}
-	SetWorldPal(Cmd_Argv(1), Cmd_Argv(2));
+	if(!SetWorldPal(Cmd_Argv(1), Cmd_Argv(2)))
+		return;
+	SDL_strlcpy(userpalname, Cmd_Argv(1), MAX_OSPATH);
+	SDL_strlcpy(usercmapname, Cmd_Argv(2), MAX_OSPATH);
 }
 
 static void COM_UiPal_f()

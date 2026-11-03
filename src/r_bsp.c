@@ -281,13 +281,7 @@ static void R_BmodelFaces(model_t *pmodel, s32 clipflags, bmodelface_f face)
 }
 
 void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel)
-{
-	msurface_t *psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
-	texture_t *tex = psurf->texinfo->texture;
-	if((psurf->flags&SURF_DRAWSKY) && (tex->width/tex->height != 2))
-		return; // avoid drawing broken skies
-	R_BmodelFaces(pmodel, r_clipflags, R_ClipBmodelFace);
-}
+{ R_BmodelFaces(pmodel, r_clipflags, R_ClipBmodelFace); }
 
 void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags)
 { R_BmodelFaces(pmodel, clipflags, R_UnclippedBmodelFace); }

@@ -11,6 +11,7 @@ static mtexinfo_t r_skytexinfo[6];
 static mvertex_t *r_skyverts;
 static u8 rgb_lut[RGB_LUT_SIZE];
 static s32 rgb_lut_built = 0;
+static c8 last_skybox_name[1024]; // what r_skypixels holds
 static s32 skybox_planes[12] = {2,-128, 0,-128, 2,128, 1,128, 0,128, 1,-128};
 static vec3_t box_vecs[6][2] = { {{0,-1,0}, {-1,0,0} }, { {0,1,0}, {0,0,-1} },
 				{ {0,-1,0}, {1,0,0} },  { {1,0,0}, {0,0,-1} },
@@ -43,17 +44,31 @@ void Sky_LoadSkyBox(const c8 *name)
 		skybox_name[0] = 0;
 		return;
 	}
-	static c8 last_skybox_name[1024];
+	if(!cl.worldmodel) // R_NewMap would forget it anyway
+		return;
 	// Baker: If name matches, we already have the pixels loaded and we
 	// don't actually need to reload
 	if(strcmp(name, last_skybox_name)){
-		if(cl.worldmodel && !R_LoadSkybox(name)){
+		last_skybox_name[0] = 0; // it replaces them a face at a time
+		if(!R_LoadSkybox(name)){
 			skybox_name[0] = 0;
 			return;
 		}
 	}
 	SDL_strlcpy(skybox_name, name, sizeof(skybox_name));
 	SDL_strlcpy(last_skybox_name, skybox_name, sizeof(last_skybox_name));
+}
+
+void Sky_PaletteChanged()
+{ // skyboxes are palettized as they get loaded
+	rgb_lut_built = 0;
+	last_skybox_name[0] = 0;
+	if(!skybox_name[0])
+		return;
+	c8 name[sizeof(skybox_name)];
+	SDL_strlcpy(name, skybox_name, sizeof(name));
+	skybox_name[0] = 0;
+	Sky_LoadSkyBox(name);
 }
 
 void R_BuildRGBLUT(){
@@ -299,13 +314,14 @@ void R_EmitSkyBox()
 void Sky_NewMap()
 { // read worldspawn(this is so ugly, and shouldn't it be done on the server?)
 	c8 key[128], value[4096];
+	map_skyfog = r_skyfog.value;
 	const c8 *data = COM_Parse(cl.worldmodel->entities);
 	if(!data || com_token[0] != '{') return; // should never happen
 	while(COM_ParseEntityPair(&data, key, value)){
 		if(!strcmp("sky", key))
 			Sky_LoadSkyBox(value);
 		if(!strcmp("skyfog", key))
-			Cvar_SetValue("r_skyfog", atof(value));
+			map_skyfog = atof(value);
 		else if(!strcmp("skyname", key)) // half-life
 			Sky_LoadSkyBox(value);
 		else if(!strcmp("qlsky", key)) // quake lives
@@ -327,11 +343,16 @@ void Sky_SkyCommand_f()
 	}
 }
 
+static void Sky_SetSkyfog_f(cvar_t *var)
+{ map_skyfog = var->value; }
+
 void Sky_Init()
 {
 	Cmd_AddCommand("sky", Sky_SkyCommand_f);
 	Cvar_RegisterVariable(&r_enableskybox);
 	Cvar_RegisterVariable(&r_skyfog);
+	Cvar_SetCallback(&r_skyfog, Sky_SetSkyfog_f);
+	map_skyfog = r_skyfog.value;
 	Cvar_RegisterVariable(&r_skynoise);
 	Cvar_RegisterVariable(&r_skysmooth);
 	skybox_name[0] = 0;

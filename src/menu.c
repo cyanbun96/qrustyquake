@@ -2475,7 +2475,7 @@ static void M_Graphics_Step(s32 dir)
 	switch(graphics_cursor){
 	case 300: M_TOGGLE(r_nofog); break;
 	case 301: M_ADD(r_fognoise, dir*0.1); break;
-	case 302: M_ADD(r_fogfactor, dir*0.1); break;
+	case 302: M_CLAMP(r_fogfactor, dir*0.1, 1); break;
 	case 303: M_ADD(r_fogscale, dir*0.1); break;
 	case 304: M_ADD(r_fogbrightness, dir*0.1); break;
 	case 305: M_CLAMP(r_fogstyle, dir, 3); break;

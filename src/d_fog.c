@@ -2,6 +2,8 @@
 
 #define FOG_FACTOR_LUT_DOWNSAMPLE 4
 #define FOG_FACTOR_LUT_SIZE (65536 / FOG_FACTOR_LUT_DOWNSAMPLE)
+#define FOG_MAX_DENSITY 0.9999
+#define FOG_MAX_MIX 0.99f // stays a valid level when zadj's 1.005 gets on top
 
 static f32 fog_red; // CyanBun96: we store the actual RGB values in these,
 static f32 fog_green; // but they get quantized to a single index in the color
@@ -14,6 +16,12 @@ static f32 old_r_fogscale = -1234;
 static f32 old_fog_density = -1234;
 static f32 old_noisebias = -1234;
 static f32 *zadjarr = 0;
+// Sky gets map_skyfog instead of fog by distance, but it keeps its real z to
+// hide what's behind it. So this remembers the z it wrote: a pixel still shows
+// sky where the z-buffer holds that value. Low 16 bits z, high 16 the frame.
+static u32 *fog_skyz = 0;
+static s32 fog_skyz_size = 0;
+static u32 fog_skyrow[MAXHEIGHT]; // frame this row last got sky on
 
 static u8 Fog_Channel(f32 c) // worldspawn colours can be past 1 and so can
 { return CLAMP(0, c * 255.0f * r_fogbrightness.value, 255); } // the brightness
@@ -31,7 +39,7 @@ void Fog_Update(f32 d, f32 r, f32 g, f32 b){
 		g = r_lockfogg.value;
 		b = r_lockfogb.value;
 	}
-	fog_density = CLAMP(0,d,0.9999);
+	fog_density = CLAMP(0,d,FOG_MAX_DENSITY);
 	fog_red = CLAMP(0,r,1);
 	fog_green = CLAMP(0,g,1);
 	fog_blue = CLAMP(0,b,1);
@@ -88,7 +96,7 @@ void Fog_ParseWorldspawn() // from Quakespasm
 { // called at map load
 	c8 key[128], value[4096];
 	if(r_lockfog.value){
-		fog_density = r_lockfogd.value;
+		fog_density = CLAMP(0, r_lockfogd.value, FOG_MAX_DENSITY);
 		fog_red = r_lockfogr.value;
 		fog_green = r_lockfogg.value;
 		fog_blue = r_lockfogb.value;
@@ -101,6 +109,7 @@ void Fog_ParseWorldspawn() // from Quakespasm
 		if(!strcmp("fog", key))
 			sscanf(value, "%f %f %f %f", &fog_density, &fog_red,
 					&fog_green, &fog_blue);
+	fog_density = CLAMP(0, fog_density, FOG_MAX_DENSITY);
 	Fog_SetPalIndex(0);
 }
 
@@ -165,6 +174,8 @@ void R_InitFogLUT()
 		fog_mix_lut[i] = fog_factor_lut[i] * r_fogfactor.value;
 		if(fog_mix_lut[i] < 1e-6f)
 			fog_mix_lut[i] = 0;
+		if(fog_mix_lut[i] > FOG_MAX_MIX)
+			fog_mix_lut[i] = FOG_MAX_MIX;
 	}
 	old_r_fogfactor = r_fogfactor.value;
 	old_r_fogscale = r_fogscale.value;
@@ -260,6 +271,44 @@ static void R_FogRow(u8 *pdest, const s16 *zb, s32 w, s32 n, const f32 *zadj)
 	}
 }
 
+void R_FogMarkSky(const espan_t *span)
+{ // has to come after the span's z was written
+	if(!fog_density || r_nofog.value) return;
+	s32 size = vid.width * vid.height;
+	if(fog_skyz_size != size){
+		free(fog_skyz);
+		fog_skyz = calloc(size, sizeof(*fog_skyz));
+		if(!fog_skyz) Sys_Error("R_FogMarkSky: out of memory");
+		fog_skyz_size = size;
+	}
+	u32 stamp = (u32)r_framecount << 16;
+	for(; span; span = span->pnext){
+		s32 ofs = d_zwidth * span->v + span->u;
+		for(s32 i = 0; i < span->count; i++)
+			fog_skyz[ofs + i] = stamp | (u16)d_pzbuffer[ofs + i];
+		fog_skyrow[span->v] = (u32)r_framecount;
+	}
+}
+
+// R_FogRow for a row with sky on it, on the runs of pixels between the sky
+static void R_FogRowAroundSky(u8 *pdest, const s16 *zb, s32 w, s32 n,
+		const f32 *zadj, const u32 *sky)
+{
+	u32 stamp = (u32)r_framecount << 16;
+	for(s32 x = 0; x < w;){
+		if(sky[x] == (stamp | (u16)zb[x])){
+			x++;
+			continue;
+		}
+		s32 end = x + 1;
+		while(end < w && sky[end] != (stamp | (u16)zb[end]))
+			end++;
+		R_FogRow(pdest + x, zb + x, end - x, n - x,
+				zadj ? zadj + x : NULL);
+		x = end;
+	}
+}
+
 void R_DrawFog()
 {
 	if(!fog_density || r_nofog.value) return;
@@ -275,8 +324,13 @@ void R_DrawFog()
 	u8 *pdest = vid.buffer + ofs; // the screen and z buffer are vid.width
 	const s16 *zb = d_pzbuffer + ofs; // wide, the view can be narrower
 	const f32 *zadj = r_fogdepthcorrection.value ? zadjarr : NULL;
-	for(s32 n = w * scr_vrect.height; n > 0; n -= w){
-		R_FogRow(pdest, zb, w, n, zadj);
+	s32 v = scr_vrect.y;
+	for(s32 n = w * scr_vrect.height; n > 0; n -= w, v++){
+		if(fog_skyrow[v] == (u32)r_framecount)
+			R_FogRowAroundSky(pdest, zb, w, n, zadj,
+					fog_skyz + (zb - d_pzbuffer));
+		else
+			R_FogRow(pdest, zb, w, n, zadj);
 		pdest += vid.width;
 		zb += vid.width;
 		if(zadj) zadj += w;

@@ -419,6 +419,20 @@ s32 SCR_ModalMessage(c8 *text, s32 adj) // Displays a text string in the center
 		|| (key_lastpress == K_MOUSE1 && ui_mouse.value);
 }
 
+static void SCR_ClearAroundView()
+{ // the view paints all of its own rectangle, if there's a view at all
+	if(con_forcedup){
+		Draw_TileClear(0, 0, vid.width, vid.height);
+		return;
+	}
+	s32 top = scr_vrect.y, bottom = top + scr_vrect.height;
+	s32 left = scr_vrect.x, right = left + scr_vrect.width;
+	Draw_TileClear(0, 0, vid.width, top);
+	Draw_TileClear(0, bottom, vid.width, vid.height - bottom);
+	Draw_TileClear(0, top, left, scr_vrect.height);
+	Draw_TileClear(right, top, vid.width - right, scr_vrect.height);
+}
+
 void SCR_UpdateScreen() // This is called every frame,
 { // and can also be called explicitly to flush text to the screen.
 	static f32 oldscr_viewsize;
@@ -448,9 +462,9 @@ void SCR_UpdateScreen() // This is called every frame,
 		SCR_CalcRefdef();
 	}
 	// do 3D refresh drawing, and then update the screen
-	Draw_TileClear(0, 0, vid.width, vid.height); // clear the entire screen
 	Sbar_Changed();
 	SCR_SetUpToDrawConsole();
+	SCR_ClearAroundView();
 	SCR_EraseCenterString();
 	V_RenderView(); // stay mapped in for linear writes all the time
 	if(scr_drawdialog){

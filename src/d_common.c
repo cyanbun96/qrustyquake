@@ -570,21 +570,24 @@ void Draw_ResetClipping()
 void Draw_InitBrightnessDOSLUT()
 { // Used only for the DOS screen fade effect, thus the range [0x10-0x1F]
 	dos_brightness_lut_init++;
+	u8 *pal = CURWORLDPAL; // it fades the world layer
 	for(s32 i = 0; i < 256; ++i){
-		dos_brightness_lut[i] = ((host_basepal[i*3]+host_basepal[i*3+1]+
-			host_basepal[i*3+2]) / 3) / 16 + 0x10;
+		dos_brightness_lut[i] = ((pal[i*3] + pal[i*3+1] + pal[i*3+2])
+				/ 3) / 16 + 0x10;
 	}
 }
 
 void Draw_InitBrightnessLUT()
 { // Mix 50-50 with black
 	brightness_lut_init++;
-	for(s32 i = 0; i < 256; ++i){
-		brightness_lut[i] = rgbtoi(host_basepal[i*3] / 2,
-					host_basepal[i*3+1] / 2,
-					host_basepal[i*3+2] / 2);
-	}
+	u8 *pal = CURWORLDPAL;
+	for(s32 i = 0; i < 256; ++i)
+		brightness_lut[i] = rgbtoi(pal[i*3] / 2, pal[i*3+1] / 2,
+				pal[i*3+2] / 2);
 }
+
+void Draw_PaletteChanged()
+{ brightness_lut_init = dos_brightness_lut_init = 0; }
 
 void Draw_FadeScreen()
 {

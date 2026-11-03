@@ -101,7 +101,7 @@ static void D_DrawSky(surf_t *s, msurface_t *pface)
 	if(!r_skies[skyi].made && !r_skysmooth.value)
 		R_MakeSky(pface->texinfo->texture);
 	if(fog_density>0){
-		if(r_skyfog.value>=1) D_DrawSkyScansOnlyFog(s->spans);
+		if(map_skyfog>=1) D_DrawSkyScansOnlyFog(s->spans);
 		else D_DrawSkyScansFog(s->spans, pface);
 	}
 	else D_DrawSkyScans(s->spans, pface);
@@ -127,6 +127,7 @@ static void D_DrawSkybox(surf_t *s, msurface_t *pface)
 	d_zistepv = 0; // effectively at infinity distance from the viewpoint
 	d_ziorigin = -0.9;
 	D_DrawZSpans(s->spans);
+	R_FogMarkSky(s->spans);
 }
 
 static void D_DrawBackground(surf_t *s)
@@ -149,6 +150,10 @@ static void D_FitMipLevel(msurface_t *pface)
 
 static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 {
+	f32 scale = s->nearzi * scale_for_mip * pface->texinfo->mipadjust;
+	if(s->flags & SURF_DRAWCUTOUT)
+		scale *= r_cutoutmipscale.value;
+	miplevel = D_MipLevelForScale(scale);
 	D_FitMipLevel(pface);
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if(pcurrentcache == NULL){ s->spans = 0; return; }
@@ -303,22 +308,16 @@ void D_DrawSurfaces()
 		}else if(s->flags & SURF_DRAWSKY){
 			if(!skybox_name[0]) D_DrawSky(s, pface);
 			else D_DrawZSpans(s->spans);
+			R_FogMarkSky(s->spans);
 			s->spans = NULL;
 		}else if(s->flags & SURF_DRAWTURB){
-			f32 opacity = 1;
-			if(s->entity && s->entity->alpha && r_entalpha.value)
-				opacity -= (f32)s->entity->alpha / 255;
-			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
-				opacity -= R_LiquidAlphaForFlags(s->flags);
-			if(opacity != 1 && opacity){
-				r_foundtranswater = 1;
-				continue;
-			}
+			// R_SurfaceInPass kept the translucent ones for later,
+			// everything that made it here is opaque
 			if(!s->entity->model->haslitwater || !r_litwater.value
 				|| !pface->samples) // lit water has samples
-				D_DrawWater(s, pface, opacity);
+				D_DrawWater(s, pface, 0);
 			else
-				D_DrawLitWater(s, pface, opacity);
+				D_DrawLitWater(s, pface, 0);
 			s->spans = NULL;
 		}else if(s->flags & SURF_DRAWCUTOUT){
 			foundcutouts = 1;
@@ -388,9 +387,6 @@ void D_DrawSurfacesAlpha()
 	for(s32 i = 0; i < count; i++){
 		surf_t *s = order[i];
 		msurface_t *pface = s->data;
-		u64 is_ent = (u64)s->entity & 0xffff000ull;
-		if(!(s->flags&SURF_DRAWTURB) && !is_ent) continue;
-		if(pface == 0) continue;
 		d_zistepu = s->d_zistepu;
 		d_zistepv = s->d_zistepv;
 		d_ziorigin = s->d_ziorigin;
@@ -398,7 +394,7 @@ void D_DrawSurfacesAlpha()
 		if(s->insubmodel) D_SwitchSubModelOn(s);
 		if(s->flags & SURF_DRAWTURB){
 			f32 opacity = 1;
-			if(s->entity && s->entity->alpha && r_entalpha.value)
+			if(s->entity->alpha && r_entalpha.value)
 				opacity -= (f32)s->entity->alpha / 255;
 			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
@@ -407,7 +403,7 @@ void D_DrawSurfacesAlpha()
 				D_DrawWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
-		}else if(is_ent && s->entity->alpha && r_entalpha.value == 1)
+		}else if(s->entity->alpha && r_entalpha.value == 1)
 			D_DrawTransSurf(s, pface);
 		if(s->insubmodel) D_SwitchSubModelOff();
 	}

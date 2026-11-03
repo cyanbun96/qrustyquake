@@ -37,7 +37,7 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 	if(blend) R_BuildColorMixLUT(0);
 	if(fog){
 		R_BuildColorMixLUT(0);
-		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*r_skyfog.value,
+		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*map_skyfog,
 			FOG_LUT_LEVELS-1);
 	}
 	do{

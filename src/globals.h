@@ -10,6 +10,8 @@ EX s32 lit_chan[3][256];
 EX u8 *lit_chan_pal; // the palette lit_chan was built from
 EX s32 fog_lut_built;
 void R_BuildColorMixLUT(cvar_t *cvar);
+void R_LabMixPalChanged(cvar_t *cvar);
+void R_WorldPalChanged();
 u32 lfsr_random();
 EX s32 fog_initialized;                                               // d_fog.c
 EX f32 fog_density;
@@ -18,6 +20,7 @@ void Fog_ParseWorldspawn();
 void Fog_SetPalIndex(cvar_t *cvar);
 void Fog_Update(f32 d, f32 r, f32 g, f32 b);
 void R_DrawFog();
+void R_FogMarkSky(const espan_t *span);
 void IN_InitJoystick(cvar_t *cvar);                                  // in_sdl.c
 EX s32 jaxis_move_x;
 EX s32 jaxis_move_y;
@@ -194,6 +197,7 @@ void Draw_Pic_Ex(f32 *pos, f32 *sz, qpic_t *pic, f32 *srcpos, f32 *srcsz,
 		f32 *color, f32 alpha);
 void Draw_ConsoleBackground(s32 lines);
 void Draw_TileClear(s32 x, s32 y, s32 w, s32 h);
+void Draw_PaletteChanged();
 void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c);
 void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha);
 void Draw_SetClipRect(s32 x0, s32 x1, s32 y0, s32 y1);
@@ -304,6 +308,7 @@ EX f32 xscaleinv, yscaleinv;
 EX f32 xscaleshrink, yscaleshrink;
 EX s32 d_lightstylevalue[256];
 EX c8 skybox_name[1024];
+EX f32 map_skyfog; // r_skyfog, or the map's own value until that changes
 EX surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
 void R_MakeSky(texture_t *mt);
 void Sky_LoadSkyBox(const c8 *name);
@@ -748,6 +753,7 @@ void R_ParseWorldspawn();
 void R_InitSkyBox();                                                  // r_sky.c
 void Sky_NewMap();
 void Sky_Init();
+void Sky_PaletteChanged();
 EX s32 r_skyframe;
 EX u8 lit_loaded;                                                     //r_surf.c
 EX u8 worldpal[768];                                                 // common.c
@@ -756,7 +762,8 @@ EX u8 uipal[768];
 EX c8 worldpalname[MAX_OSPATH];
 EX c8 worldcmapname[MAX_OSPATH];
 EX c8 uipalname[MAX_OSPATH];
-EX void SetWorldPal(c8 *path, c8 *cmappath);
+EX bool SetWorldPal(c8 *path, c8 *cmappath);
+EX void ResetWorldPal();
 EX searchpath_t *com_searchpaths;
 EX filelist_item_t *extralevels;
 EX filelist_item_t *extralevels_mod;

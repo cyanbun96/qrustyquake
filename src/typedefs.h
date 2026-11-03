@@ -383,6 +383,7 @@ typedef struct {
 	s32 stverts;
 	s32 skindesc;
 	s32 triangles;
+	s32 skinmask; // offset of a bit per skin texel, see Mod_BuildSkinMask
 	maliasframedesc_t frames[1]; // variable sized
 } aliashdr_t;
 typedef struct { // a classic scrolling sky texture, see R_InitSky
@@ -448,6 +449,7 @@ typedef struct model_s {
 	s32 contentstransparent; //spike -- added this so we can disable glitchy
 				 //wateralpha where its not supported.
 	bool haslitwater;
+	bool haslit; // coloured lightmaps, a .lit file or Quake 64 lighting
 	cache_user_t cache;//extra model data, only access through Mod_Extradata
 } model_t;
 
@@ -515,6 +517,7 @@ typedef struct {
 	s32 numtriangles;
 	s32 drawtype;
 	s32 seamfixupX16;
+	const u8 *pskinmask;
 } affinetridesc_t;
 typedef struct {
 	s32 nump;

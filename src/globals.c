@@ -226,6 +226,7 @@ f32 skytime;
 sky_t *r_skies; // grows as maps bring more sky textures
 s32 r_numskies;
 c8 skybox_name[1024]; // name of current skybox, or "" if no skybox
+f32 map_skyfog;
 drawsurf_t r_drawsurf;                                               // r_surf.c
 u8 lit_loaded = 0;
 u8 worldpal[768]; // custom world palette, set with "worldpal"       // common.c

@@ -787,6 +787,7 @@ static void Mod_LoadLighting(lump_t *l)
 { // johnfitz -- replaced with lit support code via lordhavoc
 	c8 litfilename[MAX_OSPATH];
 	loadmodel->lightdata = NULL;
+	loadmodel->haslit = 0;
 	// LordHavoc: check for a .lit file
 	SDL_strlcpy(litfilename, loadmodel->name, sizeof(litfilename));
 	COM_StripExtension(litfilename, litfilename, sizeof(litfilename));
@@ -806,7 +807,7 @@ static void Mod_LoadLighting(lump_t *l)
 			s32 i = (s32)(((s32 *)data)[1]);
 			if(i == 1){
 				if(8+l->filelen*3 == com_filesize){
-					lit_loaded = 1;
+					loadmodel->haslit = 1;
 					printf("%s loaded\n", litfilename);
 					loadmodel->lightdata = data + 8;
 					return;
@@ -832,7 +833,7 @@ static void Mod_LoadLighting(lump_t *l)
 			*out++ = ((in[0] & 0x07) << 5) + ((in[1] & 0xc0) >> 5);
 			*out++ = (in[1] & 0x3f) << 2;
 		}
-		lit_loaded = 1;
+		loadmodel->haslit = 1;
 		return;
 	}
 	loadmodel->lightdata = (u8 *)Hunk_AllocName( l->filelen*3, litfilename);
@@ -2191,6 +2192,49 @@ void *Mod_LoadAliasSkinGroup(void *pin, s32 *pskinindex, s32 skinsize,
 	return ptemp;
 }
 
+// Sets the bits of the skin texels with their center on a triangle. What's
+// around the triangles can be any color, and dithered sampling steps off them.
+// Coordinates are doubled, which makes the centers odd and the vertices even,
+// so a row of centers always crosses exactly two edges and never a vertex.
+static void Mod_BuildSkinMask(aliashdr_t *pheader, const stvert_t *st,
+		const mtriangle_t *tri)
+{
+	s32 w = pheader->skinwidth, h = pheader->skinheight;
+	u8 *mask = Hunk_AllocName((w * h + 7) / 8, loadname);
+	pheader->skinmask = mask - (u8 *)pheader;
+	for(s32 i = 0; i < pheader->numtris; i++){
+		s32 px[3], py[3];
+		for(s32 j = 0; j < 3; j++){
+			const stvert_t *v = &st[tri[i].vertindex[j]];
+			px[j] = (v->s >> 16) * 2;
+			py[j] = (v->t >> 16) * 2;
+			if(!tri[i].facesfront && (v->onseam & ALIAS_ONSEAM))
+				px[j] += w & ~1; // the seam fixup, doubled
+		}
+		s32 top = q_min(py[0], q_min(py[1], py[2])) / 2;
+		s32 bottom = q_max(py[0], q_max(py[1], py[2])) / 2;
+		for(s32 y = top; y < bottom; y++){
+			s32 cy = y * 2 + 1;
+			f64 left = 0, right = 0;
+			for(s32 a = 0, b = 2, n = 0; a < 3; b = a++){
+				if((py[a] < cy) == (py[b] < cy))
+					continue;
+				f64 x = px[a] + (f64)(px[b] - px[a]) *
+					(cy - py[a]) / (py[b] - py[a]);
+				if(!n++) left = right = x;
+				else if(x < left) left = x;
+				else right = x > right ? x : right;
+			}
+			s32 x1 = floor((right - 1) / 2);
+			if(x1 >= w) x1 = w - 1;
+			for(s32 x = ceil((left - 1) / 2); x <= x1; x++){
+				s32 t = y * w + x;
+				mask[t >> 3] |= 1 << (t & 7);
+			}
+		}
+	}
+}
+
 void Mod_LoadAliasModel(model_t *mod, void *buffer)
 {
 	stvert_t *pstverts, *pinstverts;
@@ -2308,6 +2352,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 			ptri[i].vertindex[j] = v;
 		}
 	}
+	Mod_BuildSkinMask(pheader, pstverts, ptri);
 	posenum = 0; // load the frames
 	pframetype = (daliasframetype_t *)&pintriangles[pmodel->numtris];
 	for(s32 i = 0; i < numframes; i++){

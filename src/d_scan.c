@@ -593,7 +593,7 @@ static void D_SkyFogSetup()
 	static u8 tab[256];
 	static s64 frame = -1;
 	static s32 pal = -1, lut = -1;
-	s32 foglut = CLAMP(0, r_skyfog.value*FOG_LUT_LEVELS, FOG_LUT_LEVELS-1);
+	s32 foglut = CLAMP(0, map_skyfog*FOG_LUT_LEVELS, FOG_LUT_LEVELS-1);
 	d_skyfog = NULL;
 	if(!(fog_density > 0))
 		return;

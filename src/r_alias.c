@@ -354,6 +354,7 @@ void R_AliasSetupSkin()
 	r_affinetridesc.skinwidth = a_skinwidth;
 	r_affinetridesc.seamfixupX16 = (a_skinwidth >> 1) << 16;
 	r_affinetridesc.skinheight = pmdl->skinheight;
+	r_affinetridesc.pskinmask = (u8 *)paliashdr + paliashdr->skinmask;
 }
 
 void R_AliasSetupLighting(alight_t *plighting)

@@ -3,6 +3,7 @@
 typedef struct { f32 l, a, b; } lab_t;
 static f32 gamma_lut[256];
 static lab_t lab_palette[256];
+static s32 color_conv_initialized = 0;
 
 f32 lab_f(f32 t) // cube-root if > epsilon, linear otherwise
 { return(t > 0.008856f) ? cbrtf(t) : ((903.3f * t + 16.0f) / 116.0f); }
@@ -23,7 +24,6 @@ lab_t rgb_lin_to_lab(f32 r, f32 g, f32 b)
 
 void init_color_conv()
 {
-	static s32 color_conv_initialized = 0;
 	if(color_conv_initialized) return;
 	color_conv_initialized = 1;
 	for(s32 i = 0; i < 256; ++i){
@@ -99,6 +99,23 @@ void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 			color_mix_lut[c1][c2][level] = mixed_index;
 	}}}
 	fog_lut_built = 1;
+}
+
+void R_LabMixPalChanged(SDL_UNUSED cvar_t *cvar)
+{ // what got mixed the other way gets mixed again when it's needed
+	fog_lut_built = lit_lut_initialized = 0;
+	fog_initialized = 0; // R_FogMix doesn't check fog_lut_built
+	D_FlushCaches(0); // surfaces get lit through lit_lut
+}
+
+void R_WorldPalChanged()
+{ // what was built from the old colors gets built again when it's needed
+	color_conv_initialized = 0;
+	refresh_palette++;
+	R_LabMixPalChanged(0);
+	Draw_PaletteChanged();
+	Sky_PaletteChanged();
+	Fog_SetPalIndex(0);
 }
 
 void R_BuildLitChan()

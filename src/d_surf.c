@@ -99,7 +99,6 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 		return NULL;
 	}
 	size = (uintptr_t) & ((surfcache_t *) 0)->data[size];
-	uintptr_t heightsize = (size + 3) & ~3;
 	size = (size + 7) & ~7; // the header has pointers in it
 	if(size > sc_size){
 		Con_DPrintf("D_SCAlloc: %i > cache size", size);
@@ -169,9 +168,6 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 	}else
 		sc_rover = new->next;
 	new->width = width;
-	if(width > 0) // DEBUG
-		new->height = (heightsize - sizeof(*new) + sizeof(new->data))
-			/ width;
 	new->owner = NULL; // should be set properly after return
 	if(d_roverwrapped && (wrapped_this_time || sc_rover >=d_initial_rover))
 			r_cache_thrash = 1;
@@ -217,6 +213,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 		cache = D_SCAlloc(r_drawsurf.surfwidth,
 				  r_drawsurf.rowbytes * r_drawsurf.surfheight);
 		if(cache == NULL) return NULL;
+		cache->height = r_drawsurf.surfheight;
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
 	}
@@ -229,6 +226,9 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	cache->lightadj[3] = r_drawsurf.lightadj[3];
 	r_drawsurf.surf = surface; // draw and light the surface texture
 	c_surf++;
-	if(R_DrawSurface()) return NULL;
+	if(R_DrawSurface()){
+		cache->texture = NULL; // nothing valid in it, don't reuse it
+		return NULL;
+	}
 	return surface->cachespots[miplevel];
 }
