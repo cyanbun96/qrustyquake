@@ -288,7 +288,10 @@ void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags)
 
 void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 {
-	if(node->contents == CONTENTS_SOLID||node->visframe != r_visframecount)
+	// Solid leaves other than leaf 0 come from detail and fence brushes
+	// (ericw-tools). They can be the only leaves listing the faces they
+	// sit on, so they still mark them, as QuakeSpasm does.
+	if(node->visframe != r_visframecount)
 		return;
 	if(clipflags){ // cull the clipping planes if not trivial accept
 		for(s32 i = 0; i < 4; i++){
@@ -329,6 +332,8 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				mark++;
 			}while(--c);
 		}
+		if(node->contents == CONTENTS_SOLID)
+			return; // no efrags, and no bmodel is drawn in it
 		if(pleaf->efrags) // deal with model fragments in this leaf
 			R_StoreEfrags(&pleaf->efrags);
 		pleaf->key = r_currentkey;
