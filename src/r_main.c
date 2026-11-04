@@ -683,7 +683,9 @@ static void R_SetupAliasEntityLighting(alight_t *lighting)
  
 static void R_DrawAliasEntity()
 {
-	if(r_lerpmove.value && !(cls.demoplayback && (cl.paused & 2)))
+	// always track the move state, so turning r_lerpmove on doesn't start
+	// a lerp from wherever the entity was when it was turned off
+	if(!(cls.demoplayback && (cl.paused & 2)))
 		R_SetupEntityTransform(currententity); // move lerp
 	R_SetEntityModelOrg(currententity);
 	R_AliasValidateFrame();
