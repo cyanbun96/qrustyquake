@@ -2022,13 +2022,13 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	}
 	daliasframe_t *pdaliasframe = (daliasframe_t *) pin;
 	SDL_strlcpy(name, pdaliasframe->name, 16);
-	if(!recursed){
+	if(!recursed){ // a group keeps its own box, which covers all its poses
 		frame->firstpose = posenum;
 		frame->numposes = 1;
-	}
-	for(s32 i = 0; i < 3; i++){
-		frame->bboxmin.v[i] = pdaliasframe->bboxmin.v[i];
-		frame->bboxmax.v[i] = pdaliasframe->bboxmax.v[i];
+		for(s32 i = 0; i < 3; i++){
+			frame->bboxmin.v[i] = pdaliasframe->bboxmin.v[i];
+			frame->bboxmax.v[i] = pdaliasframe->bboxmax.v[i];
+		}
 	}
 	if(posenum >= MAXALIASFRAMES) Host_Error(
 		"Mod_LoadAliasFrame: model %s has too many poses(max = %d)",
@@ -2039,10 +2039,16 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 	poseverts[posenum] = pinframe;
 	poseofs[posenum] = *pframeindex;
 	posenum++;
+	// R_AliasCheckBBox trivially accepts by the box, so it has to hold
+	// every vertex: jam8's models leave it all zero
+	trivertx_t *mn = &frame->bboxmin, *mx = &frame->bboxmax;
 	for(s32 j = 0; j < numv; j++){
 		pframe[j].lightnormalindex = pinframe[j].lightnormalindex;
-		for(s32 k = 0; k < 3; k++)
-			pframe[j].v[k] = pinframe[j].v[k];
+		for(s32 k = 0; k < 3; k++){
+			u8 v = pframe[j].v[k] = pinframe[j].v[k];
+			if(v < mn->v[k]) mn->v[k] = v;
+			if(v > mx->v[k]) mx->v[k] = v;
+		}
 	}
 	return next;
 }
@@ -2327,7 +2333,8 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pheader->stverts = (u8 *)pstverts - (u8 *)pheader;
 	s32 stclamped = 0;
 	for(s32 i = 0; i < pheader->numverts; i++){
-		pstverts[i].onseam = pinstverts[i].onseam;
+		// some exporters write 1, which would read as ALIAS_LEFT_CLIP
+		pstverts[i].onseam = pinstverts[i].onseam ? ALIAS_ONSEAM : 0;
 		// the rasterizer doesn't wrap, so keep s and t on the skin
 		s32 s = CLAMP(0, (s32)(pinstverts[i].s), pmodel->skinwidth-1);
 		s32 t = CLAMP(0, (s32)(pinstverts[i].t), pmodel->skinheight-1);
