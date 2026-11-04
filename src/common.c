@@ -798,6 +798,18 @@ static s32 COM_FindFile(const c8 *name, s32 *handle, FILE **file, u32 *path_id)
 {
 	c8 netpath[MAX_OSPATH];
 	if(file && handle) Sys_Error("COM_FindFile: both handle and file set");
+	// Windows opens "progs\a.mdl" and "progs/a.mdl " as progs/a.mdl, and
+	// released maps and mods ask for both
+	c8 winpath[MAX_OSPATH];
+	s32 n = strlen(name);
+	if(strchr(name, '\\') || (n && name[n-1] == ' ')){
+		SDL_strlcpy(winpath, name, sizeof(winpath));
+		for(c8 *p = winpath; *p; p++)
+			if(*p == '\\') *p = '/';
+		for(n = strlen(winpath); n && winpath[n-1] == ' '; )
+			winpath[--n] = 0;
+		name = winpath;
+	}
 	s32 i;
 	// search through the path, one element at a time
 	for(searchpath_t *search=com_searchpaths; search; search=search->next){
