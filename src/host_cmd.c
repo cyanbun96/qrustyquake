@@ -441,21 +441,22 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		strcpy(dst, str);
 		sv.lightstyles[i] = dst;
 	}
-	// load the edicts out of the savegame file
+	// load the edicts out of the savegame file. COM_Parse finds where each
+	// block ends, strings are saved raw and can hold braces ("{Tower}")
+	static c8 *text; // the next load frees it after a Host_Error
+	free(text);
+	s64 pos = ftell(f);
+	fseek(f, 0, SEEK_END);
+	s64 len = ftell(f) - pos;
+	fseek(f, pos, SEEK_SET);
+	if(!(text = malloc(len + 1))) Sys_Error("Loadgame: out of memory");
+	text[fread(text, 1, len, f)] = 0;
+	fclose(f);
+	const c8 *data = text;
 	s32 entnum = -1; // -1 is the globals
-	while(!feof(f)){
-		for(i = 0; i < (s32)sizeof(str) - 1; i++){
-			s32 r = fgetc(f);
-			if(r == EOF || !r) break;
-			str[i] = r;
-			if(r == '}'){ i++; break; }
-		}
-		if(i == sizeof(str) - 1) Sys_Error("Loadgame buffer overflow");
-		str[i] = 0;
-		const c8 *start = COM_Parse(str);
-		if(!com_token[0]) break; // end of file
+	while((data = COM_Parse(data)) && com_token[0]){
 		if(strcmp(com_token,"{"))Sys_Error("First token isn't a brace");
-		if(entnum == -1){ ED_ParseGlobals(start);
+		if(entnum == -1){ data = ED_ParseGlobals(data);
 		}else{ // parse an edict
 			edict_t *ent = EDICT_NUM(entnum);
 			if(entnum < qcvm->num_edicts){ ED_ClearEdict(ent); }
@@ -463,12 +464,14 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 				memset(ent, 0, qcvm->edict_size);
 				ent->baseline.scale = ENTSCALE_DEFAULT;
 			}
-			ED_ParseEdict(start, ent);
+			data = ED_ParseEdict(data, ent);
 			if(!ent->free) // link it into the bsp tree
 				SV_LinkEdict(ent, false);
 		}
 		entnum++;
 	}
+	free(text);
+	text = NULL;
 // Free edicts allocated during map loading but no longer used after restoring
 // saved game state. Note: we use ED_ClearEdict instead of ED_Free to avoid
 // placing entities >= num_edicts in the free list This is different from
@@ -477,7 +480,6 @@ if(Cmd_Argc() != 2){ Con_Printf("load <savename> : load a game\n"); return; }
 		ED_ClearEdict(EDICT_NUM(i));
 	qcvm->num_edicts = entnum;
 	qcvm->time = time;
-	fclose(f);
 	for(s32 i = 0; i < NUM_SPAWN_PARMS; i++)
 		svs.clients->spawn_parms[i] = spawn_parms[i];
 	PR_SwitchQCVM(NULL);
