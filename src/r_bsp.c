@@ -399,8 +399,10 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				clipflags &= ~(1 << i);
 		}
 	}
-	// hidden behind the world faces drawn so far
-	if(R_CoarseOcclusionTestNode(node)){
+	// Hidden behind the world faces drawn so far? Not asked of leaves: the
+	// faces they mark are tested one by one anyway, and on big maps the
+	// box tests cost more than the marking they save.
+	if(node->contents >= 0 && R_CoarseOcclusionTestNode(node)){
 		r_nodes_occluded++;
 		return;
 	}
