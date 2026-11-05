@@ -53,7 +53,23 @@ void R_RotateBmodel()
 	R_TransformFrustum();
 }
 
-void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
+static void R_BEdgeBounds(const bedge_t *e, f32 *bounds)
+{ // of the vertices of a list of edges, mins then maxs
+	for(s32 k = 0; k < 3; k++){
+		bounds[k] = FLT_MAX;
+		bounds[3 + k] = -FLT_MAX;
+	}
+	for(; e; e = e->pnext)
+	for(s32 j = 0; j < 2; j++)
+	for(s32 k = 0; k < 3; k++){
+		f32 x = e->v[j]->position[k];
+		if(x < bounds[k]) bounds[k] = x;
+		if(x > bounds[3 + k]) bounds[3 + k] = x;
+	}
+}
+
+static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
+		msurface_t *psurf, const f32 *bounds)
 {
 	bedge_t *psideedges[2], *pnextedge, *ptedge;
 	psideedges[0] = psideedges[1] = NULL;
@@ -66,6 +82,22 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	tplane.normal[0] = DotProduct(entity_rotation[0], splitplane->normal);
 	tplane.normal[1] = DotProduct(entity_rotation[1], splitplane->normal);
 	tplane.normal[2] = DotProduct(entity_rotation[2], splitplane->normal);
+	// Most of the time the plane misses the fragment's bounds, and the
+	// loop below would only put all its edges on one side, in reverse.
+	// The margin is for the rounding in the vertices' own distances.
+	f32 mid = -tplane.dist, half = 0;
+	for(s32 k = 0; k < 3; k++){
+		f32 center = (bounds[k] + bounds[3 + k]) * 0.5f;
+		f32 extent = (bounds[3 + k] - bounds[k]) * 0.5f;
+		mid += tplane.normal[k] * center;
+		half += fabsf(tplane.normal[k]) * extent;
+	}
+	s32 whole = mid - half > 1 ? 0 : mid + half < -1 ? 1 : -1;
+	for(; whole >= 0 && pedges; pedges = pnextedge){
+		pnextedge = pedges->pnext;
+		pedges->pnext = psideedges[whole];
+		psideedges[whole] = pedges;
+	}
 	static mvertex_t *pfrontenter, *pfrontexit;
 	for(; pedges; pedges = pnextedge){ // clip edges to BSP plane
 		pnextedge = pedges->pnext;
@@ -140,6 +172,7 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		ptedge->v[1] = pfrontexit;
 		numbedges += 2;
 	}
+	bool split = makeclippededge; // the recursion reuses the static
 	for(s32 i = 0; i < 2; i++){ // draw or recurse further
 		if(!psideedges[i])
 			continue;
@@ -156,9 +189,14 @@ void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 				r_currentbkey = ((mleaf_t *) pn)->key;
 				R_RenderBmodelFace(psideedges[i], psurf);
 			}
-		}else 
-			R_RecursiveClipBPoly(psideedges[i], pnode->children[i],
-					     psurf);
+		}else if(!split) // the same edges, the same bounds
+			R_RecursiveClipBPoly(psideedges[i], pn, psurf, bounds);
+		else{
+			f32 sidebounds[6];
+			R_BEdgeBounds(psideedges[i], sidebounds);
+			R_RecursiveClipBPoly(psideedges[i], pn, psurf,
+					sidebounds);
+		}
 	}
 }
 
@@ -209,7 +247,9 @@ static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 		pbedge[j].pnext = &pbedge[j + 1];
 	}
 	pbedge[j - 1].pnext = NULL; // mark end of edges
-	R_RecursiveClipBPoly(pbedge, currententity->topnode, psurf);
+	f32 bounds[6];
+	R_BEdgeBounds(pbedge, bounds);
+	R_RecursiveClipBPoly(pbedge, currententity->topnode, psurf, bounds);
 }
 
 static void R_UnclippedBmodelFace(SDL_UNUSED model_t *pmodel,
