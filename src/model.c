@@ -1126,9 +1126,6 @@ Con_DPrintf("Unreasonably big surfaces not supported, drawn as solid black\n");
 			out->flags |= SURF_NOTEXTURE;
 			out->samples = NULL; // too big for blocklights
 		}
-		// the hardcoded texture skip fixes black sky bottom in ad_tears
-		if(!strncmp(out->texinfo->texture->name, "bal_pureblack", 13))
-			out->flags |= SURF_NODRAWFRONT;
 		if(!SDL_strncasecmp(out->texinfo->texture->name,"sky",3))
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
 		else if(out->texinfo->texture->name[0] == '*' ||

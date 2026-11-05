@@ -567,7 +567,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define SURF_DRAWTELE 0x1000
 #define SURF_DRAWWATER 0x2000
 #define SURF_DRAWSKYBOX 0x80000 // Manoel Kasimier - skyboxes
-#define SURF_NODRAWFRONT 0x100000
 #define SURF_WINQUAKE_DRAWTRANSLUCENT \
 	(SURF_DRAWLAVA | SURF_DRAWSLIME | SURF_DRAWWATER | SURF_DRAWTELE)
 #define EF_ROCKET 1 // leave a trail

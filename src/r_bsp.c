@@ -453,9 +453,8 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 				}while(--c);
 			}else if(dot > BACKFACE_EPSILON){
 				do{
-					if((surf->flags & SURF_DRAWCUTOUT) ||
-						(!(surf->flags&(SURF_PLANEBACK|
-						SURF_NODRAWFRONT))&&
+					if((surf->flags & SURF_DRAWCUTOUT) || (!
+						(surf->flags&(SURF_PLANEBACK))&&
 						(surf->visframe==r_framecount)))
 						R_RenderFace(surf, clipflags);
 					surf++;
