@@ -208,6 +208,35 @@ static bool R_BmodelFaceFront(msurface_t *psurf)
 		(!(psurf->flags&SURF_PLANEBACK) && (dot > BACKFACE_EPSILON));
 }
 
+// The world node R_ClipBmodelFace starts the faces of a brush entity from
+static mnode_t *r_bclipnode;
+
+// The deepest node under a world node that a world space box doesn't straddle,
+// with the margin of R_RecursiveClipBPoly's whole fragment test. NULL if that
+// is solid or the world traversal didn't go into it, then none of what is in
+// the box gets drawn.
+static mnode_t *R_BoxWorldNode(mnode_t *node, const f32 *mn, const f32 *mx)
+{
+	while(node->keypass == r_worldpass){
+		if(node->contents < 0)
+			return node->contents != CONTENTS_SOLID ? node : NULL;
+		const mplane_t *p = node->plane;
+		f32 lo = -p->dist, hi = -p->dist;
+		for(s32 k = 0; k < 3; k++){
+			f32 a = p->normal[k] * mn[k], b = p->normal[k] * mx[k];
+			lo += a < b ? a : b;
+			hi += a < b ? b : a;
+		}
+		if(lo > 1)
+			node = node->children[0];
+		else if(hi < -1)
+			node = node->children[1];
+		else
+			return node;
+	}
+	return NULL;
+}
+
 static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 		SDL_UNUSED s32 clipflags)
 {
@@ -247,9 +276,14 @@ static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 		pbedge[j].pnext = &pbedge[j + 1];
 	}
 	pbedge[j - 1].pnext = NULL; // mark end of edges
+	if(r_bclipnode->contents < 0){ // all of it in a leaf that's drawn
+		r_currentbkey = ((mleaf_t *)r_bclipnode)->key;
+		R_RenderBmodelFace(pbedge, psurf);
+		return;
+	}
 	f32 bounds[6];
 	R_BEdgeBounds(pbedge, bounds);
-	R_RecursiveClipBPoly(pbedge, currententity->topnode, psurf, bounds);
+	R_RecursiveClipBPoly(pbedge, r_bclipnode, psurf, bounds);
 }
 
 static void R_UnclippedBmodelFace(SDL_UNUSED model_t *pmodel,
@@ -270,10 +304,12 @@ typedef void (*bmodelface_f)(model_t *pmodel, msurface_t *psurf,
 
 // Goes through the faces on the brush model's own BSP tree, skipping the nodes
 // whose faces are all off screen or, if the entity isn't rotated, hidden
-// behind world faces. The clip planes are in the entity's space, like the
-// facebounds.
+// behind world faces or only in parts of the world that the world traversal
+// didn't go into. The clip planes are in the entity's space, like the
+// facebounds. wnode is a world node that has all of them, for faces that get
+// clipped against the world BSP if the entity isn't rotated, else NULL.
 static void R_BmodelFaceNode(model_t *pmodel, mnode_t *node, s32 clipflags,
-		bool occlusion, bmodelface_f face)
+		bool occlusion, mnode_t *wnode, bmodelface_f face)
 {
 	const f32 *b = node->facebounds;
 	for(s32 i = 0; i < 4; i++){
@@ -286,33 +322,40 @@ static void R_BmodelFaceNode(model_t *pmodel, mnode_t *node, s32 clipflags,
 		if(d <= 0)
 			return; // all on the outside of this plane
 	}
-	if(occlusion){
+	if(occlusion || wnode){
 		vec3_t mn, mx;
 		for(s32 k = 0; k < 3; k++){
 			mn[k] = b[k] + currententity->origin[k];
 			mx[k] = b[3 + k] + currententity->origin[k];
 		}
-		if(R_CoarseOcclusionTestBox(mn, mx))
+		if(occlusion && R_CoarseOcclusionTestBox(mn, mx))
+			return;
+		// most faces of big brush entities get clipped into leaves
+		// that aren't drawn, this finds that before looking at them
+		if(wnode && !(wnode = R_BoxWorldNode(wnode, mn, mx)))
 			return;
 	}
+	r_bclipnode = wnode ? wnode : currententity->topnode;
 	msurface_t *psurf = pmodel->surfaces + node->firstsurface;
 	for(u32 i = 0; i < node->numsurfaces; i++, psurf++)
 		face(pmodel, psurf, clipflags);
 	for(s32 c = 0; c < 2; c++)
 		if(node->children[c]->contents >= 0)
 			R_BmodelFaceNode(pmodel, node->children[c], clipflags,
-					occlusion, face);
+					occlusion, wnode, face);
 }
 
 static void R_BmodelFaces(model_t *pmodel, s32 clipflags, bmodelface_f face)
 {
+	r_bclipnode = currententity->topnode;
 	if(pmodel->facetree){
-		bool occlusion = r_bmodel_occ_faces &&
-			!currententity->angles[0] &&
+		bool fixed = !currententity->angles[0] &&
 			!currententity->angles[1] && !currententity->angles[2];
+		mnode_t *wnode = fixed && face == R_ClipBmodelFace ?
+			r_bclipnode : NULL;
 		R_BmodelFaceNode(pmodel, pmodel->nodes +
 				pmodel->hulls[0].firstclipnode, clipflags,
-				occlusion, face);
+				r_bmodel_occ_faces && fixed, wnode, face);
 		return;
 	}
 	msurface_t *psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
