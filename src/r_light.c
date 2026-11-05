@@ -21,6 +21,28 @@ void R_AnimateLight() // light animations
 	}
 }
 
+static s32 R_LightReachesSurf(dlight_t *light, msurface_t *surf)
+{ // could R_AddDynamicLights brighten any of its lightmap samples? The same
+  // distances, with room for its truncation to s32 and for rounding. A
+  // surface it adds nothing to keeps its cached texels.
+	f32 dist = DotProduct(light->origin, surf->plane->normal)
+		- surf->plane->dist;
+	f32 reach = light->radius - fabs(dist) - light->minlight + 2;
+	if(reach <= 0)
+		return 0;
+	mtexinfo_t *tex = surf->texinfo;
+	vec3_t impact;
+	for(s32 i = 0; i < 3; i++)
+		impact[i] = light->origin[i] - surf->plane->normal[i] * dist;
+	for(s32 i = 0; i < 2; i++){
+		f32 l = DotProduct(impact, tex->vecs[i]) + tex->vecs[i][3]
+			- surf->texturemins[i];
+		if(l <= -reach || l >= surf->extents[i] + reach)
+			return 0; // samples run from 0 to extents
+	}
+	return 1;
+}
+
 void R_MarkLights(dlight_t *light, u64 bit, mnode_t *node)
 {
 	if(node->contents < 0)
@@ -39,6 +61,8 @@ void R_MarkLights(dlight_t *light, u64 bit, mnode_t *node)
 	// mark the polygons
 	msurface_t *surf = cl.worldmodel->surfaces + node->firstsurface;
 	for(u32 i = 0; i < node->numsurfaces; i++, surf++){
+		if(!R_LightReachesSurf(light, surf))
+			continue;
 		if(surf->dlightframe != r_dlightframecount){
 			surf->dlightbits = 0;
 			surf->dlightframe = r_dlightframecount;
