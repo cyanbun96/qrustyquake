@@ -909,8 +909,8 @@ static void R_DrawBrushEntity(vec3_t oldorigin)
 	s32 clipflags = R_BmodelCheckBBox(clmodel, minmaxs);
 	if(clipflags == BMODEL_FULLY_CLIPPED)
 		return;
-	r_bmodel_occ_faces = r_bmodel_occ_active && !r_alphapass &&
-		cur_ent_alpha >= 1;
+	r_bmodel_occ_faces = r_bmodel_occ_active &&
+		(r_alphapass || cur_ent_alpha >= 1);
 	// can nothing of it show up, because opaque world faces nearer than
 	// all of it cover everything it could be drawn on?
 	if(r_bmodel_occ_faces && R_CoarseOcclusionTestBox(minmaxs, minmaxs+3)){

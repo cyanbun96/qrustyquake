@@ -604,13 +604,14 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf)
 // in, and the edge scanner shows whichever surface has the lowest key. Along
 // any line of sight the BSP order is the depth order, so where a world face is
 // nearer than a brush face, its key is lower too and the brush face can't show
-// up there. Only valid in the main pass: the alpha pass draws its surfaces over
-// the finished frame instead.
+// up there. The alpha pass draws its surfaces over the finished frame instead,
+// testing every pixel against the z-buffer, so there it's the depth test that
+// says a face shows up nowhere.
 bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa)
 {
 	r_coarse_poly_surf = NULL;
 	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
-	if(r_alphapass || cur_ent_alpha < 1.0f) return false;
+	if(!r_alphapass && cur_ent_alpha < 1.0f) return false;
 	if(currententity == &cl_entities[0]) return false;
 	s32 count;
 	f32 zi[2];
@@ -710,7 +711,7 @@ static bool R_CoarseOccBoxCovered(const f32 *mn, const f32 *mx, bool depth)
 bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx)
 {
 	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
-	if(r_alphapass || cur_ent_alpha < 1.0f) return false;
+	if(!r_alphapass && cur_ent_alpha < 1.0f) return false;
 	return R_CoarseOccBoxCovered(mn, mx, 1);
 }
 
