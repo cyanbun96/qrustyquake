@@ -483,11 +483,12 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 	f32 nearzi = 0, farzi = FLT_MAX;
 	for(s32 i = 0; i < count; i++){
 		s32 lindex = model->surfedges[fa->firstedge + i];
-		mvertex_t *vert;
 		vec3_t local;
 		vec3_t transformed;
-		if(lindex > 0) vert = &r_pcurrentvertbase[edges[lindex].v[0]];
-		else vert = &r_pcurrentvertbase[edges[-lindex].v[1]];
+		// a select, the direction of an edge is a coin toss
+		bool back = lindex <= 0;
+		mvertex_t *vert = &r_pcurrentvertbase[
+			edges[back ? -lindex : lindex].v[back]];
 		VectorSubtract(vert->position, vieworg, local);
 		TransformVector(local, transformed);
 		// Do not try to handle near-plane-crossing faces here.
@@ -620,6 +621,21 @@ bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa)
 	return R_CoarseOccPolyCovered(r_coarse_poly, count, 1, zi[1]);
 }
 
+// Is the tile under viewport point x, y FULL (and in front of zi, with depth)?
+// Yes for points off screen, those don't decide anything.
+static inline bool R_CoarseOccPointFull(f32 x, f32 y, bool depth, f32 zi)
+{
+	if(!(x >= 0 && x < r_coarse_occ_vw && y >= 0 && y < r_coarse_occ_vh))
+		return true;
+	s32 tx = (s32)x >> 3, ty = (s32)y >> 3;
+	const u64 *row = r_coarse_occlusion_bits +
+		(size_t)ty * r_coarse_occlusion_words;
+	if(!((row[tx >> 6] >> (tx & 63)) & 1))
+		return false;
+	return !depth || R_CoarseOccZiInFront(r_coarse_occlusion_zi +
+			(size_t)ty * r_coarse_occlusion_width, tx, tx, zi);
+}
+
 // Are all the tiles a world space box touches FULL, as seen from the player's
 // point of view? With depth set, they must also be covered by something nearer
 // than all of the box.
@@ -628,9 +644,35 @@ static bool R_CoarseOccBoxCovered(const f32 *mn, const f32 *mx, bool depth)
 	const f32 m = COARSE_OCCLUSION_MARGIN;
 	const f32 invt = 1.0f / (f32)COARSE_OCCLUSION_TILE_SIZE;
 	const s32 tw = r_coarse_occlusion_width, th = r_coarse_occlusion_height;
+	// The center is inside the box, so the tile it's on is touched: a
+	// cheap early out for the common "visible" case, as in PolyCovered.
+	// It only ever says no, so it can round differently from the rest.
+	vec3_t c, t;
+	for(s32 k = 0; k < 3; k++)
+		c[k] = (mn[k] + mx[k]) * 0.5f - r_origin[k];
+	TransformVector(c, t);
+	if(t[2] <= NEAR_CLIP) return false; // reaches the near plane
+	f32 zi = 1.0f / t[2];
+	f32 x = xcenter + xscale * zi * t[0] - (f32)r_refdef.vrect.x;
+	f32 y = ycenter - yscale * zi * t[1] - (f32)r_refdef.vrect.y;
+	// the box's nearest point is at least as near
+	if(!R_CoarseOccPointFull(x, y, depth, zi))
+		return false;
+	// So is the disk across the view through the center, with the radius
+	// of the box's smallest half extent: four more points, no division.
+	// Most boxes get past the center and then fail the full test below.
+	f32 r = mx[0] - mn[0];
+	r = mx[1] - mn[1] < r ? mx[1] - mn[1] : r;
+	r = mx[2] - mn[2] < r ? mx[2] - mn[2] : r;
+	f32 rx = xscale * zi * r * 0.5f, ry = yscale * zi * r * 0.5f;
+	if(!R_CoarseOccPointFull(x - rx, y, depth, zi) ||
+			!R_CoarseOccPointFull(x + rx, y, depth, zi) ||
+			!R_CoarseOccPointFull(x, y - ry, depth, zi) ||
+			!R_CoarseOccPointFull(x, y + ry, depth, zi))
+		return false;
 	// The view space corners are the transformed min corner plus some of
 	// the transformed box edges along each axis
-	vec3_t base, ax[3], t;
+	vec3_t base, ax[3];
 	VectorSubtract(mn, r_origin, t);
 	TransformVector(t, base);
 	f32 minz = base[2];
@@ -642,24 +684,6 @@ static bool R_CoarseOccBoxCovered(const f32 *mn, const f32 *mx, bool depth)
 		if(ax[k][2] < 0) minz += ax[k][2];
 	}
 	if(minz <= NEAR_CLIP) return false; // reaches the near plane
-	// The center is inside the box, so the tile it's on is touched: a
-	// cheap early out for the common "visible" case, as in PolyCovered.
-	for(s32 j = 0; j < 3; j++)
-		t[j] = base[j] + 0.5f * (ax[0][j] + ax[1][j] + ax[2][j]);
-	f32 zi = 1.0f / t[2];
-	f32 x = xcenter + xscale * zi * t[0] - (f32)r_refdef.vrect.x;
-	f32 y = ycenter - yscale * zi * t[1] - (f32)r_refdef.vrect.y;
-	if(x >= 0 && x < r_coarse_occ_vw && y >= 0 && y < r_coarse_occ_vh){
-		s32 tx = (s32)(x * invt), ty = (s32)(y * invt);
-		const u64 *row = r_coarse_occlusion_bits +
-			(size_t)ty * r_coarse_occlusion_words;
-		if(!((row[tx >> 6] >> (tx & 63)) & 1))
-			return false;
-		// the box's nearest point is at least as near
-		if(depth && !R_CoarseOccZiInFront(r_coarse_occlusion_zi
-				+ (size_t)ty * tw, tx, tx, zi))
-			return false;
-	}
 	f32 cx[8], cy[8], cz[8];
 	for(s32 i = 0; i < 8; i++){
 		cx[i] = base[0], cy[i] = base[1], cz[i] = base[2];
