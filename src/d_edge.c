@@ -314,7 +314,7 @@ void D_DrawSurfaces()
 			// R_SurfaceInPass kept the translucent ones for later,
 			// everything that made it here is opaque
 			if(!s->entity->model->haslitwater || !r_litwater.value
-				|| !pface->samples) // lit water has samples
+				|| (pface->flags & SURF_DRAWTILED)) // unlit
 				D_DrawWater(s, pface, 0);
 			else
 				D_DrawLitWater(s, pface, 0);
@@ -399,7 +399,7 @@ void D_DrawSurfacesAlpha()
 			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
 			if(!s->entity->model->haslitwater || !r_litwater.value
-				|| !pface->samples) // lit water has samples
+				|| (pface->flags & SURF_DRAWTILED)) // unlit
 				D_DrawWater(s, pface, opacity);
 			else
 				D_DrawLitWater(s, pface, opacity);
