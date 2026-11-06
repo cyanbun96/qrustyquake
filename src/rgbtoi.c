@@ -106,7 +106,7 @@ static void NN_Build(nngrid_t *g, f32 (*p)[3], const f32 *lo, const f32 *hi)
 	for(s32 c = 0; c < NN_NCELLS; ++c){
 		s32 ci[3] = {c / NN_CELLS / NN_CELLS, c / NN_CELLS % NN_CELLS,
 			c % NN_CELLS};
-		f32 near[256], best = FLT_MAX;
+		f32 dnear[256], best = FLT_MAX;
 		for(s32 i = 0; i < 256; ++i){
 			f32 dn = 0, df = 0;
 			for(s32 a = 0; a < 3; ++a){ // a bit bigger cell
@@ -118,13 +118,13 @@ static void NN_Build(nngrid_t *g, f32 (*p)[3], const f32 *lo, const f32 *hi)
 				dn += in * in;
 				df += out * out;
 			}
-			near[i] = dn;
+			dnear[i] = dn;
 			if(df < best) best = df;
 		}
 		best = best * 1.001f + 0.01f; // rounding can't drop a tie
 		g->first[c] = n;
 		for(s32 i = 0; i < 256; ++i){
-			if(near[i] > best) continue;
+			if(dnear[i] > best) continue;
 			if(n == (u32)g->cap){
 				g->cap = g->cap ? g->cap * 2 : NN_NCELLS * 16;
 				if(!(g->list = realloc(g->list, g->cap)))
