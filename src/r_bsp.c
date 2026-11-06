@@ -238,7 +238,7 @@ static mnode_t *R_BoxWorldNode(mnode_t *node, const f32 *mn, const f32 *mx)
 }
 
 static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
-		SDL_UNUSED s32 clipflags)
+		s32 clipflags)
 {
 	if(!R_BmodelFaceFront(psurf))
 		return;
@@ -248,6 +248,14 @@ static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 	// hidden behind world faces: no need to clip it against the BSP
 	if(r_bmodel_occ_faces && R_CoarseOcclusionTestBmodelFace(psurf)){
 		r_bmodel_faces_occluded++;
+		return;
+	}
+	// Cutouts are drawn as whole spans, z-tested against everything
+	// opaque, so the pieces that clipping would throw away are hidden all
+	// the same, and the pieces don't need the keys of their leaves. The
+	// alpha pass sorts translucent faces on those keys though.
+	if((psurf->flags & SURF_DRAWCUTOUT) && !r_alphapass){
+		R_RenderFace(psurf, clipflags);
 		return;
 	}
 	static mvertex_t r_bmodel_bverts[MAX_BMODEL_VERTS];
