@@ -1,8 +1,8 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static mvertex_t *pbverts;
-static bedge_t *pbedges;
+static mvertex_t pbverts[MAX_BMODEL_VERTS]; // brush faces clipped to the BSP
+static bedge_t pbedges[MAX_BMODEL_EDGES];
 static s32 numbverts, numbedges;
 static f32 entity_rotation[3][3];
 // The world faces the main pass left for the alpha pass, in BSP order
@@ -22,30 +22,20 @@ void R_EntityRotate(vec3_t vec)
 
 void R_RotateBmodel()
 {
-	f32 angle = currententity->angles[YAW];
-	angle = angle * M_PI * 2 / 360;
-	f32 s = sin(angle);
-	f32 c = cos(angle);
-	f32 temp1[3][3], temp2[3][3], temp3[3][3];
-	temp1[0][0] = c; temp1[0][1] = s; temp1[0][2] = 0;
-	temp1[1][0] = -s; temp1[1][1] = c; temp1[1][2] = 0;
-	temp1[2][0] = 0; temp1[2][1] = 0; temp1[2][2] = 1;
-	angle = currententity->angles[PITCH];
-	angle = angle * M_PI * 2 / 360;
-	s = sin(angle);
-	c = cos(angle);
-	temp2[0][0] = c; temp2[0][1] = 0; temp2[0][2] = -s;
-	temp2[1][0] = 0; temp2[1][1] = 1; temp2[1][2] = 0;
-	temp2[2][0] = s; temp2[2][1] = 0; temp2[2][2] = c;
-	R_ConcatRotations(temp2, temp1, temp3);
-	angle = currententity->angles[ROLL];
-	angle = angle * M_PI * 2 / 360;
-	s = sin(angle);
-	c = cos(angle);
-	temp1[0][0] = 1; temp1[0][1] = 0; temp1[0][2] = 0;
-	temp1[1][0] = 0; temp1[1][1] = c; temp1[1][2] = s;
-	temp1[2][0] = 0; temp1[2][1] = -s; temp1[2][2] = c;
-	R_ConcatRotations(temp1, temp3, entity_rotation);
+	f32 s[3], c[3];
+	for(s32 i = 0; i < 3; i++){
+		f32 angle = currententity->angles[i] * M_PI * 2 / 360;
+		s[i] = sin(angle);
+		c[i] = cos(angle);
+	}
+	f32 yaw[3][3] = {{c[YAW], s[YAW], 0}, {-s[YAW], c[YAW], 0}, {0, 0, 1}};
+	f32 pitch[3][3] = {{c[PITCH], 0, -s[PITCH]}, {0, 1, 0},
+		{s[PITCH], 0, c[PITCH]}};
+	f32 roll[3][3] = {{1, 0, 0}, {0, c[ROLL], s[ROLL]},
+		{0, -s[ROLL], c[ROLL]}};
+	f32 temp[3][3];
+	R_ConcatRotations(pitch, yaw, temp);
+	R_ConcatRotations(roll, temp, entity_rotation);
 	R_EntityRotate(modelorg); // rotate modelorg and transformation matrix
 	R_EntityRotate(vpn);
 	R_EntityRotate(vright);
@@ -68,13 +58,21 @@ static void R_BEdgeBounds(const bedge_t *e, f32 *bounds)
 	}
 }
 
+// Puts a new edge from v0 to v1 on a side list
+static void R_NewBEdge(bedge_t **side, mvertex_t *v0, mvertex_t *v1)
+{
+	bedge_t *e = &pbedges[numbedges++];
+	e->pnext = *side;
+	*side = e;
+	e->v[0] = v0;
+	e->v[1] = v1;
+}
+
 static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 		msurface_t *psurf, const f32 *bounds)
 {
-	bedge_t *psideedges[2], *pnextedge, *ptedge;
-	psideedges[0] = psideedges[1] = NULL;
-	static bool makeclippededge;
-	makeclippededge = 0;
+	bedge_t *psideedges[2] = {NULL, NULL}, *pnextedge;
+	bool split = 0; // anything clipped
 	// transform the BSP plane into model space
 	mplane_t *splitplane = pnode->plane;
 	mplane_t tplane;
@@ -118,36 +116,23 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 			// generate the clipped vertex
 			f32 frac = lastdist / (lastdist - dist);
 			mvertex_t *ptvert = &pbverts[numbverts++];
-			ptvert->position[0] = plastvert->position[0] + frac *
-				(pvert->position[0] - plastvert->position[0]);
-			ptvert->position[1] = plastvert->position[1] + frac *
-				(pvert->position[1] - plastvert->position[1]);
-			ptvert->position[2] = plastvert->position[2] + frac *
-				(pvert->position[2] - plastvert->position[2]);
+			for(s32 k = 0; k < 3; k++)
+				ptvert->position[k] = plastvert->position[k] +
+					frac * (pvert->position[k] -
+					plastvert->position[k]);
 			// split into two edges, one on each side, and remember
 			// entering and exiting points
 			if(numbedges >= (MAX_BMODEL_EDGES - 1)){
 				Con_Printf("Out of edges for bmodel\n");
 				return;
 			}
-			ptedge = &pbedges[numbedges];
-			ptedge->pnext = psideedges[lastside];
-			psideedges[lastside] = ptedge;
-			ptedge->v[0] = plastvert;
-			ptedge->v[1] = ptvert;
-			ptedge = &pbedges[numbedges + 1];
-			ptedge->pnext = psideedges[side];
-			psideedges[side] = ptedge;
-			ptedge->v[0] = ptvert;
-			ptedge->v[1] = pvert;
-			numbedges += 2;
-			if(side == 0){ // entering for front, exiting for back
+			R_NewBEdge(&psideedges[lastside], plastvert, ptvert);
+			R_NewBEdge(&psideedges[side], ptvert, pvert);
+			if(side == 0) // entering for front, exiting for back
 				pfrontenter = ptvert;
-				makeclippededge = 1;
-			}else{
+			else
 				pfrontexit = ptvert;
-				makeclippededge = 1;
-			}
+			split = 1;
 		}else{ // add the edge to the appropriate side
 			pedges->pnext = psideedges[side];
 			psideedges[side] = pedges;
@@ -155,24 +140,14 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 	}
 	// if anything was clipped, reconstitute and add the edges along
 	// the clip plane to both sides(but in opposite directions)
-	if(makeclippededge){
+	if(split){
 		if(numbedges >= (MAX_BMODEL_EDGES - 2)){
 			Con_Printf("Out of edges for bmodel\n");
 			return;
 		}
-		ptedge = &pbedges[numbedges];
-		ptedge->pnext = psideedges[0];
-		psideedges[0] = ptedge;
-		ptedge->v[0] = pfrontexit;
-		ptedge->v[1] = pfrontenter;
-		ptedge = &pbedges[numbedges + 1];
-		ptedge->pnext = psideedges[1];
-		psideedges[1] = ptedge;
-		ptedge->v[0] = pfrontenter;
-		ptedge->v[1] = pfrontexit;
-		numbedges += 2;
+		R_NewBEdge(&psideedges[0], pfrontexit, pfrontenter);
+		R_NewBEdge(&psideedges[1], pfrontenter, pfrontexit);
 	}
-	bool split = makeclippededge; // the recursion reuses the static
 	for(s32 i = 0; i < 2; i++){ // draw or recurse further
 		if(!psideedges[i])
 			continue;
@@ -258,32 +233,20 @@ static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 		R_RenderFace(psurf, clipflags);
 		return;
 	}
-	static mvertex_t r_bmodel_bverts[MAX_BMODEL_VERTS];
-	pbverts = r_bmodel_bverts;
-	static bedge_t r_bmodel_bedges[MAX_BMODEL_EDGES];
-	pbedges = r_bmodel_bedges;
-	numbverts = numbedges = 0;
 	if(psurf->numedges <= 0)
 		Sys_Error("no edges in bmodel");
-	bedge_t *pbedge = &pbedges[numbedges];
-	numbedges += psurf->numedges;
-	medge_t *pedges = pmodel->edges;
-	s32 j = 0;
-	for(; j < psurf->numedges; j++){
+	numbverts = 0;
+	numbedges = psurf->numedges;
+	bedge_t *pbedge = pbedges;
+	for(s32 j = 0; j < psurf->numedges; j++){
 		s32 lindex = pmodel->surfedges[psurf->firstedge + j];
-		if(lindex > 0){
-			medge_t *pedge = &pedges[lindex];
-			pbedge[j].v[0]=&r_pcurrentvertbase[pedge->v[0]];
-			pbedge[j].v[1]=&r_pcurrentvertbase[pedge->v[1]];
-		}else{
-			lindex = -lindex;
-			medge_t *pedge = &pedges[lindex];
-			pbedge[j].v[0]=&r_pcurrentvertbase[pedge->v[1]];
-			pbedge[j].v[1]=&r_pcurrentvertbase[pedge->v[0]];
-		}
+		bool rev = lindex <= 0;
+		medge_t *pedge = &pmodel->edges[rev ? -lindex : lindex];
+		pbedge[j].v[0] = &r_pcurrentvertbase[pedge->v[rev]];
+		pbedge[j].v[1] = &r_pcurrentvertbase[pedge->v[!rev]];
 		pbedge[j].pnext = &pbedge[j + 1];
 	}
-	pbedge[j - 1].pnext = NULL; // mark end of edges
+	pbedge[numbedges - 1].pnext = NULL; // mark end of edges
 	surf_t *firstsurf = surface_p;
 	if(r_bclipnode->contents < 0){ // all of it in a leaf that's drawn
 		r_currentbkey = ((mleaf_t *)r_bclipnode)->key;
@@ -458,28 +421,23 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 		s32 side = dot >= 0 ? 0 : 1;
 		// recurse down the children, front side first
 		R_RecursiveWorldNode(node->children[side], clipflags);
-		s32 c = node->numsurfaces; // draw stuff
+		// draw the faces that face us, and the cutouts, which can be
+		// seen through from either side
+		s32 c = node->numsurfaces;
 		if(c){
-			msurface_t *surf = cl.worldmodel->surfaces 
+			msurface_t *surf = cl.worldmodel->surfaces
 						+ node->firstsurface;
-			if(dot < -BACKFACE_EPSILON){
+			if(dot < -BACKFACE_EPSILON || dot > BACKFACE_EPSILON){
+				s32 back = dot < 0 ? SURF_PLANEBACK : 0;
 				do{
 					if((surf->flags & SURF_DRAWCUTOUT) ||
-						((surf->flags&SURF_PLANEBACK) &&
-						(surf->visframe==r_framecount)))
-						R_RenderFace(surf, clipflags);
-					surf++;
-				}while(--c);
-			}else if(dot > BACKFACE_EPSILON){
-				do{
-					if((surf->flags & SURF_DRAWCUTOUT) || (!
-						(surf->flags&(SURF_PLANEBACK))&&
-						(surf->visframe==r_framecount)))
+						((surf->flags & SURF_PLANEBACK)
+						== back &&
+						surf->visframe == r_framecount))
 						R_RenderFace(surf, clipflags);
 					surf++;
 				}while(--c);
 			}
-		// all surfaces on the same node share the same sequence number
 			r_currentkey++;
 		}
 		// recurse down the back side

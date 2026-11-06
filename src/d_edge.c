@@ -4,7 +4,7 @@
 static vec3_t transformed_modelorg;
 static vec3_t world_transformed_modelorg;
 
-s32 D_MipLevelForScale(f32 scale)
+static s32 D_MipLevelForScale(f32 scale)
 {
 	s32 lmiplevel;
 	scale *= r_mipscale.value;
@@ -16,18 +16,12 @@ s32 D_MipLevelForScale(f32 scale)
 	return lmiplevel;
 }
 
-void D_DrawSolidSurface(surf_t *surf, s32 color)
+static void D_DrawSolidSurface(surf_t *surf, s32 color)
 {
 	r_drawnpolycount++;
-	s32 pix = (color << 24) | (color << 16) | (color << 8) | color;
-	for(espan_t *span = surf->spans; span; span = span->pnext){
-		u8*pdest = d_viewbuffer + screenwidth * span->v;
-		s32 u = span->u;
-		s32 u2 = span->u + span->count - 1;
-		pdest[u] = pix;
-		for(u++; u <= u2; u++)
-			pdest[u] = pix;
-	}
+	for(espan_t *span = surf->spans; span; span = span->pnext)
+		memset(d_viewbuffer + screenwidth * span->v + span->u, color,
+				span->count);
 }
 
 // 16.16 texture offset as id computed it, in s64 so that huge maps (|s| > 32k)
@@ -41,7 +35,7 @@ static inline s64 D_Adjust(const vec3_t org, const vec3_t axis, f32 ofs,
 	return (s64)(f32)((f64)((s64)d - mins) + ofs * t);
 }
 
-void D_CalcGradients(msurface_t *pface, s32 tiledextents)
+static void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 {
 	f32 mipscale = 1.0 / (f32)(1 << miplevel);
 	vec3_t p_saxis, p_taxis, p_temp;
@@ -94,6 +88,21 @@ void D_DrawSurfacesFlat()
 	}
 }
 
+static void D_SetZGradients(const surf_t *s)
+{
+	d_zistepu = s->d_zistepu;
+	d_zistepv = s->d_zistepv;
+	d_ziorigin = s->d_ziorigin;
+}
+
+static void D_DrawZSpansFar(espan_t *spans)
+{
+	d_zistepu = 0; // set up gradient for background surf that places it
+	d_zistepv = 0; // effectively at infinity distance from the viewpoint
+	d_ziorigin = -0.9;
+	D_DrawZSpans(spans);
+}
+
 static void D_DrawSky(surf_t *s, msurface_t *pface)
 {
 	r_drawnpolycount++;
@@ -108,35 +117,24 @@ static void D_DrawSky(surf_t *s, msurface_t *pface)
 	D_DrawZSpans(s->spans);
 }
 
-static void D_DrawSkybox(surf_t *s, msurface_t *pface)
+static void D_DrawSkybox(surf_t *s)
 { // Manoel Kasimier
 	r_drawnpolycount++;
-	cacheblock = (u8*)(r_skypixels[pface->texinfo->texture->offsets[0]]);
-	cachewidth = pface->texinfo->texture->width;
-	cacheheight = pface->texinfo->texture->height;
-	d_zistepu = s->d_zistepu;
-	d_zistepv = s->d_zistepv;
-	d_ziorigin = s->d_ziorigin;
+	msurface_t *pface = s->data;
+	texture_t *tex = pface->texinfo->texture;
+	cacheblock = (u8*)(r_skypixels[tex->offsets[0]]);
+	cachewidth = tex->width;
+	cacheheight = tex->height;
+	miplevel = 0;
+	D_SetZGradients(s);
 	D_CalcGradients(pface, 0);
 	if(fog_density > 0 && !fog_lut_built) R_BuildColorMixLUT(0);
-	if(r_dithertex.value && !miplevel)
+	if(r_dithertex.value)
 		D_DrawSpansDithered(s->spans, SPAN_SKYBOX, 0);
 	else
 		D_DrawSpans(s->spans, SPAN_SKYBOX, 0);
-	d_zistepu = 0; // set up gradient for background surf that places it
-	d_zistepv = 0; // effectively at infinity distance from the viewpoint
-	d_ziorigin = -0.9;
-	D_DrawZSpans(s->spans);
+	D_DrawZSpansFar(s->spans);
 	R_FogMarkSky(s->spans);
-}
-
-static void D_DrawBackground(surf_t *s)
-{
-	d_zistepu = 0; // set up gradient for background surf that places it
-	d_zistepv = 0; // effectively at infinity distance from the viewpoint
-	d_ziorigin = -0.9;
-	D_DrawSolidSurface(s, (s32)r_clearcolor.value & 0xFF);
-	D_DrawZSpans(s->spans);
 }
 
 // Faces too big for a surface cache block at the requested mip level
@@ -148,12 +146,20 @@ static void D_FitMipLevel(msurface_t *pface)
 		miplevel++;
 }
 
-static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
-{
+static s32 D_SurfMipLevel(const surf_t *s, msurface_t *pface)
+{ // for the nearest point of the surface
 	f32 scale = s->nearzi * scale_for_mip * pface->texinfo->mipadjust;
 	if(s->flags & SURF_DRAWCUTOUT)
 		scale *= r_cutoutmipscale.value;
-	miplevel = D_MipLevelForScale(scale);
+	return D_MipLevelForScale(scale);
+}
+
+// Opaque, cutout and translucent faces, from the surface cache. Inlined so
+// that every caller gets the span drawing for its own type.
+Q_SIL void D_DrawCachedSurf(surf_t *s, msurface_t *pface, s32 type,
+		f32 opacity)
+{
+	miplevel = D_SurfMipLevel(s, pface);
 	D_FitMipLevel(pface);
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
 	if(pcurrentcache == NULL){ s->spans = 0; return; }
@@ -162,11 +168,14 @@ static void D_DrawTransSurf(surf_t *s, msurface_t *pface)
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
-	f32 opacity = 1 - (f32)s->entity->alpha / 255;
 	if(r_dithertex.value && !miplevel)
-		D_DrawSpansDithered(s->spans, SPAN_TRANS, opacity);
+		D_DrawSpansDithered(s->spans, type, opacity);
 	else
-		D_DrawSpans(s->spans, SPAN_TRANS, opacity);
+		D_DrawSpans(s->spans, type, opacity);
+	if(type == SPAN_NORMAL)
+		D_DrawZSpans(s->spans);
+	else if(type == SPAN_CUTOUT)
+		D_DrawZSpansTrans(s->spans);
 }
 
 static void D_DrawWater(surf_t *s, msurface_t *pface, f32 opacity)
@@ -190,10 +199,16 @@ static void D_FitLitWaterMip(msurface_t *pface)
 		miplevel++;
 }
 
-static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
-{ // the cache holds only light rows, Turbulent applies them per pixel
-	miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
-			* pface->texinfo->mipadjust);
+static void D_DrawTurb(surf_t *s, msurface_t *pface, f32 opacity)
+{
+	miplevel = 0;
+	if(!s->entity->model->haslitwater || !r_litwater.value
+			|| (pface->flags & SURF_DRAWTILED)){ // unlit
+		D_DrawWater(s, pface, opacity);
+		return;
+	}
+	// the cache holds only light rows, Turbulent applies them per pixel
+	miplevel = D_SurfMipLevel(s, pface);
 	D_FitLitWaterMip(pface);
 	r_lightonly = 1; // tells D_CacheSurface it's caching lit water
 	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
@@ -203,40 +218,6 @@ static void D_DrawLitWater(surf_t *s, msurface_t *pface, f32 opacity)
 	D_TurbSetLight(pcurrentcache, pface, lightmip); // unlit if NULL
 	D_DrawWater(s, pface, opacity);
 	D_TurbSetLight(NULL, NULL, 0);
-}
-
-static void D_DrawCutoutSurf(surf_t *s, msurface_t *pface)
-{
-	D_FitMipLevel(pface);
-	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if(pcurrentcache == NULL){ s->spans = 0; return; }
-	r_drawnpolycount++;
-	cacheblock = (u8*) pcurrentcache->data;
-	cachewidth = pcurrentcache->width;
-	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface, 0);
-	if(r_dithertex.value && !miplevel)
-		D_DrawSpansDithered(s->spans, SPAN_CUTOUT, 0);
-	else
-		D_DrawSpans(s->spans, SPAN_CUTOUT, 0);
-	D_DrawZSpansTrans(s->spans);
-}
-
-static void D_DrawNormalSurf(surf_t *s, msurface_t *pface)
-{
-	D_FitMipLevel(pface);
-	surfcache_t *pcurrentcache = D_CacheSurface(pface, miplevel);
-	if(pcurrentcache == NULL){ s->spans = 0; return; }
-	r_drawnpolycount++;
-	cacheblock = (u8*) pcurrentcache->data;
-	cachewidth = pcurrentcache->width;
-	cacheheight = pcurrentcache->height;
-	D_CalcGradients(pface, 0);
-	if(r_dithertex.value && !miplevel)
-		D_DrawSpansDithered(s->spans, SPAN_NORMAL, 0);
-	else
-		D_DrawSpans(s->spans, SPAN_NORMAL, 0);
-	D_DrawZSpans(s->spans);
 }
 
 static void D_SwitchSubModelOn(surf_t *s)
@@ -259,96 +240,101 @@ static void D_SwitchSubModelOff()
 	R_TransformFrustum();
 }
 
-void D_DrawSurfaces()
+// Brush entity faces are drawn in the space of their entity. Those of one
+// entity come one after another, so it only switches when the entity changes.
+// NULL goes back to the world.
+static void D_SwitchEntity(surf_t *s)
+{
+	entity_t *e = s && s->insubmodel ? s->entity : &cl_entities[0];
+	if(e == currententity)
+		return;
+	if(currententity != &cl_entities[0])
+		D_SwitchSubModelOff();
+	if(e != &cl_entities[0])
+		D_SwitchSubModelOn(s);
+}
+
+static void D_BeginSurfaces()
 {
 	currententity = &cl_entities[0];
 	TransformVector(modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
-	s32 foundcutouts = 0;
+}
+
+static bool D_BrokenSurf(surf_t *s, msurface_t *pface)
+{
+	if(pface && pface->extents[0] && pface->extents[1])
+		return 0;
+	if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
+			pface->extents[0], pface->extents[1]);
+	else Con_DPrintf("Broken surface\n");
+	s->spans = NULL;
+	return 1;
+}
+
+// Cutouts are drawn over all the other surfaces, they're z-tested. Faces too
+// big to draw are drawn black with the rest.
+static bool D_CutoutPass(const surf_t *s)
+{ return (s->flags & (SURF_DRAWCUTOUT | SURF_NOTEXTURE)) == SURF_DRAWCUTOUT; }
+
+void D_DrawSurfaces()
+{
+	D_BeginSurfaces();
 	if(skybox_name[0] && r_skyframe == r_framecount){
 		for(surf_t *s = skybox_surf_p; s < surface_p; s++){
-			if(!s->spans) continue;
-			if(s->flags & SURF_DRAWSKYBOX){
-				miplevel = 0;
-				msurface_t *pface = s->data;
-				d_zistepu = s->d_zistepu;
-				d_zistepv = s->d_zistepv;
-				d_ziorigin = s->d_ziorigin;
-				D_DrawSkybox(s, pface);
+			if(s->spans && (s->flags & SURF_DRAWSKYBOX)){
+				D_DrawSkybox(s);
 				s->spans = NULL;
 			}
 		}
 	}
+	bool foundcutouts = 0;
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
 		if(!s->spans) continue;
 		msurface_t *pface = s->data;
-		miplevel = 0;
 		if(s->flags & SURF_DRAWBACKGROUND){
 			if(skybox_name[0]) continue;
-			D_DrawBackground(s);
+			D_DrawSolidSurface(s, (s32)r_clearcolor.value & 0xFF);
+			D_DrawZSpansFar(s->spans);
 			s->spans = NULL;
 			continue;
 		}
-		if(!pface || !pface->extents[0] || !pface->extents[1]){
-			if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
-					pface->extents[0], pface->extents[1]);
-			else Con_DPrintf("Broken surface\n");
-			s->spans = NULL;
+		if(D_CutoutPass(s)){
+			foundcutouts = 1;
 			continue;
 		}
-		d_zistepu = s->d_zistepu;
-		d_zistepv = s->d_zistepv;
-		d_ziorigin = s->d_ziorigin;
-		if(s->insubmodel) D_SwitchSubModelOn(s);
+		if(D_BrokenSurf(s, pface))
+			continue;
+		D_SetZGradients(s);
+		D_SwitchEntity(s);
+		miplevel = 0;
 		if(s->flags & SURF_NOTEXTURE){
-			Con_DPrintf("D_DrawSurfaces: drawing SURF_NOTEXTURE\n");
+			Con_DPrintf("D_DrawSurfaces: drawing "
+					"SURF_NOTEXTURE\n");
 			D_DrawSolidSurface(s, 0);
 			D_DrawZSpans(s->spans);
-			s->spans = NULL;
 		}else if(s->flags & SURF_DRAWSKY){
 			if(!skybox_name[0]) D_DrawSky(s, pface);
 			else D_DrawZSpans(s->spans);
 			R_FogMarkSky(s->spans);
-			s->spans = NULL;
 		}else if(s->flags & SURF_DRAWTURB){
 			// R_SurfaceInPass kept the translucent ones for later,
 			// everything that made it here is opaque
-			if(!s->entity->model->haslitwater || !r_litwater.value
-				|| (pface->flags & SURF_DRAWTILED)) // unlit
-				D_DrawWater(s, pface, 0);
-			else
-				D_DrawLitWater(s, pface, 0);
-			s->spans = NULL;
-		}else if(s->flags & SURF_DRAWCUTOUT){
-			foundcutouts = 1;
-		}else{
-			miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
-					* pface->texinfo->mipadjust);
-			D_DrawNormalSurf(s, pface);
-			s->spans = NULL;
-		}
-		if(s->insubmodel) D_SwitchSubModelOff();
+			D_DrawTurb(s, pface, 0);
+		}else
+			D_DrawCachedSurf(s, pface, SPAN_NORMAL, 0);
+		s->spans = NULL;
 	}
-	if(!foundcutouts) return;
-	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
-		if(!s->spans) continue;
+	for(surf_t *s = &surfaces[1]; foundcutouts && s < surface_p; s++){
+		if(!s->spans || !D_CutoutPass(s)) continue;
 		msurface_t *pface = s->data;
-		if(!pface || !pface->extents[0] || !pface->extents[1]){
-			if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
-					pface->extents[0], pface->extents[1]);
-			else Con_DPrintf("Broken surface\n");
-			s->spans = NULL;
+		if(D_BrokenSurf(s, pface))
 			continue;
-		}
-		d_zistepu = s->d_zistepu;
-		d_zistepv = s->d_zistepv;
-		d_ziorigin = s->d_ziorigin;
-		miplevel = D_MipLevelForScale(s->nearzi * scale_for_mip
-			* pface->texinfo->mipadjust * r_cutoutmipscale.value);
-		if(s->insubmodel) D_SwitchSubModelOn(s);
-		D_DrawCutoutSurf(s, pface);
-		if(s->insubmodel) D_SwitchSubModelOff();
+		D_SetZGradients(s);
+		D_SwitchEntity(s);
+		D_DrawCachedSurf(s, pface, SPAN_CUTOUT, 0);
 	}
+	D_SwitchEntity(NULL);
 }
 
 // Translucent surfaces get all of their pixels, so they have to be blended
@@ -367,9 +353,7 @@ static s32 D_AlphaSurfCmp(const void *pa, const void *pb)
 
 void D_DrawSurfacesAlpha()
 {
-	currententity = &cl_entities[0];
-	TransformVector(modelorg, transformed_modelorg);
-	VectorCopy(transformed_modelorg, world_transformed_modelorg);
+	D_BeginSurfaces();
 	static surf_t **order;
 	static s32 order_cap;
 	if(order_cap < r_lsurfs_size){
@@ -387,24 +371,18 @@ void D_DrawSurfacesAlpha()
 	for(s32 i = 0; i < count; i++){
 		surf_t *s = order[i];
 		msurface_t *pface = s->data;
-		d_zistepu = s->d_zistepu;
-		d_zistepv = s->d_zistepv;
-		d_ziorigin = s->d_ziorigin;
-		miplevel = 0;
-		if(s->insubmodel) D_SwitchSubModelOn(s);
+		D_SetZGradients(s);
+		D_SwitchEntity(s);
 		if(s->flags & SURF_DRAWTURB){
 			f32 opacity = 1;
 			if(s->entity->alpha && r_entalpha.value)
 				opacity -= (f32)s->entity->alpha / 255;
 			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
-			if(!s->entity->model->haslitwater || !r_litwater.value
-				|| (pface->flags & SURF_DRAWTILED)) // unlit
-				D_DrawWater(s, pface, opacity);
-			else
-				D_DrawLitWater(s, pface, opacity);
+			D_DrawTurb(s, pface, opacity);
 		}else if(s->entity->alpha && r_entalpha.value == 1)
-			D_DrawTransSurf(s, pface);
-		if(s->insubmodel) D_SwitchSubModelOff();
+			D_DrawCachedSurf(s, pface, SPAN_TRANS,
+					1 - (f32)s->entity->alpha / 255);
 	}
+	D_SwitchEntity(NULL);
 }

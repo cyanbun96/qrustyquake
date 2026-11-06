@@ -26,9 +26,11 @@ static s32 r_coarse_occlusion_words; // u64 words per tile row
 static f32 *r_coarse_occ_scratch; // 4 arrays of (height + 2) floats
 static f32 r_coarse_occ_vw, r_coarse_occ_vh; // viewport size in pixels
 // Polygon built by the occlusion test, reused when the face is added as an
-// occluder right afterwards.
+// occluder right afterwards. The clipping can write one vertex past the limit
+// before it gives up.
+#define COARSE_POLY_SIZE (COARSE_OCCLUSION_MAX_VERTS + 1)
 static msurface_t *r_coarse_poly_surf;
-static coarse_occ_vertex_t r_coarse_poly[COARSE_OCCLUSION_MAX_VERTS];
+static coarse_occ_vertex_t r_coarse_poly[COARSE_POLY_SIZE];
 static s32 r_coarse_poly_count;
 static f32 r_coarse_poly_zi[2];
 
@@ -83,6 +85,26 @@ static void R_CoarseOccClearPixels(u64 *pixels, f32 *zi)
 			pixels[(th-1) * tw + t] |= ~(u64)0 << (yo*8);
 }
 
+// All the arrays in one block, the u64 ones first. NULL bits if it failed.
+static void R_CoarseOccAlloc(s32 width, s32 height, s32 words, s32 vh)
+{
+	static void *block;
+	size_t tiles = (size_t)width * height;
+	free(block);
+	block = malloc(((size_t)words * height + 2 * tiles) * sizeof(u64) +
+		(2 * tiles + 4 * (size_t)(height + 2) + 2 * (size_t)vh) *
+		sizeof(f32));
+	r_coarse_occlusion_bits = block;
+	if(!block)
+		return;
+	r_coarse_occ_pixels = r_coarse_occlusion_bits + (size_t)words * height;
+	r_coarse_occ_bpixels = r_coarse_occ_pixels + tiles;
+	r_coarse_occlusion_zi = (f32 *)(r_coarse_occ_bpixels + tiles);
+	r_coarse_occ_bzi = r_coarse_occlusion_zi + tiles;
+	r_coarse_occ_scratch = r_coarse_occ_bzi + tiles;
+	r_coarse_occ_rows = r_coarse_occ_scratch + 4 * (size_t)(height + 2);
+}
+
 static bool R_OcclusionModeOn(f32 mode)
 { // 1 = on, 2 = on only on maps with a non-vanilla BSP format
 	return mode == 1 || (mode && cl_entities[0].model &&
@@ -109,51 +131,10 @@ void R_CoarseOcclusionBeginFrame()
 	if(width != r_coarse_occlusion_width ||
 			height != r_coarse_occlusion_height ||
 			r_refdef.vrect.height != r_coarse_occ_rows_n ||
-			!r_coarse_occlusion_bits || !r_coarse_occ_scratch ||
-			!r_coarse_occlusion_zi || !r_coarse_occ_pixels ||
-			!r_coarse_occ_rows || !r_coarse_occ_bpixels ||
-			!r_coarse_occ_bzi){
-		free(r_coarse_occlusion_bits);
-		free(r_coarse_occ_scratch);
-		free(r_coarse_occlusion_zi);
-		free(r_coarse_occ_pixels);
-		free(r_coarse_occ_rows);
-		free(r_coarse_occ_bpixels);
-		free(r_coarse_occ_bzi);
-		r_coarse_occlusion_bits = (u64 *)malloc((size_t)words *
-				height * sizeof(u64));
-		r_coarse_occ_scratch = (f32 *)malloc(4 * (size_t)(height + 2) *
-				sizeof(f32));
-		r_coarse_occlusion_zi = (f32 *)malloc((size_t)width *
-				height * sizeof(f32));
-		r_coarse_occ_pixels = (u64 *)malloc((size_t)width *
-				height * sizeof(u64));
-		r_coarse_occ_rows = (f32 *)malloc(2 *
-				(size_t)r_refdef.vrect.height * sizeof(f32));
-		r_coarse_occ_bzi = (f32 *)malloc((size_t)width *
-				height * sizeof(f32));
-		r_coarse_occ_bpixels = (u64 *)malloc((size_t)width *
-				height * sizeof(u64));
-		if(!r_coarse_occlusion_bits || !r_coarse_occ_scratch ||
-			!r_coarse_occlusion_zi || !r_coarse_occ_pixels ||
-			!r_coarse_occ_rows || !r_coarse_occ_bpixels ||
-			!r_coarse_occ_bzi){
-			free(r_coarse_occlusion_bits);
-			free(r_coarse_occ_scratch);
-			free(r_coarse_occlusion_zi);
-			free(r_coarse_occ_pixels);
-			free(r_coarse_occ_rows);
-			free(r_coarse_occ_bpixels);
-			free(r_coarse_occ_bzi);
-			r_coarse_occlusion_bits = NULL;
-			r_coarse_occ_scratch = NULL;
-			r_coarse_occlusion_zi = NULL;
-			r_coarse_occ_pixels = NULL;
-			r_coarse_occ_rows = NULL;
-			r_coarse_occ_bpixels = NULL;
-			r_coarse_occ_bzi = NULL;
+			!r_coarse_occlusion_bits){
+		R_CoarseOccAlloc(width, height, words, r_refdef.vrect.height);
+		if(!r_coarse_occlusion_bits)
 			r_coarse_active = 0;
-		}
 		r_coarse_occlusion_width = width;
 		r_coarse_occlusion_height = height;
 		r_coarse_occlusion_words = words;
@@ -433,71 +414,29 @@ static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
 	}
 }
 
-static s32 R_CoarseOccClipVertical(const coarse_occ_vertex_t *in, s32 count,
-		coarse_occ_vertex_t *out, f32 clipx, bool keepGreater)
-{ // Sutherland-Hodgman polygon clipping against x >= clipx or x <= clipx
+// Sutherland-Hodgman polygon clipping against x (vertical) or y >= clip, or
+// <= clip without keepgreater
+static s32 R_CoarseOccClip(const coarse_occ_vertex_t *in, s32 count,
+		coarse_occ_vertex_t *out, bool vertical, f32 clip,
+		bool keepgreater)
+{
 	s32 outcount = 0;
-	if(count <= 0) return 0;
 	for(s32 i = 0; i < count; i++){
-		s32 next = (i + 1 == count) ? 0 : i + 1;
-		const coarse_occ_vertex_t *a = &in[i];
-		const coarse_occ_vertex_t *b = &in[next];
-		bool ina = keepGreater ? (a->x >= clipx) : (a->x <= clipx);
-		bool inb = keepGreater ? (b->x >= clipx) : (b->x <= clipx);
-		if(ina && inb){
-			out[outcount++] = *b;
-		}else if(ina && !inb){
-			f32 dx = b->x - a->x;
-			f32 t = (fabsf(dx) > COARSE_OCCLUSION_EPSILON)
-				? (clipx - a->x) / dx : 0.0f;
-			out[outcount].x = clipx;
-			out[outcount].y = a->y + (b->y - a->y) * t;
-			outcount++;
-		}else if(!ina && inb){
-			f32 dx = b->x - a->x;
-			f32 t = (fabsf(dx) > COARSE_OCCLUSION_EPSILON)
-				? (clipx - a->x) / dx
-				: 0.0f;
-			out[outcount].x = clipx;
-			out[outcount].y = a->y + (b->y - a->y) * t;
-			outcount++;
-			out[outcount++] = *b;
+		coarse_occ_vertex_t a = in[i];
+		coarse_occ_vertex_t b = in[i + 1 == count ? 0 : i + 1];
+		f32 ca = vertical ? a.x : a.y, cb = vertical ? b.x : b.y;
+		bool ina = keepgreater ? ca >= clip : ca <= clip;
+		bool inb = keepgreater ? cb >= clip : cb <= clip;
+		if(ina != inb){ // the point where it crosses the line
+			f32 d = cb - ca;
+			f32 t = fabsf(d) > COARSE_OCCLUSION_EPSILON ?
+				(clip - ca) / d : 0.0f;
+			coarse_occ_vertex_t *o = &out[outcount++];
+			o->x = vertical ? clip : a.x + (b.x - a.x) * t;
+			o->y = vertical ? a.y + (b.y - a.y) * t : clip;
 		}
-		if(outcount >= COARSE_OCCLUSION_MAX_VERTS)
-			return 0;
-	}
-	return outcount;
-}
-
-static s32 R_CoarseOccClipHorizontal(const coarse_occ_vertex_t *in, s32 count,
-                          coarse_occ_vertex_t *out, f32 clipy, bool keepGreater)
-{ // Sutherland-Hodgman polygon clipping against y >= clipy or y <= clipy.
-	s32 outcount = 0;
-	if(count <= 0) return 0;
-	for(s32 i = 0; i < count; i++){
-		s32 next = (i + 1 == count) ? 0 : i + 1;
-		const coarse_occ_vertex_t *a = &in[i];
-		const coarse_occ_vertex_t *b = &in[next];
-		bool ina = keepGreater ? (a->y >= clipy) : (a->y <= clipy);
-		bool inb = keepGreater ? (b->y >= clipy) : (b->y <= clipy);
-		if(ina && inb){
-			out[outcount++] = *b;
-		}else if(ina && !inb){
-			f32 dy = b->y - a->y;
-			f32 t = (fabsf(dy) > COARSE_OCCLUSION_EPSILON)
-				? (clipy - a->y) / dy : 0.0f;
-			out[outcount].x = a->x + (b->x - a->x) * t;
-			out[outcount].y = clipy;
-			outcount++;
-		}else if(!ina && inb){
-			f32 dy = b->y - a->y;
-			f32 t = (fabsf(dy) > COARSE_OCCLUSION_EPSILON)
-				? (clipy - a->y) / dy : 0.0f;
-			out[outcount].x = a->x + (b->x - a->x) * t;
-			out[outcount].y = clipy;
-			outcount++;
-			out[outcount++] = *b;
-		}
+		if(inb)
+			out[outcount++] = b;
 		if(outcount >= COARSE_OCCLUSION_MAX_VERTS)
 			return 0;
 	}
@@ -515,9 +454,10 @@ static s32 R_CoarseOccClipHorizontal(const coarse_occ_vertex_t *in, s32 count,
 static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		coarse_occ_vertex_t *poly, s32 *outcount, f32 *zi)
 {
-	coarse_occ_vertex_t tmp[COARSE_OCCLUSION_MAX_VERTS];
-	if(!fa || fa->numedges < 3) return false;
-	if(fa->numedges > COARSE_OCCLUSION_MAX_VERTS) return false;
+	coarse_occ_vertex_t tmp[COARSE_POLY_SIZE];
+	if(!fa || fa->numedges < 3 ||
+			fa->numedges > COARSE_OCCLUSION_MAX_VERTS)
+		return false;
 	model_t *model = currententity->model;
 	medge_t *edges = model->edges;
 	// R_EmitEdge projects from modelorg, which is the player's position in
@@ -558,14 +498,13 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 	// Most faces are small and entirely on screen, don't clip those.
 	if(count >= COARSE_OCCLUSION_MAX_VERTS || minx < left || maxx > right
 			|| miny < top || maxy > bottom){
-		count = R_CoarseOccClipVertical(poly, count, tmp, left, true);
+		count = R_CoarseOccClip(poly, count, tmp, 1, left, 1);
 		if(count < 3) return false;
-		count = R_CoarseOccClipVertical(tmp, count, poly, right, false);
+		count = R_CoarseOccClip(tmp, count, poly, 1, right, 0);
 		if(count < 3) return false;
-		count = R_CoarseOccClipHorizontal(poly, count, tmp, top, true);
+		count = R_CoarseOccClip(poly, count, tmp, 0, top, 1);
 		if(count < 3) return false;
-		count = R_CoarseOccClipHorizontal(tmp, count, poly, bottom,
-				false);
+		count = R_CoarseOccClip(tmp, count, poly, 0, bottom, 0);
 		if(count < 3) return false;
 	}
 	for(s32 i = 0; i < count; i++){
@@ -578,6 +517,18 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		zi[1] = nearzi;
 	}
 	return true;
+}
+
+// Builds the polygon of a face and tests it, leaving it for
+// R_CoarseOcclusionAddSurface
+static bool R_CoarseOccTestFace(msurface_t *fa, bool depth)
+{
+	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly,
+				&r_coarse_poly_count, r_coarse_poly_zi))
+		return false;
+	r_coarse_poly_surf = fa;
+	return R_CoarseOccPolyCovered(r_coarse_poly, r_coarse_poly_count,
+			depth, r_coarse_poly_zi[1]);
 }
 
 // Returns true only when the whole projected visible polygon lies inside tiles
@@ -598,14 +549,7 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 	// opaque faces that covered them says whether it's hidden (the
 	// z-buffer test that alpha surfaces get).
 	if(fa->flags & SURF_DRAWSKY) return false;
-	s32 count;
-	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly, &count,
-				r_coarse_poly_zi))
-		return false;
-	r_coarse_poly_surf = fa; // R_CoarseOcclusionAddSurface can reuse this
-	r_coarse_poly_count = count;
-	return R_CoarseOccPolyCovered(r_coarse_poly, count, r_alphapass,
-			r_coarse_poly_zi[1]);
+	return R_CoarseOccTestFace(fa, r_alphapass);
 }
 
 // Opaque world faces, and in the main pass the opaque faces of brush entities.
@@ -631,7 +575,7 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf)
   // they're all covered. This is intentionally conservative. surf is the one
   // the face got in the edge list, its 1/z is remembered for the brush entity
   // tests.
-	coarse_occ_vertex_t local[COARSE_OCCLUSION_MAX_VERTS];
+	coarse_occ_vertex_t local[COARSE_POLY_SIZE];
 	coarse_occ_vertex_t *poly;
 	s32 count;
 	f32 localzi[2], *zi;
@@ -669,14 +613,7 @@ bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa)
 	if(!r_bmodel_occ_active || !r_coarse_occlusion_bits) return false;
 	if(!r_alphapass && cur_ent_alpha < 1.0f) return false;
 	if(currententity == &cl_entities[0]) return false;
-	s32 count;
-	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly, &count,
-				r_coarse_poly_zi))
-		return false;
-	r_coarse_poly_surf = fa; // R_CoarseOcclusionAddSurface can reuse this
-	r_coarse_poly_count = count;
-	return R_CoarseOccPolyCovered(r_coarse_poly, count, 1,
-			r_coarse_poly_zi[1]);
+	return R_CoarseOccTestFace(fa, 1);
 }
 
 // Is the tile under viewport point x, y FULL (and in front of zi, with depth)?

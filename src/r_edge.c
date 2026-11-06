@@ -233,20 +233,24 @@ static inline s64 R_StepEdge(edge_t *e, edge_t *next, s64 prev_u, s64 iv)
 	return next->prev->u; // the edge that used to be in front of e
 }
 
+// Adds the span from u to end (exclusive) on the current scanline
+static inline void R_EmitSpan(surf_t *surf, s64 u, s64 end)
+{
+	espan_t *span = span_p++;
+	span->u = u;
+	span->count = end - u;
+	span->v = current_iv;
+	span->pnext = surf->spans;
+	surf->spans = span;
+}
+
 static void R_CleanupSpan()
 {
 	// now that we've reached the right edge of the screen, we're done with
 	// any unfinished surfaces, so emit a span for whatever's on top
 	surf_t *surf = surfaces[1].next;
-	s64 iu = edge_tail_u_shift20;
-	if(iu > surf->last_u){
-		espan_t *span = span_p++;
-		span->u = surf->last_u;
-		span->count = iu - span->u;
-		span->v = current_iv;
-		span->pnext = surf->spans;
-		surf->spans = span;
-	}
+	if(edge_tail_u_shift20 > surf->last_u)
+		R_EmitSpan(surf, surf->last_u, edge_tail_u_shift20);
 	do{ // reset spanstate for all surfaces in the surface stack
 		surf->spanstate = 0;
 		surf = surf->next;
@@ -286,14 +290,8 @@ continue_search:
 		goto gotposition;
 newtop:
 		iu = edge->u >> 20; // emit a span(obscures current top)
-		if(iu > surf2->last_u){
-			espan_t *span = span_p++;
-			span->u = surf2->last_u;
-			span->count = iu - span->u;
-			span->v = current_iv;
-			span->pnext = surf2->spans;
-			surf2->spans = span;
-		}
+		if(iu > surf2->last_u)
+			R_EmitSpan(surf2, surf2->last_u, iu);
 		surf->last_u = iu; // set last_u on the new span
 gotposition:
 		surf->next = surf2; // insert before surf2
@@ -310,14 +308,9 @@ static inline void R_TrailingEdge(surf_t *surf, const edge_t *edge)
 	if(--surf->spanstate == 0){
 		if(surf == surfaces[1].next){
 			s64 iu = edge->u >> 20; // emit a span
-			if(iu > surf->last_u){ // (current top going away)
-				espan_t *span = span_p++;
-				span->u = surf->last_u;
-				span->count = iu - span->u;
-				span->v = current_iv;
-				span->pnext = surf->spans;
-				surf->spans = span;
-			} // set last_u on the surface below
+			if(iu > surf->last_u) // (current top going away)
+				R_EmitSpan(surf, surf->last_u, iu);
+			// set last_u on the surface below
 			surf->next->last_u = iu;
 		}
 		surf->prev->next = surf->next;
@@ -394,14 +387,8 @@ continue_search:
 newtop:
 		// emit a span(obscures current top)
 		iu = edge->u >> 20;
-		if(iu > surf2->last_u){
-			espan_t *span = span_p++;
-			span->u = surf2->last_u;
-			span->count = iu - span->u;
-			span->v = current_iv;
-			span->pnext = surf2->spans;
-			surf2->spans = span;
-		}
+		if(iu > surf2->last_u)
+			R_EmitSpan(surf2, surf2->last_u, iu);
 		// set last_u on the new span
 		surf->last_u = iu;
 gotposition:
@@ -448,15 +435,8 @@ static void R_EmitCutSpans()
 		s32 sn = cut_list[i];
 		cutspan_t *acc = &cut_acc[sn];
 		// left < 0: only trailing edges seen, nothing to draw
-		if(acc->left >= 0 && acc->right > acc->left){
-			surf_t *surf = &surfaces[sn];
-			espan_t *span = span_p++;
-			span->u = acc->left;
-			span->count = acc->right - acc->left;
-			span->v = current_iv;
-			span->pnext = surf->spans;
-			surf->spans = span;
-		}
+		if(acc->left >= 0 && acc->right > acc->left)
+			R_EmitSpan(&surfaces[sn], acc->left, acc->right);
 		acc->left = CUT_IDLE;
 		acc->right = cut_right0;
 	}
@@ -560,11 +540,16 @@ static void R_GenerateSpansBackward(bool step)
 	R_CleanupSpan();
 }
 
-static void R_FlushSpans(espan_t *basespan_p)
+static void R_DrawSurfaceSpans()
 {
 	if(r_drawflat.value) D_DrawSurfacesFlat();
 	else if(!r_alphapass) D_DrawSurfaces();
 	else D_DrawSurfacesAlpha();
+}
+
+static void R_FlushSpans(espan_t *basespan_p)
+{
+	R_DrawSurfaceSpans();
 	// clear the surface span pointers
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
 		s->spans = NULL;
@@ -614,8 +599,7 @@ void R_ScanEdges()
 	edge_sentinel.u = ((u64)2000) << 24;// make sure nothing sorts past this
 	edge_sentinel.prev = &edge_aftertail;
 	s64 bottom = r_refdef.vrectbottom - 1; // process all scan lines
-	s64 iv = r_refdef.vrect.y;
-	for(; iv < bottom; iv++){
+	for(s64 iv = r_refdef.vrect.y; iv <= bottom; iv++){
 		current_iv = iv;
 		fv = (f32)iv;
 		// mark that the head(background start) span is pre-included
@@ -623,21 +607,13 @@ void R_ScanEdges()
 		if(newedges[iv])
 			R_InsertNewEdges(R_SortNewEdges(newedges[iv]),
 					edge_head.next);
-		(*pdrawfunc)(1); // also steps/removes the edges
+		// also steps/removes the edges, no need on the last scan
+		bool last = iv == bottom;
+		(*pdrawfunc)(!last);
 		// flush the span list if we can't be sure we have enough spans
 		// left for the next scan
-		if(span_p >= max_span_p)
+		if(!last && span_p >= max_span_p)
 			R_FlushSpans(basespan_p);
 	}
-	// do the last scan(no need to step or sort or remove on the last scan)
-	current_iv = iv;
-	fv = (f32)iv;
-	// mark that the head(background start) span is pre-included
-	surfaces[1].spanstate = 1;
-	if(newedges[iv])
-		R_InsertNewEdges(R_SortNewEdges(newedges[iv]), edge_head.next);
-	(*pdrawfunc)(0);
-	if(r_drawflat.value) D_DrawSurfacesFlat();
-	else if(!r_alphapass) D_DrawSurfaces();
-	else D_DrawSurfacesAlpha();
+	R_DrawSurfaceSpans();
 }

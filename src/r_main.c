@@ -14,6 +14,17 @@ static vec3_t viewlightvec;
 static alight_t r_viewlighting = { 128, 192, viewlightvec };
 static f32 aliaslightvec[3] = { -1, 0, 0 };
 
+static void R_AddDebugLine(f32 x0, f32 y0, f32 x1, f32 y1)
+{
+	if(r_numdebuglines >= MAX_DEBUG_LINES)
+		return;
+	debugline_t *l = &r_debuglines[r_numdebuglines++];
+	l->x0 = x0;
+	l->y0 = y0;
+	l->x1 = x1;
+	l->y1 = y1;
+}
+
 bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 { // Helper to project a 3D point(Used by point entities)
 	vec3_t local, transformed;
@@ -77,37 +88,26 @@ void R_DrawDebugLine3D(vec3_t p1, vec3_t p2)
 	}
 	f32 lzi1 = 1.0 / t1[2]; // 2D Projection
 	f32 lzi2 = 1.0 / t2[2];
-	if(r_numdebuglines >= MAX_DEBUG_LINES) return;
-	r_debuglines[r_numdebuglines].x0=(s32)(xcenter+(xscale*lzi1)*t1[0]);
-	r_debuglines[r_numdebuglines].y0=(s32)(ycenter-(yscale*lzi1)*t1[1]);
-	r_debuglines[r_numdebuglines].x1=(s32)(xcenter+(xscale*lzi2)*t2[0]);
-	r_debuglines[r_numdebuglines].y1=(s32)(ycenter-(yscale*lzi2)*t2[1]);
-	r_numdebuglines++;
+	R_AddDebugLine(xcenter + (xscale * lzi1) * t1[0],
+		ycenter - (yscale * lzi1) * t1[1],
+		xcenter + (xscale * lzi2) * t2[0],
+		ycenter - (yscale * lzi2) * t2[1]);
 }
 
-void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
+static void R_DebugDrawBBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
 	vec3_t old_modelorg;//save current state,force modelorg to global spaces
 	VectorCopy(modelorg, old_modelorg);
 	VectorCopy(r_origin, modelorg);
 	vec3_t corners[8];
-	for(s32 i = 0; i < 8; i++){
-		corners[i][0] = origin[0] + ((i & 1) ? maxs[0] : mins[0]);
-		corners[i][1] = origin[1] + ((i & 2) ? maxs[1] : mins[1]);
-		corners[i][2] = origin[2] + ((i & 4) ? maxs[2] : mins[2]);
-	}
-	R_DrawDebugLine3D(corners[0], corners[1]); // bottom face
-	R_DrawDebugLine3D(corners[1], corners[3]);
-	R_DrawDebugLine3D(corners[3], corners[2]);
-	R_DrawDebugLine3D(corners[2], corners[0]);
-	R_DrawDebugLine3D(corners[4], corners[5]); // top face
-	R_DrawDebugLine3D(corners[5], corners[7]);
-	R_DrawDebugLine3D(corners[7], corners[6]);
-	R_DrawDebugLine3D(corners[6], corners[4]);
-	R_DrawDebugLine3D(corners[0], corners[4]); // vertical edges
-	R_DrawDebugLine3D(corners[1], corners[5]);
-	R_DrawDebugLine3D(corners[2], corners[6]);
-	R_DrawDebugLine3D(corners[3], corners[7]);
+	for(s32 i = 0; i < 8; i++)
+		for(s32 k = 0; k < 3; k++)
+			corners[i][k] = origin[k] +
+				((i >> k) & 1 ? maxs[k] : mins[k]);
+	for(s32 i = 0; i < 8; i++) // the edges along each axis
+		for(s32 k = 1; k < 8; k <<= 1)
+			if(!(i & k))
+				R_DrawDebugLine3D(corners[i], corners[i | k]);
 	VectorCopy(old_modelorg, modelorg); // restore prev modelorg state
 }
 
@@ -177,7 +177,7 @@ void R_DrawDebugLine(s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 	}
 }
 
-void R_AllocShowTris()
+static void R_AllocShowTris()
 {
 	if(!r_debuglines)r_debuglines =
 		malloc(MAX_DEBUG_LINES * sizeof(debugline_t));
@@ -187,7 +187,7 @@ void R_AllocShowTris()
 		Sys_Error("Failed to allocate memory for r_showtris");
 }
 
-void R_ParseDebugEntities()
+static void R_ParseDebugEntities()
 {
 	R_AllocShowTris();
 	r_numdebugpoints = 0;
@@ -223,24 +223,13 @@ void R_ParseDebugEntities()
 	}
 }
 
-void R_DebugDrawPoint(vec3_t origin)
-{
+static void R_DebugDrawPoint(vec3_t origin)
+{ // a cross
 	s32 sx, sy;
-	if(R_ProjectPointToScreen(origin, &sx, &sy)){
-		if(r_numdebuglines < MAX_DEBUG_LINES - 2){
-			s32 size = 4;
-			r_debuglines[r_numdebuglines].x0 = sx - size;
-			r_debuglines[r_numdebuglines].y0 = sy;
-			r_debuglines[r_numdebuglines].x1 = sx + size;
-			r_debuglines[r_numdebuglines].y1 = sy;
-			r_numdebuglines++;
-			r_debuglines[r_numdebuglines].x0 = sx;
-			r_debuglines[r_numdebuglines].y0 = sy - size;
-			r_debuglines[r_numdebuglines].x1 = sx;
-			r_debuglines[r_numdebuglines].y1 = sy + size;
-			r_numdebuglines++;
-		}
-	}
+	if(!R_ProjectPointToScreen(origin, &sx, &sy))
+		return;
+	R_AddDebugLine(sx - 4, sy, sx + 4, sy);
+	R_AddDebugLine(sx, sy - 4, sx, sy + 4);
 }
 
 void R_InitTextures()
@@ -265,7 +254,7 @@ void R_InitTextures()
 	}
 }
 
-void R_InitTurb()
+static void R_InitTurb()
 {
 	s32 amp = 8*0x10000;
 	for(s32 i = 0; i < (SIN_BUFFER_SIZE); i++){
@@ -276,7 +265,7 @@ void R_InitTurb()
 	r_warpbuffer = warpbuffer;
 }
 
-void R_ViewChangedCallback(SDL_UNUSED cvar_t *cvar)
+static void R_ViewChangedCallback(SDL_UNUSED cvar_t *cvar)
 { vid.recalc_refdef = 1; }
 
 void R_Init()
@@ -388,7 +377,7 @@ void R_Init()
 	Sky_Init();
 }
 
-void Pal_ParseWorldspawn()
+static void Pal_ParseWorldspawn()
 { // called at map load
 	c8 key[128], value[4096];
 	bool found = 0;
@@ -546,7 +535,7 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	D_ViewChanged();
 }
 
-void R_MarkLeaves()
+static void R_MarkLeaves()
 {
 	if(r_oldviewleaf == r_viewleaf) return;
 	r_visframecount++;
@@ -566,49 +555,41 @@ void R_MarkLeaves()
 	}
 }
 
-void R_SetupEntityTransform(entity_t *e)
+static void R_SetupEntityTransform(entity_t *e)
 { // johnfitz -- set up transform part of lerpdata
-//We aren't really sharing using the lerpdata input structure pointer externally
-        lerpdata_t lerpdata;
-        if(e->lerpflags & LERP_RESETMOVE){ // kill any lerps in progress
-                e->movelerpstart = 0;
-                VectorCopy(e->origin, e->previousorigin);
-                VectorCopy(e->origin, e->currentorigin);
-                VectorCopy(e->angles, e->previousangles);
-                VectorCopy(e->angles, e->currentangles);
-                e->lerpflags -= LERP_RESETMOVE;
-        }else if(!VectorCompare(e->origin, e->currentorigin) || 
+	if(e->lerpflags & LERP_RESETMOVE){ // kill any lerps in progress
+		e->movelerpstart = 0;
+		VectorCopy(e->origin, e->previousorigin);
+		VectorCopy(e->origin, e->currentorigin);
+		VectorCopy(e->angles, e->previousangles);
+		VectorCopy(e->angles, e->currentangles);
+		e->lerpflags -= LERP_RESETMOVE;
+	}else if(!VectorCompare(e->origin, e->currentorigin) ||
 		!VectorCompare(e->angles, e->currentangles)){ // origin/angles
-                e->movelerpstart = cl.time; // changed, start new lerp
-                VectorCopy(e->currentorigin, e->previousorigin);
-                VectorCopy(e->origin,  e->currentorigin);
-                VectorCopy(e->currentangles, e->previousangles);
-                VectorCopy(e->angles,  e->currentangles);
-        }
-        if(r_lerpmove.value && e != &cl.viewent && e->lerpflags&LERP_MOVESTEP){
-		f32 blend = CLAMP(0.f, (cl.time - e->movelerpstart) / 
-				(e->lerpflags & LERP_FINISH ?
-				 e->lerpfinish - e->movelerpstart : 0.1f), 1.f);
-		vec3_t d;
-                VectorSubtract(e->currentorigin, e->previousorigin, d);
-                lerpdata.origin[0] = e->previousorigin[0] + d[0] * blend;
-                lerpdata.origin[1] = e->previousorigin[1] + d[1] * blend;
-                lerpdata.origin[2] = e->previousorigin[2] + d[2] * blend;
-                VectorSubtract(e->currentangles, e->previousangles, d);
-                for(s32 i = 0; i < 3; i++){
-                        if(d[i] > 180)  d[i] -= 360;
-                        if(d[i] < -180) d[i] += 360;
-                }
-                lerpdata.angles[0] = e->previousangles[0] + d[0] * blend;
-                lerpdata.angles[1] = e->previousangles[1] + d[1] * blend;
-                lerpdata.angles[2] = e->previousangles[2] + d[2] * blend;
-        }else{//don't lerp
-                VectorCopy(e->origin, lerpdata.origin);
-                VectorCopy(e->angles, lerpdata.angles);
-        }
-	// Baker: Software uses these fields in too many places
-        VectorCopy(lerpdata.origin, e->origin);
-        VectorCopy(lerpdata.angles, e->angles);
+		e->movelerpstart = cl.time; // changed, start new lerp
+		VectorCopy(e->currentorigin, e->previousorigin);
+		VectorCopy(e->origin, e->currentorigin);
+		VectorCopy(e->currentangles, e->previousangles);
+		VectorCopy(e->angles, e->currentangles);
+	}
+	if(!r_lerpmove.value || e == &cl.viewent ||
+			!(e->lerpflags & LERP_MOVESTEP))
+		return;
+	// Baker: Software uses these fields in too many places, so the lerp
+	// goes straight into them
+	f32 blend = CLAMP(0.f, (cl.time - e->movelerpstart) /
+			(e->lerpflags & LERP_FINISH ?
+			 e->lerpfinish - e->movelerpstart : 0.1f), 1.f);
+	vec3_t d;
+	VectorSubtract(e->currentorigin, e->previousorigin, d);
+	for(s32 i = 0; i < 3; i++)
+		e->origin[i] = e->previousorigin[i] + d[i] * blend;
+	VectorSubtract(e->currentangles, e->previousangles, d);
+	for(s32 i = 0; i < 3; i++){
+		if(d[i] > 180) d[i] -= 360;
+		if(d[i] < -180) d[i] += 360;
+		e->angles[i] = e->previousangles[i] + d[i] * blend;
+	}
 }
 
 static void R_SetEntityModelOrg(entity_t *ent)
@@ -709,7 +690,7 @@ static void R_DrawAliasEntity()
 	R_AliasDrawModel(&lighting);
 }
  
-void R_DrawEntitiesOnList()
+static void R_DrawEntitiesOnList()
 {
 	if(!r_drawentities.value)
 		return;
@@ -749,7 +730,7 @@ static void R_SetupViewModelLighting()
 	R_ClampAliasLighting(&r_viewlighting);
 }
  
-void R_DrawViewModel()
+static void R_DrawViewModel()
 {
 	if(!r_drawviewmodel.value || cl.items & IT_INVISIBILITY
 		|| cl.stats[STAT_HEALTH] <= 0 || !cl.viewent.model
@@ -793,21 +774,19 @@ static s32 R_BmodelCheckAxisAligned(f32 *minmaxs)
 	for(s32 i = 0; i < 4; i++){
 		s32 *pindex = frustum_indexes[i];
 		vec3_t acceptpt, rejectpt;
-		rejectpt[0] = minmaxs[pindex[0]];
-		rejectpt[1] = minmaxs[pindex[1]];
-		rejectpt[2] = minmaxs[pindex[2]];
+		for(s32 k = 0; k < 3; k++){
+			rejectpt[k] = minmaxs[pindex[k]];
+			acceptpt[k] = minmaxs[pindex[3 + k]];
+		}
 		if(R_ClipPlaneDist(rejectpt, i) <= 0)
 			return BMODEL_FULLY_CLIPPED;
-		acceptpt[0] = minmaxs[pindex[3 + 0]];
-		acceptpt[1] = minmaxs[pindex[3 + 1]];
-		acceptpt[2] = minmaxs[pindex[3 + 2]];
 		if(R_ClipPlaneDist(acceptpt, i) <= 0)
 			clipflags |= (1 << i);
 	}
 	return clipflags;
 }
  
-s32 R_BmodelCheckBBox(model_t *clmodel, f32 *minmaxs)
+static s32 R_BmodelCheckBBox(model_t *clmodel, f32 *minmaxs)
 {
 	if(currententity->angles[0] || currententity->angles[1]
 			|| currententity->angles[2])
@@ -927,7 +906,7 @@ static void R_DrawBrushEntity(vec3_t oldorigin)
 	R_RestoreWorldView(oldorigin);
 }
  
-void R_DrawBEntitiesOnList()
+static void R_DrawBEntitiesOnList()
 {
 	if(!r_drawentities.value)
 		return;
@@ -944,58 +923,50 @@ void R_DrawBEntitiesOnList()
 	cur_ent_alpha = 1;
 }
 
-void R_EdgeDrawing()
-{
-	R_CoarseOcclusionBeginFrame();
-	r_foundtranswater =  r_alphapass = 0;
-	R_BeginEdgeFrame();
-	if(r_speeds.value) d_times[1] = Sys_DoubleTime();
-	R_RenderWorld();
-	if(r_speeds.value) d_times[2] = Sys_DoubleTime();
-	R_DrawBEntitiesOnList();
-	if(r_speeds.value) d_times[3] = Sys_DoubleTime();
-	R_ScanEdges();
-	if(r_speeds.value) d_times[4] = Sys_DoubleTime();
-}
+static void R_TimeStamp(s32 i)
+{ if(r_speeds.value) d_times[i] = Sys_DoubleTime(); }
 
-void R_EdgeDrawingAlpha()
+// The world and the brush entities into the edge list, then the spans to the
+// screen. The main pass draws everything opaque, the alpha pass what's left.
+// Timed from d_times[t] to t + 3.
+static void R_EdgeDrawing(bool alpha, s32 t)
 {
-	if(!r_foundtranswater){
-		if(r_speeds.value)
-			d_times[7]=d_times[8]=d_times[9]=Sys_DoubleTime();
-		return;
-	}
-	r_alphapass = 1;
+	r_alphapass = alpha;
 	R_BeginEdgeFrame();
-	if(r_speeds.value) d_times[7] = Sys_DoubleTime();
+	R_TimeStamp(t);
 	R_RenderWorld();
-	if(r_speeds.value) d_times[8] = Sys_DoubleTime();
+	R_TimeStamp(t + 1);
 	R_DrawBEntitiesOnList();
-	if(r_speeds.value) d_times[9] = Sys_DoubleTime();
+	R_TimeStamp(t + 2);
 	R_ScanEdges();
+	R_TimeStamp(t + 3);
 }
 
 void R_RenderView()
 {
 	R_AllocShowTris();
-	if(r_speeds.value) d_times[0] = Sys_DoubleTime();
+	R_TimeStamp(0);
 	R_SetupFrame();
 	R_MarkLeaves(); // done here so we know if we're in water
 	fesetround(FE_TOWARDZERO); // Sys_LowFPPrecision set this in WinQuake
-	R_EdgeDrawing();
-	if(r_speeds.value) d_times[5] = Sys_DoubleTime();
+	R_CoarseOcclusionBeginFrame();
+	r_foundtranswater = 0;
+	R_EdgeDrawing(0, 1);
+	R_TimeStamp(5);
 	R_DrawEntitiesOnList();
-	if(r_speeds.value) d_times[6] = Sys_DoubleTime();
-	R_EdgeDrawingAlpha();
-	if(r_speeds.value) d_times[10] = Sys_DoubleTime();
+	R_TimeStamp(6);
+	if(r_foundtranswater)
+		R_EdgeDrawing(1, 7);
+	else for(s32 i = 7; i <= 10; i++)
+		R_TimeStamp(i);
 	R_DrawViewModel();
-	if(r_speeds.value) d_times[11] = Sys_DoubleTime();
+	R_TimeStamp(11);
 	R_DrawParticles();
-	if(r_speeds.value) d_times[12] = Sys_DoubleTime();
+	R_TimeStamp(12);
 	if(r_dowarp) D_WarpScreen();
-	if(r_speeds.value) d_times[13] = Sys_DoubleTime();
+	R_TimeStamp(13);
 	R_DrawFog();
-	if(r_speeds.value) d_times[14] = Sys_DoubleTime();
+	R_TimeStamp(14);
 	V_SetContentsColor(r_viewleaf->contents);
 	if(r_showtris.value){
 		for(s32 i = 0; i < r_numdebugpoints; i++)

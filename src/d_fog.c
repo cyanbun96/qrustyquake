@@ -65,12 +65,7 @@ void Fog_FogCommand_f() // yanked from Quakespasm, mostly
 		Con_Printf("   \"blue\" is \"%f\"\n", fog_blue);
 		return;
 	case 2:
-		d = atof(Cmd_Argv(1));
-		r = fog_red;
-		g = fog_green;
-		b = fog_blue;
-		break;
-	case 3: //TEST
+	case 3: // QuakeSpasm's fade time is ignored
 		d = atof(Cmd_Argv(1));
 		r = fog_red;
 		g = fog_green;
@@ -182,14 +177,14 @@ void R_InitFogLUT()
 	old_fog_density = fog_density;
 }
 
-static inline f32 compute_fog_lut(s32 z)
+static inline f32 compute_fog_lut(const f32 *lut, s32 z)
 {
 	z = z + 32768; // convert signed to unsigned
 	if(z < 0) z = 0;
 	if(z >= 65536) z = 65535;
 	s32 idx = z / FOG_FACTOR_LUT_DOWNSAMPLE;
 	if(idx >= FOG_FACTOR_LUT_SIZE) idx = FOG_FACTOR_LUT_SIZE - 1;
-	return fog_factor_lut[idx];
+	return lut[idx];
 }
 
 static void R_FogMix(u8 *pdest, const s32 *zb, s32 w, s32 n, const f32 *zadj)
@@ -211,64 +206,40 @@ static void R_FogMix(u8 *pdest, const s32 *zb, s32 w, s32 n, const f32 *zadj)
 	}
 }
 
+// The fog styles but mix: 0 noisy, 1 dither, 2 dither + noise. Inlined so
+// that each style, with and without depth correction, gets its own loop.
+Q_SIL void R_FogPixels(u8 *pdest, const s32 *zb, s32 w, s32 n,
+		const f32 *zadj, s32 style)
+{
+	// in locals, the stores to pdest could change any global
+	const s32 *rnd = randarr;
+	const f32 *lut = fog_factor_lut, fogfactor = r_fogfactor.value;
+	const u8 fog = fog_pal_index;
+	for(s32 i = 0; i < w; ++i){
+		s32 bias = rnd[(n-i)&(RANDARR_SIZE-1)];
+		f32 ffactor = compute_fog_lut(lut, (zb[i]>>16) + bias)
+			* fogfactor;
+		if(zadj)
+			ffactor *= zadj[i];
+		if(style == 2)
+			ffactor -= bias*0.05;
+		if(style == 1 ? D_Dither(&pdest[i], ffactor) :
+				(lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
+			pdest[i] = fog;
+	}
+}
+
 // w pixels of one view row, n is how many of the view's pixels are left
 static void R_FogRow(u8 *pdest, const s32 *zb, s32 w, s32 n, const f32 *zadj)
 {
-	switch((s32)r_fogstyle.value + (r_fogdepthcorrection.value?10:0)){
-	case 0: // noisy
-		for(s32 i = 0; i < w; ++i){
-			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
-							*r_fogfactor.value;
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 2: // dither + noise
-		for(s32 i = 0; i < w; ++i){
-			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
-							*r_fogfactor.value;
-			ffactor -= bias*0.05;
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 1: // dither
-		for(s32 i = 0; i < w; ++i){
-			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
-							*r_fogfactor.value;
-			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
-		} break;
-	default: case 3: // mix
-		R_FogMix(pdest, zb, w, n, NULL);
-		break;
-	case 10: // depth-corrected, noisy
-		for(s32 i = 0; i < w; ++i){
-			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
-						*r_fogfactor.value*zadj[i];
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 12: // depth-corrected, dither + noise
-		for(s32 i = 0; i < w; ++i){
-			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
-						*r_fogfactor.value*zadj[i];
-			ffactor -= bias*0.05;
-			if((lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
-				pdest[i] = fog_pal_index;
-		} break;
-	case 11: // depth-corrected, dither
-		for(s32 i = 0; i < w; ++i){
-			s32 bias = randarr[(n-i)&(RANDARR_SIZE-1)];
-			f32 ffactor = compute_fog_lut((zb[i]>>16)+bias)
-						*r_fogfactor.value*zadj[i];
-			if(D_Dither(&pdest[i], ffactor)) pdest[i]=fog_pal_index;
-		} break;
-	case 13: // depth-corrected, mix
-		R_FogMix(pdest, zb, w, n, zadj);
-		break;
+	switch((s32)r_fogstyle.value + (zadj ? 10 : 0)){
+	case 0: R_FogPixels(pdest, zb, w, n, NULL, 0); break;
+	case 1: R_FogPixels(pdest, zb, w, n, NULL, 1); break;
+	case 2: R_FogPixels(pdest, zb, w, n, NULL, 2); break;
+	case 10: R_FogPixels(pdest, zb, w, n, zadj, 0); break;
+	case 11: R_FogPixels(pdest, zb, w, n, zadj, 1); break;
+	case 12: R_FogPixels(pdest, zb, w, n, zadj, 2); break;
+	default: R_FogMix(pdest, zb, w, n, zadj); break; // 3: mix
 	}
 }
 

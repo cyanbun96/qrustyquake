@@ -191,6 +191,19 @@ void R_ClipEdge(mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 	R_EmitEdge(pv0, pv1); // add the edge
 }
 
+// The view clip planes in clipflags, linked in order
+static inline clipplane_t *R_ClipPlaneList(s32 clipflags)
+{
+	clipplane_t *pclip = NULL;
+	for(s32 i = 3; i >= 0; i--){
+		if(clipflags & (1 << i)){
+			view_clipplanes[i].next = pclip;
+			pclip = &view_clipplanes[i];
+		}
+	}
+	return pclip;
+}
+
 void R_EmitCachedEdge(edge_t *pedge_t)
 {
 	if(!pedge_t->surfs[0])
@@ -249,15 +262,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 		return;
 	}
 	c_faceclip++;
-	clipplane_t *pclip = NULL; // set up clip planes
-	s32 i = 3;
-	u32 mask = 0x08;
-	for(; i >= 0; i--, mask >>= 1){
-		if(clipflags & mask){
-			view_clipplanes[i].next = pclip;
-			pclip = &view_clipplanes[i];
-		}
-	}
+	clipplane_t *pclip = R_ClipPlaneList(clipflags);
 	if(r_coarse_active && R_CoarseOcclusionTestSurface(fa)){
 		r_coarse_rejected++;
 		return;
@@ -269,6 +274,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	medge_t *pedges, tedge;
 	pedges = currententity->model->edges;
 	r_lastvertvalid = 0;
+	s32 i;
 	if(r_showtris.value){ // UNIFIED BSP GEOMETRY HOOK
 		mvertex_t *first_vert = NULL;
 		mvertex_t *prev_vert = NULL;
@@ -396,15 +402,7 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 	static medge_t tedge;
 	// this is a dummy to give the caching mechanism someplace to write to
 	r_pedge = &tedge;
-	clipplane_t *pclip = NULL; // set up clip planes
-	s32 i = 3;
-	u32 mask = 0x08;
-	for(; i >= 0; i--, mask >>= 1){
-		if(r_clipflags & mask){
-			view_clipplanes[i].next = pclip;
-			pclip = &view_clipplanes[i];
-		}
-	}
+	clipplane_t *pclip = R_ClipPlaneList(r_clipflags);
 	r_emitted = 0; // push the edges through
 	r_nearzi = 0;
 	r_nearzionly = 0;
