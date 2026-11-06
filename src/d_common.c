@@ -289,6 +289,12 @@ void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 	if(y + pic->height * scale > (s32)vid.height)
 		return;
 	Draw_MarkRows(y, y + pic->height * scale);
+	if(scale == 1 && x >= 0 && y >= 0){ // the HUD at 320x200
+		for(s32 v = 0; v < pic->height && maxwidth > 0; v++)
+			memcpy(dest + v * rowinc, pic->data + v * pic->width,
+					maxwidth);
+		return;
+	}
 	for(u32 v = 0; v < (u32)pic->height; v++){
 		if(v * scale + y >= vid.height)
 			break;
@@ -336,6 +342,16 @@ void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 	u8 *source = pic->data;
 	Draw_MarkRows(y, y + pic->height * scale);
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
+	if(scale == 1 && x >= 0 && y >= 0 && x + pic->width <= (s32)vid.width){
+		s32 h = q_min(pic->height, (s32)vid.height - y); // 320x200 HUD
+		s32 w = pic->width; // a local, so the select below vectorizes
+		for(s32 v = 0; v < h; v++, dest += vid.width, source += w)
+			for(s32 u = 0; u < w; u++){
+				u8 t = source[u];
+				dest[u] = t == 0xFF ? dest[u] : t;
+			}
+		return;
+	}
 	for(u32 v = 0; v < (u32)pic->height; v++){
 		if(v * scale + y >= vid.height)
 			return;
