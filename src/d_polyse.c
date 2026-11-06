@@ -485,32 +485,69 @@ static polysetstyle_t D_PolysetPixelStyle()
 }
  
 
-Q_SIL u8 D_PolysetDitheredTexel(const u8 *ptex, s32 sfrac, s32 tfrac,
-		const u8 *pdest)
-{ // CyanBun96: dithered sampling from Unreal
-	const u8 *skin = (u8 *)r_affinetridesc.pskin;
+// The skin column and row of ptex (its offset floor-divided by the skin width)
+// stepped along with it, and the skin in locals: the pixel stores could
+// change anything behind a pointer
+typedef struct {
+	s32 col, row;
+	s32 colstep, rowstep; // whole texels a pixel, 0 <= colstep < skinwidth
+	s32 ds, dt; // the dither offsets of this pixel
+	s32 dsx, dtx; // xor that swaps them for the next one
+	const u8 *skin, *mask;
+	s32 skinw, tmax;
+} skinwalk_t;
+
+static void D_SkinWalkSetup(skinwalk_t *k)
+{ // once a triangle
 	s32 skinw = r_affinetridesc.skinwidth;
-	s32 skinh = r_affinetridesc.skinheight;
-	ptrdiff_t off = ptex - skin;
-	if(off < 0) off = 0;
-	s32 s = ((s32)(off % skinw) << 16) | (sfrac & 0xFFFF);
-	s32 t = ((s32)(off / skinw) << 16) | (tfrac & 0xFFFF);
-	s32 pixel = (s32)(pdest - (u8 *)screen->pixels);
-	s32 y = pixel / vid.width;
-	s32 x = pixel - y * vid.width;
-	s32 dither = (x & 1) + ((y & 1) << 1);
-	s += dither_s[dither];
-	t += dither_t[dither];
-	s32 smax = (skinw - 1) << 16;
-	s32 tmax = (skinh - 1) << 16;
-	if(s < 0) s = 0;
-	if(t < 0) t = 0;
-	if(s >= smax) s = smax;
-	if(t >= tmax) t = tmax;
-	s32 i = (s >> 16) + (t >> 16) * skinw;
+	s32 sw = r_sstepx >> 16;
+	k->colstep = sw % skinw;
+	k->rowstep = (r_tstepx >> 16) + sw / skinw;
+	if(k->colstep < 0){ k->colstep += skinw; k->rowstep--; }
+	k->skin = r_affinetridesc.pskin;
+	k->mask = r_affinetridesc.pskinmask;
+	k->skinw = skinw;
+	k->tmax = r_affinetridesc.skinheight - 1;
+}
+
+Q_SIL void D_SkinWalkBegin(skinwalk_t *k, const u8 *ptex, const u8 *pdest)
+{
+	s32 off = ptex - k->skin;
+	k->row = off / k->skinw;
+	k->col = off % k->skinw;
+	if(k->col < 0){ k->col += k->skinw; k->row--; }
+	s32 pixel = pdest - d_viewbuffer;
+	s32 y = pixel / screenwidth;
+	s32 i = ((pixel - y * screenwidth) & 1) + ((y & 1) << 1);
+	k->ds = dither_s[i];
+	k->dt = dither_t[i];
+	k->dsx = dither_s[i] ^ dither_s[i ^ 1];
+	k->dtx = dither_t[i] ^ dither_t[i ^ 1];
+}
+
+Q_SIL void D_SkinWalkStep(skinwalk_t *k, s32 scarry, s32 tcarry)
+{ // the same carries that step ptex, at most one wrap into the next row
+	k->col += k->colstep + scarry;
+	k->row += k->rowstep + tcarry;
+	if(k->col >= k->skinw){ k->col -= k->skinw; k->row++; }
+	k->ds ^= k->dsx;
+	k->dt ^= k->dtx;
+}
+
+Q_SIL u8 D_PolysetDitheredTexel(const skinwalk_t *k, s32 sfrac, s32 tfrac)
+{ // CyanBun96: dithered sampling from Unreal
+	s32 col = k->row < 0 ? 0 : k->col; // before the skin reads as its start
+	s32 row = k->row < 0 ? 0 : k->row;
+	s32 s = ((col << 16) | (sfrac & 0xFFFF)) + k->ds;
+	s32 t = ((row << 16) | (tfrac & 0xFFFF)) + k->dt;
+	// clamped to the skin, the offsets are <= 0 and col < skinw, so s can
+	// only leave it on the left
+	s = s < 0 ? 0 : s >> 16;
+	t = t < 0 ? 0 : q_min(t >> 16, k->tmax);
+	s32 i = s + t * k->skinw;
 	// the offset can step off the triangles, onto whatever is around them
-	const u8 *mask = r_affinetridesc.pskinmask;
-	return mask[i >> 3] & (1 << (i & 7)) ? skin[i] : *ptex;
+	return k->mask[i >> 3] & (1 << (i & 7)) ? k->skin[i]
+		: k->skin[k->row * k->skinw + k->col]; // *ptex
 }
  
 Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
@@ -551,7 +588,7 @@ Q_SIL void D_PolysetClampSpanLight(s32 *light, s32 *lstep, s32 count)
 }
 
 Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
-		const polysetstyle_t *st, s32 sample)
+		const polysetstyle_t *st, s32 sample, skinwalk_t *k)
 {
 	u8 *pdest = span->pdest;
 	s32 *pz = span->pz;
@@ -566,11 +603,12 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	u32 tl = ((u32)span->tfrac << 16) | (light & 0xFFFF);
 	u32 tlstep = ((u32)a_tstepxfrac << 16) | (lstep & 0xFFFF);
 	s32 skinwidth = r_affinetridesc.skinwidth;
+	if(sample == TEXSAMPLE_DITHERED)
+		D_SkinWalkBegin(k, ptex, pdest);
 	do{
 		if(zi >= *pz){
 			u8 texel = sample == TEXSAMPLE_DITHERED ?
-			  D_PolysetDitheredTexel(ptex, sfrac, tl >> 16,
-				  pdest) : *ptex;
+			  D_PolysetDitheredTexel(k, sfrac, tl >> 16) : *ptex;
 			D_PolysetPlot(st, texel, tl & 0xFFFF, pdest, pz, zi);
 		}
 		pdest++;
@@ -578,11 +616,15 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 		zi += r_zistepx;
 		ptex += a_ststepxwhole;
 		sfrac += a_sstepxfrac;
-		ptex += sfrac >> 16;
+		s32 scarry = sfrac >> 16;
+		ptex += scarry;
 		sfrac &= 0xFFFF;
 		u32 tlold = tl;
 		tl += tlstep;
-		ptex += skinwidth & -(s32)(tl < tlold);
+		s32 tcarry = tl < tlold;
+		ptex += skinwidth & -tcarry;
+		if(sample == TEXSAMPLE_DITHERED)
+			D_SkinWalkStep(k, scarry, tcarry);
 	}while(--count);
 }
  
@@ -611,10 +653,14 @@ Q_SIL s32 D_PolysetSpanInBounds(const spanpackage_t *span, s32 count)
 Q_SIL void D_PolysetDrawSpansImpl(spanpackage_t *pspanpackage, s32 sample)
 {
 	const polysetstyle_t st = D_PolysetPixelStyle();
+	skinwalk_t k;
+	if(sample == TEXSAMPLE_DITHERED)
+		D_SkinWalkSetup(&k);
 	do{
 		s32 count = D_PolysetNextSpanWidth(pspanpackage);
 		if(count > 0 && D_PolysetSpanInBounds(pspanpackage, count))
-			D_PolysetDrawSpan(pspanpackage, count, &st, sample);
+			D_PolysetDrawSpan(pspanpackage, count, &st, sample,
+					&k);
 		pspanpackage++;
 	}while(pspanpackage->count != -999999);
 }
