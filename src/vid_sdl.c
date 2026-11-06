@@ -352,18 +352,19 @@ Q_SIL void VID_CompositeRows(u32 *d, s32 pitch, s32 rs, s32 ui, s32 top,
 	const u8 *u = (u8 *)screenui->pixels + y0 * vid.width;
 	const u8 *t = (u8 *)screentop->pixels + y0 * vid.width;
 	const u32 *wl = pallut[0], *tl = pallut[1], *ul = pallut[2];
+	u32 width = vid.width; // a local, the u32 stores could change vid
 	d += (size_t)pitch * rs * y0;
 	for(u32 y = y0; y < y1; ++y){
 		u32 *row = d;
-		for(u32 x = 0; x < vid.width; ++x){
+		for(u32 x = 0; x < width; ++x){
 			u32 c = wl[w[x]];
 			if(ui && u[x] != 255) c = ul[u[x]];
 			if(top && t[x] != 255) c = tl[t[x]];
 			for(s32 k = 0; k < rs; ++k) *row++ = c;
 		}
 		for(s32 k = 1; k < rs; ++k)
-			memcpy(d + k * pitch, d, vid.width * rs * sizeof(u32));
-		w += vid.width; u += vid.width; t += vid.width;
+			memcpy(d + k * pitch, d, width * rs * sizeof(u32));
+		w += width; u += width; t += width;
 		d += pitch * rs;
 	}
 }
