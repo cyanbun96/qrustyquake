@@ -4,8 +4,10 @@
 // atsb: windows and linux compatible macro definitions
 #if defined(_MSC_VER)
 #define Q_SIL static __forceinline
+#define Q_NOINLINE __declspec(noinline)
 #else
 #define Q_SIL static inline __attribute__((always_inline))
+#define Q_NOINLINE __attribute__((noinline))
 #endif
 #ifndef M_PI
 #define M_PI SDL_PI_D

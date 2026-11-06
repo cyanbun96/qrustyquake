@@ -11,6 +11,7 @@ typedef struct {
 	s32 ls, lt; // lit water: lightmap cache coords
 	s32 lsstep, ltstep;
 	s32 count;
+	s32 x, y; // screen position, for the dither pattern
 } turbchunk_t;
 typedef struct {
 	s32 shift;
@@ -321,13 +322,6 @@ Q_SIL void D_SpanDepthStep()
 Q_SIL s32 D_DitherIndex(s32 x, s32 y)
 { return(x & 1) + ((y & 1) << 1); }
 
-Q_SIL void D_PixelScreenPos(const u8 *pdest, s32 *x, s32 *y)
-{
-	s32 pixel_index = (s32)(pdest - (u8 *)d_viewbuffer);
-	*y = pixel_index / screenwidth;
-	*x = pixel_index - *y * screenwidth;
-}
-
 Q_SIL u8 D_TurbSample(const u8 *pbase, const s32 *turb, f32 time,
 		s32 s, s32 t, s32 x, s32 y, s32 filtered, s32 hl)
 {
@@ -358,8 +352,8 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	s32 s = c->s;
 	s32 t = c->t;
 	s32 count = c->count;
-	s32 x = 0;
-	s32 y = 0;
+	s32 x = c->x;
+	s32 y = c->y;
 	s32 ls = c->ls;
 	s32 lt = c->lt;
 	const s32 sstep = c->sstep;
@@ -378,8 +372,6 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	const f32 ditherthresh = 1 - turb_opacity;
 	const s32 foglut = (trans == TURBTRANS_MIXED) ?
 		(s32)(turb_opacity*FOG_LUT_LEVELS) : 0;
-	if(filtered)
-		D_PixelScreenPos(pdest, &x, &y);
 	do{
 		s32 draw = 1;
 		if(trans != TURBTRANS_OPAQUE){
@@ -510,12 +502,15 @@ static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 	D_SpanWalkBegin(&w, pspan, 4, 0); // exact coords every 16px
 	c.zp = D_SpanDepthPtr(pspan);
 	c.iz = D_SpanDepthStart(w.zi);
+	c.x = pspan->u;
+	c.y = pspan->v;
 	do{
 		D_SpanWalkNextChunk(&w);
 		D_TurbSetChunk(&c, &w);
 		if(turblight.mode)
 			D_TurbSetLightChunk(&c, &w);
 		drawspan(&c);
+		c.x += w.len;
 		D_SpanWalkEndChunk(&w);
 	}while(w.count > 0);
 }
@@ -528,8 +523,8 @@ void Turbulent(espan_t *pspan, f32 opacity)
 	}while((pspan = pspan->pnext) != NULL);
 }
 
-Q_SIL void D_CursorBegin(texcursor_t *c, const spanwalk_t *w,
-		const u8 *pdest, s32 dithered)
+Q_SIL void D_CursorBegin(texcursor_t *c, const spanwalk_t *w, s32 dithered,
+		s32 x, s32 y)
 {
 	c->pbase = (u8 *)cacheblock;
 	c->width = cachewidth;
@@ -545,7 +540,8 @@ Q_SIL void D_CursorBegin(texcursor_t *c, const spanwalk_t *w,
 	if(dithered){
 		c->s_max = (cachewidth - 1) << 16;
 		c->t_max = (cacheheight - 1) << 16;
-		D_PixelScreenPos(pdest, &c->x, &c->y);
+		c->x = x;
+		c->y = y;
 	}
 }
 
@@ -569,8 +565,54 @@ Q_SIL void D_CursorAdvance(texcursor_t *c)
 	c->x++;
 }
 
+// Dithered texels of a chunk that can't reach past the texture's edges need
+// no clamping. A pixel and its neighbour take the two offsets of their row,
+// so pairs of pixels step together, each lane with its offset added once.
+Q_SIL s32 D_CursorPairs(const texcursor_t *c, s32 *sa, s32 *ta, s32 *sb,
+		s32 *tb)
+{
+	s32 i = D_DitherIndex(c->x, c->y), j = i ^ 1;
+	s32 s0 = c->s, s1 = s0 + (c->count - 1) * (s32)c->sstep;
+	s32 t0 = c->t, t1 = t0 + (c->count - 1) * (s32)c->tstep;
+	if(q_min(s0, s1) + q_min(dither_s[i], dither_s[j]) < 0
+	|| q_min(t0, t1) + q_min(dither_t[i], dither_t[j]) < 0
+	|| q_max(s0, s1) + q_max(dither_s[i], dither_s[j]) > c->s_max + 0xffff
+	|| q_max(t0, t1) + q_max(dither_t[i], dither_t[j]) > c->t_max + 0xffff)
+		return 0;
+	*sa = s0 + dither_s[i];
+	*ta = t0 + dither_t[i];
+	*sb = s0 + (s32)c->sstep + dither_s[j];
+	*tb = t0 + (s32)c->tstep + dither_t[j];
+	return 1;
+}
+
+Q_SIL u8 *D_SpanChunkPairs(const texcursor_t *c, u8 *pdest, const u8 *fog,
+		s32 sa, s32 ta, s32 sb, s32 tb)
+{ // locals only, the byte stores could change anything behind a pointer
+	const u8 *pbase = c->pbase;
+	s32 width = c->width;
+	s32 sstep = 2 * (s32)c->sstep, tstep = 2 * (s32)c->tstep;
+	s32 n = c->count;
+	for(; n >= 2; n -= 2, pdest += 2){
+		u8 a = pbase[(sa >> 16) + (ta >> 16) * width];
+		u8 b = pbase[(sb >> 16) + (tb >> 16) * width];
+		pdest[0] = fog ? fog[a] : a;
+		pdest[1] = fog ? fog[b] : b;
+		sa += sstep; ta += tstep;
+		sb += sstep; tb += tstep;
+	}
+	if(n){
+		u8 a = pbase[(sa >> 16) + (ta >> 16) * width];
+		*pdest++ = fog ? fog[a] : a;
+	}
+	return pdest;
+}
+
 Q_SIL u8 *D_SpanChunkNormal(texcursor_t *c, u8 *pdest, s32 dithered)
 {
+	s32 sa, ta, sb, tb;
+	if(dithered && D_CursorPairs(c, &sa, &ta, &sb, &tb))
+		return D_SpanChunkPairs(c, pdest, NULL, sa, ta, sb, tb);
 	do{
 		*pdest++ = dithered ? D_CursorTexel(c, 1) :
 			c->pbase[(c->s >> 20) + (c->t >> 20) * c->width];
@@ -621,6 +663,10 @@ static void D_SkyFogSetup()
 Q_SIL u8 *D_SpanChunkSkybox(texcursor_t *c, u8 *pdest, s32 dithered)
 {
 	const u8 *fog = d_skyfog;
+	s32 sa, ta, sb, tb;
+	if(dithered && D_CursorPairs(c, &sa, &ta, &sb, &tb))
+		return fog ? D_SpanChunkPairs(c, pdest, fog, sa, ta, sb, tb)
+			: D_SpanChunkPairs(c, pdest, NULL, sa, ta, sb, tb);
 	if(fog){
 		do{
 			*pdest++ = fog[D_CursorTexel(c, dithered)];
@@ -671,10 +717,10 @@ Q_SIL u8 *D_SpanChunkStipple(texcursor_t *c, u8 *pdest, f32 opacity,
 }
 
 Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
-		f32 opacity, s32 dithered)
-{
+		f32 opacity, s32 dithered, s32 x, s32 y)
+{ // x and y are the chunk's screen position, for the dither pattern
 	texcursor_t c;
-	D_CursorBegin(&c, w, pdest, dithered);
+	D_CursorBegin(&c, w, dithered, x, y);
 	if(type == SPAN_NORMAL)
 		return D_SpanChunkNormal(&c, pdest, dithered);
 	if(type == SPAN_CUTOUT)
@@ -704,13 +750,15 @@ Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 	do{
 		spanwalk_t w;
 		u8 *pdest = D_SpanDest(pspan);
+		s32 x = pspan->u;
 		D_SpanWalkBegin(&w, pspan, 4, fine); // exact coords every 16px
 		if(depthtested)
 			D_SpanDepthBegin(pspan, w.zi);
 		do{
 			D_SpanWalkNextChunk(&w);
 			pdest = D_DrawSpanChunk(&w, pdest, type, opacity,
-					dithered);
+					dithered, x, pspan->v);
+			x += w.len;
 			D_SpanWalkEndChunk(&w);
 		}while(w.count > 0);
 	}while((pspan = pspan->pnext) != NULL);
@@ -719,7 +767,9 @@ Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
 { D_DrawSpansImpl(pspan, type, opacity, 0); }
 
-void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
+// Inlined into D_DrawSurfaces, the dithered loops changed how GCC allocated
+// registers for the plain one there (+1.8% instructions)
+Q_NOINLINE void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 { D_DrawSpansImpl(pspan, type, opacity, 1); }
 
 void D_DrawZSpans(espan_t *pspan)
