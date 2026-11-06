@@ -573,13 +573,22 @@ static void R_FlushSpans(espan_t *basespan_p)
 
 void R_ScanEdges()
 {
-	static u8 basespans[MAXSPANS * sizeof(espan_t)];
-	espan_t *basespan_p = (espan_t *) basespans;
 	R_CutoutBeginFrame();
-	static espan_t *max_span_p;
-	// Leave room for one full scanline of spans: at most one per pixel for
-	// the visible surfaces, plus at most one per cutout/skybox surface
-	max_span_p = &basespan_p[MAXSPANS - r_refdef.vrect.width - cut_surfs];
+	// MAXSPANS between flushes, plus room for one full scanline of spans:
+	// at most one per pixel for the visible surfaces, plus at most one per
+	// cutout/skybox surface. Every flush goes through all the surfaces.
+	static espan_t *basespans;
+	static s64 span_cap;
+	s64 room = r_refdef.vrect.width + cut_surfs;
+	if(span_cap < MAXSPANS + room){
+		span_cap = (MAXSPANS + room) * 3 / 2;
+		free(basespans);
+		basespans = malloc(span_cap * sizeof(*basespans));
+		if(!basespans)
+			Sys_Error("R_ScanEdges: out of memory");
+	}
+	espan_t *basespan_p = basespans;
+	espan_t *max_span_p = &basespan_p[span_cap - room];
 	span_p = basespan_p;
 	// clear active edges to just background edges around the whole screen
 	edge_head.u = (s64)r_refdef.vrect.x << 20;
