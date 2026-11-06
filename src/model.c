@@ -490,23 +490,23 @@ static bool Mod_MiptexClobbered(u8 *tail)
 
 static bool Mod_MipsNeedRebuild(const texture_t *tx, const bool *clobbered)
 { // r_rebuildmips 2: cutouts, and fullbrights that only exist in the mips.
-  // A texture with fullbrights of its own keeps its mips
+  // A texture with fullbrights of its own keeps its mips, unless they have
+  // the transparent 0xFF: some compilers write mips of nothing else
 	const u8 *base = (const u8 *)tx + tx->offsets[0];
-	bool fullbright = 0;
+	u8 bad = 0xE0; // lowest mip texel that isn't in base
 	for(u32 i = 0; i < tx->width * tx->height; i++){
 		if(base[i] == 0xFF)
 			return 1;
-		fullbright |= base[i] >= 0xE0;
+		if(base[i] >= 0xE0)
+			bad = 0xFF;
 	}
-	if(fullbright)
-		return 0;
 	for(s32 j = 1; j < MIPLEVELS; j++){
 		if(clobbered[j]) // gets rebuilt regardless
 			continue;
 		const u8 *mip = (const u8 *)tx + tx->offsets[j];
 		u32 size = (tx->width >> j) * (tx->height >> j);
 		for(u32 i = 0; i < size; i++)
-			if(mip[i] >= 0xE0)
+			if(mip[i] >= bad)
 				return 1;
 	}
 	return 0;
