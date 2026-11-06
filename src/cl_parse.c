@@ -73,6 +73,8 @@ entity_t *CL_EntityNum(s32 num)
 				LERP_RESETMOVE|LERP_RESETANIM; //johnfitz
 			cl.num_entities++;
 		}
+		if(cls.usedentities < cl.num_entities)
+			cls.usedentities = cl.num_entities;
 	}
 	return &cl_entities[num];
 }
@@ -634,7 +636,10 @@ void CL_ParseServerMessage()
 		       cl.viewangles[i]=MSG_ReadAngle(cl.protocolflags);
 		break;
 	case svc_setview:
-		cl.viewentity = MSG_ReadShort();
+		cl.viewentity = MSG_ReadShort(); // the view code writes to it
+		if(cl.viewentity >= cls.usedentities
+				&& cl.viewentity < MAX_EDICTS)
+			cls.usedentities = cl.viewentity + 1;
 		break;
 	case svc_lightstyle:
 		i = MSG_ReadByte();

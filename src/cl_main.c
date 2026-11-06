@@ -53,7 +53,9 @@ void CL_ClearState()
 	SZ_Clear(&cls.message);
 	static efrag_t cl_efrags[MAX_EFRAGS];
 	memset(cl_efrags, 0, sizeof(cl_efrags)); // clear other arrays
-	memset(cl_entities, 0, sizeof(cl_entities));
+	// a map uses a few hundred of the MAX_EDICTS, leave the rest untouched
+	memset(cl_entities, 0, q_max(cls.usedentities, 1)*sizeof(entity_t));
+	cls.usedentities = 0;
 	memset(cl_dlights, 0, sizeof(cl_dlights));
 	memset(cl_lightstyle, 0, sizeof(cl_lightstyle));
 	memset(cl_temp_entities, 0, sizeof(cl_temp_entities));

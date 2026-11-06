@@ -510,7 +510,9 @@ void Memory_Init(void *buf, s32 size)
 		else
 	    Sys_Error("Memory_Init: you must specify a size in KB after -zone");
 	}
-	mainzone = (memzone_t *) Hunk_AllocName(zonesize, "zone" );
+	// Z_Malloc clears each block, so the zone's pages stay untouched until
+	// it's used
+	mainzone = (memzone_t *) Hunk_AllocInternal(zonesize, "zone", 0);
 	Memory_InitZone(mainzone, zonesize);
 	Cmd_AddCommand("hunk_print", Hunk_Print_f); //johnfitz
 }

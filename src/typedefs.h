@@ -1126,6 +1126,7 @@ typedef struct {
 	s32 td_startframe; // host_framecount at start
 	f32 td_starttime; // realtime at second frame of timedemo
 	s32 signon; // 0 to SIGNONS
+	s32 usedentities; // cl_entities past these are still all zero
 	struct qsocket_s *netcon;
 	sizebuf_t message; // writing buffer to send to server
 	s32 sellscreen;
