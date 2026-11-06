@@ -345,12 +345,15 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 	Sbar_CalcPos();
 }
 
-Q_SIL void VID_CompositeRows(u32 *d, s32 pitch, s32 rs, s32 ui, s32 top)
+Q_SIL void VID_CompositeRows(u32 *d, s32 pitch, s32 rs, s32 ui, s32 top,
+		u32 y0, u32 y1)
 { // world, ui and top layers to window_format in one pass, rs x rs nearest
-	const u8 *w = screen->pixels, *u = screenui->pixels;
-	const u8 *t = screentop->pixels;
+	const u8 *w = (u8 *)screen->pixels + y0 * vid.width;
+	const u8 *u = (u8 *)screenui->pixels + y0 * vid.width;
+	const u8 *t = (u8 *)screentop->pixels + y0 * vid.width;
 	const u32 *wl = pallut[0], *tl = pallut[1], *ul = pallut[2];
-	for(u32 y = 0; y < vid.height; ++y){
+	d += (size_t)pitch * rs * y0;
+	for(u32 y = y0; y < y1; ++y){
 		u32 *row = d;
 		for(u32 x = 0; x < vid.width; ++x){
 			u32 c = wl[w[x]];
@@ -366,13 +369,21 @@ Q_SIL void VID_CompositeRows(u32 *d, s32 pitch, s32 rs, s32 ui, s32 top)
 }
 
 #define COMPFUNC(rs1, ui, top) \
-static void VID_Composite##rs1##ui##top(u32 *d, s32 pitch) \
-{ VID_CompositeRows(d, pitch, rs1 ? 1 : renderscale, ui, top); }
+static void VID_Composite##rs1##ui##top(u32 *d, s32 pitch, u32 y0, u32 y1) \
+{ VID_CompositeRows(d, pitch, rs1 ? 1 : renderscale, ui, top, y0, y1); }
 #define COMPFUNC_LIST(X) X(0, 0, 0) X(0, 0, 1) X(0, 1, 0) X(0, 1, 1) \
 	X(1, 0, 0) X(1, 0, 1) X(1, 1, 0) X(1, 1, 1)
 COMPFUNC_LIST(COMPFUNC)
 #define COMPFUNC_PTR(rs1, ui, top) VID_Composite##rs1##ui##top,
-static void (*const compfuncs[8])(u32 *, s32) ={COMPFUNC_LIST(COMPFUNC_PTR)};
+static void (*const compfuncs[8])(u32 *, s32, u32, u32) =
+	{COMPFUNC_LIST(COMPFUNC_PTR)};
+
+static u32 VID_RowRun(const u8 *rows, u32 y)
+{ // the end of the run of rows that are drawn on as much as row y is
+	u32 e = y + 1;
+	while(e < vid.height && rows[e] == rows[y]) ++e;
+	return e;
+}
 
 void VID_Update()
 {
@@ -402,16 +413,34 @@ void VID_Update()
 	scRect2.x = ((s32)vid.width*renderscale - scRect2.w) / 2;
 	scRect2.y = ((s32)vid.height*renderscale - scRect2.h) / 2;
 	if(SDL_LockTexture(texture,0, &argbbuffer->pixels, &argbbuffer->pitch)){
-		if(blitscreensbar)
+		u8 *sbrows = drawnrows[3];
+		if(blitscreensbar && (scRect.w != blitRect.w
+					|| scRect.h != blitRect.h))
 			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
 				&scRect, SDL_SCALEMODE_NEAREST); // 8-bit to 8-bit
+		else if(blitscreensbar) // unscaled, the other rows are clear
+			for(u32 y = 0, e; y < vid.height; y = e){
+				e = VID_RowRun(sbrows, y);
+				SDL_Rect r = {0, y, vid.width, e - y};
+				if(sbrows[y]) SDL_BlitSurfaceScaled(screensbar,
+					&r, screen, &r, SDL_SCALEMODE_NEAREST);
+			}
 		if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
 		if(SDL_BYTESPERPIXEL(window_format) == 4
 		&& (renderscale == 1 || scalemode != SDL_SCALEMODE_LINEAR)
 		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h)))
-			compfuncs[(renderscale == 1) * 4 + blitscreenui * 2
-				+ blitscreentop](argbbuffer->pixels,
-					argbbuffer->pitch / 4);
+		{ // rows without overlays on them take the plain world loop
+			u8 rows[MAXHEIGHT];
+			for(u32 y = 0; y < vid.height; ++y)
+				rows[y] = (blitscreenui && drawnrows[2][y]) * 2
+					+ (blitscreentop && drawnrows[1][y]);
+			for(u32 y = 0, e; y < vid.height; y = e){
+				e = VID_RowRun(rows, y);
+				compfuncs[(renderscale == 1) * 4 + rows[y]](
+					argbbuffer->pixels,
+					argbbuffer->pitch / 4, y, e);
+			}
+		}
 		else{ // linear filtering or a scaled UI layer
 			SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer,
 					&dst, scalemode);
@@ -441,10 +470,15 @@ void VID_Update()
 		Cvar_SetValue("scr_uiscale", testuiscale);
 		vid_testingmode = 0;
 	}
-	// unused layers aren't drawn to, so they stay clear from AllocBuffers
-	if(blitscreentop) memset(screentop->pixels, 255, vid.width*vid.height);
-	if(blitscreensbar) memset(screensbar->pixels,255,vid.width*vid.height);
-	if(blitscreenui) memset(screenui->pixels, 255, vid.width*vid.height);
+	for(s32 i = 1; i < 4; ++i){ // only the rows that were drawn on
+		u8 *rows = drawnrows[i];
+		for(u32 y = 0, e; y < vid.height; y = e){
+			e = VID_RowRun(rows, y);
+			if(rows[y]) memset((u8 *)scrbuffs[i]->pixels
+				+ y * vid.width, 255, (e - y) * vid.width);
+		}
+		memset(rows, 0, vid.height);
+	}
 }
 
 c8 *VID_GetModeDescription(s32 mode)
@@ -474,6 +508,7 @@ void VID_AllocBuffers()
 	memset(toppixels, 255, area); // 255 is transparent in the overlays
 	memset(uipixels, 255, area);
 	memset(sbarpixels, 255, area);
+	memset(drawnrows, 0, sizeof(drawnrows));
 	screen->pixels = vid.buffer = screenpixels;
 	screentop->pixels = toppixels;
 	screenui->pixels = uipixels;

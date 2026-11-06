@@ -24,6 +24,13 @@ static s32 dos_brightness_lut_init = 0;
 static u8 brightness_lut[256*3];
 static s32 brightness_lut_init = 0;
 
+static void Draw_MarkRows(s32 y0, s32 y1)
+{ // VID_Update composites and clears only the rows an overlay got
+	y0 = CLAMP(0, y0, (s32)vid.height);
+	y1 = CLAMP(0, y1, (s32)vid.height);
+	if(y0 < y1) memset(drawnrows[drawlayer] + y0, 1, y1 - y0);
+}
+
 s32 D_Dither(u8 *pos, f32 opacity)
 {
 	if(opacity >= 1.0f) return 1;
@@ -166,6 +173,7 @@ void Draw_Character_Ex(f32 *pos, f32 *sz, s32 num, f32 *color, f32 alpha)
 	s32 endx = (base_x + draw_w) > clipx1 ? clipx1 : (base_x + draw_w);
 	s32 endy = (base_y + draw_h) > clipy1 ? clipy1 : (base_y + draw_h);
 	if(startx >= endx || starty >= endy) return;
+	Draw_MarkRows(starty, endy);
 	u8 *fb = (u8*)scrbuffs[drawlayer]->pixels;
 	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
 	for(s32 dy = starty; dy < endy; dy++){
@@ -220,6 +228,7 @@ void Draw_CharacterScaled(s32 x, s32 y, s32 num, s32 scale, s32 effect)
 		y = 0;
 	}else
 		drawline = 8;
+	Draw_MarkRows(y - row_remainder, y + drawline * scale);
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	dest -= row_remainder * vid.width; // avoid jitter
 	if(effect){ // 16 - speed, 5 - amplitude
@@ -279,6 +288,7 @@ void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 	s32 rowinc = vid.width;
 	if(y + pic->height * scale > (s32)vid.height)
 		return;
+	Draw_MarkRows(y, y + pic->height * scale);
 	for(u32 v = 0; v < (u32)pic->height; v++){
 		if(v * scale + y >= vid.height)
 			break;
@@ -298,7 +308,8 @@ void Draw_PicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
 {
 	u8 *source = p->data;
-		u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
+	Draw_MarkRows(y, y + p->height * s);
+	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	for(u32 v = 0; v < (u32)p->height; v++){
 		if(v * s + y >= vid.height || v > (u32)h)
 			return;
@@ -323,6 +334,7 @@ void Draw_PicScaledPartial(s32 x,s32 y,s32 l,s32 t,s32 w,s32 h,qpic_t *p,s32 s)
 void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 {
 	u8 *source = pic->data;
+	Draw_MarkRows(y, y + pic->height * scale);
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	for(u32 v = 0; v < (u32)pic->height; v++){
 		if(v * scale + y >= vid.height)
@@ -345,6 +357,7 @@ void Draw_TransPicScaled(s32 x, s32 y, qpic_t *pic, s32 scale)
 void Draw_TransPicTranslateScaled(s32 x, s32 y, qpic_t *p, u8 *tl, s32 scale)
 {
 	u8 *source = p->data;
+	Draw_MarkRows(y, y + p->height * scale);
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	for(s32 v = 0; v < p->height; v++){
 		if(v * scale + y >= (s32)vid.height)
@@ -394,6 +407,7 @@ void Draw_Pic_Ex(f32 *pos, f32 *sz, qpic_t *pic, f32 *srcpos, f32 *srcsz,
 	s32 endx = (base_x + draw_w) > clipx1 ? clipx1 : (base_x + draw_w);
 	s32 endy = (base_y + draw_h) > clipy1 ? clipy1 : (base_y + draw_h);
 	if(startx >= endx || starty >= endy) return;
+	Draw_MarkRows(starty, endy);
 	u8 *fb = (u8*)scrbuffs[drawlayer]->pixels;
 	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
 	for(s32 dy = starty; dy < endy; dy++){
@@ -455,6 +469,7 @@ void Draw_ConsoleBackground(s32 lines)
 	for(u64 x = 0; x < strlen(ver); x++)
 		Draw_CharToConbackScaled(ver[x], dest + x * 8 * scale, scale,
 								conback->width);
+	Draw_MarkRows(0, lines);
 	dest = (u8*)scrbuffs[drawlayer]->pixels; // draw the pic
 	for(s32 y = 0; y < lines; y++, dest += vid.width){
 		s32 v = (vid.height-lines+y)*conback->height/vid.height;
@@ -473,6 +488,7 @@ void Draw_ConsoleBackground(s32 lines)
 
 void R_DrawRect(vrect_t *prect, s32 rowbytes, u8 *psrc)
 {
+	Draw_MarkRows(prect->y, prect->y + prect->height);
 	u8 *pdest=(u8*)scrbuffs[drawlayer]->pixels+prect->y*vid.width+prect->x;
 	u64 maxdest = (u64)scrbuffs[drawlayer]->pixels+vid.width*vid.height;
 	for(s32 i = 0; i < prect->height; i++){
@@ -519,6 +535,7 @@ void Draw_TileClear(s32 x, s32 y, s32 w, s32 h) // This repeats a 64*64
 
 void Draw_Fill(s32 x, s32 y, s32 w, s32 h, s32 c)
 { // Fills a box of pixels with a single color
+	Draw_MarkRows(y, y + h);
 	u8 *dest = (u8*)scrbuffs[drawlayer]->pixels + y * vid.width + x;
 	for(s32 v = 0; v < h; v++, dest += vid.width)
 		memset(dest, c, w); // Fast horizontal fill
@@ -546,6 +563,7 @@ void Draw_FillEx(s32 x, s32 y, s32 w, s32 h, f32 *rgb, f32 alpha)
 		return;
 	}
 	if(!fog_lut_built) R_BuildColorMixLUT(0);
+	Draw_MarkRows(starty, endy);
 	u8 *fb  = (u8*)scrbuffs[drawlayer]->pixels;
 	u8 *fb0 = (u8*)scrbuffs[0]->pixels;
 	for(s32 dy = starty; dy < endy; dy++){

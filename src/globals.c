@@ -145,6 +145,7 @@ bool r_cache_thrash; // set if surface cache is thrashing            // d_surf.c
 surfcache_t *sc_rover;
 s32 r_lightonly; // cache light rows only, for lit water
 s32 drawlayer = 0;                                                     // draw.c
+u8 drawnrows[4][MAXHEIGHT]; // rows of each layer drawn on this frame
 qpic_t *draw_disc;
 quakeparms_t host_parms;                                               // host.c
 f32 host_netinterval;
