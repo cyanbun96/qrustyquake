@@ -176,10 +176,15 @@ int main(int c, char **v)
 	if(host_parms.membase == NULL){
 		printf("WARNING: Allocation of requested %d bytes failed.\n",
 				host_parms.memsize);
-		host_parms.memsize = 16*1024*1024;
+		do{ // the biggest heap a small machine can give, down to 16 MB
+			host_parms.memsize = host_parms.memsize / 4 * 3;
+			if(host_parms.memsize < 16*1024*1024)
+				host_parms.memsize = 16*1024*1024;
+			host_parms.membase = malloc(host_parms.memsize);
+		}while(!host_parms.membase
+				&& host_parms.memsize > 16*1024*1024);
 		printf("WARNING: Using fallback %d byte heap size.\n",
 				host_parms.memsize);
-		host_parms.membase = malloc(host_parms.memsize);
 	}
 	host_parms.basedir = ".";
 	host_parms.userdir = ".";
