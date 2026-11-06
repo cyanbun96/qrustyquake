@@ -576,8 +576,8 @@ static bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
 	s32 vx0 = r_refdef.vrect.x, vy0 = r_refdef.vrect.y;
 	s32 vx1 = vx0 + r_refdef.vrect.width - 1;
 	s32 vy1 = vy0 + r_refdef.vrect.height - 1;
-	s32 x0 = (s32)floorf(minx)-ENTOCC_PAD, x1 = (s32)ceilf(maxx)+ENTOCC_PAD;
-	s32 y0 = (s32)floorf(miny)-ENTOCC_PAD, y1 = (s32)ceilf(maxy)+ENTOCC_PAD;
+	s32 x0 = Q_floor(minx)-ENTOCC_PAD, x1 = Q_ceil(maxx)+ENTOCC_PAD;
+	s32 y0 = Q_floor(miny)-ENTOCC_PAD, y1 = Q_ceil(maxy)+ENTOCC_PAD;
 	if(x0 < vx0) x0 = vx0;
 	if(y0 < vy0) y0 = vy0;
 	if(x1 > vx1) x1 = vx1;

@@ -429,10 +429,8 @@ void D_PolysetSetUpForLineScan(s32 startvertu, s32 startvertv,
 	errorterm = -1;
 	s32 tm = endvertu - startvertu;
 	s32 tn = endvertv - startvertv;
-	f64 dm = (f64)tm;
-	f64 dn = (f64)tn;
-	FloorDivMod(dm, dn, &ubasestep, &erroradjustup);
-	erroradjustdown = dn;
+	FloorDivMod(tm, tn, &ubasestep, &erroradjustup);
+	erroradjustdown = tn;
 }
 
 void D_PolysetCalcGradients(s32 skinwidth)
@@ -448,8 +446,8 @@ void D_PolysetCalcGradients(s32 skinwidth)
 // very visible, overflow is very unlikely, because of ambient lighting
 	f32 t0 = r_p0[4] - r_p2[4];
 	f32 t1 = r_p1[4] - r_p2[4];
-	r_lstepx = (s32)ceil((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
-	r_lstepy = (s32)ceil((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
+	r_lstepx = Q_ceil((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
+	r_lstepy = Q_ceil((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
 	t0 = r_p0[2] - r_p2[2];
 	t1 = r_p1[2] - r_p2[2];
 	r_sstepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);

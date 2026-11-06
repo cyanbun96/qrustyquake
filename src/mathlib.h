@@ -32,6 +32,11 @@ Q_SIL s32 VectorCompare (const vec3_t v1, const vec3_t v2)
 }
 Q_SIL s32 GreatestCommonDivisor(s32 a, s32 b)
 	{while(b != 0){ s32 t = b; b = a % b; a = t; } return a;}
+// ceil and floor to s32 for |x| < 2^31, libm's are x87 calls on i386
+Q_SIL s32 Q_ceil(f32 x)
+	{ s32 i = (s32)x; return i + ((f32)i < x); }
+Q_SIL s32 Q_floor(f32 x)
+	{ s32 i = (s32)x; return i - ((f32)i > x); }
 
 Q_SIL void TransformVector(vec3_t in, vec3_t out)
 {
@@ -183,24 +188,17 @@ Q_SIL void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 	up[2] = cr * cp;
 }
 
-// Returns mathematically correct (floor-based) quotient and remainder for
-// numer and denom, both of which should contain no fractional part. The
-// quotient must fit in 32 bits.
-Q_SIL void FloorDivMod(f64 numer, f64 denom, s32 *quotient, s32 *rem)
+// Returns mathematically correct (floor-based) quotient and remainder
+Q_SIL void FloorDivMod(s32 numer, s32 denom, s32 *quotient, s32 *rem)
 {
-	s32 q, r;
-	if(numer >= 0.0){
-		f64 x = floor(numer / denom);
-		q = (s32)x;
-		r = (s32)floor(numer - (x * denom));
-	}else{ // perform operations with positive values, and fix mod
-		f64 x = floor(-numer / denom); // to make floor-based
-		q = -(s32)x;
-		r = (s32)floor(-numer - (x * denom));
-		if(r != 0){
-			q--;
-			r = (s32)denom - r;
-		}
+	if(!denom){ // the f64 version gave garbage here, don't trap
+		*quotient = *rem = 0;
+		return;
+	}
+	s32 q = numer / denom, r = numer % denom;
+	if(r && (r ^ denom) < 0){ // C truncates, step down to the floor
+		q--;
+		r += denom;
 	}
 	*quotient = q;
 	*rem = r;

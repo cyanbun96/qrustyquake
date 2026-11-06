@@ -53,7 +53,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 			v0 = r_refdef.fvrecty_adj;
 		if(v0 > r_refdef.fvrectbottom_adj)
 			v0 = r_refdef.fvrectbottom_adj;
-		ceilv0 = (s32)ceil(v0);
+		ceilv0 = Q_ceil(v0);
 	}
 	world = &pv1->position[0];
 	VectorSubtract(world, modelorg, local); // transform and project
@@ -80,7 +80,7 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	if(r_nearzionly) // for right edges, all we want is the effect on 1/z
 		return;
 	r_emitted = 1;
-	r_ceilv1 = (s32)ceil(r_v1);
+	r_ceilv1 = Q_ceil(r_v1);
 	if(ceilv0 == r_ceilv1){ // create the edge
 		// we cache unclipped horizontal edges as fully clipped
 		if(cacheoffset != 0x7FFFFFFF){

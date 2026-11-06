@@ -186,8 +186,13 @@ static void HLRipple(f32 *u, f32 *v, f32 time)
 		{ 1,  0}, { 1,  1}, { 0,  1}, {-1,  1},
 		{-1,  0}, {-1, -1}, { 0, -1}, { 1, -1}
 	};
+#if defined(__x86_64__) || defined(__aarch64__) // one rounding instruction
 	f32 iu = floorf(*u);
 	f32 iv = floorf(*v);
+#else // per pixel, Q_floor beats a slow libm call (x87 on i386)
+	f32 iu = Q_floor(*u);
+	f32 iv = Q_floor(*v);
+#endif
 	f32 baseu = *u;
 	f32 basev = *v;
 	f32 ox = 0.0f;

@@ -135,11 +135,11 @@ void D_SpriteScanLeftEdge()
 	s32 lmaxindex = maxindex;
 	if(lmaxindex == 0)
 		lmaxindex = r_spritedesc.nump;
-	f32 vtop = ceil(r_spritedesc.pverts[i].v);
+	f32 vtop = Q_ceil(r_spritedesc.pverts[i].v);
 	do{
 		emitpoint_t *pvert = &r_spritedesc.pverts[i];
 		emitpoint_t *pnext = pvert - 1;
-		f32 vbottom = ceil(pnext->v);
+		f32 vbottom = Q_ceil(pnext->v);
 		if(vtop < vbottom){
 			f32 du = pnext->u - pvert->u;
 			f32 dv = pnext->v - pvert->v;
@@ -173,7 +173,7 @@ void D_SpriteScanRightEdge()
 		vvert = r_refdef.fvrecty_adj;
 	if(vvert > r_refdef.fvrectbottom_adj)
 		vvert = r_refdef.fvrectbottom_adj;
-	f32 vtop = ceil(vvert);
+	f32 vtop = Q_ceil(vvert);
 	do{
 		emitpoint_t *pvert = &r_spritedesc.pverts[i];
 		emitpoint_t *pnext = pvert + 1;
@@ -182,7 +182,7 @@ void D_SpriteScanRightEdge()
 			vnext = r_refdef.fvrecty_adj;
 		if(vnext > r_refdef.fvrectbottom_adj)
 			vnext = r_refdef.fvrectbottom_adj;
-		f32 vbottom = ceil(vnext);
+		f32 vbottom = Q_ceil(vnext);
 		if(vtop < vbottom){
 			f32 uvert = pvert->u;
 			if(uvert < r_refdef.fvrectx_adj)
@@ -262,8 +262,8 @@ void D_DrawSprite()
 		}
 		pverts++;
 	}
-	ymin = ceil(ymin);
-	ymax = ceil(ymax);
+	ymin = Q_ceil(ymin);
+	ymax = Q_ceil(ymax);
 	if(ymin >= ymax)
 		return; // doesn't cross any scans at all
 	cachewidth = r_spritedesc.pspriteframe->width;
