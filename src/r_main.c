@@ -261,8 +261,6 @@ static void R_InitTurb()
 		sintable[i] = amp + sin(i * 3.14159 * 2 / TURB_CYCLE) * amp;
 		intsintable[i]=TURB_AMP2+sin(i*3.14159*2/TURB_CYCLE)*TURB_AMP2;
 	}
-	static u8 warpbuffer[WARP_WIDTH * WARP_HEIGHT];
-	r_warpbuffer = warpbuffer;
 }
 
 static void R_ViewChangedCallback(SDL_UNUSED cvar_t *cvar)

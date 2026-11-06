@@ -287,6 +287,7 @@ void D_Init();
 void D_ViewChanged();
 void D_SetupFrame();
 void D_WarpScreen();
+void D_AllocCutoutBuf(s32 size);
 s32 R_DrawSurface();
 void D_DrawSurfaces();
 void D_DrawSurfacesAlpha();

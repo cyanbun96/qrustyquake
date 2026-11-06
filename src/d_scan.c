@@ -76,7 +76,7 @@ static struct {
 static s32 *r_turb_turb;
 static s32 *pz; // Manoel Kasimier - translucent water
 static s32 izi, izistep;
-static u8 cutoutbuf[MAXHEIGHT*MAXWIDTH];
+static u8 *cutoutbuf; // pixels a cutout span gave a texel, one per pixel
 static f32 dist_lut[DIST_LUT_SIZE];
 static f32 cos_lut[COS_LUT_SIZE];
 static f32 dist_lut_max = 8.0f; // max dx*dx + dy*dy
@@ -112,6 +112,13 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 		for(; u < scr_vrect.width; u++)
 			dest[u] = row[turb[u]][col[u]];
 	}
+}
+
+void D_AllocCutoutBuf(s32 size)
+{ // calloc leaves big buffers untouched until a cutout is drawn
+	free(cutoutbuf);
+	if(!(cutoutbuf = calloc(size, 1)))
+		Sys_Error("Not enough memory for video mode");
 }
 
 Q_SIL f32 fast_sqrt_dist(f32 x)
@@ -573,17 +580,16 @@ Q_SIL u8 *D_SpanChunkNormal(texcursor_t *c, u8 *pdest, s32 dithered)
 }
 
 Q_SIL u8 *D_SpanChunkCutout(texcursor_t *c, u8 *pdest, s32 dithered)
-{
+{ // a local walks cutoutbuf, the byte stores could change the globals
+	u8 *cut = cutoutbuf + (pdest - d_viewbuffer);
 	do{
 		if(D_SpanDepthPass()){
 			u8 pix = D_CursorTexel(c, dithered);
-			cutoutbuf[pdest-d_viewbuffer] = 0;
-			if(pix != 0xff){
-				*pdest = pix;
-				cutoutbuf[pdest-d_viewbuffer] = 1;
-			}
+			*cut = pix != 0xff;
+			if(pix != 0xff) *pdest = pix;
 		}
 		pdest++;
+		cut++;
 		D_SpanDepthStep();
 		D_CursorAdvance(c);
 	}while(--c->count > 0);

@@ -466,8 +466,11 @@ void VID_AllocBuffers()
 	toppixels = realloc(toppixels, area);
 	uipixels = realloc(uipixels, area);
 	sbarpixels = realloc(sbarpixels, area);
-	if(!screenpixels||!toppixels||!uipixels||!sbarpixels)
+	free(r_warpbuffer); // calloc doesn't touch it until it's used
+	r_warpbuffer = calloc(area, 1);
+	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!r_warpbuffer)
 		Sys_Error("Not enough memory for video mode");
+	D_AllocCutoutBuf(area);
 	memset(toppixels, 255, area); // 255 is transparent in the overlays
 	memset(uipixels, 255, area);
 	memset(sbarpixels, 255, area);
