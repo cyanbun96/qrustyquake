@@ -461,7 +461,11 @@ void VID_Update()
 		}
 		SDL_UnlockTexture(texture);
 	}else{ printf("Couldn't lock texture %s\n", SDL_GetError()); }
-	SDL_RenderClear(renderer);
+	s32 outw, outh; // only the bars around the picture need clearing
+	SDL_GetCurrentRenderOutputSize(renderer, &outw, &outh);
+	if(destRect.x > 0 || destRect.y > 0 || destRect.w < outw
+			|| destRect.h < outh)
+		SDL_RenderClear(renderer);
 	SDL_RenderTexture(renderer, texture, NULL, &destRect);
 	SDL_RenderPresent(renderer);
 	if(vid_testingmode && realtime >= vid_testendtime){
