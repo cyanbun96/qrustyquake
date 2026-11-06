@@ -11,6 +11,13 @@ static u8 *sbarpixels;
 static SDL_PixelFormat window_format;
 static SDL_Palette *sdlpals[4]; // indexed like scrbuffs
 static u32 pallut[4][256]; // the same palettes in window_format
+// GPU renderers since SDL 3.4 take the 8-bit layers as they are and look the
+// palette up themselves, which saves the conversion and 3/4 of the upload.
+// The overlays go on top with 255 transparent in their palettes.
+static SDL_Texture *idxtex[3]; // world, top, ui, NULL to convert on the CPU
+static SDL_Palette *idxpals[3]; // top and ui, the world uses sdlpals[0]
+static u8 idxrows[3][MAXHEIGHT]; // overlay rows the textures hold drawings in
+static bool idxany[3]; // anything drawn in the overlay textures
 static s32 renderscale;
 static s32 scalemode;
 // what a mode test from the video menu returns to
@@ -77,6 +84,12 @@ void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 				colors[i].b);
 	}
 	SDL_SetPaletteColors(sdlpals[l], colors, 0, 256);
+	if(l == 1 || l == 2){
+		if(!idxpals[l] && !(idxpals[l] = SDL_CreatePalette(256)))
+			return;
+		colors[255].a = 0;
+		SDL_SetPaletteColors(idxpals[l], colors, 0, 256);
+	}
 }
 
 void VID_SetWindowed()
@@ -149,6 +162,39 @@ static void VID_CreateSurfaces()
 				SDL_PIXELFORMAT_INDEX8, NULL, vid.width);
 		sdlpals[i] = SDL_CreateSurfacePalette(*s[i]);
 	}
+}
+
+static void VID_DestroyIndexedTextures()
+{
+	for(s32 i = 0; i < 3; i++){
+		if(idxtex[i]) SDL_DestroyTexture(idxtex[i]);
+		idxtex[i] = NULL;
+	}
+}
+
+static void VID_CreateIndexedTextures()
+{ // SDL's software renderer draws them 3x slower than VID_Composite does
+	VID_DestroyIndexedTextures();
+#if SDL_VERSION_ATLEAST(3, 4, 0)
+	const c8 *name = SDL_GetRendererName(renderer);
+	if(!name || !strcmp(name, SDL_SOFTWARE_RENDERER))
+		return;
+	for(s32 i = 0; i < 3; i++){
+		SDL_Texture *t = SDL_CreateTexture(renderer,
+			SDL_PIXELFORMAT_INDEX8, SDL_TEXTUREACCESS_STREAMING,
+			vid.width, vid.height);
+		idxtex[i] = t;
+		if(!t || !SDL_SetTexturePalette(t, i ? idxpals[i] : sdlpals[0])
+		|| !SDL_SetTextureBlendMode(t, i ? SDL_BLENDMODE_BLEND
+			: SDL_BLENDMODE_NONE)
+		|| !SDL_SetTextureScaleMode(t, SDL_SCALEMODE_NEAREST)){
+			Con_DPrintf("No 8-bit textures: %s\n", SDL_GetError());
+			VID_DestroyIndexedTextures();
+			return;
+		}
+	}
+	memset(idxrows, 1, sizeof(idxrows)); // new textures hold garbage
+#endif
 }
 
 void VID_Init()
@@ -275,6 +321,7 @@ void VID_Init()
 			vid.height * renderscale);
 	if(!texture) Sys_Error("Couldn't create texture: %s", SDL_GetError());
 	SDL_SetTextureScaleMode(texture, scalemode);
+	VID_CreateIndexedTextures();
 	sprintf(caption, "QrustyQuake - Version %4.2f", VERSION);
 	SDL_SetWindowTitle(window, (const c8 *)&caption);
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
@@ -386,6 +433,24 @@ static u32 VID_RowRun(const u8 *rows, u32 y)
 	return e;
 }
 
+static void VID_UploadOverlay(s32 l, bool used)
+{ // the rows drawn in now and the ones still holding an older drawing
+	u8 rows[MAXHEIGHT];
+	idxany[l] = false;
+	for(u32 y = 0; y < vid.height; ++y){
+		rows[y] = (used && drawnrows[l][y]) || idxrows[l][y];
+		idxrows[l][y] = used && drawnrows[l][y];
+		idxany[l] |= idxrows[l][y];
+	}
+	const u8 *pixels = scrbuffs[l]->pixels;
+	for(u32 y = 0, e; y < vid.height; y = e){
+		e = VID_RowRun(rows, y);
+		SDL_Rect r = {0, y, vid.width, e - y};
+		if(rows[y]) SDL_UpdateTexture(idxtex[l], &r,
+				pixels + y * vid.width, vid.width);
+	}
+}
+
 void VID_Update()
 {
 	bool blitscreentop = false;
@@ -413,20 +478,29 @@ void VID_Update()
 			scr_uiyscale.value : 1);
 	scRect2.x = ((s32)vid.width*renderscale - scRect2.w) / 2;
 	scRect2.y = ((s32)vid.height*renderscale - scRect2.h) / 2;
+	u8 *sbrows = drawnrows[3];
+	if(blitscreensbar && (scRect.w != blitRect.w || scRect.h != blitRect.h))
+		SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
+			&scRect, SDL_SCALEMODE_NEAREST); // 8-bit to 8-bit
+	else if(blitscreensbar) // unscaled, the other rows are clear
+		for(u32 y = 0, e; y < vid.height; y = e){
+			e = VID_RowRun(sbrows, y);
+			SDL_Rect r = {0, y, vid.width, e - y};
+			if(sbrows[y]) SDL_BlitSurfaceScaled(screensbar,
+				&r, screen, &r, SDL_SCALEMODE_NEAREST);
+		}
+	if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
+	// nearest sampling and alpha 0 or 1 make the GPU's layering exact,
+	// screenshots need the converted pixels
+	bool indexed = idxtex[0] && renderscale == 1 && !scrshot_name[0]
+		&& scalemode == SDL_SCALEMODE_NEAREST
+		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h));
+	if(indexed){
+		SDL_UpdateTexture(idxtex[0], NULL, screen->pixels, vid.width);
+		VID_UploadOverlay(1, blitscreentop);
+		VID_UploadOverlay(2, blitscreenui);
+	}else
 	if(SDL_LockTexture(texture,0, &argbbuffer->pixels, &argbbuffer->pitch)){
-		u8 *sbrows = drawnrows[3];
-		if(blitscreensbar && (scRect.w != blitRect.w
-					|| scRect.h != blitRect.h))
-			SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
-				&scRect, SDL_SCALEMODE_NEAREST); // 8-bit to 8-bit
-		else if(blitscreensbar) // unscaled, the other rows are clear
-			for(u32 y = 0, e; y < vid.height; y = e){
-				e = VID_RowRun(sbrows, y);
-				SDL_Rect r = {0, y, vid.width, e - y};
-				if(sbrows[y]) SDL_BlitSurfaceScaled(screensbar,
-					&r, screen, &r, SDL_SCALEMODE_NEAREST);
-			}
-		if(fadescreen == 1 && lyr_menu.value != 0) Draw_FadeScreen();
 		if(SDL_BYTESPERPIXEL(window_format) == 4
 		&& (renderscale == 1 || scalemode != SDL_SCALEMODE_LINEAR)
 		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h)))
@@ -467,7 +541,14 @@ void VID_Update()
 	if(destRect.x > 0 || destRect.y > 0 || destRect.w < outw
 			|| destRect.h < outh)
 		SDL_RenderClear(renderer);
-	SDL_RenderTexture(renderer, texture, NULL, &destRect);
+	if(indexed){
+		SDL_RenderTexture(renderer, idxtex[0], NULL, &destRect);
+		if(idxany[2])
+			SDL_RenderTexture(renderer, idxtex[2], NULL, &destRect);
+		if(idxany[1])
+			SDL_RenderTexture(renderer, idxtex[1], NULL, &destRect);
+	}else
+		SDL_RenderTexture(renderer, texture, NULL, &destRect);
 	SDL_RenderPresent(renderer);
 	if(vid_testingmode && realtime >= vid_testendtime){
 		VID_SetMode(vid_realmode, testwidth, testheight, testwinmode);
@@ -552,6 +633,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 		vid.height * renderscale);
 	if(!texture) Sys_Error("Couldn't create texture: %s", SDL_GetError());
 	SDL_SetTextureScaleMode(texture, scalemode);
+	VID_CreateIndexedTextures();
 	vid.aspect = ((f32)vid.height / (f32)vid.width) * (320.0 / 240.0);
 	screen->pixels = screenpixels;
 	screenui->pixels = uipixels;
