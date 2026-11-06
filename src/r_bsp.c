@@ -284,14 +284,19 @@ static void R_ClipBmodelFace(model_t *pmodel, msurface_t *psurf,
 		pbedge[j].pnext = &pbedge[j + 1];
 	}
 	pbedge[j - 1].pnext = NULL; // mark end of edges
+	surf_t *firstsurf = surface_p;
 	if(r_bclipnode->contents < 0){ // all of it in a leaf that's drawn
 		r_currentbkey = ((mleaf_t *)r_bclipnode)->key;
 		R_RenderBmodelFace(pbedge, psurf);
-		return;
+	}else{
+		f32 bounds[6];
+		R_BEdgeBounds(pbedge, bounds);
+		R_RecursiveClipBPoly(pbedge, r_bclipnode, psurf, bounds);
 	}
-	f32 bounds[6];
-	R_BEdgeBounds(pbedge, bounds);
-	R_RecursiveClipBPoly(pbedge, r_bclipnode, psurf, bounds);
+	// faces that come later can be hidden behind it, wherever it got
+	// clipped away it's behind world faces anyway
+	if(r_bmodel_occ_faces && surface_p > firstsurf)
+		R_CoarseOcclusionAddSurface(psurf, surface_p - 1);
 }
 
 static void R_UnclippedBmodelFace(SDL_UNUSED model_t *pmodel,
@@ -343,14 +348,20 @@ static void R_BmodelFaceNode(model_t *pmodel, mnode_t *node, s32 clipflags,
 		if(wnode && !(wnode = R_BoxWorldNode(wnode, mn, mx)))
 			return;
 	}
+	// the near side first, its faces can hide the ones behind them
+	const mplane_t *p = node->plane;
+	s32 side = DotProduct(modelorg, p->normal) - p->dist < 0;
+	mnode_t *front = node->children[side], *back = node->children[!side];
+	if(front->contents >= 0)
+		R_BmodelFaceNode(pmodel, front, clipflags, occlusion, wnode,
+				face);
 	r_bclipnode = wnode ? wnode : currententity->topnode;
 	msurface_t *psurf = pmodel->surfaces + node->firstsurface;
 	for(u32 i = 0; i < node->numsurfaces; i++, psurf++)
 		face(pmodel, psurf, clipflags);
-	for(s32 c = 0; c < 2; c++)
-		if(node->children[c]->contents >= 0)
-			R_BmodelFaceNode(pmodel, node->children[c], clipflags,
-					occlusion, wnode, face);
+	if(back->contents >= 0)
+		R_BmodelFaceNode(pmodel, back, clipflags, occlusion, wnode,
+				face);
 }
 
 static void R_BmodelFaces(model_t *pmodel, s32 clipflags, bmodelface_f face)
