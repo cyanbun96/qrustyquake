@@ -415,7 +415,10 @@ void R_DrawFog()
 {
 	if(!fog_density || r_nofog.value) return;
 	f32 noisebias = 10 * r_fognoise.value;
-	if(!fog_initialized || old_noisebias!=noisebias)R_InitFog(noisebias);
+	if(!fog_initialized || old_noisebias!=noisebias){
+		R_ThreadsSync(); // the sky is fogged with fog_pal_index
+		R_InitFog(noisebias);
+	}
 	if(old_r_fogscale!=r_fogscale.value || old_fog_density!=fog_density
 			|| old_r_fogfactor != r_fogfactor.value)
 		R_InitFogLUT();
