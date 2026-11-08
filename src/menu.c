@@ -2372,7 +2372,7 @@ void M_Display_Draw()
 	else if(scr_hudstyle.value==8)M_Print(xoffset+204,48,"Classic no BG");
 	else                          M_Print(xoffset+204,48,"EZQuake");
 	if(crosshair.value){ temp[0] = cl_crosschar.value+128; temp[1] = 0; }
-	else sprintf(temp, "Off");
+	else sprintf(temp, "off");
 	M_Print(xoffset + 204, 56, temp);
 	M_PrintVal(xoffset + 204, 64, "%0.2f\n", aspectr.value);
 	M_DrawCheckbox(xoffset + 204, 72, aspectr_lock.value);
@@ -2775,7 +2775,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 72, " -far mipmaps");
 	}else if(graphics_cursor == 3 || graphics_cursor/100 == 3){
 		M_Print(xoffset, 32, "Enabled:");
-		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "On" : "Off");
+		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "on" : "off");
 		M_Print(xoffset, 40, "Noise:");
 		M_PrintVal(xoffset + x2, 40, "%0.1f", r_fognoise.value);
 		M_Print(xoffset, 48, "Thickness:");
@@ -2796,7 +2796,7 @@ void M_Graphics_Draw()
 			r_fogdepthcorrection.value==1 ? "Corrected" : "Simple");
 		M_Print(xoffset, 88, "Set By Map:");
 		M_Print(xoffset + x2, 88,
-			r_lockfog.value==1 ? "Off" : "On");
+			r_lockfog.value==1 ? "off" : "on");
 		if(r_lockfog.value){
 			M_Print(xoffset, 96, "Density:");
 			M_PrintVal(xoffset + x2, 96, "%0.2f",
@@ -2813,22 +2813,22 @@ void M_Graphics_Draw()
 		}
 	}else if(graphics_cursor == 4 || graphics_cursor/100 == 4){
 		M_Print(xoffset, 32, "Enabled:");
-		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "Off":"On");
+		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "off":"on");
 		M_Print(xoffset, 40, "Sky Fog:");
 		M_PrintVal(xoffset + x2, 40, "%0.1f\n", r_skyfog.value);
 		M_Print(xoffset, 48, "Sky Noise:");
 		M_PrintVal(xoffset + x2, 48, "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset, 56, "Smooth Anim:");
-		M_Print(xoffset + x2, 56, r_skysmooth.value==0 ? "Off":"On");
+		M_Print(xoffset + x2, 56, r_skysmooth.value==0 ? "off":"on");
 		if(graphics_cursor == 402){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Applies to newly loaded skyboxes");
 		}
 	}else if(graphics_cursor == 5 || graphics_cursor/100 == 5){
 		M_Print(xoffset, 32, "Color:");
-		M_Print(xoffset+x2, 32, r_rgblighting.value==1 ? "On" : "Off");
+		M_Print(xoffset+x2, 32, r_rgblighting.value==1 ? "on" : "off");
 		M_Print(xoffset, 40, "Lit Water:");
-		M_Print(xoffset + x2, 40, r_litwater.value == 1 ? "On" : "Off");
+		M_Print(xoffset + x2, 40, r_litwater.value == 1 ? "on" : "off");
 		M_Print(xoffset, 48, "Color Space:");
 		M_Print(xoffset+x2, 48, r_labmixpal.value==1 ? "LAB" : "RGB");
 	}else if(graphics_cursor == 6 || graphics_cursor/100 == 6){
@@ -2925,15 +2925,15 @@ void M_Graphics_Draw()
 		M_Print(16, 182, "3: custom ui palette, scaled");
 	}else if(graphics_cursor == 9 || graphics_cursor/100 == 9){
 		M_Print(xoffset, 32, "Models:");
-		M_Print(xoffset+x2, 32, r_lerpmodels.value?"On":"Off");
+		M_Print(xoffset+x2, 32, r_lerpmodels.value?"on":"off");
 		M_Print(xoffset, 40, "Movement:");
-		M_Print(xoffset+x2, 40, r_lerpmove.value?"On":"Off");
+		M_Print(xoffset+x2, 40, r_lerpmove.value?"on":"off");
 		M_Print(xoffset, 48, "Recoil:");
-		M_Print(xoffset+x2, 48, v_gunkick.value==2?"On":"Off");
+		M_Print(xoffset+x2, 48, v_gunkick.value==2?"on":"off");
 		M_Print(xoffset, 56, "Lights:");
 		switch((s32)r_lerplightstyles.value){
-		default: case 0: M_Print(xoffset + x2, 56, "Off"); break;
-		case 1: M_Print(xoffset + x2, 56, "On"); break;
+		default: case 0: M_Print(xoffset + x2, 56, "off"); break;
+		case 1: M_Print(xoffset + x2, 56, "on"); break;
 		case 2: M_Print(xoffset + x2, 56, "All"); break;
 		}
 		if(graphics_cursor == 903){
@@ -3025,7 +3025,7 @@ void M_New_Draw()
 	M_Print(xoffset, 40, "          Center Menus");
 	M_DrawCheckbox(xoffset + 204, 40, scr_centermenus.value);
 	M_Print(xoffset, 48, "              UI Mouse");
-	if(!ui_mouse.value)M_Print(xoffset + 204, 48, "Off");
+	if(!ui_mouse.value)M_Print(xoffset + 204, 48, "off");
 	else if(!ui_mouse_sound.value) M_Print(xoffset + 204, 48, "Quiet");
 	else M_Print(xoffset + 204, 48, "Loud");
 	if(new_cursor == 2){
@@ -3694,14 +3694,14 @@ void M_GameOptions_Draw()
 			case 4: msg = "Capture the Flag"; break;
 			case 5: msg = "One Flag CTF"; break;
 			case 6: msg = "Three Team CTF"; break;
-			default: msg = "Off"; break;
+			default: msg = "off"; break;
 		}
 		M_Print(160, 72, msg);
 	}else{
 		switch((s32)teamplay.value){
 			case 1: msg = "No Friendly Fire"; break;
 			case 2: msg = "Friendly Fire"; break;
-			default: msg = "Off"; break;
+			default: msg = "off"; break;
 		}
 		M_Print(160, 72, msg);
 	}
