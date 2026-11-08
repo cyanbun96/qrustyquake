@@ -1297,6 +1297,7 @@ typedef struct client_s {
 	s32 num_pings; // ping_times[num_pings%NUM_PING_TIMES]
 	f32 spawn_parms[NUM_SPAWN_PARMS];
 	s32 old_frags;
+	s32 weaponmodel; // last one held alive, resurrect gives it back
 	s32 oldstats_i[MAX_CL_STATS]; //previous values of stats.
 	f32 oldstats_f[MAX_CL_STATS]; //if these differ from the current values,
 	c8 *oldstats_s[MAX_CL_STATS]; //reflag resendstats.

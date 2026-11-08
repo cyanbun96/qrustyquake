@@ -561,11 +561,11 @@ void SV_WriteClientdataToMessage(edict_t *ent, sizebuf_t *msg)
 	MSG_WriteByte(msg, ent->v.ammo_rockets);
 	MSG_WriteByte(msg, ent->v.ammo_cells);
 	if(standard_quake){ MSG_WriteByte(msg, ent->v.weapon); }
-	else for(s32 i = 0; i < 32; i++)
-			if(((s32)ent->v.weapon) & (1<<i)){
-				MSG_WriteByte(msg, i);
-				break;
-			}
+	else{ // the client always reads this byte, even with no weapon bit set
+		u32 w = (s32)ent->v.weapon, i = 0;
+		while(i < 32 && !(w >> i & 1)) i++;
+		MSG_WriteByte(msg, i < 32 ? i : 0);
+	}
 	if(bits & SU_WEAPON2) MSG_WriteByte(msg,
 			SV_ModelIndex(PR_GetString(ent->v.weaponmodel)) >> 8);
 	if(bits & SU_ARMOR2) MSG_WriteByte(msg, (s32)ent->v.armorvalue >> 8);
@@ -592,6 +592,8 @@ bool SV_SendClientDatagram(client_t *client)
 		msg.maxsize = 1400;
 	MSG_WriteByte(&msg, svc_time);
 	MSG_WriteFloat(&msg, qcvm->time);
+	if(client->edict->v.health > 0) // death clears it, resurrect needs it
+		client->weaponmodel = client->edict->v.weaponmodel;
 	// add the client specific data to the datagram
 	SV_WriteClientdataToMessage(client->edict, &msg);
 	SV_WriteEntitiesToClient(client->edict, &msg);

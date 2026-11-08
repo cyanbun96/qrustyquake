@@ -1361,12 +1361,23 @@ void Cmd_Resurrect_f()
 	ent->v.items = (u64)ent->v.items & ~IT_SUIT;
 	ent->v.items = (u64)ent->v.items & ~IT_INVISIBILITY;
 	ent->v.items = (u64)ent->v.items & ~IT_INVULNERABILITY;
-	ent->v.weapon = 0;
-	ent->v.impulse=1;//switch to axe(other weapons sometimes crash the game)
-	s32 old_self = pr_global_struct->self;
-	pr_global_struct->self = EDICT_TO_PROG(ent);
-	PR_ExecuteProgram(pr_global_struct->PlayerPostThink);
-	pr_global_struct->self = old_self;
+	ent->v.impulse = 0; // don't run whatever was pressed while dead
+	// weapon still holds what the player died with, so give back the view
+	// model death took, then let the mod resync it the way its weapon
+	// switch does. Copper does that in W_ResetWeaponState. AD's
+	// W_SetCurrentAmmo takes the player, others take a reset flag, which
+	// the nonzero entity also sets
+	ent->v.weaponmodel = svs.clients->weaponmodel;
+	ent->v.weaponframe = 0;
+	dfunction_t *f = ED_FindFunction("W_ResetWeaponState");
+	if(!f) f = ED_FindFunction("W_SetCurrentAmmo");
+	if(f && (!f->numparms || (f->numparms == 1 && f->parm_size[0] == 1))){
+		s32 old_self = pr_global_struct->self;
+		pr_global_struct->time = qcvm->time;
+		pr_global_struct->self = G_INT(OFS_PARM0) = EDICT_TO_PROG(ent);
+		PR_ExecuteProgram(f - qcvm->functions);
+		pr_global_struct->self = old_self;
+	}
 	Con_Printf("Resurrection successful.\n");
 resurrect_ret:
 	PR_SwitchQCVM(NULL);

@@ -141,7 +141,7 @@ static ddef_t *ED_FindGlobal(const c8 *name)
 	return NULL;
 }
 
-static dfunction_t *ED_FindFunction(const c8 *fn_name)
+dfunction_t *ED_FindFunction(const c8 *fn_name)
 {
 	if(qcvm->ht_functions.capacity > 0){
 		s32 index = PR_HashGet(&qcvm->ht_functions, fn_name);

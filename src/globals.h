@@ -389,6 +389,7 @@ const c8 *ED_ParseEdict(const c8 *data, edict_t *ent);
 void ED_WriteGlobals(FILE *f);
 const c8 *ED_ParseGlobals(const c8 *data);
 void ED_LoadFromFile(const c8 *data);
+dfunction_t *ED_FindFunction(const c8 *fn_name);
 edict_t *EDICT_NUM(s32);
 s32 NUM_FOR_EDICT(edict_t*);
 void PR_PrintErrorWithStackTrace(const c8 *error, ...);
