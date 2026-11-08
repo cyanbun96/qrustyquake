@@ -85,6 +85,9 @@ void D_AllocCaches() // allocate z buffer and surface cache
 	if(d_pzbuffer == NULL) Sys_Error("Not enough memory for surf cache\n");
 	u8 *cache = (u8*)d_pzbuffer+vid.width*vid.height*sizeof(*d_pzbuffer);
 	D_InitCaches(cache, cachesize);
+	// the frame being drawn tests its alias models against the new one
+	for(u32 i = 0; i < vid.height; i++)
+		zspantable[i] = d_pzbuffer + i * vid.width;
 	vid.recalc_refdef = 1;
 }
 
