@@ -5,9 +5,16 @@
 #if defined(_MSC_VER)
 #define Q_SIL static __forceinline
 #define Q_NOINLINE __declspec(noinline)
+#define Q_TLS __declspec(thread)
 #else
 #define Q_SIL static inline __attribute__((always_inline))
 #define Q_NOINLINE __attribute__((noinline))
+#ifdef __TINYC__ // no thread local storage, so no render threads (r_thread.c)
+#define Q_TLS
+#define Q_NOTHREADS
+#else
+#define Q_TLS __thread
+#endif
 #endif
 #ifndef M_PI
 #define M_PI SDL_PI_D
@@ -670,4 +677,8 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define SPAN_SKYBOX 2
 #define SPAN_TRANS 4
 #define SPAN_CUTOUT 8
+#define R_MAXBANDS 1024                                            // r_thread.c
+#define SURFS_DRAW 0 // what D_DrawSurfaces does: set up and draw the spans
+#define SURFS_RECORD 1 // a band's spans go to the workers or wait for:
+#define SURFS_SETUP 2 // the setup walk at a flush, it hands them over
 #endif

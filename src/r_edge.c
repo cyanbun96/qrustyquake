@@ -14,6 +14,12 @@
 
 static espan_t *span_p;
 static s32 current_iv;
+// With the workers, a bit per surface that got spans since the last flush, so
+// that a flush for a band doesn't have to go through all the surfaces
+u64 *r_surfmarks;
+u64 *r_flushmarks; // those of all the bands since the surfaces were set up
+struct dsurf_s **r_surfdsurf; // how each one's spans get drawn,
+u32 *r_surfscan, r_scan; // if set up in this scan
 static s64 edge_head_u_shift20, edge_tail_u_shift20;
 static edge_t edge_head, edge_tail;
 static f32 fv;
@@ -21,6 +27,9 @@ static void(*pdrawfunc)(bool step);
 static void R_GenerateSpans(bool step);
 static void R_GenerateSpansBackward(bool step);
 static void R_GenerateSpansAlpha(bool step);
+static void R_GenerateSpansMarked(bool step);
+static void R_GenerateSpansBackwardMarked(bool step);
+static void R_GenerateSpansAlphaMarked(bool step);
 
 // Cutout/skybox bookkeeping. For every such surface we collect the rightmost
 // leading edge and the leftmost trailing edge while walking the active edge
@@ -46,9 +55,31 @@ static void R_CutoutBeginFrame()
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
 		if(R_IsCutSurf(s))
 			cut_surfs++;
+	s32 need = r_lsurfs_size + 2;
+	static s32 marks_cap;
+	if(marks_cap < need){
+		free(r_surfmarks);
+		free(r_flushmarks);
+		free(r_surfdsurf);
+		free(r_surfscan);
+		r_surfmarks = calloc((need + 63) / 64, sizeof(*r_surfmarks));
+		r_flushmarks = calloc((need + 63) / 64, sizeof(*r_flushmarks));
+		r_surfdsurf = malloc(need * sizeof(*r_surfdsurf));
+		r_surfscan = calloc(need, sizeof(*r_surfscan));
+		if(!r_surfmarks || !r_flushmarks || !r_surfdsurf
+				|| !r_surfscan)
+			Sys_Error("R_CutoutBeginFrame: out of memory");
+		marks_cap = need;
+	}
+	r_scan++;
+	if(r_threaded){ // cleared again, in case a frame was cut short
+		s32 words = (marks_cap + 63) / 64;
+		memset(r_surfmarks, 0, words * sizeof(*r_surfmarks));
+		memset(r_flushmarks, 0, words * sizeof(*r_flushmarks));
+		D_BeginRecords();
+	}
 	if(!cut_surfs)
 		return;
-	s32 need = r_lsurfs_size + 2;
 	static s32 cut_cap; // entries allocated in cut_acc and cut_list
 	if(cut_cap < need){
 		free(cut_acc);
@@ -81,16 +112,19 @@ void R_BeginEdgeFrame()
 	surfaces[1].spans = NULL; // no background spans yet
 	surfaces[1].flags = SURF_DRAWBACKGROUND;
 	if(r_draworder.value){ //put background behind everything in the world
-		pdrawfunc = R_GenerateSpansBackward;
+		pdrawfunc = r_threaded ? R_GenerateSpansBackwardMarked
+			: R_GenerateSpansBackward;
 		surfaces[1].key = 0;
 		r_currentkey = 1;
 	}else{
-		pdrawfunc = R_GenerateSpans;
+		pdrawfunc = r_threaded ? R_GenerateSpansMarked
+			: R_GenerateSpans;
 		surfaces[1].key = 0x7FFFFFFF;
 		r_currentkey = 0;
 	}
 	if(r_alphapass)
-		pdrawfunc = R_GenerateSpansAlpha;
+		pdrawfunc = r_threaded ? R_GenerateSpansAlphaMarked
+			: R_GenerateSpansAlpha;
 	memset(newedges + r_refdef.vrect.y, 0, (r_refdef.vrectbottom - 
 				r_refdef.vrect.y) * sizeof(*newedges));
 }
@@ -234,30 +268,35 @@ static inline s64 R_StepEdge(edge_t *e, edge_t *next, s64 prev_u, s64 iv)
 }
 
 // Adds the span from u to end (exclusive) on the current scanline
-static inline void R_EmitSpan(surf_t *surf, s64 u, s64 end)
+static inline void R_EmitSpan(surf_t *surf, s64 u, s64 end, bool mark)
 {
 	espan_t *span = span_p++;
 	span->u = u;
 	span->count = end - u;
 	span->v = current_iv;
+	if(mark && !surf->spans){
+		u64 i = surf - surfaces;
+		r_surfmarks[i >> 6] |= (u64)1 << (i & 63);
+	}
 	span->pnext = surf->spans;
 	surf->spans = span;
 }
 
-static void R_CleanupSpan()
+Q_SIL void R_CleanupSpan(bool mark)
 {
 	// now that we've reached the right edge of the screen, we're done with
 	// any unfinished surfaces, so emit a span for whatever's on top
 	surf_t *surf = surfaces[1].next;
 	if(edge_tail_u_shift20 > surf->last_u)
-		R_EmitSpan(surf, surf->last_u, edge_tail_u_shift20);
+		R_EmitSpan(surf, surf->last_u, edge_tail_u_shift20, mark);
 	do{ // reset spanstate for all surfaces in the surface stack
 		surf->spanstate = 0;
 		surf = surf->next;
 	}while(surf != &surfaces[1]);
 }
 
-static inline void R_LeadingEdgeBackwards(const edge_t *edge, surf_t *surf)
+static inline void R_LeadingEdgeBackwards(const edge_t *edge, surf_t *surf,
+		bool mark)
 {
 	// it's adding a new surface in, so find the correct place
 	// don't start a span if this is an inverted span, with the end edge
@@ -291,7 +330,7 @@ continue_search:
 newtop:
 		iu = edge->u >> 20; // emit a span(obscures current top)
 		if(iu > surf2->last_u)
-			R_EmitSpan(surf2, surf2->last_u, iu);
+			R_EmitSpan(surf2, surf2->last_u, iu, mark);
 		surf->last_u = iu; // set last_u on the new span
 gotposition:
 		surf->next = surf2; // insert before surf2
@@ -301,7 +340,7 @@ gotposition:
 	}
 }
 
-static inline void R_TrailingEdge(surf_t *surf, const edge_t *edge)
+static inline void R_TrailingEdge(surf_t *surf, const edge_t *edge, bool mark)
 {
 	// don't generate a span if this is an inverted span, with the end edge
 	// preceding the start edge(that is, we haven't seen the start edge yet)
@@ -309,7 +348,7 @@ static inline void R_TrailingEdge(surf_t *surf, const edge_t *edge)
 		if(surf == surfaces[1].next){
 			s64 iu = edge->u >> 20; // emit a span
 			if(iu > surf->last_u) // (current top going away)
-				R_EmitSpan(surf, surf->last_u, iu);
+				R_EmitSpan(surf, surf->last_u, iu, mark);
 			// set last_u on the surface below
 			surf->next->last_u = iu;
 		}
@@ -335,7 +374,7 @@ static inline bool R_BmodelSurfInFront(const edge_t *edge, const surf_t *surf,
 
 // surf is &surfaces[edge->surfs[1]], which the caller has already checked is
 // not the "no surface" index 0
-static inline void R_LeadingEdge(const edge_t *edge, surf_t *surf)
+static inline void R_LeadingEdge(const edge_t *edge, surf_t *surf, bool mark)
 {
 	surf_t *surf2;
 	s32 iu; // keep here for the OpenBSD compiler
@@ -388,7 +427,7 @@ newtop:
 		// emit a span(obscures current top)
 		iu = edge->u >> 20;
 		if(iu > surf2->last_u)
-			R_EmitSpan(surf2, surf2->last_u, iu);
+			R_EmitSpan(surf2, surf2->last_u, iu, mark);
 		// set last_u on the new span
 		surf->last_u = iu;
 gotposition:
@@ -429,21 +468,24 @@ static inline void R_CutLeading(u32 sn, const edge_t *edge)
 
 // every edge has been seen by now. An inverted span(trailing before
 // leading) gives right <= left and is skipped
-static void R_EmitCutSpans()
+Q_SIL void R_EmitCutSpansImpl(bool mark)
 {
 	for(s32 i = 0; i < cut_count; i++){
 		s32 sn = cut_list[i];
 		cutspan_t *acc = &cut_acc[sn];
 		// left < 0: only trailing edges seen, nothing to draw
 		if(acc->left >= 0 && acc->right > acc->left)
-			R_EmitSpan(&surfaces[sn], acc->left, acc->right);
+			R_EmitSpan(&surfaces[sn], acc->left, acc->right, mark);
 		acc->left = CUT_IDLE;
 		acc->right = cut_right0;
 	}
 	cut_count = 0;
 }
 
-static void R_GenerateSpans(bool step)
+static void R_EmitCutSpans(){ R_EmitCutSpansImpl(0); }
+static void R_EmitCutSpansMarked(){ R_EmitCutSpansImpl(1); }
+
+Q_SIL void R_GenerateSpansImpl(bool step, bool mark)
 {
 	surf_t *const sbase = surfaces; // the global is reloaded after every
 				        // store through a pointer otherwise
@@ -460,14 +502,14 @@ static void R_GenerateSpans(bool step)
 			// the trailing surface first.
 			u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 			if(s0)
-				R_TrailingEdge(&sbase[s0], edge);
+				R_TrailingEdge(&sbase[s0], edge, mark);
 			if(s1)
-				R_LeadingEdge(edge, &sbase[s1]);
+				R_LeadingEdge(edge, &sbase[s1], mark);
 			if(step)
 				prev_u = R_StepEdge(edge, next, prev_u,
 							current_iv);
 		}
-		R_CleanupSpan();
+		R_CleanupSpan(mark);
 		return;
 	}
 	// Cutout and skybox surfaces get a span covering the whole of the
@@ -484,26 +526,27 @@ static void R_GenerateSpans(bool step)
 			if(surf->flags & SURF_CUTMASK)
 				R_CutTrailing(s0, edge);
 			else
-				R_TrailingEdge(surf, edge);
+				R_TrailingEdge(surf, edge, mark);
 		}
 		if(s1){
 			surf_t *surf = &sbase[s1];
 			if(surf->flags & SURF_CUTMASK)
 				R_CutLeading(s1, edge);
 			else
-				R_LeadingEdge(edge, surf);
+				R_LeadingEdge(edge, surf, mark);
 		}
 		if(step)
 			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
-	R_EmitCutSpans();
-	R_CleanupSpan();
+	if(mark) R_EmitCutSpansMarked();
+	else R_EmitCutSpans();
+	R_CleanupSpan(mark);
 }
 
 // The alpha pass: every surface is translucent, so none of them may hide
 // another. They all get whole spans like cutouts, the z-buffer of the opaque
 // pass does the occlusion and D_DrawSurfacesAlpha() draws them back to front.
-static void R_GenerateSpansAlpha(bool step)
+Q_SIL void R_GenerateSpansAlphaImpl(bool step, bool mark)
 {
 	s64 prev_u = edge_head.u;
 	for(edge_t *edge=edge_head.next,*next; edge!=&edge_tail; edge=next){
@@ -516,10 +559,11 @@ static void R_GenerateSpansAlpha(bool step)
 		if(step)
 			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
-	R_EmitCutSpans();
+	if(mark) R_EmitCutSpansMarked();
+	else R_EmitCutSpans();
 }
 
-static void R_GenerateSpansBackward(bool step)
+Q_SIL void R_GenerateSpansBackwardImpl(bool step, bool mark)
 {
 	surf_t *const sbase = surfaces;
 	// clear active surfaces to just the background surface
@@ -531,50 +575,85 @@ static void R_GenerateSpansBackward(bool step)
 		next = edge->next;
 		u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0)
-			R_TrailingEdge(&sbase[s0], edge);
+			R_TrailingEdge(&sbase[s0], edge, mark);
 		if(s1)
-			R_LeadingEdgeBackwards(edge, &sbase[s1]);
+			R_LeadingEdgeBackwards(edge, &sbase[s1], mark);
 		if(step)
 			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
-	R_CleanupSpan();
+	R_CleanupSpan(mark);
 }
 
-static void R_DrawSurfaceSpans()
+// The span generation, and the same marking surfaces for the workers
+static void R_GenerateSpans(bool step)
+{ R_GenerateSpansImpl(step, 0); }
+static void R_GenerateSpansMarked(bool step)
+{ R_GenerateSpansImpl(step, 1); }
+static void R_GenerateSpansAlpha(bool step)
+{ R_GenerateSpansAlphaImpl(step, 0); }
+static void R_GenerateSpansAlphaMarked(bool step)
+{ R_GenerateSpansAlphaImpl(step, 1); }
+static void R_GenerateSpansBackward(bool step)
+{ R_GenerateSpansBackwardImpl(step, 0); }
+static void R_GenerateSpansBackwardMarked(bool step)
+{ R_GenerateSpansBackwardImpl(step, 1); }
+
+static void R_DrawSurfaceSpans(s32 act)
 {
-	if(r_drawflat.value) D_DrawSurfacesFlat();
-	else if(!r_alphapass) D_DrawSurfaces();
-	else D_DrawSurfacesAlpha();
+	if(r_drawflat.value) D_DrawSurfacesFlat(act);
+	else if(!r_alphapass) D_DrawSurfaces(act);
+	else D_DrawSurfacesAlpha(act);
 }
 
-static void R_FlushSpans(espan_t *basespan_p)
+// The workers get the spans of a band once its last scanline is in
+static void R_RecordBand()
 {
-	R_DrawSurfaceSpans();
-	// clear the surface span pointers
-	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
-		s->spans = NULL;
-	span_p = basespan_p;
+	r_recordband = current_iv / r_bandrows;
+	R_DrawSurfaceSpans(SURFS_RECORD);
+	R_BandPublish(r_recordband);
+}
+
+// The span buffer. Without the workers it's MAXSPANS between flushes, plus
+// room for one full scanline of spans: at most one per pixel for the visible
+// surfaces, plus at most one per cutout/skybox surface. With them the spans
+// stay until the workers are done, the alpha pass goes on after the main pass,
+// and the buffer is that many times bigger. They flush at the same points,
+// that's when the surfaces get set up and the cache filled (D_DrawSurfaces).
+static espan_t *basespans;
+static s64 span_cap;
+static s64 flush_cap; // the buffer without the workers, as it would have grown
+
+// Sets span_p for a scan, returns how many spans make it flush
+static s64 R_SpanBuffer(s64 room)
+{
+	static s64 frame = -1; // of the spans the workers may still use
+	if(flush_cap < MAXSPANS + room)
+		flush_cap = (MAXSPANS + room) * 3 / 2;
+	s64 need = r_threaded ? flush_cap * 4 : flush_cap;
+	bool cont = r_threaded && frame == r_framecount;
+	frame = r_threaded ? r_framecount : -1;
+	if(span_cap < need){
+		R_ThreadsSync();
+		span_cap = need;
+		free(basespans);
+		basespans = malloc(span_cap * sizeof(*basespans));
+		if(!basespans)
+			Sys_Error("R_ScanEdges: out of memory");
+		cont = 0;
+	}
+	if(!cont || span_p + flush_cap + room > basespans + span_cap){
+		R_ThreadsSync();
+		span_p = basespans;
+	}
+	return flush_cap - room;
 }
 
 void R_ScanEdges()
 {
 	R_CutoutBeginFrame();
-	// MAXSPANS between flushes, plus room for one full scanline of spans:
-	// at most one per pixel for the visible surfaces, plus at most one per
-	// cutout/skybox surface. Every flush goes through all the surfaces.
-	static espan_t *basespans;
-	static s64 span_cap;
 	s64 room = r_refdef.vrect.width + cut_surfs;
-	if(span_cap < MAXSPANS + room){
-		span_cap = (MAXSPANS + room) * 3 / 2;
-		free(basespans);
-		basespans = malloc(span_cap * sizeof(*basespans));
-		if(!basespans)
-			Sys_Error("R_ScanEdges: out of memory");
-	}
-	espan_t *basespan_p = basespans;
-	espan_t *max_span_p = &basespan_p[span_cap - room];
-	span_p = basespan_p;
+	s64 flush = R_SpanBuffer(room);
+	espan_t *flush_p = span_p; // the spans since the last flush
 	// clear active edges to just background edges around the whole screen
 	edge_head.u = (s64)r_refdef.vrect.x << 20;
 	edge_head_u_shift20 = edge_head.u >> 20;
@@ -610,10 +689,24 @@ void R_ScanEdges()
 		// also steps/removes the edges, no need on the last scan
 		bool last = iv == bottom;
 		(*pdrawfunc)(!last);
+		if(r_threaded && (last || (iv + 1) % r_bandrows == 0))
+			R_RecordBand();
 		// flush the span list if we can't be sure we have enough spans
 		// left for the next scan
-		if(!last && span_p >= max_span_p)
-			R_FlushSpans(basespan_p);
+		if(last || span_p - flush_p < flush)
+			continue;
+		if(!r_threaded){
+			R_DrawSurfaceSpans(SURFS_DRAW);
+			flush_p = span_p = basespans;
+			continue;
+		}
+		R_RecordBand();
+		R_DrawSurfaceSpans(SURFS_SETUP);
+		if(span_p + flush + 2 * room > basespans + span_cap){
+			R_ThreadsSync(); // the workers must be done with them
+			span_p = basespans;
+		}
+		flush_p = span_p;
 	}
-	R_DrawSurfaceSpans();
+	R_DrawSurfaceSpans(r_threaded ? SURFS_SETUP : SURFS_DRAW);
 }

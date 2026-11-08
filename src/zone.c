@@ -308,6 +308,7 @@ void *Hunk_TempAlloc(s32 size) // Return space from the top of the hunk
 
 void Cache_Move( cache_system_t *c)
 {
+	R_ThreadsSync(); // the renderer's threads may be drawing from it
 	// we are clearing up space at the bottom, so only allocate it late
 	cache_system_t *new_cs = Cache_TryAlloc(c->size, 1);
 	if(new_cs) {
@@ -442,6 +443,7 @@ void Cache_Init()
 void Cache_Free(cache_user_t *c)
 { // Frees the memory and removes it from the LRU list
 	if(!c->data) Sys_Error("Cache_Free: not allocated");
+	R_ThreadsSync(); // the renderer's threads may be drawing from it
 	cache_system_t *cs = ((cache_system_t *)c->data) - 1;
 	cs->prev->next = cs->next;
 	cs->next->prev = cs->prev;

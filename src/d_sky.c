@@ -1,22 +1,25 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
+static Q_TLS vec3_t sky_view[3]; // vpn, vright, vup of the surface
+
+static void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 {
+	const f32 *fwd = sky_view[0], *rt = sky_view[1], *up = sky_view[2];
 	vec3_t end;
 	if(r_refdef.fov_x == 90 && !r_fovmode.value){ // WinQuake's dome
 		f32 size = q_max(r_refdef.vrect.width, r_refdef.vrect.height);
 		f32 wu = 8192.0f * (f32)(u - ((s32)vid.width >> 1)) / size;
 		f32 wv = 8192.0f * (f32)(((s32)vid.height >> 1) - v) / size;
-		end[0] = 4096 * vpn[0] + wu * vright[0] + wv * vup[0];
-		end[1] = 4096 * vpn[1] + wu * vright[1] + wv * vup[1];
-		end[2] = 4096 * vpn[2] + wu * vright[2] + wv * vup[2];
+		end[0] = 4096 * fwd[0] + wu * rt[0] + wv * up[0];
+		end[1] = 4096 * fwd[1] + wu * rt[1] + wv * up[1];
+		end[2] = 4096 * fwd[2] + wu * rt[2] + wv * up[2];
 	}else{
 		f32 du = (u - xcenter) / xscale;
 		f32 dv = (ycenter - v) / yscale;
-		end[0] = vpn[0] + du * vright[0] + dv * vup[0];
-		end[1] = vpn[1] + du * vright[1] + dv * vup[1];
-		end[2] = vpn[2] + du * vright[2] + dv * vup[2];
+		end[0] = fwd[0] + du * rt[0] + dv * up[0];
+		end[1] = fwd[1] + du * rt[1] + dv * up[1];
+		end[2] = fwd[2] + du * rt[2] + dv * up[2];
 	}
 	end[2] *= 3;
 	VectorNormalize(end);
@@ -33,13 +36,10 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 	u8 *skysrc = smooth ? sky->source + 128 : sky->source;
 	u8 *front = sky->bottomsky;
 	s32 shift = smooth ? (s32)(skytime * skyspeed * 65536.0f) : 0;
-	s32 mix = 0;
-	if(blend) R_BuildColorMixLUT(0);
-	if(fog){
-		R_BuildColorMixLUT(0);
+	s32 mix = 0; // D_SetupSky built the mix table
+	if(fog)
 		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*map_skyfog,
 			FOG_LUT_LEVELS-1);
-	}
 	do{
 		u8 *pdest = (u8*)d_viewbuffer+(screenwidth*pspan->v)+pspan->u;
 		s32 count = pspan->count;
@@ -95,21 +95,7 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 static bool D_SkyBlend(msurface_t *pface)
 { return r_skies[R_SkyIndexForTexture(pface->texinfo->texture)].blend; }
 
-void D_DrawSkyScans(espan_t *pspan, msurface_t *pface)
-{
-	if(!r_skysmooth.value) D_SkyScans(pspan, pface, 0, 0, 0);
-	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 0, 1, 1);
-	else D_SkyScans(pspan, pface, 0, 1, 0);
-}
-
-void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface)
-{
-	if(!r_skysmooth.value) D_SkyScans(pspan, pface, 1, 0, 0);
-	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 1, 1, 1);
-	else D_SkyScans(pspan, pface, 1, 1, 0);
-}
-
-void D_DrawSkyScansOnlyFog(espan_t *pspan)
+static void D_DrawSkyScansOnlyFog(espan_t *pspan)
 {
 	do{
 		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +
@@ -123,4 +109,23 @@ void D_DrawSkyScansOnlyFog(espan_t *pspan)
 			}while(--spancount > 0);
 		}while(count > 0);
 	}while((pspan = pspan->pnext) != NULL);
+}
+
+// fog: 0 none, 1 the sky fogged by map_skyfog, 2 all fog. view is the vpn,
+// vright and vup of the surface, brush entities have their own
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
+		s32 fog)
+{
+	for(s32 i = 0; i < 3; i++)
+		VectorCopy(view[i], sky_view[i]);
+	if(fog == 2) D_DrawSkyScansOnlyFog(pspan);
+	else if(fog){
+		if(!r_skysmooth.value) D_SkyScans(pspan, pface, 1, 0, 0);
+		else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 1, 1, 1);
+		else D_SkyScans(pspan, pface, 1, 1, 0);
+	}else{
+		if(!r_skysmooth.value) D_SkyScans(pspan, pface, 0, 0, 0);
+		else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 0, 1, 1);
+		else D_SkyScans(pspan, pface, 0, 1, 0);
+	}
 }

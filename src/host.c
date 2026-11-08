@@ -39,6 +39,7 @@ void Host_Error(c8 *error, ...)
 	static bool inerror = 0;
 	if(inerror) Sys_Error("Host_Error: recursively entered");
 	inerror = 1;
+	R_ThreadsSync(); // a frame may have been cut short
 	PR_SwitchQCVM(NULL);
 	SCR_EndLoadingPlaque();	// reenable screen updates
 	va_list argptr;
@@ -262,6 +263,7 @@ Con_Printf("Host_ShutdownServer: NET_SendToAll failed for %u clients\n", count);
 void Host_ClearMemory() // This clears all the memory used by both the client
 { // and server, but does not reinitialize anything.
 	Con_DPrintf("Clearing memory\n");
+	R_ThreadsSync();
 	if(cl.qcvm.extfuncs.CSQC_Shutdown){
 		PR_SwitchQCVM(&cl.qcvm);
 		PR_ExecuteProgram(qcvm->extfuncs.CSQC_Shutdown);
@@ -649,6 +651,7 @@ void Host_Shutdown()
 		return;
 	}
 	isdown = 1;
+	R_ThreadsShutdown();
 	// keep Con_Printf from trying to update the screen
 	scr_disabled_for_loading= 1;
 	Host_WriteConfiguration();

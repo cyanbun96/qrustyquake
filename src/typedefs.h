@@ -649,7 +649,8 @@ typedef struct surfcache_s {                                        // d_local.h
 	struct surfcache_s *next;
 	struct surfcache_s **owner; // NULL is an empty chunk of memory
 	s32 lightadj[MAXLIGHTMAPS]; // checked for strobe flush
-	s32 dlight;
+	u32 dlight : 1; // built with dynamic lights
+	u32 frame : 31; // the last frame it was drawn from, with r_threads
 	s32 size; // including header
 	unsigned width;
 	unsigned height; // DEBUG only needed for debug
@@ -659,6 +660,32 @@ typedef struct surfcache_s {                                        // d_local.h
 typedef struct sspan_s {
 	s32 u, v, count;
 } sspan_t;
+typedef void (*rcmdfn_t)(void *arg); // a command for the render threads
+typedef struct { // the span gradients and texture block, see D_SaveGradients
+	f32 sdivzstepu, tdivzstepu, zistepu;
+	f32 sdivzstepv, tdivzstepv, zistepv;
+	f32 sdivzorigin, tdivzorigin, ziorigin;
+	s64 sadjust, tadjust;
+	s32 bbextents, bbextentt;
+	u8 *cacheblock;
+	s32 cachewidth, cacheheight;
+	const u8 *skyfog;
+} dgrad_t;
+typedef struct { // the light rows of lit water, see D_TurbSetLight
+	const u8 *base;
+	s32 width; // in texels
+	s32 mip;
+	s32 soff, toff; // turb coords minus these = lightmap coords, 16.16
+	s32 smax, tmax;
+	s32 mode;
+} turblight_t;
+typedef struct { // what Turbulent draws with, see D_TurbSetup
+	turblight_t light;
+	f32 opacity;
+	s32 func;
+	s32 *turb;
+	u8 *pbase;
+} turbstate_t;
 
 typedef s32 func_t;                                                 // pr_comp.h
 typedef s32 string_t;

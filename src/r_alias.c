@@ -194,6 +194,7 @@ void R_AliasPreparePoints()
                                 fv->flags |= ALIAS_BOTTOM_CLIP;
                 }
         }
+        D_PolysetModelVerts(pfinalverts, r_anumverts, 0);
         r_affinetridesc.numtriangles = 1; // clip and draw all triangles
         mtriangle_t *ptri = (mtriangle_t*)((u8*)paliashdr+paliashdr->triangles);
         finalvert_t *pfv[3];
@@ -310,6 +311,7 @@ void R_AliasPrepareUnclippedPoints()
         stvert_t *pstverts = (stvert_t *)((u8 *)paliashdr + paliashdr->stverts);
         r_anumverts = pmdl->numverts;
         R_AliasTransformAndProjectFinalVerts(pfinalverts, pstverts);
+        D_PolysetModelVerts(pfinalverts, r_anumverts, 1);
         if(r_affinetridesc.drawtype)
                 D_PolysetDrawFinalVerts(pfinalverts, r_anumverts);
         r_affinetridesc.pfinalverts = pfinalverts;
@@ -487,10 +489,12 @@ void R_AliasDrawModel(alight_t *plighting)
 	acolormap = currententity->colormap;
 	ziscale = currententity != &cl.viewent ? (f32)0x8000 * (f32)0x10000
 		: (f32)0x8000 * (f32)0x10000 * 3.0;
+	D_PolysetBeginModel();
 	if(currententity->trivial_accept)
 		R_AliasPrepareUnclippedPoints();
 	else
 		R_AliasPreparePoints();
+	D_PolysetEndModel();
 }
 
 // Entity occlusion against the z-buffer (r_entocclusion)
@@ -509,7 +513,7 @@ void R_AliasDrawModel(alight_t *plighting)
 // Is every z-buffer value in this (inclusive) rectangle strictly greater than
 // zbound? The rasterizer draws a pixel when zi >= *pz, so if all stored
 // values are > zbound >= any pixel it could produce, nothing is drawn.
-static bool R_ZBufferRectBehind(s32 x0, s32 y0, s32 x1, s32 y1, s32 zbound)
+bool R_ZBufferRectBehind(s32 x0, s32 y0, s32 x1, s32 y1, s32 zbound)
 {
 	for(s32 y = y0; y <= y1; y++){
 		const s32 *row = d_pzbuffer + (size_t)y * d_zwidth;
@@ -530,7 +534,7 @@ static bool R_ZBufferRectBehind(s32 x0, s32 y0, s32 x1, s32 y1, s32 zbound)
 // Screen rectangle (inclusive, clipped to the view) the entity can touch, and
 // the largest z-buffer value any of its pixels can produce. False when we
 // can't bound it (it reaches the near plane, etc.), meaning "don't cull".
-static bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
+bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
 		s32 *rzbound)
 {
 	entity_t *e = currententity;

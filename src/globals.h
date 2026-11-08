@@ -20,6 +20,7 @@ void Fog_ParseWorldspawn();
 void Fog_SetPalIndex(cvar_t *cvar);
 void Fog_Update(f32 d, f32 r, f32 g, f32 b);
 void R_DrawFog();
+void R_FogSkyAlloc();
 void R_FogMarkSky(const espan_t *span);
 void IN_InitJoystick(cvar_t *cvar);                                  // in_sdl.c
 EX s32 jaxis_move_x;
@@ -268,9 +269,9 @@ void R_PushDlights();
 void D_FlushCaches(SDL_UNUSED cvar_t *cvar);
 void R_SetVrect(vrect_t *pvrect, vrect_t *pvrectin, s32 lineadj);
 void D_AllocCaches();
-EX affinetridesc_t r_affinetridesc;                                 // d_iface.h
+EX Q_TLS affinetridesc_t r_affinetridesc;                           // d_iface.h
 EX spritedesc_t r_spritedesc;
-EX void *acolormap;
+EX Q_TLS void *acolormap;
 EX drawsurf_t r_drawsurf;
 EX f32 skyspeed;
 EX f32 skytime;
@@ -281,7 +282,12 @@ EX sky_t *r_skies;
 EX s32 r_numskies;
 void D_PolysetDraw();
 void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts);
+void D_PolysetCullRect();
+void D_PolysetBeginModel();
+void D_PolysetModelVerts(finalvert_t *fv, s32 numverts, bool projected);
+void D_PolysetEndModel();
 void D_DrawParticle(particle_t *pparticle);
+void D_EndParticles();
 void D_DrawSprite();
 void D_Init();
 void D_ViewChanged();
@@ -289,11 +295,11 @@ void D_SetupFrame();
 void D_WarpScreen();
 void D_AllocCutoutBuf(s32 size);
 s32 R_DrawSurface();
-void D_DrawSurfaces();
-void D_DrawSurfacesAlpha();
+void D_DrawSurfaces(s32 act);
+void D_DrawSurfacesAlpha(s32 act);
 void D_PolysetUpdateTables();
-EX s32 cachewidth, cacheheight;                                    // r_shared.h
-EX u8 *cacheblock;
+EX Q_TLS s32 cachewidth, cacheheight;                              // r_shared.h
+EX Q_TLS u8 *cacheblock;
 EX f32 pixelAspect;
 EX s32 r_drawnpolycount;
 EX s32 sintable[SIN_BUFFER_SIZE];
@@ -321,9 +327,9 @@ s32 SV_PointContents(vec3_t p);
 edict_t *SV_TestEntityPosition(edict_t *ent);
 trace_t SV_Move(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, s32 type,
 		edict_t *passedict);
-EX f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                       // d_local.h
-EX f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
-EX f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
+EX Q_TLS f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                 // d_local.h
+EX Q_TLS f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
+EX Q_TLS f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
 EX s32 *d_pzbuffer; // 1/z * 0x8000 * 0x10000, WinQuake kept the top 16 bits
 EX u32 d_zwidth;
 EX u8 *d_viewbuffer;
@@ -332,14 +338,18 @@ void D_DrawSpans(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
-void Turbulent(espan_t *pspan, f32 opacity);
+void D_SaveGradients(dgrad_t *g);
+void D_LoadGradients(const dgrad_t *g);
+void D_SkyFogSetup();
+void D_TurbSetup(turbstate_t *ts, f32 opacity);
+void Turbulent(espan_t *pspan, const turbstate_t *ts);
 void D_TurbSetLight(const surfcache_t *cache, const msurface_t *pface, s32 mip);
 s32 R_LitWaterRGB();
-void D_DrawSkyScans(espan_t *pspan, msurface_t *pface);
-void D_DrawSkyScansOnlyFog(espan_t *pspan);
-void D_DrawSkyScansFog(espan_t *pspan, msurface_t *pface);
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
+		s32 fog);
 s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
+surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel);
 s32 D_Dither(u8 *pos, f32 opacity);
 EX s32 default_net_hostport;                                            // net.h
 EX s32 net_hostport;
@@ -474,8 +484,8 @@ EX bool insubmodel;
 EX s32 c_faceclip;
 EX s32 r_polycount;
 EX s32 frustum_indexes[4][6];
-EX s64 sadjust, tadjust;
-EX s32 bbextents, bbextentt;
+EX Q_TLS s64 sadjust, tadjust;
+EX Q_TLS s32 bbextents, bbextentt;
 EX s32 r_currentkey;
 EX s32 r_currentbkey;
 EX finalvert_t *pfinalverts;
@@ -509,11 +519,16 @@ void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel);
 void R_AliasDrawModel(alight_t *plighting);
 void R_BeginEdgeFrame();
 void R_ScanEdges();
-void D_DrawSurfacesFlat();
+void D_DrawSurfacesFlat(s32 act);
+void D_BeginRecords();
+void D_SurfCacheHazard();
 void R_RotateBmodel();
 void R_AliasValidateFrame();
 bool R_AliasCheckBBox();
 bool R_AliasOccluded();
+bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
+		s32 *rzbound);
+bool R_ZBufferRectBehind(s32 x0, s32 y0, s32 x1, s32 y1, s32 zbound);
 void R_AliasSyncLerpState();
 void R_DrawParticles();
 void R_InitParticles();
@@ -796,5 +811,25 @@ void CDAudio_Update();
 bool CDAudio_Init();
 void CDAudio_Shutdown();
 EX const s32 dither_s[4], dither_t[4];                               // d_scan.c
+EX u64 *r_surfmarks;                                                 // r_edge.c
+EX u64 *r_flushmarks;
+EX struct dsurf_s **r_surfdsurf;
+EX u32 *r_surfscan, r_scan;
+EX bool r_threaded; // this frame is drawn by the workers          // r_thread.c
+EX s32 r_nbands, r_bandrows;
+EX s32 r_recordband; // the band D_DrawSurfaces records the spans for
+EX Q_TLS s32 d_bandy0, d_bandy1; // the rows the thread is drawing
+void R_ThreadsBeginFrame();
+void R_ThreadsFPEnv();
+void R_ThreadsEndFrame();
+bool R_ThreadsAwake();
+void R_ThreadsIdle();
+void R_ThreadsSync();
+void R_ThreadsHelp();
+void R_ThreadsShutdown();
+void *R_FrameAlloc(size_t size);
+void R_BandAdd(s32 band, rcmdfn_t fn, void *arg);
+void R_BandPublish(s32 band);
+void R_RowsAdd(s32 y0, s32 y1, rcmdfn_t fn, void *arg);
 #undef EX
 #endif

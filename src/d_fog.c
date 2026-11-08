@@ -22,6 +22,8 @@ static f32 *zadjarr = 0;
 static u64 *fog_skyz = 0;
 static s32 fog_skyz_size = 0;
 static u32 fog_skyrow[MAXHEIGHT]; // frame this row last got sky on
+static u32 lfsr = 0x1337; // lfsr_random's state, non-zero
+static Q_TLS u32 fog_lfsr; // lfsr while fog styles 0 and 2 use it
 
 static u8 Fog_Channel(f32 c) // worldspawn colours can be past 1 and so can
 { return CLAMP(0, c * 255.0f * r_fogbrightness.value, 255); } // the brightness
@@ -126,13 +128,44 @@ static void R_InitDepthCorrection()
 	}}
 }
 
-u32 lfsr_random()
+static inline u32 lfsr_step(u32 x)
 {
-	static u32 lfsr = 0x1337; // non-zero seed
-	lfsr^=lfsr>>7;
-	lfsr^=lfsr<<9;
-	lfsr^=lfsr>>13;
-	return lfsr;
+	x^=x>>7;
+	x^=x<<9;
+	x^=x>>13;
+	return x;
+}
+
+u32 lfsr_random(){ return lfsr = lfsr_step(lfsr); }
+
+// The state n steps on. A step is linear over GF(2), so it's a 32x32 bit
+// matrix, kept as the images of the 32 single bits, and n steps are the
+// product of the powers of two that make up n
+static u32 lfsr_skip(u32 x, u64 n)
+{
+	static u32 pow2[64][32]; // the matrix of 2^k steps
+	static bool built;
+	if(!built){
+		for(s32 i = 0; i < 32; i++)
+			pow2[0][i] = lfsr_step(1u << i);
+		for(s32 k = 1; k < 64; k++)
+		for(s32 i = 0; i < 32; i++){
+			u32 c = pow2[k-1][i], r = 0;
+			for(s32 j = 0; j < 32; j++)
+				if(c >> j & 1) r ^= pow2[k-1][j];
+			pow2[k][i] = r;
+		}
+		built = 1;
+	}
+	for(s32 k = 0; n; k++, n >>= 1){
+		if(!(n & 1))
+			continue;
+		u32 r = 0;
+		for(s32 j = 0; j < 32; j++)
+			if(x >> j & 1) r ^= pow2[k][j];
+		x = r;
+	}
+	return x;
 }
 
 void R_InitFog(f32 noisebias)
@@ -215,6 +248,7 @@ Q_SIL void R_FogPixels(u8 *pdest, const s32 *zb, s32 w, s32 n,
 	const s32 *rnd = randarr;
 	const f32 *lut = fog_factor_lut, fogfactor = r_fogfactor.value;
 	const u8 fog = fog_pal_index;
+	u32 rng = fog_lfsr;
 	for(s32 i = 0; i < w; ++i){
 		s32 bias = rnd[(n-i)&(RANDARR_SIZE-1)];
 		f32 ffactor = compute_fog_lut(lut, (zb[i]>>16) + bias)
@@ -224,9 +258,10 @@ Q_SIL void R_FogPixels(u8 *pdest, const s32 *zb, s32 w, s32 n,
 		if(style == 2)
 			ffactor -= bias*0.05;
 		if(style == 1 ? D_Dither(&pdest[i], ffactor) :
-				(lfsr_random() & 0xFFFF) / 65535.0f < ffactor)
+			((rng = lfsr_step(rng)) & 0xFFFF) / 65535.0f < ffactor)
 			pdest[i] = fog;
 	}
+	fog_lfsr = rng;
 }
 
 // w pixels of one view row, n is how many of the view's pixels are left
@@ -243,16 +278,22 @@ static void R_FogRow(u8 *pdest, const s32 *zb, s32 w, s32 n, const f32 *zadj)
 	}
 }
 
-void R_FogMarkSky(const espan_t *span)
-{ // has to come after the span's z was written
+void R_FogSkyAlloc()
+{ // before R_FogMarkSky, on the main thread
 	if(!fog_density || r_nofog.value) return;
 	s32 size = vid.width * vid.height;
 	if(fog_skyz_size != size){
+		R_ThreadsSync();
 		free(fog_skyz);
 		fog_skyz = calloc(size, sizeof(*fog_skyz));
 		if(!fog_skyz) Sys_Error("R_FogMarkSky: out of memory");
 		fog_skyz_size = size;
 	}
+}
+
+void R_FogMarkSky(const espan_t *span)
+{ // has to come after the span's z was written
+	if(!fog_density || r_nofog.value) return;
 	u64 stamp = (u64)r_framecount << 32;
 	for(; span; span = span->pnext){
 		s32 ofs = d_zwidth * span->v + span->u;
@@ -281,6 +322,94 @@ static void R_FogRowAroundSky(u8 *pdest, const s32 *zb, s32 w, s32 n,
 	}
 }
 
+// Rows y0 to y1 - 1 of the view. n is how many of the view's pixels are left
+static void R_FogRows(s32 y0, s32 y1)
+{
+	s32 w = scr_vrect.width;
+	s32 top = scr_vrect.y, bottom = top + scr_vrect.height;
+	y0 = q_max(y0, top);
+	y1 = q_min(y1, bottom);
+	for(s32 v = y0; v < y1; v++){
+		s32 ofs = v * vid.width + scr_vrect.x; // the screen and z
+		u8 *pdest = vid.buffer + ofs; // buffer are vid.width wide,
+		const s32 *zb = d_pzbuffer + ofs; // the view can be narrower
+		const f32 *zadj = r_fogdepthcorrection.value ?
+			zadjarr + (v - top) * w : NULL;
+		s32 n = w * (bottom - v);
+		if(fog_skyrow[v] == (u32)r_framecount)
+			R_FogRowAroundSky(pdest, zb, w, n, zadj,
+					fog_skyz + (zb - d_pzbuffer));
+		else
+			R_FogRow(pdest, zb, w, n, zadj);
+	}
+}
+
+// Styles 0 and 2 take a number from the lfsr for every pixel but sky, in row
+// order. A band starts from the state after the pixels of the bands above.
+typedef struct { u32 lfsr; u64 count; } fogband_t;
+static fogband_t *fog_bands;
+
+static bool R_FogUsesLfsr()
+{
+	s32 style = r_fogstyle.value;
+	return style == 0 || style == 2;
+}
+
+static void R_FogCountCmd(void *arg)
+{
+	fogband_t *fb = arg;
+	s32 w = scr_vrect.width, x0 = scr_vrect.x;
+	s32 y0 = q_max(d_bandy0, scr_vrect.y);
+	s32 y1 = q_min(d_bandy1, scr_vrect.y + scr_vrect.height);
+	u64 stamp = (u64)r_framecount << 32, n = 0;
+	for(s32 v = y0; v < y1; v++){
+		if(fog_skyrow[v] != (u32)r_framecount){
+			n += w;
+			continue;
+		}
+		const u64 *sky = fog_skyz + v * vid.width + x0;
+		const s32 *zb = d_pzbuffer + v * vid.width + x0;
+		for(s32 x = 0; x < w; x++)
+			n += sky[x] != (stamp | (u32)zb[x]);
+	}
+	fb->count = n;
+}
+
+static void R_FogCmd(void *arg)
+{
+	if(arg)
+		fog_lfsr = ((fogband_t *)arg)->lfsr;
+	R_FogRows(d_bandy0, d_bandy1);
+}
+
+static void R_FogBands()
+{
+	static s32 cap;
+	if(cap < r_nbands){
+		free(fog_bands);
+		if(!(fog_bands = malloc(r_nbands * sizeof(*fog_bands))))
+			Sys_Error("R_DrawFog: out of memory");
+		cap = r_nbands;
+	}
+	bool rng = R_FogUsesLfsr();
+	if(rng){ // what's drawn has to be all there to tell sky from fog
+		R_ThreadsHelp();
+		for(s32 b = 0; b < r_nbands; b++){
+			R_BandAdd(b, R_FogCountCmd, &fog_bands[b]);
+			R_BandPublish(b);
+		}
+		R_ThreadsHelp();
+		for(s32 b = 0; b < r_nbands; b++){
+			fog_bands[b].lfsr = lfsr;
+			lfsr = lfsr_skip(lfsr, fog_bands[b].count);
+		}
+	}
+	for(s32 b = 0; b < r_nbands; b++){
+		R_BandAdd(b, R_FogCmd, rng ? &fog_bands[b] : NULL);
+		R_BandPublish(b);
+	}
+}
+
 void R_DrawFog()
 {
 	if(!fog_density || r_nofog.value) return;
@@ -291,20 +420,11 @@ void R_DrawFog()
 		R_InitFogLUT();
 	if(r_fogdepthcorrection.value) R_InitDepthCorrection();
 	sb_updates = 0; // draw sbar over fog
-	s32 w = scr_vrect.width;
-	s32 ofs = scr_vrect.y * vid.width + scr_vrect.x;
-	u8 *pdest = vid.buffer + ofs; // the screen and z buffer are vid.width
-	const s32 *zb = d_pzbuffer + ofs; // wide, the view can be narrower
-	const f32 *zadj = r_fogdepthcorrection.value ? zadjarr : NULL;
-	s32 v = scr_vrect.y;
-	for(s32 n = w * scr_vrect.height; n > 0; n -= w, v++){
-		if(fog_skyrow[v] == (u32)r_framecount)
-			R_FogRowAroundSky(pdest, zb, w, n, zadj,
-					fog_skyz + (zb - d_pzbuffer));
-		else
-			R_FogRow(pdest, zb, w, n, zadj);
-		pdest += vid.width;
-		zb += vid.width;
-		if(zadj) zadj += w;
+	if(r_threaded){
+		R_FogBands();
+		return;
 	}
+	fog_lfsr = lfsr;
+	R_FogRows(scr_vrect.y, scr_vrect.y + scr_vrect.height);
+	lfsr = fog_lfsr;
 }

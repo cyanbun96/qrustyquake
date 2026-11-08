@@ -19,60 +19,63 @@ typedef struct {
 	u8 *ptex;
 	s32 sfrac, tfrac, light, zi;
 } spanpackage_t;
-typedef struct {
+typedef struct { // the vertices of the edges, indices into r_p
 	s32 numleftedges;
-	s32 *pleftedgevert0;
-	s32 *pleftedgevert1;
-	s32 *pleftedgevert2;
+	s32 left[3];
 	s32 numrightedges;
-	s32 *prightedgevert0;
-	s32 *prightedgevert1;
-	s32 *prightedgevert2;
+	s32 right[3];
 } edgetable;
-static s32 r_p0[6], r_p1[6], r_p2[6];
-static u8 *d_pcolormap;
-static s32 d_xdenom;
-static edgetable *pedgetable;
-static s32 a_sstepxfrac, a_tstepxfrac, r_lstepx, a_ststepxwhole;
-static s32 r_sstepx, r_tstepx, r_lstepy, r_sstepy, r_tstepy;
-static s32 r_zistepx, r_zistepy;
-static s32 d_aspancount, d_countextrastep;
-static spanpackage_t *a_spans;
-static spanpackage_t *d_pedgespanpackage;
-static u8 *d_pdest, *d_ptex;
-static s32 *d_pz;
-static s32 d_sfrac, d_tfrac, d_light, d_zi;
-static s32 d_ptexextrastep, d_sfracextrastep;
-static s32 d_tfracextrastep, d_lightextrastep, d_pdestextrastep;
-static s32 d_lightbasestep, d_pdestbasestep, d_ptexbasestep;
-static s32 d_sfracbasestep, d_tfracbasestep;
-static s32 d_ziextrastep, d_zibasestep;
-static s32 d_pzextrastep, d_pzbasestep;
-static u8 *skintable[MAX_LBM_HEIGHT];
-static s32 ubasestep, errorterm, erroradjustup, erroradjustdown;
+// The state of the triangle being drawn, every thread that draws has its own
+static Q_TLS s32 r_p[3][6];
+static Q_TLS u8 *d_pcolormap;
+static Q_TLS s32 d_xdenom;
+static Q_TLS const edgetable *pedgetable;
+static Q_TLS s32 a_sstepxfrac, a_tstepxfrac, r_lstepx, a_ststepxwhole;
+static Q_TLS s32 r_sstepx, r_tstepx, r_lstepy, r_sstepy, r_tstepy;
+static Q_TLS s32 r_zistepx, r_zistepy;
+static Q_TLS s32 d_aspancount, d_countextrastep;
+static Q_TLS spanpackage_t *a_spans;
+static Q_TLS spanpackage_t *d_pedgespanpackage;
+static Q_TLS u8 *d_pdest, *d_ptex;
+static Q_TLS s32 *d_pz;
+static Q_TLS s32 d_sfrac, d_tfrac, d_light, d_zi;
+static Q_TLS s32 d_ptexextrastep, d_sfracextrastep;
+static Q_TLS s32 d_tfracextrastep, d_lightextrastep, d_pdestextrastep;
+static Q_TLS s32 d_lightbasestep, d_pdestbasestep, d_ptexbasestep;
+static Q_TLS s32 d_sfracbasestep, d_tfracbasestep;
+static Q_TLS s32 d_ziextrastep, d_zibasestep;
+static Q_TLS s32 d_pzextrastep, d_pzbasestep;
+static Q_TLS u8 *skintable[MAX_LBM_HEIGHT];
+static Q_TLS s32 ubasestep, errorterm, erroradjustup, erroradjustdown;
+// The model being drawn, see D_PolysetBeginModel
+static Q_TLS f32 d_entalpha;
+static Q_TLS s32 d_rgblight; // coloured light, through d_rgbpix
+static Q_TLS const u8 *d_rgbpix;
 
-edgetable edgetables[12] = {
-	{ 1, r_p0, r_p2, NULL, 2, r_p0, r_p1, r_p2 },
-	{ 2, r_p1, r_p0, r_p2, 1, r_p1, r_p2, NULL },
-	{ 1, r_p0, r_p2, NULL, 1, r_p1, r_p2, NULL },
-	{ 1, r_p1, r_p0, NULL, 2, r_p1, r_p2, r_p0 },
-	{ 2, r_p0, r_p2, r_p1, 1, r_p0, r_p1, NULL },
-	{ 1, r_p2, r_p1, NULL, 1, r_p2, r_p0, NULL },
-	{ 1, r_p2, r_p1, NULL, 2, r_p2, r_p0, r_p1 },
-	{ 2, r_p2, r_p1, r_p0, 1, r_p2, r_p0, NULL },
-	{ 1, r_p1, r_p0, NULL, 1, r_p1, r_p2, NULL },
-	{ 1, r_p2, r_p1, NULL, 1, r_p0, r_p1, NULL },
-	{ 1, r_p1, r_p0, NULL, 1, r_p2, r_p0, NULL },
-	{ 1, r_p0, r_p2, NULL, 1, r_p0, r_p1, NULL },
+static const edgetable edgetables[12] = {
+	{ 1, {0, 2, 0}, 2, {0, 1, 2} },
+	{ 2, {1, 0, 2}, 1, {1, 2, 0} },
+	{ 1, {0, 2, 0}, 1, {1, 2, 0} },
+	{ 1, {1, 0, 0}, 2, {1, 2, 0} },
+	{ 2, {0, 2, 1}, 1, {0, 1, 0} },
+	{ 1, {2, 1, 0}, 1, {2, 0, 0} },
+	{ 1, {2, 1, 0}, 2, {2, 0, 1} },
+	{ 2, {2, 1, 0}, 1, {2, 0, 0} },
+	{ 1, {1, 0, 0}, 1, {1, 2, 0} },
+	{ 1, {2, 1, 0}, 1, {0, 1, 0} },
+	{ 1, {1, 0, 0}, 1, {2, 0, 0} },
+	{ 1, {0, 2, 0}, 1, {0, 1, 0} },
 };
 
-void D_PolysetDrawSpans(spanpackage_t * pspanpackage);
-void D_PolysetCalcGradients(s32 skinwidth);
+void D_PolysetDrawSpans(spanpackage_t *pspanpackage);
+void D_PolysetDrawSpansDithered(spanpackage_t *pspanpackage);
 void D_DrawSubdiv();
 void D_DrawNonSubdiv();
+static void D_DrawNonSubdivBanded();
 void D_PolysetRecursiveTriangle(s32 *p1, s32 *p2, s32 *p3);
 void D_PolysetSetEdgeTable();
-void D_RasterizeAliasPolySmooth();
+Q_SIL void D_RasterizeAliasPolySmoothImpl(bool banded);
+static void D_RasterizeAliasPolySmoothBanded();
 void D_PolysetScanLeftEdge(s32 height);
 
 // pix is already lit by the colormap, this only tints it with alias_tint
@@ -112,23 +115,25 @@ static const u8 *D_RGBPixTable()
 	return tab;
 }
 
-void D_PolysetDraw()
+static void D_PolysetDrawNow()
 {
-	if(r_alphastyle.value == 0 && cur_ent_alpha != 1 && !fog_lut_built)
-		R_BuildColorMixLUT(0);
 	spanpackage_t spans[(MAXHEIGHT + 1) // +1 for spanpackage marking end
 		+ 1 + ((CACHE_SIZE - 1) / sizeof(spanpackage_t)) + 1];
 	a_spans = (spanpackage_t *)
 		(((uintptr_t) & spans[0] + CACHE_SIZE - 1) & ~(CACHE_SIZE - 1));
 	if(r_affinetridesc.drawtype)
-		D_DrawSubdiv();
+		D_DrawSubdiv(); // tests the row of every pixel
+	else if(d_bandy0 > 0 || d_bandy1 < (s32)vid.height)
+		D_DrawNonSubdivBanded(); // a band of the screen
 	else
 		D_DrawNonSubdiv();
 }
 
-void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
+static void D_PolysetDrawPoints(finalvert_t *fv, s32 numverts)
 {
 	for(s32 i = 0; i < numverts; i++, fv++){
+		if(fv->v[1] < d_bandy0 || fv->v[1] >= d_bandy1)
+			continue;
 	// valid triangle coordinates for filling can include the bottom and
 	// right clip edges, due to the fill rule; these shouldn't be drawn
 		if(fv->v[0]<r_refdef.vrectright&&fv->v[1]<r_refdef.vrectbottom){
@@ -153,26 +158,220 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 			*zbuf = z;
 			s32 texel = pix;
 			pix = ((u8*)acolormap)[texel + (fv->v[4]&0xFF00)];
-			if(r_rgblighting.value && colored_aliaslight
-					&& texel < 0xE0)
-				pix = D_GetRGBPix(pix);
+			if(d_rgblight && texel < 0xE0)
+				pix = d_rgbpix[pix];
 			if(pix == 0xFF) continue;
-			if(r_alphastyle.value == 0 && cur_ent_alpha != 1){
+			if(r_alphastyle.value == 0 && d_entalpha != 1){
 				s32 curpix = d_viewbuffer[d_scantable[fv->v[1]]
 							+ fv->v[0]];
 				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] =
 					color_mix_lut[curpix][pix]
-					[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
+					[(s32)((d_entalpha)*FOG_LUT_LEVELS)];
 			}
-			else if(r_alphastyle.value == 1 && cur_ent_alpha != 1){
+			else if(r_alphastyle.value == 1 && d_entalpha != 1){
 				if(D_Dither(&d_viewbuffer[d_scantable[fv->v[1]]
-						+ fv->v[0]], cur_ent_alpha))
+						+ fv->v[0]], d_entalpha))
 					d_viewbuffer[d_scantable[fv->v[1]]
 						+ fv->v[0]] = pix;
 			}
 			else d_viewbuffer[d_scantable[fv->v[1]]+fv->v[0]] = pix;
 		}
 	}
+}
+
+// The models for the workers (r_thread.c). The command of a model keeps what
+// the front end hands D_PolysetDraw and D_PolysetDrawFinalVerts, with copies
+// of the vertices and triangles it won't keep, and the bands draw from that.
+typedef struct aliasitem_s {
+	struct aliasitem_s *next;
+	affinetridesc_t desc;
+	s32 numverts; // > 0 for the points of D_PolysetDrawFinalVerts
+	s32 ymin, ymax;
+} aliasitem_t;
+typedef struct {
+	aliasitem_t *items, **tail;
+	void *colormap;
+	f32 alpha;
+	s32 rgblight;
+	u8 rgbpix[256];
+	s32 ymin, ymax;
+	bool cull; // can skip bands where the z-buffer hides cullrect
+	s32 cullrect[5]; // x0, y0, x1, y1 (inclusive) and zbound
+} aliascmd_t;
+static aliascmd_t *d_alias; // the model being recorded
+static finalvert_t *d_modelverts, *d_modelcopy; // its vertices, their copy
+static s32 d_modelymin, d_modelymax;
+static bool d_cull; // for the next model, see D_PolysetCullRect
+static s32 d_cullrect[5];
+
+// The rectangle r_entocclusion tests, for the next model. The workers test the
+// part of it in their bands, against what's in the z-buffer at that point.
+void D_PolysetCullRect()
+{
+	s32 *r = d_cullrect;
+	d_cull = R_AliasScreenBounds(&r[0], &r[1], &r[2], &r[3], &r[4]);
+}
+
+// After R_AliasDrawModel set acolormap, cur_ent_alpha and the coloured light
+void D_PolysetBeginModel()
+{
+	d_entalpha = cur_ent_alpha;
+	d_rgblight = r_rgblighting.value && colored_aliaslight;
+	d_rgbpix = d_rgblight ? D_RGBPixTable() : NULL;
+	if(r_alphastyle.value == 0 && d_entalpha != 1 && !fog_lut_built)
+		R_BuildColorMixLUT(0);
+	d_modelverts = NULL;
+	bool cull = d_cull;
+	d_cull = 0;
+	if(!r_threaded)
+		return;
+	aliascmd_t *c = d_alias = R_FrameAlloc(sizeof(*c));
+	c->items = NULL;
+	c->tail = &c->items;
+	c->colormap = acolormap;
+	c->alpha = d_entalpha;
+	c->rgblight = d_rgblight;
+	if(d_rgblight)
+		memcpy(c->rgbpix, d_rgbpix, sizeof(c->rgbpix));
+	c->ymin = 0x7fffffff;
+	c->ymax = -0x7fffffff;
+	c->cull = cull;
+	memcpy(c->cullrect, d_cullrect, sizeof(c->cullrect));
+}
+
+// The transformed vertices the triangles of the model index
+void D_PolysetModelVerts(finalvert_t *fv, s32 numverts, bool projected)
+{
+	d_modelverts = fv;
+	if(!d_alias)
+		return;
+	d_modelcopy = R_FrameAlloc(numverts * sizeof(*fv));
+	memcpy(d_modelcopy, fv, numverts * sizeof(*fv));
+	d_modelymin = 0x7fffffff;
+	d_modelymax = -0x7fffffff;
+	for(s32 i = 0; projected && i < numverts; i++){
+		d_modelymin = q_min(d_modelymin, fv[i].v[1]);
+		d_modelymax = q_max(d_modelymax, fv[i].v[1]);
+	}
+}
+
+static void D_AliasAdd(aliasitem_t *it)
+{
+	it->next = NULL;
+	*d_alias->tail = it;
+	d_alias->tail = &it->next;
+	d_alias->ymin = q_min(d_alias->ymin, it->ymin);
+	d_alias->ymax = q_max(d_alias->ymax, it->ymax);
+}
+
+static finalvert_t *D_AliasVerts(finalvert_t *fv, s32 n)
+{
+	if(fv == d_modelverts)
+		return d_modelcopy;
+	finalvert_t *copy = R_FrameAlloc(n * sizeof(*fv));
+	memcpy(copy, fv, n * sizeof(*fv));
+	return copy;
+}
+
+static void D_AliasRecordTris()
+{
+	aliasitem_t *it = R_FrameAlloc(sizeof(*it));
+	it->desc = r_affinetridesc;
+	it->numverts = 0;
+	finalvert_t *fv = r_affinetridesc.pfinalverts;
+	mtriangle_t *tri = r_affinetridesc.ptriangles;
+	if(r_affinetridesc.numtriangles == 1){ // one of the model's, or
+		mtriangle_t *t = R_FrameAlloc(sizeof(*t)); // clipped
+		*t = *tri;
+		it->desc.ptriangles = t;
+		s32 n = 0;
+		it->ymin = 0x7fffffff;
+		it->ymax = -0x7fffffff;
+		for(s32 i = 0; i < 3; i++){
+			const finalvert_t *v = &fv[tri->vertindex[i]];
+			n = q_max(n, tri->vertindex[i] + 1);
+			it->ymin = q_min(it->ymin, v->v[1]);
+			it->ymax = q_max(it->ymax, v->v[1]);
+		}
+		it->desc.pfinalverts = D_AliasVerts(fv, n);
+	}else{ // all of the model's
+		it->desc.pfinalverts = d_modelcopy;
+		it->ymin = d_modelymin;
+		it->ymax = d_modelymax;
+	}
+	D_AliasAdd(it);
+}
+
+static void D_AliasCmd(void *arg)
+{
+	const aliascmd_t *c = arg;
+	if(c->cull){
+		const s32 *r = c->cullrect;
+		s32 y0 = q_max(r[1], d_bandy0), y1 = q_min(r[3], d_bandy1 - 1);
+		if(y0 > y1 || R_ZBufferRectBehind(r[0], y0, r[2], y1, r[4]))
+			return;
+	}
+	acolormap = c->colormap;
+	d_entalpha = c->alpha;
+	d_rgblight = c->rgblight;
+	d_rgbpix = c->rgbpix;
+	for(const aliasitem_t *it = c->items; it; it = it->next){
+		if(it->ymax < d_bandy0 || it->ymin >= d_bandy1)
+			continue;
+		r_affinetridesc = it->desc;
+		if(r_affinetridesc.drawtype)
+			D_PolysetUpdateTables();
+		if(it->numverts)
+			D_PolysetDrawPoints(r_affinetridesc.pfinalverts,
+					it->numverts);
+		else
+			D_PolysetDrawNow();
+	}
+}
+
+void D_PolysetEndModel()
+{
+	aliascmd_t *c = d_alias;
+	d_alias = NULL;
+	if(c && c->items)
+		R_RowsAdd(c->ymin, c->ymax + 1, D_AliasCmd, c);
+}
+
+void D_PolysetDraw()
+{
+	if(d_alias)
+		D_AliasRecordTris();
+	else
+		D_PolysetDrawNow();
+}
+
+void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
+{
+	if(!d_alias){
+		D_PolysetDrawPoints(fv, numverts);
+		return;
+	}
+	aliasitem_t *it = R_FrameAlloc(sizeof(*it));
+	it->desc = r_affinetridesc;
+	it->desc.pfinalverts = D_AliasVerts(fv, numverts);
+	it->numverts = numverts;
+	it->ymin = 0x7fffffff;
+	it->ymax = -0x7fffffff;
+	for(s32 i = 0; i < numverts; i++){
+		it->ymin = q_min(it->ymin, fv[i].v[1]);
+		it->ymax = q_max(it->ymax, fv[i].v[1]);
+	}
+	D_AliasAdd(it);
+}
+
+// Can the triangle have pixels in the rows this thread draws? full: all of it
+Q_SIL bool D_TriInBand(const finalvert_t *a, const finalvert_t *b,
+		const finalvert_t *c, bool *full)
+{
+	s32 ymin = q_min(a->v[1], q_min(b->v[1], c->v[1]));
+	s32 ymax = q_max(a->v[1], q_max(b->v[1], c->v[1]));
+	*full = ymin >= d_bandy0 && ymax <= d_bandy1;
+	return ymax >= d_bandy0 && ymin < d_bandy1;
 }
 
 void D_DrawSubdiv()
@@ -198,26 +397,23 @@ void D_DrawSubdiv()
 		d_pcolormap = &((u8 *) acolormap)[i0->v[4] & 0xFF00];
 		if(ptri[i].facesfront){
 			D_PolysetRecursiveTriangle(i0->v, i1->v, i2->v);
-		}else{
-			s32 s0, s1, s2;
-			s0 = i0->v[2];
-			s1 = i1->v[2];
-			s2 = i2->v[2];
+		}else{ // copies, other threads draw from the same vertices
+			s32 v0[6], v1[6], v2[6];
+			memcpy(v0, i0->v, sizeof(v0));
+			memcpy(v1, i1->v, sizeof(v1));
+			memcpy(v2, i2->v, sizeof(v2));
 			if(i0->flags & ALIAS_ONSEAM)
-				i0->v[2] += r_affinetridesc.seamfixupX16;
+				v0[2] += r_affinetridesc.seamfixupX16;
 			if(i1->flags & ALIAS_ONSEAM)
-				i1->v[2] += r_affinetridesc.seamfixupX16;
+				v1[2] += r_affinetridesc.seamfixupX16;
 			if(i2->flags & ALIAS_ONSEAM)
-				i2->v[2] += r_affinetridesc.seamfixupX16;
-			D_PolysetRecursiveTriangle(i0->v, i1->v, i2->v);
-			i0->v[2] = s0;
-			i1->v[2] = s1;
-			i2->v[2] = s2;
+				v2[2] += r_affinetridesc.seamfixupX16;
+			D_PolysetRecursiveTriangle(v0, v1, v2);
 		}
 	}
 }
 
-void D_DrawNonSubdiv()
+Q_SIL void D_DrawNonSubdivImpl(bool banded)
 {
 	finalvert_t *pfv = r_affinetridesc.pfinalverts;
 	mtriangle_t *ptri = r_affinetridesc.ptriangles;
@@ -227,6 +423,9 @@ void D_DrawNonSubdiv()
 		finalvert_t *i0 = pfv + ptri->vertindex[0];
 		finalvert_t *i1 = pfv + ptri->vertindex[1];
 		finalvert_t *i2 = pfv + ptri->vertindex[2];
+		bool full = 1;
+		if(banded && !D_TriInBand(i0, i1, i2, &full))
+			continue;
 		if(r_showtris.value && r_numdebuglines < MAX_DEBUG_LINES - 3){
 			R_DrawDebugLine(i0->v[0],i0->v[1],i1->v[0],i1->v[1],
 					r_showtris_color.value);
@@ -239,36 +438,42 @@ void D_DrawNonSubdiv()
 			(i0->v[0]-i1->v[0])*(i0->v[1]-i2->v[1]);
 		if(d_xdenom >= 0)
 			continue;
-		r_p0[0] = i0->v[0]; // u
-		r_p0[1] = i0->v[1]; // v
-		r_p0[2] = i0->v[2]; // s
-		r_p0[3] = i0->v[3]; // t
-		r_p0[4] = i0->v[4]; // light
-		r_p0[5] = i0->v[5]; // iz
-		r_p1[0] = i1->v[0];
-		r_p1[1] = i1->v[1];
-		r_p1[2] = i1->v[2];
-		r_p1[3] = i1->v[3];
-		r_p1[4] = i1->v[4];
-		r_p1[5] = i1->v[5];
-		r_p2[0] = i2->v[0];
-		r_p2[1] = i2->v[1];
-		r_p2[2] = i2->v[2];
-		r_p2[3] = i2->v[3];
-		r_p2[4] = i2->v[4];
-		r_p2[5] = i2->v[5];
+		r_p[0][0] = i0->v[0]; // u
+		r_p[0][1] = i0->v[1]; // v
+		r_p[0][2] = i0->v[2]; // s
+		r_p[0][3] = i0->v[3]; // t
+		r_p[0][4] = i0->v[4]; // light
+		r_p[0][5] = i0->v[5]; // iz
+		r_p[1][0] = i1->v[0];
+		r_p[1][1] = i1->v[1];
+		r_p[1][2] = i1->v[2];
+		r_p[1][3] = i1->v[3];
+		r_p[1][4] = i1->v[4];
+		r_p[1][5] = i1->v[5];
+		r_p[2][0] = i2->v[0];
+		r_p[2][1] = i2->v[1];
+		r_p[2][2] = i2->v[2];
+		r_p[2][3] = i2->v[3];
+		r_p[2][4] = i2->v[4];
+		r_p[2][5] = i2->v[5];
 		if(!ptri->facesfront){
 			if(i0->flags & ALIAS_ONSEAM)
-				r_p0[2] += r_affinetridesc.seamfixupX16;
+				r_p[0][2] += r_affinetridesc.seamfixupX16;
 			if(i1->flags & ALIAS_ONSEAM)
-				r_p1[2] += r_affinetridesc.seamfixupX16;
+				r_p[1][2] += r_affinetridesc.seamfixupX16;
 			if(i2->flags & ALIAS_ONSEAM)
-				r_p2[2] += r_affinetridesc.seamfixupX16;
+				r_p[2][2] += r_affinetridesc.seamfixupX16;
 		}
 		D_PolysetSetEdgeTable();
-		D_RasterizeAliasPolySmooth();
+		if(full) // inlined, as without the workers there's only this
+			D_RasterizeAliasPolySmoothImpl(0);
+		else
+			D_RasterizeAliasPolySmoothBanded();
 	}
 }
+
+void D_DrawNonSubdiv(){ D_DrawNonSubdivImpl(0); }
+static void D_DrawNonSubdivBanded(){ D_DrawNonSubdivImpl(1); }
 
 void D_PolysetRecursiveTriangle(s32 *lp1, s32 *lp2, s32 *lp3)
 {
@@ -317,6 +522,8 @@ split: // split this edge
 	if(new[0] < 0 || new[1] < 0 || new[1] >= r_refdef.fvrectbottom
 			|| new[0] >= r_refdef.fvrectright)
 		goto nodraw; // zbuf segfault
+	if(new[1] < d_bandy0 || new[1] >= d_bandy1)
+		goto nodraw; // another thread's
 	s32 *zbuf = zspantable[new[1]] + new[0];
 	if(zbuf - d_pzbuffer >= (s32)(vid.width * vid.height)
 			|| zbuf < d_pzbuffer)
@@ -334,18 +541,18 @@ split: // split this edge
 		s32 pix = row[s];
 		s32 texel = pix;
 		pix = d_pcolormap[texel];
-		if(r_rgblighting.value && colored_aliaslight && texel < 0xE0)
-			pix = D_GetRGBPix(pix);
+		if(d_rgblight && texel < 0xE0)
+			pix = d_rgbpix[pix];
 		if(pix == 0xFF) goto nodraw;
-		if(r_alphastyle.value == 0 && cur_ent_alpha != 1){
+		if(r_alphastyle.value == 0 && d_entalpha != 1){
 			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
 			d_viewbuffer[d_scantable[new[1]] + new[0]] =
 				color_mix_lut[curpix][pix]
-				[(s32)((cur_ent_alpha)*FOG_LUT_LEVELS)];
+				[(s32)((d_entalpha)*FOG_LUT_LEVELS)];
 		}
-		else if(r_alphastyle.value == 1 && cur_ent_alpha != 1){
+		else if(r_alphastyle.value == 1 && d_entalpha != 1){
 			if(D_Dither(&d_viewbuffer[d_scantable[new[1]] + new[0]],
-						cur_ent_alpha))
+						d_entalpha))
 				d_viewbuffer[d_scantable[new[1]]+new[0]] = pix;
 		}
 		else d_viewbuffer[d_scantable[new[1]] + new[0]] = pix;
@@ -357,8 +564,8 @@ nodraw: // recursively continue
 
 void D_PolysetUpdateTables()
 {
-	static u8 *skinstart;
-	static s32 skinwidth;
+	static Q_TLS u8 *skinstart; // what this thread's skintable holds
+	static Q_TLS s32 skinwidth;
 	if(r_affinetridesc.skinwidth != skinwidth ||
 			r_affinetridesc.pskin != skinstart){
 		skinwidth = r_affinetridesc.skinwidth;
@@ -433,31 +640,31 @@ void D_PolysetSetUpForLineScan(s32 startvertu, s32 startvertv,
 	erroradjustdown = tn;
 }
 
-void D_PolysetCalcGradients(s32 skinwidth)
+Q_SIL void D_PolysetCalcGradients(s32 skinwidth)
 {
-	f32 p00_minus_p20 = r_p0[0] - r_p2[0];
-	f32 p01_minus_p21 = r_p0[1] - r_p2[1];
-	f32 p10_minus_p20 = r_p1[0] - r_p2[0];
-	f32 p11_minus_p21 = r_p1[1] - r_p2[1];
+	f32 p00_minus_p20 = r_p[0][0] - r_p[2][0];
+	f32 p01_minus_p21 = r_p[0][1] - r_p[2][1];
+	f32 p10_minus_p20 = r_p[1][0] - r_p[2][0];
+	f32 p11_minus_p21 = r_p[1][1] - r_p[2][1];
 	f32 xstepdenominv = 1.0 / (f32)d_xdenom;
 	f32 ystepdenominv = -xstepdenominv;
 // ceil() for light so positive steps are exaggerated, negative steps
 // diminished, pushing us away from underflow toward overflow. Underflow is
 // very visible, overflow is very unlikely, because of ambient lighting
-	f32 t0 = r_p0[4] - r_p2[4];
-	f32 t1 = r_p1[4] - r_p2[4];
+	f32 t0 = r_p[0][4] - r_p[2][4];
+	f32 t1 = r_p[1][4] - r_p[2][4];
 	r_lstepx = Q_ceil((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
 	r_lstepy = Q_ceil((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
-	t0 = r_p0[2] - r_p2[2];
-	t1 = r_p1[2] - r_p2[2];
+	t0 = r_p[0][2] - r_p[2][2];
+	t1 = r_p[1][2] - r_p[2][2];
 	r_sstepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
 	r_sstepy = (s32)((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
-	t0 = r_p0[3] - r_p2[3];
-	t1 = r_p1[3] - r_p2[3];
+	t0 = r_p[0][3] - r_p[2][3];
+	t1 = r_p[1][3] - r_p[2][3];
 	r_tstepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
 	r_tstepy = (s32)((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
-	t0 = r_p0[5] - r_p2[5];
-	t1 = r_p1[5] - r_p2[5];
+	t0 = r_p[0][5] - r_p[2][5];
+	t1 = r_p[1][5] - r_p[2][5];
 	r_zistepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
 	r_zistepy = (s32)((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
 	a_sstepxfrac = r_sstepx & 0xFFFF;
@@ -465,18 +672,18 @@ void D_PolysetCalcGradients(s32 skinwidth)
 	a_ststepxwhole = skinwidth * (r_tstepx >> 16) + (r_sstepx >> 16);
 }
 
-static polysetstyle_t D_PolysetPixelStyle()
+static Q_NOINLINE polysetstyle_t D_PolysetPixelStyle()
 {
 	polysetstyle_t st;
 	st.colormap = (u8 *)acolormap;
-	st.rgblight = r_rgblighting.value && colored_aliaslight;
-	st.rgbpix = st.rgblight ? D_RGBPixTable() : NULL;
+	st.rgblight = d_rgblight;
+	st.rgbpix = d_rgbpix;
 	st.mixlevel = 0;
-	if(cur_ent_alpha == 1)
+	if(d_entalpha == 1)
 		st.blend = BLEND_OPAQUE;
 	else if(r_alphastyle.value == 0){
 		st.blend = BLEND_MIX;
-		st.mixlevel = (s32)(cur_ent_alpha * FOG_LUT_LEVELS);
+		st.mixlevel = (s32)(d_entalpha * FOG_LUT_LEVELS);
 	}else if(r_alphastyle.value == 1)
 		st.blend = BLEND_STIPPLE;
 	else
@@ -563,7 +770,7 @@ Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
 		*pdest = color_mix_lut[*pdest][pix][st->mixlevel];
 		break;
 	case BLEND_STIPPLE:
-		if(D_Dither(pdest, cur_ent_alpha))
+		if(D_Dither(pdest, d_entalpha))
 			*pdest = pix;
 		break;
 	default:
@@ -650,26 +857,41 @@ Q_SIL s32 D_PolysetSpanInBounds(const spanpackage_t *span, s32 count)
 		pz >= d_pzbuffer && pz + count <= z_end;
 }
  
-Q_SIL void D_PolysetDrawSpansImpl(spanpackage_t *pspanpackage, s32 sample)
+// The span packages from screen row y on. banded: only the rows of this
+// thread's band, for triangles that don't fit into it
+Q_SIL void D_PolysetDrawSpansImpl(spanpackage_t *pspanpackage, s32 y,
+		s32 sample, bool banded)
 {
 	const polysetstyle_t st = D_PolysetPixelStyle();
 	skinwalk_t k;
 	if(sample == TEXSAMPLE_DITHERED)
 		D_SkinWalkSetup(&k);
 	do{
+		if(banded && y >= d_bandy1)
+			break;
 		s32 count = D_PolysetNextSpanWidth(pspanpackage);
-		if(count > 0 && D_PolysetSpanInBounds(pspanpackage, count))
+		if(count > 0 && (!banded || y >= d_bandy0)
+				&& D_PolysetSpanInBounds(pspanpackage, count))
 			D_PolysetDrawSpan(pspanpackage, count, &st, sample,
 					&k);
 		pspanpackage++;
+		y++;
 	}while(pspanpackage->count != -999999);
 }
- 
+
 void D_PolysetDrawSpans(spanpackage_t *pspanpackage)
-{ D_PolysetDrawSpansImpl(pspanpackage, TEXSAMPLE_NEAREST); }
- 
+{ D_PolysetDrawSpansImpl(pspanpackage, 0, TEXSAMPLE_NEAREST, 0); }
+
 void D_PolysetDrawSpansDithered(spanpackage_t *pspanpackage)
-{ D_PolysetDrawSpansImpl(pspanpackage, TEXSAMPLE_DITHERED); }
+{ D_PolysetDrawSpansImpl(pspanpackage, 0, TEXSAMPLE_DITHERED, 0); }
+
+static Q_NOINLINE void D_PolysetDrawSpansBanded(spanpackage_t *pspanpackage,
+		s32 y)
+{ D_PolysetDrawSpansImpl(pspanpackage, y, TEXSAMPLE_NEAREST, 1); }
+
+static Q_NOINLINE void D_PolysetDrawSpansDitheredBanded(
+		spanpackage_t *pspanpackage, s32 y)
+{ D_PolysetDrawSpansImpl(pspanpackage, y, TEXSAMPLE_DITHERED, 1); }
 
 // sets up the stepping for a left edge of at least two scanlines
 Q_SIL void D_PolysetSetUpLeftEdgeSteps()
@@ -726,16 +948,18 @@ Q_SIL void D_PolysetLeftEdge(const s32 *ptop, const s32 *pbottom,
 	D_PolysetScanLeftEdge(height);
 }
 
-void D_RasterizeAliasPolySmooth()
+// banded: the rows of the triangle in this thread's band, it has others too
+Q_SIL void D_RasterizeAliasPolySmoothImpl(bool banded)
 {
-	s32 *plefttop = pedgetable->pleftedgevert0;
-	s32 *prighttop = pedgetable->prightedgevert0;
-	s32 *pleftbottom = pedgetable->pleftedgevert1;
-	s32 *prightbottom = pedgetable->prightedgevert1;
+	s32 *plefttop = r_p[pedgetable->left[0]];
+	s32 *prighttop = r_p[pedgetable->right[0]];
+	s32 *pleftbottom = r_p[pedgetable->left[1]];
+	s32 *prightbottom = r_p[pedgetable->right[1]];
 	u32 initialleftheight = pleftbottom[1] - plefttop[1];
 	u32 initialrightheight = prightbottom[1] - prighttop[1];
 	if(initialleftheight>vid.height || initialrightheight>vid.height)
 		return; // broken alias model
+	s32 y = plefttop[1]; // the row of the first span
 	// set the s, t, and light gradients, which are consistent across the
 	// triangle because being a triangle, things are affine
 	D_PolysetCalcGradients(r_affinetridesc.skinwidth);
@@ -747,7 +971,7 @@ void D_RasterizeAliasPolySmooth()
 	// scan out the bottom part of the left edge, if it exists
 	if(pedgetable->numleftedges == 2){
 		plefttop = pleftbottom;
-		pleftbottom = pedgetable->pleftedgevert2;
+		pleftbottom = r_p[pedgetable->left[2]];
 		D_PolysetLeftEdge(plefttop, pleftbottom, prighttop[0],
 				pleftbottom[1] - plefttop[1], 0);
 	}
@@ -760,7 +984,10 @@ void D_RasterizeAliasPolySmooth()
 	d_countextrastep = ubasestep + 1;
 	s32 originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of spanpackages
-	if(r_dithertex.value) D_PolysetDrawSpansDithered(a_spans);
+	if(banded && r_dithertex.value)
+		D_PolysetDrawSpansDitheredBanded(a_spans, y);
+	else if(banded) D_PolysetDrawSpansBanded(a_spans, y);
+	else if(r_dithertex.value) D_PolysetDrawSpansDithered(a_spans);
 	else D_PolysetDrawSpans(a_spans);
 	// scan out the bottom part of the right edge, if it exists
 	if(pedgetable->numrightedges == 2){
@@ -769,39 +996,47 @@ void D_RasterizeAliasPolySmooth()
 		pstart->count = originalcount;
 		d_aspancount = prightbottom[0] - prighttop[0];
 		prighttop = prightbottom;
-		prightbottom = pedgetable->prightedgevert2;
+		prightbottom = r_p[pedgetable->right[2]];
 		s32 height = prightbottom[1] - prighttop[1];
 		D_PolysetSetUpForLineScan(prighttop[0], prighttop[1],
 				prightbottom[0], prightbottom[1]);
 		d_countextrastep = ubasestep + 1;
+		//mark end of the spanpackages
 		a_spans[initialrightheight + height].count = -999999;
-		if(r_dithertex.value) D_PolysetDrawSpansDithered(pstart);
-		else D_PolysetDrawSpans(pstart);//mark end of the spanpackages
+		y += initialrightheight;
+		if(banded && r_dithertex.value)
+			D_PolysetDrawSpansDitheredBanded(pstart, y);
+		else if(banded) D_PolysetDrawSpansBanded(pstart, y);
+		else if(r_dithertex.value) D_PolysetDrawSpansDithered(pstart);
+		else D_PolysetDrawSpans(pstart);
 	}
 }
+
+static void D_RasterizeAliasPolySmoothBanded()
+{ D_RasterizeAliasPolySmoothImpl(1); }
 
 void D_PolysetSetEdgeTable()
 {
 	s32 edgetableindex = 0; // assume the vertices are already in top to
 		// bottom order determine which edges are right & left, and the
 		// order in which to rasterize them
-	if(r_p0[1] >= r_p1[1]){
-		if(r_p0[1] == r_p1[1]){
-		    pedgetable=r_p0[1]<r_p2[1]?&edgetables[2]:&edgetables[5];
+	if(r_p[0][1] >= r_p[1][1]){
+		if(r_p[0][1] == r_p[1][1]){
+			pedgetable = &edgetables[r_p[0][1]<r_p[2][1] ? 2 : 5];
 			return;
 		}else
 			edgetableindex = 1;
 	}
-	if(r_p0[1] == r_p2[1]){
+	if(r_p[0][1] == r_p[2][1]){
 		pedgetable = edgetableindex ? &edgetables[8] : &edgetables[9];
 		return;
-	}else if(r_p1[1] == r_p2[1]){
+	}else if(r_p[1][1] == r_p[2][1]){
 		pedgetable = edgetableindex ? &edgetables[10] : &edgetables[11];
 		return;
 	}
-	if(r_p0[1] > r_p2[1])
+	if(r_p[0][1] > r_p[2][1])
 		edgetableindex += 2;
-	if(r_p1[1] > r_p2[1])
+	if(r_p[1][1] > r_p[2][1])
 		edgetableindex += 4;
 	pedgetable = &edgetables[edgetableindex];
 }

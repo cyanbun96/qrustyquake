@@ -433,6 +433,37 @@ static u32 VID_RowRun(const u8 *rows, u32 y)
 	return e;
 }
 
+static struct { // the composite of the frame, see VID_CompositeRuns
+	u32 *pixels;
+	s32 pitch, rs1;
+	u8 rows[MAXHEIGHT]; // which layers each row has
+} vid_comp;
+
+static void VID_CompositeRuns(u32 y0, u32 y1)
+{
+	for(u32 y = y0, e; y < y1; y = e){
+		e = q_min(VID_RowRun(vid_comp.rows, y), y1);
+		compfuncs[vid_comp.rs1 * 4 + vid_comp.rows[y]](vid_comp.pixels,
+				vid_comp.pitch, y, e);
+	}
+}
+
+static void VID_CompositeCmd(SDL_UNUSED void *arg)
+{ VID_CompositeRuns(d_bandy0, q_min((u32)d_bandy1, vid.height)); }
+
+static void VID_CompositeFrame()
+{ // the render threads take the bands of the frame they just drew
+	if(!R_ThreadsAwake()){
+		VID_CompositeRuns(0, vid.height);
+		return;
+	}
+	for(s32 b = 0; b < r_nbands; b++){
+		R_BandAdd(b, VID_CompositeCmd, NULL);
+		R_BandPublish(b);
+	}
+	R_ThreadsHelp();
+}
+
 static void VID_UploadOverlay(s32 l, bool used)
 { // the rows drawn in now and the ones still holding an older drawing
 	u8 rows[MAXHEIGHT];
@@ -505,16 +536,14 @@ void VID_Update()
 		&& (renderscale == 1 || scalemode != SDL_SCALEMODE_LINEAR)
 		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h)))
 		{ // rows without overlays on them take the plain world loop
-			u8 rows[MAXHEIGHT];
+			u8 *rows = vid_comp.rows;
 			for(u32 y = 0; y < vid.height; ++y)
 				rows[y] = (blitscreenui && drawnrows[2][y]) * 2
 					+ (blitscreentop && drawnrows[1][y]);
-			for(u32 y = 0, e; y < vid.height; y = e){
-				e = VID_RowRun(rows, y);
-				compfuncs[(renderscale == 1) * 4 + rows[y]](
-					argbbuffer->pixels,
-					argbbuffer->pitch / 4, y, e);
-			}
+			vid_comp.pixels = argbbuffer->pixels;
+			vid_comp.pitch = argbbuffer->pitch / 4;
+			vid_comp.rs1 = renderscale == 1;
+			VID_CompositeFrame();
 		}
 		else{ // linear filtering or a scaled UI layer
 			SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer,
@@ -549,6 +578,7 @@ void VID_Update()
 			SDL_RenderTexture(renderer, idxtex[1], NULL, &destRect);
 	}else
 		SDL_RenderTexture(renderer, texture, NULL, &destRect);
+	R_ThreadsIdle(); // until the next frame
 	SDL_RenderPresent(renderer);
 	if(vid_testingmode && realtime >= vid_testendtime){
 		VID_SetMode(vid_realmode, testwidth, testheight, testwinmode);
@@ -581,6 +611,7 @@ c8 *VID_GetModeDescription(s32 mode)
 
 void VID_AllocBuffers()
 {
+	R_ThreadsSync();
 	s32 area = vid.width * (vid.height + 1); // +safety padding line
 	screenpixels = realloc(screenpixels, area);
 	toppixels = realloc(toppixels, area);
@@ -606,6 +637,7 @@ void VID_AllocBuffers()
 void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 {
 	Con_DPrintf("SetMode: %d %dx%d %d\n", modenum, custw, custh, custwinm);
+	R_ThreadsIdle(); // the bands are cut for the old size
 	if(modenum == vid_modenum && (!custw || !custh))
 		return;
 	if(custw && custh){

@@ -80,13 +80,13 @@ s32 r_bmodel_faces_occluded;
 s32 r_nodes_occluded;
 s32 r_worldpass;
 vec3_t v_punchangles[2];
-f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                           // d_vars.c
-f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
-f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
-s64 sadjust, tadjust;
-s32 bbextents, bbextentt;
-u8 *cacheblock;
-s32 cachewidth, cacheheight;
+Q_TLS f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                     // d_vars.c
+Q_TLS f32 d_sdivzstepv, d_tdivzstepv, d_zistepv;
+Q_TLS f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
+Q_TLS s64 sadjust, tadjust;
+Q_TLS s32 bbextents, bbextentt;
+Q_TLS u8 *cacheblock;
+Q_TLS s32 cachewidth, cacheheight;
 u8 *d_viewbuffer;
 s32 *d_pzbuffer;
 u32 d_zwidth;
@@ -263,8 +263,8 @@ const s32 dither_t[4] = {
 	(s32)(-0.50 * 65536.0f),
 	(s32)(-0.25 * 65536.0f)
 };
-affinetridesc_t r_affinetridesc;                                    // r_alias.c
-void *acolormap;
+Q_TLS affinetridesc_t r_affinetridesc;                              // r_alias.c
+Q_TLS void *acolormap;
 finalvert_t *pfinalverts;
 auxvert_t *pauxverts;
 s32 r_amodels_drawn;

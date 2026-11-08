@@ -5,6 +5,15 @@
 static s32 sprite_height;
 static s32 minindex, maxindex;
 static sspan_t *sprite_spans;
+typedef struct { dgrad_t g; sspan_t spans[]; } spritecmd_t;
+
+void D_SpriteDrawSpans(sspan_t *pspan);
+static void D_SpriteCmd(void *arg)
+{ // the spans in a band, for the workers
+	spritecmd_t *c = arg;
+	D_LoadGradients(&c->g);
+	D_SpriteDrawSpans(c->spans);
+}
 
 void D_SpriteDrawSpans(sspan_t *pspan)
 {
@@ -17,6 +26,8 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 	do{
 		if(pspan->v < 0 || pspan->v >= (s32)vid.height)
 			goto NextSpan;
+		if(pspan->v < d_bandy0 || pspan->v >= d_bandy1)
+			goto NextSpan; // another thread's
 		if(pspan->u < 0 || pspan->u >= (s32)vid.width)
 			goto NextSpan;
 		if(pspan->count <= 0)
@@ -275,5 +286,15 @@ void D_DrawSprite()
 	D_SpriteCalculateGradients();
 	D_SpriteScanLeftEdge();
 	D_SpriteScanRightEdge();
-	D_SpriteDrawSpans(sprite_spans);
+	if(!r_threaded){
+		D_SpriteDrawSpans(sprite_spans);
+		return;
+	}
+	s32 n = 1; // the end marker too
+	while(sprite_spans[n - 1].count != DS_SPAN_LIST_END)
+		n++;
+	spritecmd_t *c = R_FrameAlloc(sizeof(*c) + n * sizeof(sspan_t));
+	D_SaveGradients(&c->g);
+	memcpy(c->spans, sprite_spans, n * sizeof(sspan_t));
+	R_RowsAdd(ymin, ymax, D_SpriteCmd, c);
 }

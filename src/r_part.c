@@ -429,4 +429,5 @@ void R_DrawParticles()
 			break;
 		}
 	}
+	D_EndParticles();
 }

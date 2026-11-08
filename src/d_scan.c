@@ -65,44 +65,31 @@ TURB_VARIANTS(TURB_DEFINE_CHUNKFUNC)
 		[TURBFUNC_INDEX(TURBTRANS_##tr, filtered, lit, hl)] = \
 	D_TurbChunk_##tr##_##filtered##_##lit##_##hl,
 
-static u8 *r_turb_pbase;
-static struct {
-	const u8 *base; // light rows from the lit water surface cache
-	s32 width; // in texels
-	s32 mip;
-	s32 soff, toff; // turb coords minus these = lightmap coords, 16.16
-	s32 smax, tmax;
-	s32 mode;
-} turblight;
-static s32 *r_turb_turb;
-static s32 *pz; // Manoel Kasimier - translucent water
-static s32 izi, izistep;
+// The state of the span being drawn, every thread that draws has its own
+static Q_TLS u8 *r_turb_pbase;
+static Q_TLS turblight_t turblight;
+static Q_TLS s32 *r_turb_turb;
+static Q_TLS s32 *pz; // Manoel Kasimier - translucent water
+static Q_TLS s32 izi, izistep;
+static Q_TLS f32 turb_opacity;
+static Q_TLS const u8 *d_skyfog; // the skybox texels with the sky fog applied
 static u8 *cutoutbuf; // pixels a cutout span gave a texel, one per pixel
 static f32 dist_lut[DIST_LUT_SIZE];
 static f32 cos_lut[COS_LUT_SIZE];
 static f32 dist_lut_max = 8.0f; // max dx*dx + dy*dy
 static f32 cos_lut_period = 2.0f * M_PI;
-static f32 turb_opacity = 0;
 
-void D_WarpScreen() // this performs a slight compression of the screen at the
-{ // same time as the sine warp, to keep the edges from wrapping
-	s32 w = r_refdef.vrect.width;
-	s32 h = r_refdef.vrect.height;
-	f32 wratio = w / (f32)scr_vrect.width;
-	f32 hratio = h / (f32)scr_vrect.height;
-	u8 *rowptr[MAXHEIGHT + (TURB_AMP2 * 2)];
-	s32 column[MAXWIDTH + (TURB_AMP2 * 2)];
-	for(s32 v = 0; v < scr_vrect.height + TURB_AMP2 * 2; v++)
-		rowptr[v] = d_viewbuffer + (r_refdef.vrect.y * screenwidth) +
-		screenwidth * (s32)((f32)v * hratio * h / (h + TURB_AMP2 * 2));
-	for(s32 u = 0; u < scr_vrect.width + TURB_AMP2 * 2; u++)
-		column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w /
-				(w + TURB_AMP2 * 2));
-	s32 *turb = intsintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
-	u8 *dest = vid.buffer + scr_vrect.y * vid.width + scr_vrect.x;
-	for(s32 v = 0; v < scr_vrect.height; v++, dest += vid.width){
-		s32 *col = &column[turb[v]];
-		u8 **row = &rowptr[v];
+static u8 *warp_rowptr[MAXHEIGHT + (TURB_AMP2 * 2)];
+static s32 warp_column[MAXWIDTH + (TURB_AMP2 * 2)];
+static s32 *warp_turb;
+
+static void D_WarpRows(s32 v0, s32 v1) // rows of scr_vrect
+{
+	s32 *turb = warp_turb;
+	u8 *dest = vid.buffer + (scr_vrect.y + v0) * vid.width + scr_vrect.x;
+	for(s32 v = v0; v < v1; v++, dest += vid.width){
+		s32 *col = &warp_column[turb[v]];
+		u8 **row = &warp_rowptr[v];
 		s32 u = 0;
 		for(; u < (scr_vrect.width & ~3); u += 4){
 			dest[u + 0] = row[turb[u + 0]][col[u + 0]];
@@ -112,6 +99,39 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 		}
 		for(; u < scr_vrect.width; u++)
 			dest[u] = row[turb[u]][col[u]];
+	}
+}
+
+static void D_WarpCmd(SDL_UNUSED void *arg)
+{
+	s32 h = scr_vrect.height;
+	D_WarpRows(CLAMP(0, d_bandy0 - scr_vrect.y, h),
+			CLAMP(0, d_bandy1 - scr_vrect.y, h));
+}
+
+void D_WarpScreen() // this performs a slight compression of the screen at the
+{ // same time as the sine warp, to keep the edges from wrapping
+	s32 w = r_refdef.vrect.width;
+	s32 h = r_refdef.vrect.height;
+	f32 wratio = w / (f32)scr_vrect.width;
+	f32 hratio = h / (f32)scr_vrect.height;
+	if(r_threaded) // the rows of every band are read
+		R_ThreadsHelp();
+	for(s32 v = 0; v < scr_vrect.height + TURB_AMP2 * 2; v++)
+		warp_rowptr[v] = d_viewbuffer + (r_refdef.vrect.y*screenwidth)
+			+ screenwidth * (s32)((f32)v * hratio * h
+					/ (h + TURB_AMP2 * 2));
+	for(s32 u = 0; u < scr_vrect.width + TURB_AMP2 * 2; u++)
+		warp_column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w /
+				(w + TURB_AMP2 * 2));
+	warp_turb = intsintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
+	if(!r_threaded){
+		D_WarpRows(0, scr_vrect.height);
+		return;
+	}
+	for(s32 b = 0; b < r_nbands; b++){
+		R_BandAdd(b, D_WarpCmd, NULL);
+		R_BandPublish(b);
 	}
 }
 
@@ -423,13 +443,13 @@ static s32 D_TurbFuncIndex()
 			r_hlwater.value != 0);
 }
 
-static turbspanfunc_t D_TurbBegin(f32 opacity)
+static const turbspanfunc_t turbdrawfunc[36] = {
+	TURB_VARIANTS(TURB_TABLE_ENTRY)
+};
+
+// What Turbulent needs besides the gradients, the tables it uses built
+void D_TurbSetup(turbstate_t *ts, f32 opacity)
 {
-	turb_opacity = opacity;
-	static turbspanfunc_t turbdrawfunc[36] = {
-		TURB_VARIANTS(TURB_TABLE_ENTRY)
-	};
-	turbspanfunc_t drawspan = turbdrawfunc[D_TurbFuncIndex()];
 	if(r_hlwater.value)
 		InitHLWaterLUT();
 	if(turblight.mode == TURBLIT_RGB){
@@ -438,10 +458,11 @@ static turbspanfunc_t D_TurbBegin(f32 opacity)
 	}
 	if(r_alphastyle.value == 0 && opacity != 1 && opacity)
 		R_BuildColorMixLUT(0);
-	r_turb_turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
-	r_turb_pbase = (u8 *)cacheblock;
-	D_SpanDepthSetup();
-	return drawspan;
+	ts->light = turblight;
+	ts->opacity = opacity;
+	ts->func = D_TurbFuncIndex();
+	ts->turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
+	ts->pbase = (u8 *)cacheblock;
 }
 
 Q_SIL void D_TurbSetChunk(turbchunk_t *c, const spanwalk_t *w)
@@ -515,9 +536,14 @@ static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 	}while(w.count > 0);
 }
 
-void Turbulent(espan_t *pspan, f32 opacity)
+void Turbulent(espan_t *pspan, const turbstate_t *ts)
 {
-	turbspanfunc_t drawspan = D_TurbBegin(opacity);
+	turblight = ts->light;
+	turb_opacity = ts->opacity;
+	r_turb_turb = ts->turb;
+	r_turb_pbase = ts->pbase;
+	D_SpanDepthSetup();
+	turbspanfunc_t drawspan = turbdrawfunc[ts->func];
 	do{
 		D_TurbSpan(pspan, drawspan);
 	}while((pspan = pspan->pnext) != NULL);
@@ -639,9 +665,7 @@ Q_SIL u8 *D_SpanChunkCutout(texcursor_t *c, u8 *pdest, s32 dithered)
 }
 
 // The skybox texels with the sky fog applied, NULL without fog
-static const u8 *d_skyfog;
-
-static void D_SkyFogSetup()
+void D_SkyFogSetup()
 {
 	static u8 tab[256];
 	static s64 frame = -1;
@@ -684,9 +708,7 @@ Q_SIL u8 *D_SpanChunkSkybox(texcursor_t *c, u8 *pdest, s32 dithered)
 Q_SIL u8 *D_SpanChunkBlend(texcursor_t *c, u8 *pdest, f32 opacity,
 		s32 dithered)
 {
-	s32 foglut = opacity*FOG_LUT_LEVELS;
-	if(!fog_lut_built)
-		R_BuildColorMixLUT(0);
+	s32 foglut = opacity*FOG_LUT_LEVELS; // D_SetupCached built the table
 	do{
 		if(D_SpanDepthPass()){
 			u8 pix = D_CursorTexel(c, dithered);
@@ -745,8 +767,6 @@ Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 	// 12.20 has room for them, lightmapped surfaces end at 2000 texels
 	s32 fine = type == SPAN_NORMAL && !dithered ? 4 : 0;
 	D_SpanDepthSetup();
-	if(type == SPAN_SKYBOX)
-		D_SkyFogSetup();
 	do{
 		spanwalk_t w;
 		u8 *pdest = D_SpanDest(pspan);
@@ -765,7 +785,45 @@ Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 }
 
 void D_DrawSpans(espan_t *pspan, s32 type, f32 opacity)
-{ D_DrawSpansImpl(pspan, type, opacity, 0); }
+{ // a loop of its own for each type
+	switch(type){
+	case SPAN_NORMAL: D_DrawSpansImpl(pspan, SPAN_NORMAL, 0, 0); break;
+	case SPAN_CUTOUT: D_DrawSpansImpl(pspan, SPAN_CUTOUT, 0, 0); break;
+	case SPAN_SKYBOX: D_DrawSpansImpl(pspan, SPAN_SKYBOX, 0, 0); break;
+	default: D_DrawSpansImpl(pspan, SPAN_TRANS, opacity, 0); break;
+	}
+}
+
+// The span drawing state set up for a surface, kept for later or elsewhere
+void D_SaveGradients(dgrad_t *g)
+{
+	g->sdivzstepu = d_sdivzstepu; g->tdivzstepu = d_tdivzstepu;
+	g->zistepu = d_zistepu;
+	g->sdivzstepv = d_sdivzstepv; g->tdivzstepv = d_tdivzstepv;
+	g->zistepv = d_zistepv;
+	g->sdivzorigin = d_sdivzorigin; g->tdivzorigin = d_tdivzorigin;
+	g->ziorigin = d_ziorigin;
+	g->sadjust = sadjust; g->tadjust = tadjust;
+	g->bbextents = bbextents; g->bbextentt = bbextentt;
+	g->cacheblock = cacheblock;
+	g->cachewidth = cachewidth; g->cacheheight = cacheheight;
+	g->skyfog = d_skyfog;
+}
+
+void D_LoadGradients(const dgrad_t *g)
+{
+	d_sdivzstepu = g->sdivzstepu; d_tdivzstepu = g->tdivzstepu;
+	d_zistepu = g->zistepu;
+	d_sdivzstepv = g->sdivzstepv; d_tdivzstepv = g->tdivzstepv;
+	d_zistepv = g->zistepv;
+	d_sdivzorigin = g->sdivzorigin; d_tdivzorigin = g->tdivzorigin;
+	d_ziorigin = g->ziorigin;
+	sadjust = g->sadjust; tadjust = g->tadjust;
+	bbextents = g->bbextents; bbextentt = g->bbextentt;
+	cacheblock = g->cacheblock;
+	cachewidth = g->cachewidth; cacheheight = g->cacheheight;
+	d_skyfog = g->skyfog;
+}
 
 // Inlined into D_DrawSurfaces, the dithered loops changed how GCC allocated
 // registers for the plain one there (+1.8% instructions)

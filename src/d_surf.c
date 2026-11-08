@@ -10,6 +10,12 @@
 static u64 sc_size;
 static surfcache_t *sc_base;
 static s64 sc_wrapframe; // when the rover last went back to the start
+
+// Has the block been drawn from in this frame? The render threads may still
+// be at it, see D_SurfCacheHazard.
+static bool D_BlockUsed(const surfcache_t *c)
+{ return c->frame == (r_framecount & 0x7fffffff); }
+
 s32 D_SurfaceCacheForRes(s32 width, s32 height)
 {
 	s32 size;
@@ -50,6 +56,7 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 {
 	if(!sc_base)
 		return;
+	R_ThreadsSync();
 	for(surfcache_t *c = sc_base; c; c = c->next)
 		if(c->owner){
 			uintptr_t owner_addr = (uintptr_t)c->owner;
@@ -80,6 +87,7 @@ void D_AllocCaches() // allocate z buffer and surface cache
 	}
 	chunk += cachesize;
 	D_FlushCaches(0);
+	R_ThreadsSync();
 	d_pzbuffer = realloc(d_pzbuffer, chunk);
 	memset(d_pzbuffer, 0, chunk);
 	if(d_pzbuffer == NULL) Sys_Error("Not enough memory for surf cache\n");
@@ -118,6 +126,17 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 			sc_wrapframe = r_framecount;
 		}
 		sc_rover = sc_base;
+	}
+	// the blocks about to be taken may still be drawn from in this frame
+	if(r_threaded){
+		uintptr_t got = 0;
+		for(surfcache_t *c = sc_rover; c && got < size; c = c->next){
+			if(c->owner && D_BlockUsed(c)){
+				D_SurfCacheHazard();
+				break;
+			}
+			got += c->size;
+		}
 	}
 	// colect and free surfcache_t blocks until rover block is large enough
 	surfcache_t *new = sc_rover;
@@ -191,7 +210,9 @@ static s32 D_LightAdjMatches(msurface_t *surf, surfcache_t *cache)
 	return err < 1 << (16 - VID_CBITS); // one shade of blocklight
 }
 
-surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
+// The cached surface if it can be drawn as it is, else NULL and it needs
+// building
+surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel)
 {
 	// if the surface is animating or flashing, flush the cache
 	r_drawsurf.texture = R_TextureAnimation(surface->texinfo->texture);
@@ -203,8 +224,22 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 	surfcache_t *cache = surface->cachespots[miplevel];
 	if(cache && !cache->dlight && surface->dlightframe != r_framecount
 	    && cache->texture == r_drawsurf.texture
-	    && D_LightAdjMatches(surface, cache))
+	    && D_LightAdjMatches(surface, cache)){
+		if(r_threaded)
+			cache->frame = r_framecount & 0x7fffffff;
 		return cache;
+	}
+	return NULL;
+}
+
+surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
+{
+	surfcache_t *cache = D_CacheLookup(surface, miplevel);
+	if(cache)
+		return cache;
+	cache = surface->cachespots[miplevel];
+	if(r_threaded && cache && D_BlockUsed(cache))
+		D_SurfCacheHazard(); // the old texture may still be drawn from
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
@@ -221,6 +256,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
 		cache->owner = &surface->cachespots[miplevel];
 	}
 	cache->dlight = (surface->dlightframe == r_framecount);
+	cache->frame = r_framecount & 0x7fffffff;
 	r_drawsurf.surfdat = (u8 *) cache->data;
 	cache->texture = r_drawsurf.texture;
 	cache->lightadj[0] = r_drawsurf.lightadj[0];

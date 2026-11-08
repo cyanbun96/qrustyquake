@@ -298,6 +298,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_alphastyle);
 	Cvar_RegisterVariable(&r_entalpha);
 	Cvar_RegisterVariable(&r_entocclusion);
+	Cvar_RegisterVariable(&r_threads);
 	Cvar_RegisterVariable(&r_bmodelocclusion);
 	Cvar_RegisterVariable(&r_labmixpal);
 	Cvar_RegisterVariable(&r_rgblighting);
@@ -673,8 +674,11 @@ static void R_DrawAliasEntity()
 	if(!R_AliasCheckBBox())
 		return;
 	// hidden behind what's already in the z-buffer: skip the lighting,
-	// transform and triangle setup, but keep its animation state current
-	if(r_ent_occ_active && R_AliasOccluded()){
+	// transform and triangle setup, but keep its animation state current.
+	// The workers can only test what's in their bands when they get to it.
+	if(r_ent_occ_active && r_threaded)
+		D_PolysetCullRect();
+	else if(r_ent_occ_active && R_AliasOccluded()){
 		R_AliasSyncLerpState();
 		r_amodels_occluded++;
 		return;
@@ -942,11 +946,13 @@ static void R_EdgeDrawing(bool alpha, s32 t)
 
 void R_RenderView()
 {
+	R_ThreadsBeginFrame();
 	R_AllocShowTris();
 	R_TimeStamp(0);
 	R_SetupFrame();
 	R_MarkLeaves(); // done here so we know if we're in water
 	fesetround(FE_TOWARDZERO); // Sys_LowFPPrecision set this in WinQuake
+	R_ThreadsFPEnv(); // and the workers too
 	R_CoarseOcclusionBeginFrame();
 	r_foundtranswater = 0;
 	R_EdgeDrawing(0, 1);
@@ -964,6 +970,7 @@ void R_RenderView()
 	if(r_dowarp) D_WarpScreen();
 	R_TimeStamp(13);
 	R_DrawFog();
+	R_ThreadsEndFrame();
 	R_TimeStamp(14);
 	V_SetContentsColor(r_viewleaf->contents);
 	if(r_showtris.value){

@@ -14,7 +14,7 @@ SRCS = cdaudio.c chase.c cl_demo.c cl_input.c cl_main.c cl_parse.c \
 	model.c net_bsd.c net_dgrm.c net_loop.c net_main.c \
 	cvarlist.c net_udp.c pr_cmds.c pr_edict.c \
 	pr_exec.c r_aclip.c r_alias.c r_bsp.c r_coarse.c r_draw.c \
-	r_edge.c r_efrag.c r_light.c r_main.c r_misc.c \
+	r_edge.c r_efrag.c r_light.c r_main.c r_misc.c r_thread.c \
 	globals.c r_part.c r_sky.c r_sprite.c r_surf.c \
 	sbar.c screen.c snd_dma.c snd_mem.c snd_mix.c \
 	snd_sdl.c sv_main.c sv_move.c sv_phys.c sv_user.c \
