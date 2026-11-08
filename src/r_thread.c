@@ -103,6 +103,10 @@ static bool R_RunBand(rband_t *band, bool worker)
 	band->b.cur = c;
 	if(!worker)
 		fesetenv(&mainenv);
+	// SDL_SetAtomicInt is only an acquire barrier with GCC on ARM and
+	// RISC-V. What the commands read and drew, and cur, come before done
+	// and the lease, or the next thread finds an old cur and skips some.
+	SDL_MemoryBarrierRelease();
 	SDL_SetAtomicInt(&band->b.done, done);
 	SDL_SetAtomicInt(&band->b.lease, 0);
 	return 1;
