@@ -30,7 +30,6 @@ bool R_ProjectPointToScreen(vec3_t world, s32 *screenX, s32 *screenY)
 	vec3_t local, transformed;
 	VectorSubtract(world, r_origin, local);
 	TransformVector(local, transformed);
-	// Revert the hack: strictly cull points behind the camera
 	if(transformed[2] < NEAR_CLIP)return false;
 	f32 lzi = 1.0 / transformed[2];
 	*screenX = (int)(xcenter + (xscale * lzi) * transformed[0]);

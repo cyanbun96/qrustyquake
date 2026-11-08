@@ -312,7 +312,7 @@ void R_EmitSkyBox()
 } // Manoel Kasimier - skyboxes - end
 
 void Sky_NewMap()
-{ // read worldspawn(this is so ugly, and shouldn't it be done on the server?)
+{ // read worldspawn
 	c8 key[128], value[4096];
 	map_skyfog = r_skyfog.value;
 	const c8 *data = COM_Parse(cl.worldmodel->entities);

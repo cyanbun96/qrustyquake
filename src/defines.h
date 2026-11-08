@@ -1,6 +1,5 @@
 #ifndef GLOBDEFINES_
 #define GLOBDEFINES_
-// CyanBun96: compile with -flto to force the compiler to optimize this
 // atsb: windows and linux compatible macro definitions
 #if defined(_MSC_VER)
 #define Q_SIL static __forceinline

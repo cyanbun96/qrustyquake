@@ -244,8 +244,6 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 - Probably not
   
-  - Multithreading (would require a total rewrite with multithreading as the foundation for everything to get any performance benefits after threading overhead)
-  
   - Advanced mapping/speedrunning/development features that are not directly related to gameplay (I'm not a mapper, speedrunner or developer)
 
 Contributions of any kind are very welcome. If someone implements their favorite speedrunning cvar or something I'll definitely try to merge it. Issue reports are also greatly appreciated.

@@ -1207,10 +1207,7 @@ typedef struct {
 	unsigned protocol; //johnfitz
 	unsigned protocolflags;
 	bool sendprespawn;
-	c8 stuffcmdbuf[1024]; //comment-extensions are a thing with certain
-	//servers, make sure we can handle them properly without further
-	//hacks/breakages. there's also some server->client only console
-	//commands that we might as well try to handle better, like reconnect
+	c8 stuffcmdbuf[1024];
 	qcvm_t qcvm; //for csqc.
 } client_state_t;
 typedef struct {

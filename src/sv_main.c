@@ -47,8 +47,7 @@ void SV_CalcStats(client_t *client, s32 *statsi, f32 *statsf, const c8 **statss)
 			statsf[sv.customstats[i].idx+1] = eval->vector[1];
 			statsf[sv.customstats[i].idx+2] = eval->vector[2];
 			break;
-		case ev_string://not supported in this build...
-		//send with svcfte_updatestatstring on change, which is annoying
+		case ev_string:
 		    statss[sv.customstats[i].idx]=PR_GetString(eval->string);
 			break;
 		case ev_void: //nothing...

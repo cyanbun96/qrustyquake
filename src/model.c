@@ -1549,13 +1549,12 @@ static void Mod_CheckWaterVis()
 	//and does not appear in other leafs either, so watch out for the biases
 	for(i=0,leaf=loadmodel->leafs+1 ; i<numclusters ; i++, leaf++){
 		u8 *vis;
-		if(leaf->contents < 0) //err... wtf?
+		if(leaf->contents < 0)
 			hascontents |= 1u<<-leaf->contents;
 		if(leaf->contents == CONTENTS_WATER){
 			if((contenttransparent & (SURF_DRAWWATER|SURF_DRAWTELE))
 					==(SURF_DRAWWATER|SURF_DRAWTELE))
 				continue;
-	//this check is somewhat risky but we should be able to get away with it
 			for(contenttype=0, j=0; j < leaf->nummarksurfaces; j++){
 				surf = leaf->firstmarksurface[j];
 				if(surf->flags&(SURF_DRAWWATER|SURF_DRAWTELE)){
@@ -2373,7 +2372,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 				pmodel->numverts, pheader,
 				pheader->frames[i].name, &pheader->frames[i]);
 	}
-	pheader->numposes = posenum; // Baker: Watch this and compare vs. Mark V
+	pheader->numposes = posenum;
 	// frames and poses only line up when there are no frame groups, so
 	// the renderer looks poses up through this table
 	s32 *pposeofs = Hunk_AllocName(posenum * sizeof(s32), loadname);

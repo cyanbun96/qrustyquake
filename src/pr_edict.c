@@ -225,7 +225,6 @@ void PR_EnableExtensions()
 	for(u32 i = 0; i < (u32)qcvm->progs->numglobaldefs; i++){
 		const char *n = PR_GetString(qcvm->globaldefs[i].s_name);
 		if(!strncmp(n, "autocvar_", 9)){
-			//really crappy approach
 			cvar_t *var = Cvar_Create(n + 9,
 				PR_UglyValueString(qcvm->globaldefs[i].type,
 			   (eval_t*)(qcvm->globals + qcvm->globaldefs[i].ofs)));
@@ -1099,8 +1098,7 @@ static void PR_MergeEngineFieldDefs()
 	} extrafields[] = {
 //table of engine fields to add. we'll be using ED_FindFieldOffset for these
 //later. this is useful for fields that should be defined for mappers which are
-//not defined by the mod. future note: mutators will need to edit the mutator's
-//globaldefs table too. remember to handle vectors and their 3 globals too.
+//not defined by the mod.
 {"alpha", ev_float, 0}, //its already handled in a weird hacky way
 {"scale", ev_float, 0}, //hurrah for being able to rescale entities.
 {"emiteffectnum",ev_float,0},//constantly emitting particles,even without moving
