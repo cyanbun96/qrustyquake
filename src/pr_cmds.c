@@ -10,57 +10,48 @@ static u8 *checkpvs; //ericw -- changed to malloc
 static s32 numqcpics;
 static s32 maxqcpics;
 static u32 qctoken_count;
-static struct {
+typedef struct {
 	c8 name[MAX_QPATH];
-	qpic_t *pic;
+	qpic_t *pic; // NULL caches a miss
 	bool malloced;
-} *qcpics;
+} qcpic_t;
+static qcpic_t *qcpics;
 static c8 *qctoken[MAXQCTOKENS];
 
 
 void PF_Fixme(){ if(developer.value)PR_RunError("unimplemented builtin"); }
 
-static qpic_t *DrawQC_CachePic(const c8 *picname1, u32 flags)
-{ // CyanBun96: this is in dire need of rewrite
-	c8 picname[MAX_OSPATH] = "gfx/";
-	if(strncmp(picname, picname1, 4))
-		strncpy(picname+4, picname1, MAX_OSPATH-4-4);
-	else
-		strncpy(picname, picname1, MAX_OSPATH-4);
-	if(!strstr(picname, ".lmp"))
-		strncpy(picname+strlen(picname), ".lmp", 5);
-	s32 i = 0;
-	for(; i < (s32)numqcpics; i++){//binary search? something more sane?
-		if(!strcmp(picname,qcpics[i].name) ||
-		   !strcmp(picname1,qcpics[i].name)){
-			if(qcpics[i].pic)
-				return qcpics[i].pic;
-			break;
-		}
-	}
-	if(strlen(picname) >= MAX_QPATH)
+static qpic_t *DrawQC_CachePic(const c8 *name, u32 flags)
+{ // name, gfx/name, name.lmp, gfx/name.lmp: gfx/name.lmp, else wad lump
+	if(!strncmp(name, "gfx/", 4))
+		name += 4;
+	size_t len = strlen(name);
+	if(len >= 4 && !strcmp(name + len - 4, ".lmp"))
+		len -= 4;
+	if(len + 8 >= MAX_QPATH)
 		return NULL; //too long. get lost.
+	for(s32 i = 0; i < numqcpics; i++)
+		if(!strncmp(qcpics[i].name, name, len) && !qcpics[i].name[len])
+			return qcpics[i].pic;
 	if(flags & PICFLAG_NOLOAD)
 		return NULL; //its a query, not actually needed.
-	if(i+1 > (s32)maxqcpics){
-		maxqcpics = i + 32;
+	if(numqcpics == maxqcpics){
+		maxqcpics += 32;
 		qcpics = realloc(qcpics, maxqcpics * sizeof(*qcpics));
+		if(!qcpics) Sys_Error(
+			"DrawQC_CachePic: realloc() failed on %d pics",
+			maxqcpics);
 	}
-	strcpy(qcpics[i].name, picname);
-	qcpics[i].pic = NULL;
-	qcpics[i].malloced = false;
-	qcpics[i].pic = Draw_TryCachePic(picname);
-	if(qcpics[i].pic){
-		qcpics[i].malloced = true;
-	}
-	if(!qcpics[i].pic){
-		qcpics[i].pic = Draw_PicFromWad((c8*)picname1+(strncmp(picname1,
-						"gfx/", 4)?0:4));
-		strcpy(qcpics[i].name, picname1);
-	}
-	if(i == numqcpics)
-		numqcpics++;
-	return qcpics[i].pic;
+	qcpic_t *p = &qcpics[numqcpics++];
+	memcpy(p->name, name, len);
+	p->name[len] = 0;
+	c8 path[MAX_QPATH];
+	SDL_snprintf(path, sizeof(path), "gfx/%s.lmp", p->name);
+	p->pic = Draw_TryCachePic(path);
+	p->malloced = p->pic != NULL;
+	if(!p->pic)
+		p->pic = Draw_PicFromWad(p->name);
+	return p->pic;
 }
 
 void PR_ReloadPics()
