@@ -239,20 +239,39 @@ static void D_SetupSkybox(dsurf_t *d, surf_t *s)
 	d->dithered = r_dithertex.value != 0;
 }
 
+// The surface's block at miplevel, built if it has to be. While a band is
+// recorded it's only looked up, and without one the surface waits for the
+// setup walk.
+static surfcache_t *D_SurfBlock(dsurf_t *d, msurface_t *pface)
+{
+	if(!d_nobuild)
+		return D_CacheSurface(pface, miplevel);
+	surfcache_t *c = D_CacheLookup(pface, miplevel);
+	if(!c){
+		d->kind = DS_LATER;
+		d->early = 0;
+	}
+	return c;
+}
+
+// The block the surface is drawn from, see D_SurfStillValid
+static void D_KeepBlock(dsurf_t *d, surfcache_t *c, msurface_t *pface, s32 mip)
+{
+	d->cache = c;
+	d->cachespot = &pface->cachespots[mip];
+	d->texture = c->texture;
+	d->early = D_CacheExact(c);
+}
+
 // Opaque, cutout and translucent faces, from the surface cache
 static void D_SetupCached(dsurf_t *d, surf_t *s, msurface_t *pface, s32 type,
 		f32 opacity)
 {
 	miplevel = D_SurfMipLevel(s, pface);
 	D_FitMipLevel(pface);
-	surfcache_t *pcurrentcache = d_nobuild ? D_CacheLookup(pface, miplevel)
-		: D_CacheSurface(pface, miplevel);
-	if(pcurrentcache == NULL && d_nobuild){
-		d->kind = DS_LATER;
-		d->early = 0;
+	surfcache_t *pcurrentcache = D_SurfBlock(d, pface);
+	if(pcurrentcache == NULL)
 		return;
-	}
-	if(pcurrentcache == NULL){ s->spans = 0; return; }
 	r_drawnpolycount++;
 	cacheblock = (u8*) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
@@ -264,10 +283,7 @@ static void D_SetupCached(dsurf_t *d, surf_t *s, msurface_t *pface, s32 type,
 	d->type = type;
 	d->opacity = opacity;
 	d->dithered = r_dithertex.value && !miplevel;
-	d->cache = pcurrentcache;
-	d->cachespot = &pface->cachespots[miplevel];
-	d->texture = pcurrentcache->texture;
-	d->early = D_CacheExact(pcurrentcache);
+	D_KeepBlock(d, pcurrentcache, pface, miplevel);
 }
 
 static void D_SetupWater(dsurf_t *d, msurface_t *pface, f32 opacity)
@@ -296,24 +312,16 @@ static void D_SetupTurb(dsurf_t *d, surf_t *s, msurface_t *pface, f32 opacity)
 	miplevel = D_SurfMipLevel(s, pface);
 	D_FitLitWaterMip(pface);
 	r_lightonly = 1; // tells D_CacheSurface it's caching lit water
-	surfcache_t *pcurrentcache = d_nobuild ? D_CacheLookup(pface, miplevel)
-		: D_CacheSurface(pface, miplevel);
+	surfcache_t *pcurrentcache = D_SurfBlock(d, pface);
 	r_lightonly = 0;
-	if(pcurrentcache == NULL && d_nobuild){
-		d->kind = DS_LATER;
-		d->early = 0;
+	if(d->kind == DS_LATER)
 		return;
-	}
 	s32 lightmip = miplevel;
 	miplevel = 0; // the water texture itself is tiled at full res
 	D_TurbSetLight(&d->turb.light, pcurrentcache, pface, lightmip);
 	D_SetupWater(d, pface, opacity); // unlit without a block
-	if(pcurrentcache){
-		d->cache = pcurrentcache;
-		d->cachespot = &pface->cachespots[lightmip];
-		d->texture = pcurrentcache->texture;
-		d->early = D_CacheExact(pcurrentcache);
-	}
+	if(pcurrentcache)
+		D_KeepBlock(d, pcurrentcache, pface, lightmip);
 }
 
 // Is what s was set up with still there? A block in the surface cache can be
@@ -406,6 +414,16 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 	return d;
 }
 
+// A call for each type, so that each gets its own inlined loop
+Q_SIL void D_DrawSurfSpans(const dsurf_t *d, espan_t *spans, s32 type)
+{
+	f32 opacity = type == SPAN_TRANS ? d->opacity : 0;
+	if(d->dithered)
+		D_DrawSpansDithered(spans, type, opacity);
+	else
+		D_DrawSpans(spans, type, opacity);
+}
+
 // The spans of one surface, on any thread
 static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 {
@@ -429,39 +447,25 @@ static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 		D_DrawZSpans(spans);
 		R_FogMarkSky(spans);
 		break;
-	case DS_SKYBOX:
-		if(d->dithered)
-			D_DrawSpansDithered(spans, SPAN_SKYBOX, 0);
-		else
-			D_DrawSpans(spans, SPAN_SKYBOX, 0);
-		D_DrawZSpansFar(spans);
-		R_FogMarkSky(spans);
-		break;
 	case DS_TURB:
 		Turbulent(spans, &d->turb);
 		if(d->zbuffer)
 			D_DrawZSpans(spans);
 		break;
+	case DS_SKYBOX:
+		D_DrawSurfSpans(d, spans, SPAN_SKYBOX);
+		D_DrawZSpansFar(spans);
+		R_FogMarkSky(spans);
+		break;
 	case DS_CACHED:
 		if(d->type == SPAN_NORMAL){
-			if(d->dithered)
-				D_DrawSpansDithered(spans, SPAN_NORMAL, 0);
-			else
-				D_DrawSpans(spans, SPAN_NORMAL, 0);
+			D_DrawSurfSpans(d, spans, SPAN_NORMAL);
 			D_DrawZSpans(spans);
 		}else if(d->type == SPAN_CUTOUT){
-			if(d->dithered)
-				D_DrawSpansDithered(spans, SPAN_CUTOUT, 0);
-			else
-				D_DrawSpans(spans, SPAN_CUTOUT, 0);
+			D_DrawSurfSpans(d, spans, SPAN_CUTOUT);
 			D_DrawZSpansTrans(spans);
-		}else{
-			if(d->dithered)
-				D_DrawSpansDithered(spans, SPAN_TRANS,
-						d->opacity);
-			else
-				D_DrawSpans(spans, SPAN_TRANS, d->opacity);
-		}
+		}else
+			D_DrawSurfSpans(d, spans, SPAN_TRANS);
 		break;
 	}
 }
@@ -470,6 +474,14 @@ static void D_SurfCmd(void *arg)
 {
 	const dsurfcmd_t *c = arg;
 	D_DrawSurf(c->d, c->spans, 1);
+}
+
+static void D_SurfCmdAdd(s32 band, const dsurf_t *d, espan_t *spans)
+{
+	dsurfcmd_t *c = R_FrameAlloc(sizeof(*c));
+	c->d = d;
+	c->spans = spans;
+	R_BandAdd(band, D_SurfCmd, c);
 }
 
 // The surfaces with spans get walked in D_DrawSurfaces' order in one of three
@@ -525,12 +537,8 @@ static void D_PublishRecords(bool all)
 		}
 		r->done = 1;
 		const dsurf_t *d = r_surfdsurf[r->surf];
-		if(!d || d->kind == DS_NONE)
-			continue;
-		dsurfcmd_t *c = R_FrameAlloc(sizeof(*c));
-		c->d = d;
-		c->spans = r->spans;
-		R_BandAdd(r->band, D_SurfCmd, c);
+		if(d && d->kind != DS_NONE)
+			D_SurfCmdAdd(r->band, d, r->spans);
 	}
 	if(all)
 		d_nrecords = 0;
@@ -566,12 +574,8 @@ Q_SIL void D_Surf(surf_t *s, s32 pass, s32 act)
 			d_nobuild = 0;
 		}
 		if(d && d->early){
-			if(d->kind == DS_NONE || !s->spans)
-				return;
-			dsurfcmd_t *c = R_FrameAlloc(sizeof(*c));
-			c->d = d;
-			c->spans = s->spans;
-			R_BandAdd(r_recordband, D_SurfCmd, c);
+			if(d->kind != DS_NONE && s->spans)
+				D_SurfCmdAdd(r_recordband, d, s->spans);
 			return;
 		}
 		if(pass == PASS_MAIN)

@@ -129,6 +129,26 @@ static void D_PolysetDrawNow()
 		D_DrawNonSubdiv();
 }
 
+// A pixel of a model drawn by points or by subdivision, its z written
+// already. colormap is the row of its light.
+Q_SIL void D_PolysetPixel(s32 x, s32 y, const u8 *colormap, s32 texel)
+{
+	s32 pix = colormap[texel];
+	if(d_rgblight && texel < 0xE0)
+		pix = d_rgbpix[pix];
+	if(pix == 0xFF)
+		return;
+	u8 *dest = &d_viewbuffer[d_scantable[y] + x];
+	if(r_alphastyle.value == 0 && d_entalpha != 1)
+		*dest = color_mix_lut[*dest][pix]
+			[(s32)(d_entalpha * FOG_LUT_LEVELS)];
+	else if(r_alphastyle.value == 1 && d_entalpha != 1){
+		if(D_Dither(dest, d_entalpha))
+			*dest = pix;
+	}else
+		*dest = pix;
+}
+
 static void D_PolysetDrawPoints(finalvert_t *fv, s32 numverts)
 {
 	for(s32 i = 0; i < numverts; i++, fv++){
@@ -154,27 +174,9 @@ static void D_PolysetDrawPoints(finalvert_t *fv, s32 numverts)
 			u8 *row = skintable[t];
 			if(!row)
 				continue;
-			s32 pix = row[s];
 			*zbuf = z;
-			s32 texel = pix;
-			pix = ((u8*)acolormap)[texel + (fv->v[4]&0xFF00)];
-			if(d_rgblight && texel < 0xE0)
-				pix = d_rgbpix[pix];
-			if(pix == 0xFF) continue;
-			if(r_alphastyle.value == 0 && d_entalpha != 1){
-				s32 curpix = d_viewbuffer[d_scantable[fv->v[1]]
-							+ fv->v[0]];
-				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] =
-					color_mix_lut[curpix][pix]
-					[(s32)((d_entalpha)*FOG_LUT_LEVELS)];
-			}
-			else if(r_alphastyle.value == 1 && d_entalpha != 1){
-				if(D_Dither(&d_viewbuffer[d_scantable[fv->v[1]]
-						+ fv->v[0]], d_entalpha))
-					d_viewbuffer[d_scantable[fv->v[1]]
-						+ fv->v[0]] = pix;
-			}
-			else d_viewbuffer[d_scantable[fv->v[1]]+fv->v[0]] = pix;
+			D_PolysetPixel(fv->v[0], fv->v[1], (u8 *)acolormap
+					+ (fv->v[4] & 0xFF00), row[s]);
 		}
 	}
 }
@@ -201,19 +203,11 @@ typedef struct {
 static aliascmd_t *d_alias; // the model being recorded
 static finalvert_t *d_modelverts, *d_modelcopy; // its vertices, their copy
 static s32 d_modelymin, d_modelymax;
-static bool d_cull; // for the next model, see D_PolysetCullRect
-static s32 d_cullrect[5];
 
-// The rectangle r_entocclusion tests, for the next model. The workers test the
-// part of it in their bands, against what's in the z-buffer at that point.
-void D_PolysetCullRect()
-{
-	s32 *r = d_cullrect;
-	d_cull = R_AliasScreenBounds(&r[0], &r[1], &r[2], &r[3], &r[4]);
-}
-
-// After R_AliasDrawModel set acolormap, cur_ent_alpha and the coloured light
-void D_PolysetBeginModel()
+// After R_AliasDrawModel set acolormap, cur_ent_alpha and the coloured light.
+// cull: the workers test the rectangle r_entocclusion would, the part of it
+// in their bands, against what's in the z-buffer when they get to it.
+void D_PolysetBeginModel(bool cull)
 {
 	d_entalpha = cur_ent_alpha;
 	d_rgblight = r_rgblighting.value && colored_aliaslight;
@@ -221,8 +215,7 @@ void D_PolysetBeginModel()
 	if(r_alphastyle.value == 0 && d_entalpha != 1 && !fog_lut_built)
 		R_BuildColorMixLUT(0);
 	d_modelverts = NULL;
-	bool cull = d_cull;
-	d_cull = 0;
+	d_alias = NULL;
 	if(!r_threaded)
 		return;
 	aliascmd_t *c = d_alias = R_FrameAlloc(sizeof(*c));
@@ -235,11 +228,24 @@ void D_PolysetBeginModel()
 		memcpy(c->rgbpix, d_rgbpix, sizeof(c->rgbpix));
 	c->ymin = 0x7fffffff;
 	c->ymax = -0x7fffffff;
-	c->cull = cull;
-	memcpy(c->cullrect, d_cullrect, sizeof(c->cullrect));
+	s32 *r = c->cullrect;
+	c->cull = cull && R_AliasScreenBounds(&r[0], &r[1], &r[2], &r[3],
+			&r[4]);
 }
 
-// The transformed vertices the triangles of the model index
+// The screen rows of n vertices
+static void D_VertRows(const finalvert_t *fv, s32 n, s32 *ymin, s32 *ymax)
+{
+	*ymin = 0x7fffffff;
+	*ymax = -0x7fffffff;
+	for(s32 i = 0; i < n; i++){
+		*ymin = q_min(*ymin, fv[i].v[1]);
+		*ymax = q_max(*ymax, fv[i].v[1]);
+	}
+}
+
+// The transformed vertices the triangles of the model index. projected: all
+// of them, the model is drawn whole.
 void D_PolysetModelVerts(finalvert_t *fv, s32 numverts, bool projected)
 {
 	d_modelverts = fv;
@@ -247,12 +253,7 @@ void D_PolysetModelVerts(finalvert_t *fv, s32 numverts, bool projected)
 		return;
 	d_modelcopy = R_FrameAlloc(numverts * sizeof(*fv));
 	memcpy(d_modelcopy, fv, numverts * sizeof(*fv));
-	d_modelymin = 0x7fffffff;
-	d_modelymax = -0x7fffffff;
-	for(s32 i = 0; projected && i < numverts; i++){
-		d_modelymin = q_min(d_modelymin, fv[i].v[1]);
-		d_modelymax = q_max(d_modelymax, fv[i].v[1]);
-	}
+	D_VertRows(fv, projected ? numverts : 0, &d_modelymin, &d_modelymax);
 }
 
 static void D_AliasAdd(aliasitem_t *it)
@@ -355,12 +356,7 @@ void D_PolysetDrawFinalVerts(finalvert_t *fv, s32 numverts)
 	it->desc = r_affinetridesc;
 	it->desc.pfinalverts = D_AliasVerts(fv, numverts);
 	it->numverts = numverts;
-	it->ymin = 0x7fffffff;
-	it->ymax = -0x7fffffff;
-	for(s32 i = 0; i < numverts; i++){
-		it->ymin = q_min(it->ymin, fv[i].v[1]);
-		it->ymax = q_max(it->ymax, fv[i].v[1]);
-	}
+	D_VertRows(fv, numverts, &it->ymin, &it->ymax);
 	D_AliasAdd(it);
 }
 
@@ -438,24 +434,9 @@ Q_SIL void D_DrawNonSubdivImpl(bool banded)
 			(i0->v[0]-i1->v[0])*(i0->v[1]-i2->v[1]);
 		if(d_xdenom >= 0)
 			continue;
-		r_p[0][0] = i0->v[0]; // u
-		r_p[0][1] = i0->v[1]; // v
-		r_p[0][2] = i0->v[2]; // s
-		r_p[0][3] = i0->v[3]; // t
-		r_p[0][4] = i0->v[4]; // light
-		r_p[0][5] = i0->v[5]; // iz
-		r_p[1][0] = i1->v[0];
-		r_p[1][1] = i1->v[1];
-		r_p[1][2] = i1->v[2];
-		r_p[1][3] = i1->v[3];
-		r_p[1][4] = i1->v[4];
-		r_p[1][5] = i1->v[5];
-		r_p[2][0] = i2->v[0];
-		r_p[2][1] = i2->v[1];
-		r_p[2][2] = i2->v[2];
-		r_p[2][3] = i2->v[3];
-		r_p[2][4] = i2->v[4];
-		r_p[2][5] = i2->v[5];
+		memcpy(r_p[0], i0->v, sizeof(r_p[0])); // u, v, s, t, light, iz
+		memcpy(r_p[1], i1->v, sizeof(r_p[1]));
+		memcpy(r_p[2], i2->v, sizeof(r_p[2]));
 		if(!ptri->facesfront){
 			if(i0->flags & ALIAS_ONSEAM)
 				r_p[0][2] += r_affinetridesc.seamfixupX16;
@@ -538,24 +519,7 @@ split: // split this edge
 		u8 *row = skintable[t];
 		if(!row)
 			goto nodraw;
-		s32 pix = row[s];
-		s32 texel = pix;
-		pix = d_pcolormap[texel];
-		if(d_rgblight && texel < 0xE0)
-			pix = d_rgbpix[pix];
-		if(pix == 0xFF) goto nodraw;
-		if(r_alphastyle.value == 0 && d_entalpha != 1){
-			s32 curpix = d_viewbuffer[d_scantable[new[1]] + new[0]];
-			d_viewbuffer[d_scantable[new[1]] + new[0]] =
-				color_mix_lut[curpix][pix]
-				[(s32)((d_entalpha)*FOG_LUT_LEVELS)];
-		}
-		else if(r_alphastyle.value == 1 && d_entalpha != 1){
-			if(D_Dither(&d_viewbuffer[d_scantable[new[1]] + new[0]],
-						d_entalpha))
-				d_viewbuffer[d_scantable[new[1]]+new[0]] = pix;
-		}
-		else d_viewbuffer[d_scantable[new[1]] + new[0]] = pix;
+		D_PolysetPixel(new[0], new[1], d_pcolormap, row[s]);
 	}
 nodraw: // recursively continue
 	D_PolysetRecursiveTriangle(lp3, lp1, new);
@@ -893,6 +857,15 @@ static Q_NOINLINE void D_PolysetDrawSpansDitheredBanded(
 		spanpackage_t *pspanpackage, s32 y)
 { D_PolysetDrawSpansImpl(pspanpackage, y, TEXSAMPLE_DITHERED, 1); }
 
+Q_SIL void D_PolysetSpans(spanpackage_t *pspanpackage, s32 y, bool banded)
+{
+	if(banded && r_dithertex.value)
+		D_PolysetDrawSpansDitheredBanded(pspanpackage, y);
+	else if(banded) D_PolysetDrawSpansBanded(pspanpackage, y);
+	else if(r_dithertex.value) D_PolysetDrawSpansDithered(pspanpackage);
+	else D_PolysetDrawSpans(pspanpackage);
+}
+
 // sets up the stepping for a left edge of at least two scanlines
 Q_SIL void D_PolysetSetUpLeftEdgeSteps()
 {
@@ -984,11 +957,7 @@ Q_SIL void D_RasterizeAliasPolySmoothImpl(bool banded)
 	d_countextrastep = ubasestep + 1;
 	s32 originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of spanpackages
-	if(banded && r_dithertex.value)
-		D_PolysetDrawSpansDitheredBanded(a_spans, y);
-	else if(banded) D_PolysetDrawSpansBanded(a_spans, y);
-	else if(r_dithertex.value) D_PolysetDrawSpansDithered(a_spans);
-	else D_PolysetDrawSpans(a_spans);
+	D_PolysetSpans(a_spans, y, banded);
 	// scan out the bottom part of the right edge, if it exists
 	if(pedgetable->numrightedges == 2){
 		spanpackage_t *pstart;
@@ -1003,12 +972,7 @@ Q_SIL void D_RasterizeAliasPolySmoothImpl(bool banded)
 		d_countextrastep = ubasestep + 1;
 		//mark end of the spanpackages
 		a_spans[initialrightheight + height].count = -999999;
-		y += initialrightheight;
-		if(banded && r_dithertex.value)
-			D_PolysetDrawSpansDitheredBanded(pstart, y);
-		else if(banded) D_PolysetDrawSpansBanded(pstart, y);
-		else if(r_dithertex.value) D_PolysetDrawSpansDithered(pstart);
-		else D_PolysetDrawSpans(pstart);
+		D_PolysetSpans(pstart, y + initialrightheight, banded);
 	}
 }
 

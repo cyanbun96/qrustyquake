@@ -413,15 +413,20 @@ static f32 R_Median(f32 *v, s32 n)
 	return n & 1 ? v[n / 2] : (v[n / 2 - 1] + v[n / 2]) / 2;
 }
 
+static void R_TuneSoon(s32 wait)
+{ // no trial running, the next one after wait frames
+	r_tune.trial = -1;
+	r_tune.wait = wait;
+	r_tune.backoff = TUNE_SOON * 4;
+	r_tune.fails = 0;
+}
+
 static void R_TuneReset()
 {
 	r_tune.on = r_threads.value < 0;
 	r_tune.cur = q_min(R_AutoStart(), r_nworkers);
-	r_tune.trial = -1;
 	r_tune.dir = 1;
-	r_tune.wait = TUNE_SOON * 2;
-	r_tune.backoff = TUNE_SOON * 4;
-	r_tune.fails = 0;
+	R_TuneSoon(TUNE_SOON * 2);
 }
 
 static s32 R_TuneCount()
@@ -454,9 +459,7 @@ static void R_TuneDecide(s32 pairs)
 	r_tune.trial = -1;
 	if(pairs == TUNE_PAIRS && ratio < 0.98f && won >= TUNE_PAIRS - 1){
 		r_tune.cur = to; // and on the same way, soon
-		r_tune.wait = TUNE_SOON;
-		r_tune.backoff = TUNE_SOON * 4;
-		r_tune.fails = 0;
+		R_TuneSoon(TUNE_SOON);
 	}else
 		R_TuneFail();
 	Con_DPrintf("r_threads -1: %d workers %.1f%% the time of %d, "
@@ -470,10 +473,7 @@ static void R_TuneFrame(u64 now, f32 ms)
 		r_tune.w = vid.width;
 		r_tune.h = vid.height;
 		r_tune.world = cl.worldmodel;
-		r_tune.trial = -1;
-		r_tune.wait = TUNE_SOON;
-		r_tune.backoff = TUNE_SOON * 4;
-		r_tune.fails = 0;
+		R_TuneSoon(TUNE_SOON);
 		return;
 	}
 	if(r_tune.trial < 0){

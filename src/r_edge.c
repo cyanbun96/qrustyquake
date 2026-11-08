@@ -46,18 +46,12 @@ static s32 cut_right0; // reset value of cutspan_t.right
 static bool R_IsCutSurf(const surf_t *s)
 { return r_alphapass ? s != &surfaces[1] : (s->flags & SURF_CUTMASK) != 0; }
 
-// Decides whether this frame has any cutout/skybox surfaces at all and, if so,
-// resets their accumulators. Must run after the surfaces have been emitted.
-static void R_CutoutBeginFrame()
+// The surface marks and setups the workers' bands go by, for a scan
+static void R_MarksBeginScan()
 {
-	cut_surfs = 0;
-	cut_count = 0;
-	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
-		if(R_IsCutSurf(s))
-			cut_surfs++;
 	s32 need = r_lsurfs_size + 2;
-	static s32 marks_cap;
-	if(marks_cap < need){
+	static s32 cap;
+	if(cap < need){
 		free(r_surfmarks);
 		free(r_flushmarks);
 		free(r_surfdsurf);
@@ -68,18 +62,30 @@ static void R_CutoutBeginFrame()
 		r_surfscan = calloc(need, sizeof(*r_surfscan));
 		if(!r_surfmarks || !r_flushmarks || !r_surfdsurf
 				|| !r_surfscan)
-			Sys_Error("R_CutoutBeginFrame: out of memory");
-		marks_cap = need;
+			Sys_Error("R_MarksBeginScan: out of memory");
+		cap = need;
 	}
 	r_scan++;
 	if(r_threaded){ // cleared again, in case a frame was cut short
-		s32 words = (marks_cap + 63) / 64;
+		s32 words = (cap + 63) / 64;
 		memset(r_surfmarks, 0, words * sizeof(*r_surfmarks));
 		memset(r_flushmarks, 0, words * sizeof(*r_flushmarks));
 		D_BeginRecords();
 	}
+}
+
+// Decides whether this frame has any cutout/skybox surfaces at all and, if so,
+// resets their accumulators. Must run after the surfaces have been emitted.
+static void R_CutoutBeginFrame()
+{
+	cut_surfs = 0;
+	cut_count = 0;
+	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
+		if(R_IsCutSurf(s))
+			cut_surfs++;
 	if(!cut_surfs)
 		return;
+	s32 need = r_lsurfs_size + 2;
 	static s32 cut_cap; // entries allocated in cut_acc and cut_list
 	if(cut_cap < need){
 		free(cut_acc);
@@ -650,6 +656,7 @@ static s64 R_SpanBuffer(s64 room)
 
 void R_ScanEdges()
 {
+	R_MarksBeginScan();
 	R_CutoutBeginFrame();
 	s64 room = r_refdef.vrect.width + cut_surfs;
 	s64 flush = R_SpanBuffer(room);

@@ -467,7 +467,7 @@ void R_AliasSetupFrameMH(entity_t *ent)
 	}
 }
 
-void R_AliasDrawModel(alight_t *plighting)
+void R_AliasDrawModel(alight_t *plighting, bool cull)
 {
 	finalvert_t finalverts[MAXALIASVERTS];
 	auxvert_t auxverts[MAXALIASVERTS];
@@ -489,7 +489,7 @@ void R_AliasDrawModel(alight_t *plighting)
 	acolormap = currententity->colormap;
 	ziscale = currententity != &cl.viewent ? (f32)0x8000 * (f32)0x10000
 		: (f32)0x8000 * (f32)0x10000 * 3.0;
-	D_PolysetBeginModel();
+	D_PolysetBeginModel(cull);
 	if(currententity->trivial_accept)
 		R_AliasPrepareUnclippedPoints();
 	else

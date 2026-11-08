@@ -457,10 +457,7 @@ static void VID_CompositeFrame()
 		VID_CompositeRuns(0, vid.height);
 		return;
 	}
-	for(s32 b = 0; b < r_nbands; b++){
-		R_BandAdd(b, VID_CompositeCmd, NULL);
-		R_BandPublish(b);
-	}
+	R_RowsAdd(0, vid.height, VID_CompositeCmd, NULL);
 	R_ThreadsHelp();
 }
 

@@ -676,9 +676,8 @@ static void R_DrawAliasEntity()
 	// hidden behind what's already in the z-buffer: skip the lighting,
 	// transform and triangle setup, but keep its animation state current.
 	// The workers can only test what's in their bands when they get to it.
-	if(r_ent_occ_active && r_threaded)
-		D_PolysetCullRect();
-	else if(r_ent_occ_active && R_AliasOccluded()){
+	bool cull = r_ent_occ_active && r_threaded;
+	if(r_ent_occ_active && !cull && R_AliasOccluded()){
 		R_AliasSyncLerpState();
 		r_amodels_occluded++;
 		return;
@@ -689,7 +688,7 @@ static void R_DrawAliasEntity()
 	if(colored_aliaslight &&
 		nameInList(r_fullbright_list.string,currententity->model->name))
 		colored_aliaslight = 0;
-	R_AliasDrawModel(&lighting);
+	R_AliasDrawModel(&lighting, cull);
 }
  
 static void R_DrawEntitiesOnList()
@@ -744,7 +743,7 @@ static void R_DrawViewModel()
 	VectorCopy(vup, viewlightvec);
 	VectorInverse(viewlightvec);
 	R_SetupViewModelLighting();
-	R_AliasDrawModel(&r_viewlighting);
+	R_AliasDrawModel(&r_viewlighting, 0);
 }
  
 static f64 R_ClipPlaneDist(vec3_t point, s32 i)

@@ -125,14 +125,11 @@ void D_WarpScreen() // this performs a slight compression of the screen at the
 		warp_column[u] = r_refdef.vrect.x + (s32)((f32)u * wratio * w /
 				(w + TURB_AMP2 * 2));
 	warp_turb = intsintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
-	if(!r_threaded){
+	if(r_threaded)
+		R_RowsAdd(scr_vrect.y, scr_vrect.y + scr_vrect.height,
+				D_WarpCmd, NULL);
+	else
 		D_WarpRows(0, scr_vrect.height);
-		return;
-	}
-	for(s32 b = 0; b < r_nbands; b++){
-		R_BandAdd(b, D_WarpCmd, NULL);
-		R_BandPublish(b);
-	}
 }
 
 void D_AllocCutoutBuf(s32 size)

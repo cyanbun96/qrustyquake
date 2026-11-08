@@ -76,24 +76,30 @@ u8 rgbtoi_lab(u8 r, u8 g, u8 b)
 	return NN_ScanLab(lab0, nn_all, 256);
 }
 
-u8 rgbtoi(u8 r, u8 g, u8 b)
+// The first of the listed colors nearest to r, g, b, all of them without a
+// list. Inlined, the table builds go through it for every entry.
+Q_SIL u8 NN_ScanRGB(u8 r, u8 g, u8 b, const u8 *list, s32 n)
 {
+	const u8 *pal = CURWORLDPAL;
 	u8 besti = 0;
 	s32 bestdist = 0x7fffffff;
-	u8 *p = CURWORLDPAL;
-	for(s32 i = 0; i < 256; ++i, p += 3){
+	for(s32 k = 0; k < n; ++k){
+		s32 i = list ? list[k] : k;
+		const u8 *p = pal + i * 3;
 		s32 dr = r - p[0]; // squared euclidean distance
 		s32 dg = g - p[1];
 		s32 db = b - p[2];
 		s32 dist = dr*dr + dg*dg + db*db;
 		if(dist < bestdist){
 			bestdist = dist;
-			besti = (u8)i;
-			if(!dist) return besti;
+			besti = i;
+			if(!dist) break;
 		}
 	}
 	return besti;
 }
+
+u8 rgbtoi(u8 r, u8 g, u8 b){ return NN_ScanRGB(r, g, b, NULL, 256); }
 
 static void NN_Build(nngrid_t *g, f32 (*p)[3], const f32 *lo, const f32 *hi)
 { // a color can't be the nearest anywhere in a cell if another color is
@@ -160,21 +166,8 @@ static u8 rgbtoi_nn(u8 r, u8 g, u8 b)
 { // rgbtoi through nn_rgb, which NN_Prepare built
 	s32 c = (((r * NN_CELLS) >> 8) * NN_CELLS + ((g * NN_CELLS) >> 8))
 		* NN_CELLS + ((b * NN_CELLS) >> 8);
-	u8 besti = 0;
-	s32 bestdist = 0x7fffffff;
-	for(u32 k = nn_rgb.first[c]; k < nn_rgb.first[c + 1]; ++k){
-		u8 *p = CURWORLDPAL + nn_rgb.list[k] * 3;
-		s32 dr = r - p[0];
-		s32 dg = g - p[1];
-		s32 db = b - p[2];
-		s32 dist = dr*dr + dg*dg + db*db;
-		if(dist < bestdist){
-			bestdist = dist;
-			besti = nn_rgb.list[k];
-			if(!dist) return besti;
-		}
-	}
-	return besti;
+	return NN_ScanRGB(r, g, b, nn_rgb.list + nn_rgb.first[c],
+			nn_rgb.first[c + 1] - nn_rgb.first[c]);
 }
 
 static u8 rgbtoi_lab_nn(u8 r, u8 g, u8 b)

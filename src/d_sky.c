@@ -111,6 +111,13 @@ static void D_DrawSkyScansOnlyFog(espan_t *pspan)
 	}while((pspan = pspan->pnext) != NULL);
 }
 
+Q_SIL void D_SkyScansFog(espan_t *pspan, msurface_t *pface, s32 fog)
+{
+	if(!r_skysmooth.value) D_SkyScans(pspan, pface, fog, 0, 0);
+	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, fog, 1, 1);
+	else D_SkyScans(pspan, pface, fog, 1, 0);
+}
+
 // fog: 0 none, 1 the sky fogged by map_skyfog, 2 all fog. view is the vpn,
 // vright and vup of the surface, brush entities have their own
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
@@ -119,13 +126,6 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
 	for(s32 i = 0; i < 3; i++)
 		VectorCopy(view[i], sky_view[i]);
 	if(fog == 2) D_DrawSkyScansOnlyFog(pspan);
-	else if(fog){
-		if(!r_skysmooth.value) D_SkyScans(pspan, pface, 1, 0, 0);
-		else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 1, 1, 1);
-		else D_SkyScans(pspan, pface, 1, 1, 0);
-	}else{
-		if(!r_skysmooth.value) D_SkyScans(pspan, pface, 0, 0, 0);
-		else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 0, 1, 1);
-		else D_SkyScans(pspan, pface, 0, 1, 0);
-	}
+	else if(fog) D_SkyScansFog(pspan, pface, 1);
+	else D_SkyScansFog(pspan, pface, 0);
 }
