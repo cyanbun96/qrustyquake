@@ -78,15 +78,13 @@ void Sys_SendKeyEvents()
 	SDL_Event event;
 	s32 button, winW, winH;
 	s32 sym, state, mod; // keep here for OpenBSD compiler
-	if((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
-			|| SDL_GetWindowFullscreenMode(window))
-			&& !_windowed_mouse.value) || key_dest != key_game){
-		SDL_SetWindowRelativeMouseMode(window, 0);
+	bool usemouse = SDLWindowFlags & SDL_WINDOW_FULLSCREEN
+		|| SDL_GetWindowFullscreenMode(window)
+		|| _windowed_mouse.value;
+	if(!usemouse || (key_dest == key_menu && ui_mouse.value))
 		SDL_ShowCursor();
-	}else{
-		SDL_HideCursor();
-		SDL_SetWindowRelativeMouseMode(window, 1);
-	}
+	else SDL_HideCursor();
+	SDL_SetWindowRelativeMouseMode(window, usemouse && key_dest==key_game);
 	while(SDL_PollEvent(&event)){
 		static s32 buttonremap[] = {
 			K_MOUSE1, K_MOUSE3, K_MOUSE2, K_MOUSE4, K_MOUSE5 };
