@@ -224,11 +224,6 @@ s32 R_LightPoint(vec3_t p, f32 ofs)
 	if(r_rgblighting.value && !lit_lut_initialized &&
 		!(lightcolor[0]==lightcolor[1] && lightcolor[0]==lightcolor[2]))
 		R_BuildLitLUT();
-	while(lightcolor[0] >255 || lightcolor[1] >255 || lightcolor[2] >255){
-		lightcolor[0]/=2;// CyanBun96: I thought it wasn't supposed to
-		lightcolor[1]/=2;// go over 255, but it did and caused glitches.
-		lightcolor[2]/=2;// Clamping this way to keep the ratios intact.
-	}
 	colored_aliaslight = !(lightcolor[0] == lightcolor[1]
 			&& lightcolor[0] == lightcolor[2]);
 	return((lightcolor[0] + lightcolor[1] + lightcolor[2]) * (1.0f/3.0f));
