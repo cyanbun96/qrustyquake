@@ -288,6 +288,7 @@ static void D_SetupTurb(dsurf_t *d, surf_t *s, msurface_t *pface, f32 opacity)
 	miplevel = 0;
 	if(!s->entity->model->haslitwater || !r_litwater.value
 			|| (pface->flags & SURF_DRAWTILED)){ // unlit
+		D_TurbSetLight(&d->turb.light, NULL, NULL, 0);
 		D_SetupWater(d, pface, opacity);
 		return;
 	}
@@ -305,9 +306,8 @@ static void D_SetupTurb(dsurf_t *d, surf_t *s, msurface_t *pface, f32 opacity)
 	}
 	s32 lightmip = miplevel;
 	miplevel = 0; // the water texture itself is tiled at full res
-	D_TurbSetLight(pcurrentcache, pface, lightmip); // unlit if NULL
-	D_SetupWater(d, pface, opacity);
-	D_TurbSetLight(NULL, NULL, 0);
+	D_TurbSetLight(&d->turb.light, pcurrentcache, pface, lightmip);
+	D_SetupWater(d, pface, opacity); // unlit without a block
 	if(pcurrentcache){
 		d->cache = pcurrentcache;
 		d->cachespot = &pface->cachespots[lightmip];

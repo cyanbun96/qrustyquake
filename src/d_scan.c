@@ -434,12 +434,12 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	c->iz = iz;
 }
 
-static s32 D_TurbFuncIndex()
+static s32 D_TurbFuncIndex(s32 lit)
 {
 	s32 trans = TURBTRANS_OPAQUE;
 	if(r_alphapass)
 		trans = r_alphastyle.value ? TURBTRANS_DITHERED:TURBTRANS_MIXED;
-	return TURBFUNC_INDEX(trans, r_dithertex.value != 0, turblight.mode,
+	return TURBFUNC_INDEX(trans, r_dithertex.value != 0, lit,
 			r_hlwater.value != 0);
 }
 
@@ -447,20 +447,20 @@ static const turbspanfunc_t turbdrawfunc[36] = {
 	TURB_VARIANTS(TURB_TABLE_ENTRY)
 };
 
-// What Turbulent needs besides the gradients, the tables it uses built
+// What Turbulent needs besides the gradients, the tables it uses built.
+// ts->light comes first, from D_TurbSetLight.
 void D_TurbSetup(turbstate_t *ts, f32 opacity)
 {
 	if(r_hlwater.value)
 		InitHLWaterLUT();
-	if(turblight.mode == TURBLIT_RGB){
+	if(ts->light.mode == TURBLIT_RGB){
 		R_BuildLitLUT();
 		if(lit_chan_pal != CURWORLDPAL) R_BuildLitChan();
 	}
 	if(r_alphastyle.value == 0 && opacity != 1 && opacity)
 		R_BuildColorMixLUT(0);
-	ts->light = turblight;
 	ts->opacity = opacity;
-	ts->func = D_TurbFuncIndex();
+	ts->func = D_TurbFuncIndex(ts->light.mode);
 	ts->turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
 	ts->pbase = (u8 *)cacheblock;
 }
@@ -474,24 +474,24 @@ Q_SIL void D_TurbSetChunk(turbchunk_t *c, const spanwalk_t *w)
 	c->count = w->len;
 }
 
-void D_TurbSetLight(const surfcache_t *cache, const msurface_t *pface,
-		s32 mip)
+void D_TurbSetLight(turblight_t *l, const surfcache_t *cache,
+		const msurface_t *pface, s32 mip)
 { // light rows built by R_DrawSurfaceLight, NULL for unlit water
-	turblight.mode = TURBLIT_NONE;
+	l->mode = TURBLIT_NONE;
 	if(!cache)
 		return;
-	turblight.mode = R_LitWaterRGB() ? TURBLIT_RGB : TURBLIT_MONO;
-	turblight.base = cache->data;
-	turblight.width = cache->width;
-	turblight.mip = mip;
+	l->mode = R_LitWaterRGB() ? TURBLIT_RGB : TURBLIT_MONO;
+	l->base = cache->data;
+	l->width = cache->width;
+	l->mip = mip;
 	// tiled gradients offset s and t by 0x20000000 plus the texturemins
 	// remainder that keeps them aligned to the tile (D_CalcGradients)
-	turblight.soff = 0x20000000
+	l->soff = 0x20000000
 		+ ((pface->texturemins[0] & (TURB_CYCLE-1)) << 16);
-	turblight.toff = 0x20000000
+	l->toff = 0x20000000
 		+ ((pface->texturemins[1] & (TURB_CYCLE-1)) << 16);
-	turblight.smax = ((pface->extents[0] << 16) >> mip) - 1;
-	turblight.tmax = ((pface->extents[1] << 16) >> mip) - 1;
+	l->smax = ((pface->extents[0] << 16) >> mip) - 1;
+	l->tmax = ((pface->extents[1] << 16) >> mip) - 1;
 }
 
 Q_SIL void D_TurbSetLightChunk(turbchunk_t *c, const spanwalk_t *w)

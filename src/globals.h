@@ -343,7 +343,8 @@ void D_LoadGradients(const dgrad_t *g);
 void D_SkyFogSetup();
 void D_TurbSetup(turbstate_t *ts, f32 opacity);
 void Turbulent(espan_t *pspan, const turbstate_t *ts);
-void D_TurbSetLight(const surfcache_t *cache, const msurface_t *pface, s32 mip);
+void D_TurbSetLight(turblight_t *l, const surfcache_t *cache,
+		const msurface_t *pface, s32 mip);
 s32 R_LitWaterRGB();
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
 		s32 fog);
