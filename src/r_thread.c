@@ -355,7 +355,7 @@ static void R_SetupBands()
 }
 
 // The logical CPUs the game may run on
-static s32 R_CPUs()
+s32 R_ThreadsCPUs()
 {
 	static s32 n;
 	if(n)
@@ -372,7 +372,7 @@ static s32 R_CPUs()
 // r_threads -1 starts with a worker for every CPU but the main thread's, at
 // most 6, and tunes up to R_AUTOMAX. On every CPU set tried, cores or
 // hyperthreads, that was the best count or close to it.
-s32 R_ThreadsAutoMax(){ return CLAMP(0, R_CPUs() - 1, R_AUTOMAX); }
+s32 R_ThreadsAutoMax(){ return CLAMP(0, R_ThreadsCPUs() - 1, R_AUTOMAX); }
 static s32 R_AutoStart(){ return q_min(R_ThreadsAutoMax(), 6); }
 
 // The tuning of r_threads -1. Every so often windows of frames with one

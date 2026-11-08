@@ -2470,6 +2470,13 @@ void M_Display_Draw()
 	M_Print(xoffset + 204, newwinmode==1?136:160, "Set Mode");
 }
 
+static void M_StepThreads(s32 dir)
+{ // -1 auto, 0 off, then up to a worker for every CPU but the main thread's
+	s32 most = q_min(R_ThreadsCPUs() - 1, R_MAXWORKERS);
+	s32 n = (s32)r_threads.value + dir;
+	Cvar_SetValue("r_threads", CLAMP(-1, n, most));
+}
+
 static void M_Graphics_Step(s32 dir)
 {
 	switch(graphics_cursor){
@@ -2529,6 +2536,7 @@ static void M_Graphics_Step(s32 dir)
 	case 1000: M_CLAMP(r_coarseocclusion, dir, 2); break;
 	case 1001: M_CLAMP(r_entocclusion, dir, 2); break;
 	case 1002: M_CLAMP(r_bmodelocclusion, dir, 2); break;
+	case 1003: M_StepThreads(dir); break;
 	case 1100: M_CLAMP(r_mipscale, dir*0.1, 9.9); break;
 	case 1101: M_CLAMP(scr_menubgstyle, dir, 3); break;
 	case 1102: M_CLAMP(r_rebuildmips, dir, 2); break;
@@ -2646,7 +2654,7 @@ void M_Graphics_Key(s32 k)
 		}else if(graphics_cursor == 700) graphics_cursor = 703;
 		else if(graphics_cursor == 800) graphics_cursor = 807;
 		else if(graphics_cursor == 900) graphics_cursor = 903;
-		else if(graphics_cursor == 1000) graphics_cursor = 1002;
+		else if(graphics_cursor == 1000) graphics_cursor = 1003;
 		else if(graphics_cursor == 1100) graphics_cursor = 1105;
 		else graphics_cursor--;
 		break;
@@ -2687,7 +2695,7 @@ void M_Graphics_Key(s32 k)
 			if(graphics_cursor == 903) graphics_cursor = 900;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1100){
-			if(graphics_cursor == 1002) graphics_cursor = 1000;
+			if(graphics_cursor == 1003) graphics_cursor = 1000;
 			else graphics_cursor++;
 		}else if(graphics_cursor < 1200){
 			if(graphics_cursor == 1105) graphics_cursor = 1100;
@@ -2941,11 +2949,22 @@ void M_Graphics_Draw()
 		M_PrintOffOnAuto(xoffset + x2, 40, r_entocclusion.value);
 		M_Print(xoffset, 48, "Brush Culling:");
 		M_PrintOffOnAuto(xoffset + x2, 48, r_bmodelocclusion.value);
+		M_Print(xoffset, 56, "Multithreading:");
+		snprintf(temp, sizeof(temp), "%4d", (s32)r_threads.value);
+		M_Print(xoffset + x2, 56, r_threads.value < 0 ? "Auto"
+			: !r_threads.value ? " Off" : temp);
 		M_DrawTextBox(32, 150, 31, 4);
-		M_Print(48, 158, " Skips drawing what is hidden");
-		M_Print(48, 166, "Off:  never");
-		M_Print(48, 174, "On:   always");
-		M_Print(48, 182, "Auto: only on non-vanilla maps");
+		if(graphics_cursor == 1003){
+			M_Print(48, 158, " Draws with several CPU cores");
+			M_Print(48, 166, "Auto: picks the fastest count");
+			M_Print(48, 174, "Off:  on one core");
+			M_Print(48, 182, "1-N:  that many extra threads");
+		}else{
+			M_Print(48, 158, " Skips drawing what is hidden");
+			M_Print(48, 166, "Off:  never");
+			M_Print(48, 174, "On:   always");
+			M_Print(48, 182, "Auto: only on non-vanilla maps");
+		}
 	}else if(graphics_cursor == 11 || graphics_cursor/100 == 11){
 		x2 += 24;
 		M_Print(xoffset, 32, "Mipmap Distance:");
@@ -4340,7 +4359,7 @@ void M_Gamepad_Mouse(s32 x, s32 y)
 
 void M_Graphics_Mouse(s32 x, s32 y)
 {
-	static const s32 rows[12] = {0,0,0,8,4,3,6,4,8,4,3,6};
+	static const s32 rows[12] = {0,0,0,8,4,3,6,4,8,4,4,6};
 	s32 page = graphics_cursor / 100;
 	if(!page){
 		if(x >= 24 && x < 160 && y >= 32 && y < 32 + 12*8)

@@ -827,6 +827,7 @@ bool R_ThreadsAwake();
 void R_ThreadsIdle();
 void R_ThreadsFrameDone();
 s32 R_ThreadsAutoMax();
+s32 R_ThreadsCPUs();
 s32 R_ThreadsActive();
 void R_ThreadsSync();
 void R_ThreadsHelp();
