@@ -11,7 +11,10 @@ void R_Alias_clip_z(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 	auxvert_t *pav0 = &av[pfv0 - &fv[0][0]];
 	auxvert_t *pav1 = &av[pfv1 - &fv[0][0]];
 	auxvert_t avout;
-	if(pfv0->v[1] < pfv1->v[1]){ // start from the lower vertex
+	// Starts from the unclipped one, whichever way the edge goes. WinQuake
+	// started from the lower one on the screen, but the clipped vertex has
+	// no screen position, so that went by what was left in memory.
+	if(pfv0->flags & ALIAS_Z_CLIP){
 		finalvert_t *fswap = pfv0; pfv0 = pfv1; pfv1 = fswap;
 		auxvert_t *aswap = pav0; pav0 = pav1; pav1 = aswap;
 	}
