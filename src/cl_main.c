@@ -505,6 +505,7 @@ void CL_Init()
 	Cmd_AddCommand("stop", CL_Stop_f);
 	Cmd_AddCommand("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand("timedemo", CL_TimeDemo_f);
+	Cmd_AddCommand("timedemo_threads", CL_TimeDemoThreads_f);
 	Cmd_AddCommand("viewpos", CL_Viewpos_f);
 	Cmd_AddCommand_ServerCommand("st", CL_SetStat_f);
 	Cmd_AddCommand_ServerCommand("sts", CL_SetStatString_f);

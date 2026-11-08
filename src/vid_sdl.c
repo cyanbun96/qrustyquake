@@ -578,7 +578,7 @@ void VID_Update()
 			SDL_RenderTexture(renderer, idxtex[1], NULL, &destRect);
 	}else
 		SDL_RenderTexture(renderer, texture, NULL, &destRect);
-	R_ThreadsIdle(); // until the next frame
+	R_ThreadsFrameDone(); // the workers sleep until the next one
 	SDL_RenderPresent(renderer);
 	if(vid_testingmode && realtime >= vid_testendtime){
 		VID_SetMode(vid_realmode, testwidth, testheight, testwinmode);

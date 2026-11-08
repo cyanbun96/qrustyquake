@@ -678,6 +678,7 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define SPAN_TRANS 4
 #define SPAN_CUTOUT 8
 #define R_MAXBANDS 1024                                            // r_thread.c
+#define R_MAXWORKERS 64
 #define SURFS_DRAW 0 // what D_DrawSurfaces does: set up and draw the spans
 #define SURFS_RECORD 1 // a band's spans go to the workers or wait for:
 #define SURFS_SETUP 2 // the setup walk at a flush, it hands them over

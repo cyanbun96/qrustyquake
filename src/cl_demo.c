@@ -8,6 +8,67 @@
 // read from the demo file.
 #include "quakedef.h"
 
+// timedemo_threads: the demo with each r_threads from 0 up to what -1 would
+// try, then with -1, and a table of them to compare computers with
+static struct {
+	c8 demo[MAX_QPATH];
+	s32 run, last; // the r_threads of this run, -1 the last one
+	f32 fps[R_MAXWORKERS + 1];
+	c8 saved[32];
+} td_threads;
+
+static void CL_TimeDemoThreadsRun(s32 n)
+{
+	td_threads.run = n;
+	Cvar_SetValue("r_threads", n);
+	Cbuf_AddText(va("timedemo %s\n", td_threads.demo));
+}
+
+static void CL_TimeDemoThreadsStop()
+{
+	Cvar_Set("r_threads", td_threads.saved);
+	td_threads.demo[0] = 0;
+}
+
+static void CL_TimeDemoThreadsDone(f32 fps)
+{
+	if(td_threads.run >= 0){
+		td_threads.fps[td_threads.run] = fps;
+		CL_TimeDemoThreadsRun(td_threads.run < td_threads.last
+				? td_threads.run + 1 : -1);
+		return;
+	}
+	Con_Printf("r_threads   fps\n");
+	for(s32 i = 0; i <= td_threads.last; i++)
+		Con_Printf("%9d %6.1f\n", i, td_threads.fps[i]);
+	Con_Printf("%9d %6.1f, with %d at the end\n", -1, fps,
+			R_ThreadsActive());
+	CL_TimeDemoThreadsStop();
+}
+
+void CL_TimeDemoThreads_f()
+{ // timedemo_threads [demoname [most]]
+	if(cmd_source != src_command) return;
+	if(td_threads.demo[0]){
+		CL_TimeDemoThreadsStop();
+		Con_Printf("timedemo_threads stopped\n");
+		return;
+	}
+	if(Cmd_Argc() < 2){
+		Con_Printf("timedemo_threads <demoname> [most] : demo speeds "
+			"with each r_threads up to most and with -1, run it "
+			"again to stop\n");
+		return;
+	}
+	SDL_strlcpy(td_threads.saved, r_threads.string,
+			sizeof(td_threads.saved));
+	SDL_strlcpy(td_threads.demo, Cmd_Argv(1), sizeof(td_threads.demo));
+	td_threads.last = Cmd_Argc() > 2
+		? CLAMP(0, atoi(Cmd_Argv(2)), R_MAXWORKERS)
+		: R_ThreadsAutoMax();
+	CL_TimeDemoThreadsRun(0);
+}
+
 void CL_FinishTimeDemo()
 {
 	cls.timedemo = 0; // the first frame didn't count
@@ -15,6 +76,8 @@ void CL_FinishTimeDemo()
 	f32 t = realtime - cls.td_starttime;
 	if(!t) t = 1;
 	Con_Printf("%i frames %5.1f seconds %5.1f fps\n", frames, t, frames/t);
+	if(td_threads.demo[0])
+		CL_TimeDemoThreadsDone(frames/t);
 }
 
 void CL_StopPlayback()
