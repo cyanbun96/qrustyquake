@@ -80,6 +80,7 @@ void Fog_FogCommand_f() // yanked from Quakespasm, mostly
 		b = atof(Cmd_Argv(3));
 		break;
 	case 5:
+	case 6: // mg1's trigger_fog sends its delay as the fade time
 		d = atof(Cmd_Argv(1));
 		r = atof(Cmd_Argv(2));
 		g = atof(Cmd_Argv(3));
