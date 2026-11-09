@@ -55,12 +55,11 @@ static void ResampleSfx(sfx_t *sfx, s32 inrate, s32 inwidth, u8 *data)
 sfxcache_t *S_LoadSound(sfx_t *s)
 {
 	c8 namebuffer[256];
-	u8 stackbuf[1*1024]; // avoid dirtying the cache heap
 	sfxcache_t *sc = (sfxcache_t *) Cache_Check(&s->cache);
 	if(sc) return sc; // see if still in memory
 	SDL_strlcpy(namebuffer, "sound/", sizeof(namebuffer)); // load it in
 	SDL_strlcat(namebuffer, s->name, sizeof(namebuffer));
-	u8 *data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf));
+	u8 *data = COM_LoadMallocFile(namebuffer, NULL);
 	if(!data){
 		Con_Printf("Couldn't load %s\n", namebuffer);
 		return NULL;
@@ -68,10 +67,12 @@ sfxcache_t *S_LoadSound(sfx_t *s)
 	wavinfo_t info = GetWavinfo(s->name, data, com_filesize);
 	if(info.channels != 1){
 		Con_Printf("%s is a stereo sample\n",s->name);
+		free(data);
 		return NULL;
 	}
 	if(info.width != 1 && info.width != 2){
 		Con_Printf("%s is not 8 or 16 bit\n", s->name);
+		free(data);
 		return NULL;
 	}
 	f32 stepscale = (f32)info.rate / shm->speed;
@@ -79,16 +80,17 @@ sfxcache_t *S_LoadSound(sfx_t *s)
 	len = len * info.width * info.channels;
 	if(info.samples == 0 || len == 0){
 		Con_Printf("%s has zero samples\n", s->name);
+		free(data);
 		return NULL;
 	}
 	sc = (sfxcache_t*)Cache_Alloc(&s->cache,len+sizeof(sfxcache_t),s->name);
-	if(!sc) return NULL;
 	sc->length = info.samples;
 	sc->loopstart = info.loopstart;
 	sc->speed = info.rate;
 	sc->width = info.width;
 	sc->stereo = info.channels;
 	ResampleSfx(s, sc->speed, sc->width, data + info.dataofs);
+	free(data);
 	return sc;
 }
 

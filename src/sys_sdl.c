@@ -167,10 +167,11 @@ int main(int c, char **v)
 	host_parms.argc = c;
 	host_parms.argv = (c8**)v;
 	COM_InitArgv(host_parms.argc, (c8**)host_parms.argv);
-	host_parms.memsize = 384*1024*1024; // same as Ironwail
+	// the first hunk segment, as in Ironwail; more are added when it fills
+	host_parms.memsize = 384*1024*1024;
 	if(COM_CheckParm("-heapsize")){
 		s32 t = COM_CheckParm("-heapsize") + 1;
-		if(t < c) host_parms.memsize = atoi(v[t]) * 1024;
+		if(t < c) host_parms.memsize = q_max(atoi(v[t]), 1024) * 1024;
 	}
 	host_parms.membase = malloc(host_parms.memsize);
 	if(host_parms.membase == NULL){

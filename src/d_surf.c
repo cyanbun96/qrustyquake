@@ -59,12 +59,8 @@ void D_FlushCaches(SDL_UNUSED cvar_t *cvar)
 	R_ThreadsSync();
 	for(surfcache_t *c = sc_base; c; c = c->next)
 		if(c->owner){
-			uintptr_t owner_addr = (uintptr_t)c->owner;
-			if(owner_addr < (uintptr_t)host_parms.membase ||
-					owner_addr >= (uintptr_t)((uintptr_t)
-					host_parms.membase+host_parms.memsize)){
+			if(!Hunk_Contains(c->owner))
 			  Con_DPrintf("D_FlushCaches: corrupt owner pointer\n");
-			}
 			*c->owner = NULL;
 		}
 	sc_rover = sc_base;
@@ -167,10 +163,7 @@ surfcache_t *D_SCAlloc(s32 width, uintptr_t size)
 			}
 		}
 		if(sc_rover->owner){//validate owner(against memory, not cache)
-			uintptr_t owner_addr = (uintptr_t)sc_rover->owner;
-			if(owner_addr < (uintptr_t)host_parms.membase ||
-					owner_addr >= (uintptr_t)((uintptr_t)
-					host_parms.membase+host_parms.memsize)){
+			if(!Hunk_Contains(sc_rover->owner)){
 			    Con_DPrintf("D_SCAlloc: corrupt owner pointer\n");
 				return NULL;
 			}

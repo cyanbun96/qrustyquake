@@ -2382,9 +2382,13 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	if(nameInList(r_nolerp_list.string, mod->name))
 		mod->flags |= MOD_NOLERP;
 	Mod_CalcAliasBounds(pheader); //johnfitz
+	if(Hunk_Restart(start)){ // pheader's offsets can't cross segments
+		Mod_LoadAliasModel(mod, buffer);
+		return;
+	}
 	// move the complete, relocatable alias model to the cache
 	s32 end = Hunk_LowMark();
-	s32 total = end - start;
+	s32 total = end - start - (s32)sizeof(hunk_t); // pheader follows one
 	Cache_Alloc(&mod->cache, total, loadname);
 	if(!mod->cache.data) return;
 	memcpy(mod->cache.data, pheader, total);

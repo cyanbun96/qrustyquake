@@ -653,7 +653,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define MAX_FILES_IN_PACK 2048
 #define LOADFILE_HUNK 1
 #define LOADFILE_CACHE 3
-#define LOADFILE_STACK 4
 #define LOADFILE_MALLOC 5
 #define STEPSIZE 18                                                 // sv_move.c
 #define DI_NODIR -1

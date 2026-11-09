@@ -44,9 +44,7 @@ typedef struct{
 } localization_t;
 static searchpath_t *com_base_searchpaths;
 static bool com_modified; // set 1 if using non-id files
-static u8 *loadbuf;
 static cache_user_t *loadcache;
-static s32 loadsize;
 static localization_t localization;
 static bool fitzmode;
 static c8 com_cmdline[CMDLINE_LENGTH];
@@ -899,9 +897,6 @@ u8 *COM_LoadFile(const c8 *path, s32 usehunk, u32 *path_id)
 	switch(usehunk){
 	case LOADFILE_HUNK: buf = (u8 *) Hunk_AllocName(len+1, base); break;
 	case LOADFILE_CACHE: buf = (u8*)Cache_Alloc(loadcache,len+1,base);break;
-	case LOADFILE_STACK: if(len < loadsize) buf = loadbuf;
-			else buf = (u8 *) Hunk_TempAlloc(len+1);
-			break;
 	case LOADFILE_MALLOC: buf = (u8 *) malloc(len+1); break;
 	default: Sys_Error("COM_LoadFile: bad usehunk");
 	}
@@ -920,14 +915,6 @@ void COM_LoadCacheFile(const c8 *path, struct cache_user_s *cu)
 {
 	loadcache = cu;
 	COM_LoadFile(path, LOADFILE_CACHE, NULL);
-}
-
-
-u8 *COM_LoadStackFile(const c8 *path, void *buffer, s32 bufsize)
-{ // uses temp hunk if larger than bufsize
-	loadbuf = (u8 *)buffer;
-	loadsize = bufsize;
-	return COM_LoadFile(path, LOADFILE_STACK, NULL);
 }
 
 
