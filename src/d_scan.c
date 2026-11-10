@@ -318,8 +318,52 @@ Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
 Q_SIL void D_SpanWalkEndChunk(spanwalk_t *w)
 { w->s = w->snext; w->t = w->tnext; }
 
+// 1/z * 0x8000 * 0x10000 outgrows s32 about a unit from the eye, where x86
+// gave the farthest z there is and showed whatever was behind. Pixels that
+// near take the nearest z, INT32_MAX. The margin covers f32 1/z.
+#define ZI_NEAR (1 - 1.0 / 256)
+
+// 1/z steps in z-buffer units, clamped so that stepping off the last pixel
+// of a span stays in range however steep the face is
+static s32 D_ZiStep(f32 zistep)
+{ return (s32)(CLAMP(-ZI_NEAR, zistep, ZI_NEAR) * 0x8000 * 0x10000); }
+
+// Whether the surface could have near pixels anywhere in the view. 1/z is
+// linear, so it's highest at a corner, plus a step for D_SplitNear.
+static s32 D_ZiNearView()
+{
+	f64 su = d_zistepu, sv = d_zistepv;
+	return d_ziorigin + (su > 0 ? su * vid.width : 0)
+		+ (sv > 0 ? sv * (vid.height - 1) : 0) >= ZI_NEAR;
+}
+
+// Cuts a span into the rest, part[0], and its near pixels, part[1]. Those
+// are at one end, with any pixel whose step toward that end lands there,
+// so that stepping off the rest stays in range. 0 if there are none.
+static s32 D_SplitNear(const espan_t *pspan, espan_t part[2])
+{
+	f64 s = d_zistepu, n = pspan->count;
+	f64 zi = d_ziorigin + pspan->v * (f64)d_zistepv + pspan->u * s;
+	f64 k = zi >= ZI_NEAR ? n : 0; // how many, at the end if s > 0
+	if(s > 0)
+		k = n - ceil((ZI_NEAR - zi) / s - 1);
+	else if(s < 0)
+		k = floor((zi - ZI_NEAR) / -s) + 1;
+	if(!(k >= 1))
+		return 0;
+	k = q_min(k, n);
+	part[0] = part[1] = *pspan;
+	part[0].count = n - k;
+	part[1].count = k;
+	if(s > 0)
+		part[1].u += n - k;
+	else
+		part[0].u += k;
+	return 1;
+}
+
 Q_SIL void D_SpanDepthSetup()
-{ izistep = (s32)(d_zistepu * 0x8000 * 0x10000); }
+{ izistep = D_ZiStep(d_zistepu); }
 
 Q_SIL s32 *D_SpanDepthPtr(const espan_t *pspan)
 { return d_pzbuffer + (d_zwidth * pspan->v) + pspan->u; }
@@ -327,8 +371,11 @@ Q_SIL s32 *D_SpanDepthPtr(const espan_t *pspan)
 Q_SIL s32 D_SpanDepthStart(f32 zi)
 { return (s32)(zi * 0x8000 * 0x10000); }
 
-Q_SIL void D_SpanDepthBegin(const espan_t *pspan, f32 zi)
-{ pz = D_SpanDepthPtr(pspan); izi = D_SpanDepthStart(zi); }
+Q_SIL void D_SpanDepthBegin(const espan_t *pspan, f32 zi, s32 isnear)
+{
+	pz = D_SpanDepthPtr(pspan);
+	izi = isnear ? INT32_MAX : D_SpanDepthStart(zi);
+}
 
 Q_SIL s32 D_SpanDepthPass()
 { return *pz <= izi; }
@@ -512,14 +559,15 @@ Q_SIL void D_TurbSetLightChunk(turbchunk_t *c, const spanwalk_t *w)
 	}
 }
 
-static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
+Q_SIL void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan,
+		s32 isnear)
 {
 	spanwalk_t w;
 	turbchunk_t c;
 	c.pdest = (u8*)((u8*)d_viewbuffer + (screenwidth*pspan->v) + pspan->u);
 	D_SpanWalkBegin(&w, pspan, 4, 0); // exact coords every 16px
 	c.zp = D_SpanDepthPtr(pspan);
-	c.iz = D_SpanDepthStart(w.zi);
+	c.iz = isnear ? INT32_MAX : D_SpanDepthStart(w.zi);
 	c.x = pspan->u;
 	c.y = pspan->v;
 	do{
@@ -533,6 +581,18 @@ static void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan)
 	}while(w.count > 0);
 }
 
+// The parts from D_SplitNear, out of line as it's this rare
+static Q_NOINLINE void D_TurbSpanNear(const espan_t part[2],
+		turbspanfunc_t drawspan)
+{
+	for(s32 i = !part[0].count; i < 2; i++){ // part[1] is the near one
+		if(i)
+			izistep = 0;
+		D_TurbSpan(&part[i], drawspan, i);
+	}
+	D_SpanDepthSetup();
+}
+
 void Turbulent(espan_t *pspan, const turbstate_t *ts)
 {
 	turblight = ts->light;
@@ -541,8 +601,13 @@ void Turbulent(espan_t *pspan, const turbstate_t *ts)
 	r_turb_pbase = ts->pbase;
 	D_SpanDepthSetup();
 	turbspanfunc_t drawspan = turbdrawfunc[ts->func];
+	s32 maybenear = D_ZiNearView();
 	do{
-		D_TurbSpan(pspan, drawspan);
+		espan_t part[2];
+		if(maybenear && D_SplitNear(pspan, part))
+			D_TurbSpanNear(part, drawspan);
+		else
+			D_TurbSpan(pspan, drawspan, 0);
 	}while((pspan = pspan->pnext) != NULL);
 }
 
@@ -757,27 +822,55 @@ Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
 static u8 *D_SpanDest(const espan_t *pspan)
 { return (u8 *)d_viewbuffer + (screenwidth * pspan->v) + pspan->u; }
 
+Q_SIL void D_DrawSpan(const espan_t *pspan, s32 type, f32 opacity,
+		s32 dithered, s32 fine, s32 isnear)
+{
+	spanwalk_t w;
+	u8 *pdest = D_SpanDest(pspan);
+	s32 x = pspan->u;
+	D_SpanWalkBegin(&w, pspan, 4, fine); // exact coords every 16px
+	if(type == SPAN_TRANS || type == SPAN_CUTOUT)
+		D_SpanDepthBegin(pspan, w.zi, isnear);
+	do{
+		D_SpanWalkNextChunk(&w);
+		pdest = D_DrawSpanChunk(&w, pdest, type, opacity,
+				dithered, x, pspan->v);
+		x += w.len;
+		D_SpanWalkEndChunk(&w);
+	}while(w.count > 0);
+}
+
+// The parts from D_SplitNear, out of line so that something this rare
+// doesn't add to the loops above, and only for the depth tested types
+static Q_NOINLINE void D_DrawSpanNear(const espan_t part[2], s32 type,
+		f32 opacity, s32 dithered)
+{
+	for(s32 i = !part[0].count; i < 2; i++){ // part[1] is the near one
+		const espan_t *p = &part[i];
+		if(i)
+			izistep = 0;
+		if(type == SPAN_CUTOUT)
+			D_DrawSpan(p, SPAN_CUTOUT, 0, dithered, 0, i);
+		else
+			D_DrawSpan(p, SPAN_TRANS, opacity, dithered, 0, i);
+	}
+	D_SpanDepthSetup();
+}
+
 Q_SIL void D_DrawSpansImpl(espan_t *pspan, s32 type, f32 opacity, s32 dithered)
 {
 	s32 depthtested = (type == SPAN_TRANS || type == SPAN_CUTOUT);
 	// d_draw16.s keeps the bits that shifting a 16 pixel run's step drops.
 	// 12.20 has room for them, lightmapped surfaces end at 2000 texels
 	s32 fine = type == SPAN_NORMAL && !dithered ? 4 : 0;
+	s32 maybenear = depthtested && D_ZiNearView();
 	D_SpanDepthSetup();
 	do{
-		spanwalk_t w;
-		u8 *pdest = D_SpanDest(pspan);
-		s32 x = pspan->u;
-		D_SpanWalkBegin(&w, pspan, 4, fine); // exact coords every 16px
-		if(depthtested)
-			D_SpanDepthBegin(pspan, w.zi);
-		do{
-			D_SpanWalkNextChunk(&w);
-			pdest = D_DrawSpanChunk(&w, pdest, type, opacity,
-					dithered, x, pspan->v);
-			x += w.len;
-			D_SpanWalkEndChunk(&w);
-		}while(w.count > 0);
+		espan_t part[2];
+		if(maybenear && D_SplitNear(pspan, part))
+			D_DrawSpanNear(part, type, opacity, dithered);
+		else
+			D_DrawSpan(pspan, type, opacity, dithered, fine, 0);
 	}while((pspan = pspan->pnext) != NULL);
 }
 
@@ -827,33 +920,42 @@ void D_LoadGradients(const dgrad_t *g)
 Q_NOINLINE void D_DrawSpansDithered(espan_t *pspan, s32 type, f32 opacity)
 { D_DrawSpansImpl(pspan, type, opacity, 1); }
 
-void D_DrawZSpans(espan_t *pspan)
+Q_SIL void D_ZSpan(const espan_t *pspan, s32 izistep, s32 isnear, s32 trans)
 {
-	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do{
-		s32 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-		s32 count = pspan->count; // local: s32 stores may alias it
-		f32 du = (f32)pspan->u; // calculate the initial 1/z
-		f32 dv = (f32)pspan->v;
-		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
-		s32 izi = (s32)(zi * 0x8000 * 0x10000);
-		for(s32 i = 0; i < count; i++, izi += izistep)
-			pdest[i] = izi;
-	}while((pspan = pspan->pnext) != NULL);
-}
-
-void D_DrawZSpansTrans(espan_t *pspan)
-{ // holes stay open, so every pixel is tested on its own
-	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
-	do{
-		s32 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
-		s32 count = pspan->count;
-		f32 du = (f32)pspan->u; // calculate the initial 1/z
-		f32 dv = (f32)pspan->v;
-		f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
-		s32 izi = (s32)(zi * 0x8000 * 0x10000);
+	s32 *pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+	s32 count = pspan->count; // local: s32 stores may alias it
+	f32 du = (f32)pspan->u; // calculate the initial 1/z
+	f32 dv = (f32)pspan->v;
+	f64 zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
+	s32 izi = isnear ? INT32_MAX : (s32)(zi * 0x8000 * 0x10000);
+	if(trans){ // holes stay open, so every pixel is tested on its own
 		for(s32 i = 0; i < count; i++, pdest++, izi += izistep)
 			if(cutoutbuf[pdest-d_pzbuffer] == 1 && *pdest < izi)
 				*pdest = izi;
+		return;
+	}
+	for(s32 i = 0; i < count; i++, izi += izistep)
+		pdest[i] = izi;
+}
+
+Q_SIL void D_DrawZSpansImpl(espan_t *pspan, s32 trans)
+{
+	s32 izistep = D_ZiStep(d_zistepu);
+	s32 maybenear = D_ZiNearView();
+	do{
+		espan_t part[2];
+		if(!maybenear || !D_SplitNear(pspan, part)){
+			D_ZSpan(pspan, izistep, 0, trans);
+			continue;
+		}
+		if(part[0].count)
+			D_ZSpan(&part[0], izistep, 0, trans);
+		D_ZSpan(&part[1], 0, 1, trans);
 	}while((pspan = pspan->pnext) != NULL);
 }
+
+void D_DrawZSpans(espan_t *pspan)
+{ D_DrawZSpansImpl(pspan, 0); }
+
+void D_DrawZSpansTrans(espan_t *pspan)
+{ D_DrawZSpansImpl(pspan, 1); }
