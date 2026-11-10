@@ -45,6 +45,10 @@ typedef struct {
 } rworker_t;
 
 Q_TLS s32 d_bandy0 = 0, d_bandy1 = MAXHEIGHT; // the rows being drawn
+#ifdef __ANDROID__ // Bionic keeps the 64 bytes after the thread pointer for
+	// itself on arm and won't start a program whose TLS is aligned less
+static Q_TLS u8 r_tlsalign __attribute__((aligned(64), used));
+#endif
 bool r_threaded;
 s32 r_nbands, r_bandrows, r_recordband;
 static rband_t r_bands[R_MAXBANDS];
