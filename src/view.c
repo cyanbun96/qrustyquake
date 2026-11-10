@@ -527,6 +527,7 @@ void V_CalcRefdef()
 	}
 	view->model = cl.model_precache[cl.stats[STAT_WEAPON]];
 	view->frame = cl.stats[STAT_WEAPONFRAME];
+	view->scale = ENTSCALE_DEFAULT;
 	view->colormap = CURWORLDCMAP;
 	//johnfitz -- v_gunkick
 	if(v_gunkick.value == 1) //original quake kick

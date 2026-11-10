@@ -182,6 +182,7 @@ entity_t *CL_NewTempEntity()
 	cl_visedicts[cl_numvisedicts] = ent;
 	cl_numvisedicts++;
 	ent->colormap = CURWORLDCMAP;
+	ent->scale = ENTSCALE_DEFAULT;
 	return ent;
 }
 

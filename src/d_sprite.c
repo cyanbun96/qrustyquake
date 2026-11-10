@@ -236,6 +236,9 @@ void D_SpriteCalculateGradients()
 	TransformVector(r_spritedesc.vright, p_saxis);
 	TransformVector(r_spritedesc.vup, p_taxis);
 	VectorInverse(p_taxis);
+	f32 texels = 1.0f / r_spritedesc.scale; // per world unit
+	VectorScale(p_saxis, texels, p_saxis);
+	VectorScale(p_taxis, texels, p_taxis);
 	f32 distinv = 1.0 / (-DotProduct(modelorg, r_spritedesc.vpn));
 	d_sdivzstepu = p_saxis[0] * xscaleinv;
 	d_tdivzstepu = p_taxis[0] * xscaleinv;
@@ -247,10 +250,13 @@ void D_SpriteCalculateGradients()
 	d_tdivzorigin = p_taxis[2]-xcenter*d_tdivzstepu-ycenter*d_tdivzstepv;
 	d_ziorigin = p_normal[2]*distinv-xcenter*d_zistepu-ycenter*d_zistepv;
 	TransformVector(modelorg, p_temp1);
-	sadjust = (s64)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5f) -
-	    (s64)-(cachewidth >> 1) * 0x10000;
-	tadjust = (s64)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5f) -
-	    (s64)-(sprite_height >> 1) * 0x10000;
+	// the frame's origin sits on the entity origin, as the quad does.
+	// WinQuake centred the texture there, cutting off-centre frames.
+	mspriteframe_t *pframe = r_spritedesc.pspriteframe;
+	sadjust = (s64)(DotProduct(p_temp1, p_saxis) * 0x10000 + 0.5f) +
+	    (s64)-pframe->left * 0x10000;
+	tadjust = (s64)(DotProduct(p_temp1, p_taxis) * 0x10000 + 0.5f) +
+	    (s64)pframe->up * 0x10000;
 	// -1(-epsilon) so we never wander off the edge of the texture
 	bbextents = (cachewidth << 16) - 1;
 	bbextentt = (sprite_height << 16) - 1;

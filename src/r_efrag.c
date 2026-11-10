@@ -106,9 +106,10 @@ void R_AddEfrags(entity_t *ent)
 	r_addent = ent;
 	r_pefragtopnode = NULL;
 	model_t *entmodel = ent->model;
+	f32 s = entmodel->type == mod_brush ? 1 : ENTSCALE_DECODE(ent->scale);
 	for(s32 i = 0; i < 3; i++){
-		r_emins[i] = ent->origin[i] + entmodel->mins[i];
-		r_emaxs[i] = ent->origin[i] + entmodel->maxs[i];
+		r_emins[i] = ent->origin[i] + entmodel->mins[i] * s;
+		r_emaxs[i] = ent->origin[i] + entmodel->maxs[i] * s;
 	}
 	R_SplitEntityOnNode(cl.worldmodel->nodes);
 	ent->topnode = r_pefragtopnode;

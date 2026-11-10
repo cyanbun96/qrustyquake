@@ -212,6 +212,7 @@
 #define ENTALPHA_TOSAVE(a) \
 (((a)==ENTALPHA_DEFAULT)?0.0f:(((a)==ENTALPHA_ZERO)?-1.0f:((f32)(a)-1)/(254)))
 #define ENTSCALE_ENCODE(a) ((a) ? ((a) * ENTSCALE_DEFAULT) : ENTSCALE_DEFAULT)
+#define ENTSCALE_DECODE(a) ((f32)(a) / ENTSCALE_DEFAULT) // for rendering
 #define CVAR_ARCHIVE (1U << 0)//if set, causes it to be saved to config //cvar.h
 #define CVAR_NOTIFY (1U << 1) // changes will be broadcasted to all players (q1)
 #define CVAR_SERVERINFO (1U << 2) // added to serverinfo will be sent to clients

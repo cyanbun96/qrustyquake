@@ -125,8 +125,9 @@ bool R_AliasCheckBBox()
 	if(allclip)
 		return 0; // trivial reject off one side
 	currententity->trivial_accept = !anyclip & !zclipped;
+	f32 size = pmdl->size * ENTSCALE_DECODE(currententity->scale);
 	if(currententity->trivial_accept &&
-		minz > (r_aliastransition + (pmdl->size * r_resfudge)))
+		minz > (r_aliastransition + (size * r_resfudge)))
 			currententity->trivial_accept |= 2;
 	return 1;
 }
@@ -240,12 +241,13 @@ void R_AliasSetUpTransform(s32 trivial_accept)
 		gunfovscale = tanf(fov * (0.5 * M_PI / 180.0));
 		gunfovscale = 1.0 + (gunfovscale - 1.0) * cl_gun_fovscale.value;
 	}
-	tmatrix[0][0] = pmdl->scale[0];
-	tmatrix[1][1] = pmdl->scale[1] * gunfovscale;
-	tmatrix[2][2] = pmdl->scale[2] * gunfovscale;
-	tmatrix[0][3] = pmdl->scale_origin[0];
-	tmatrix[1][3] = pmdl->scale_origin[1] * gunfovscale;
-	tmatrix[2][3] = pmdl->scale_origin[2] * gunfovscale;
+	f32 s = ENTSCALE_DECODE(currententity->scale);
+	tmatrix[0][0] = pmdl->scale[0] * s;
+	tmatrix[1][1] = pmdl->scale[1] * gunfovscale * s;
+	tmatrix[2][2] = pmdl->scale[2] * gunfovscale * s;
+	tmatrix[0][3] = pmdl->scale_origin[0] * s;
+	tmatrix[1][3] = pmdl->scale_origin[1] * gunfovscale * s;
+	tmatrix[2][3] = pmdl->scale_origin[2] * gunfovscale * s;
 	for(s32 i = 0; i < 3; i++){
 		t2matrix[i][0] = alias_forward[i];
 		t2matrix[i][1] = -alias_right[i];
@@ -551,13 +553,16 @@ bool R_AliasScreenBounds(s32 *rx0, s32 *ry0, s32 *rx1, s32 *ry1,
 		mn = m->mins;
 		mx = m->maxs;
 	}
+	f32 s = ENTSCALE_DECODE(e->scale);
 	f32 zmin = FLT_MAX;
 	f32 minx = FLT_MAX, maxx = -FLT_MAX, miny = FLT_MAX, maxy = -FLT_MAX;
 	f32 tv[8][3];
 	for(s32 i = 0; i < 8; i++){
 		vec3_t corner, local;
-		for(s32 k = 0; k < 3; k++)
-			corner[k] = e->origin[k] + ((i>>k) & 1 ? mx[k] : mn[k]);
+		for(s32 k = 0; k < 3; k++){
+			f32 b = (i>>k) & 1 ? mx[k] : mn[k];
+			corner[k] = e->origin[k] + b * s;
+		}
 		VectorSubtract(corner, r_origin, local);
 		TransformVector(local, tv[i]);
 		if(tv[i][2] <= ALIAS_Z_CLIP_PLANE)

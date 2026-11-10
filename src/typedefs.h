@@ -231,6 +231,7 @@ typedef struct entity_s {                                            // render.h
 				 // bmodel, or NULL if not split
 	u8 alpha; //johnfitz -- alpha
 	u8 lerpflags; //johnfitz -- lerping
+	u8 scale; // ENTSCALE_ENCODE'd, brush models ignore it
 	f32 lerpstart; //johnfitz -- animation lerping
 	f32 lerptime; //johnfitz -- animation lerping
 	f32 lerpfinish; //johnfitz -- lerping
@@ -527,6 +528,7 @@ typedef struct {
 	mspriteframe_t *pspriteframe;
 	vec3_t vup, vright, vpn; // in worldspace
 	f32 nearzi;
+	f32 scale; // the entity's
 } spritedesc_t;
 typedef struct {
 	u8 *surfdat; // destination for generated surface

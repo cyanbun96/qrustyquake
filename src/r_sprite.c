@@ -67,10 +67,12 @@ void R_SetupAndDrawSprite()
 		return;
 	// build the sprite poster in worldspace
 	vec3_t left, up, right, down, transformed, local;
-	VectorScale(r_spritedesc.vright,r_spritedesc.pspriteframe->right,right);
-	VectorScale(r_spritedesc.vup, r_spritedesc.pspriteframe->up, up);
-	VectorScale(r_spritedesc.vright, r_spritedesc.pspriteframe->left, left);
-	VectorScale(r_spritedesc.vup, r_spritedesc.pspriteframe->down, down);
+	mspriteframe_t *pframe = r_spritedesc.pspriteframe;
+	f32 s = r_spritedesc.scale;
+	VectorScale(r_spritedesc.vright, pframe->right * s, right);
+	VectorScale(r_spritedesc.vup, pframe->up * s, up);
+	VectorScale(r_spritedesc.vright, pframe->left * s, left);
+	VectorScale(r_spritedesc.vup, pframe->down * s, down);
 	vec5_t *pverts = clip_verts[0];
 	pverts[0][0] = r_entorigin[0] + up[0] + left[0];
 	pverts[0][1] = r_entorigin[1] + up[1] + left[1];
@@ -159,6 +161,7 @@ void R_DrawSprite()
 {
 	msprite_t *psprite = currententity->model->cache.data;
 	r_spritedesc.pspriteframe = R_GetSpriteframe(psprite);
+	r_spritedesc.scale = ENTSCALE_DECODE(currententity->scale);
 	sprite_width = r_spritedesc.pspriteframe->width;
 	sprite_height = r_spritedesc.pspriteframe->height;
 	if(psprite->type == 1){ // facing upright
