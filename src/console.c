@@ -33,8 +33,9 @@ void Con_MessageMode2_f()
 void Con_CheckResize()
 { // If the line width has changed, reformat the buffer.
 	c8 tbuf[CON_TEXTSIZE];
-	s32 width = vid.width / 8 - 2;
+	s32 width = vid.width / 8;
 	if(uiscale) width /= uiscale;
+	width -= 2; // one column of margin on each side
 	if(width == con_linewidth) return;
 	if(width < 1){	// video hasn't been initialized yet
 		width = 38;
