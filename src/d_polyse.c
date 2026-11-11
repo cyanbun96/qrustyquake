@@ -11,6 +11,7 @@ typedef struct {
 	s32 mixlevel; // color_mix_lut level, for BLEND_MIX
 	s32 rgblight; // per-channel coloured lighting instead of the colormap
 	const u8 *rgbpix; // D_GetRGBPix of every color, with rgblight
+	s32 cutout; // d_cutout
 } polysetstyle_t;
 typedef struct {
 	void *pdest;
@@ -51,6 +52,7 @@ static Q_TLS s32 ubasestep, errorterm, erroradjustup, erroradjustdown;
 static Q_TLS f32 d_entalpha;
 static Q_TLS s32 d_rgblight; // coloured light, through d_rgbpix
 static Q_TLS const u8 *d_rgbpix;
+static Q_TLS s32 d_cutout; // texel to skip: 0xFF if MF_HOLEY, 0x100 (none)
 
 static const edgetable edgetables[12] = {
 	{ 1, {0, 2, 0}, 2, {0, 1, 2} },
@@ -133,11 +135,11 @@ static void D_PolysetDrawNow()
 // already. colormap is the row of its light.
 Q_SIL void D_PolysetPixel(s32 x, s32 y, const u8 *colormap, s32 texel)
 {
+	if(texel == d_cutout)
+		return;
 	s32 pix = colormap[texel];
 	if(d_rgblight && texel < 0xE0)
 		pix = d_rgbpix[pix];
-	if(pix == 0xFF)
-		return;
 	u8 *dest = &d_viewbuffer[d_scantable[y] + x];
 	if(r_alphastyle.value == 0 && d_entalpha != 1)
 		*dest = color_mix_lut[*dest][pix]
@@ -196,6 +198,7 @@ typedef struct {
 	f32 alpha;
 	s32 rgblight;
 	u8 rgbpix[256];
+	s32 cutout;
 	s32 ymin, ymax;
 	bool cull; // can skip bands where the z-buffer hides cullrect
 	s32 cullrect[5]; // x0, y0, x1, y1 (inclusive) and zbound
@@ -212,6 +215,7 @@ void D_PolysetBeginModel(bool cull)
 	d_entalpha = cur_ent_alpha;
 	d_rgblight = r_rgblighting.value && colored_aliaslight;
 	d_rgbpix = d_rgblight ? D_RGBPixTable() : NULL;
+	d_cutout = currententity->model->flags & MF_HOLEY ? 0xFF : 0x100;
 	if(r_alphastyle.value == 0 && d_entalpha != 1 && !fog_lut_built)
 		R_BuildColorMixLUT(0);
 	d_modelverts = NULL;
@@ -226,6 +230,7 @@ void D_PolysetBeginModel(bool cull)
 	c->rgblight = d_rgblight;
 	if(d_rgblight)
 		memcpy(c->rgbpix, d_rgbpix, sizeof(c->rgbpix));
+	c->cutout = d_cutout;
 	c->ymin = 0x7fffffff;
 	c->ymax = -0x7fffffff;
 	s32 *r = c->cullrect;
@@ -316,6 +321,7 @@ static void D_AliasCmd(void *arg)
 	d_entalpha = c->alpha;
 	d_rgblight = c->rgblight;
 	d_rgbpix = c->rgbpix;
+	d_cutout = c->cutout;
 	for(const aliasitem_t *it = c->items; it; it = it->next){
 		if(it->ymax < d_bandy0 || it->ymin >= d_bandy1)
 			continue;
@@ -642,6 +648,7 @@ static Q_NOINLINE polysetstyle_t D_PolysetPixelStyle()
 	st.colormap = (u8 *)acolormap;
 	st.rgblight = d_rgblight;
 	st.rgbpix = d_rgbpix;
+	st.cutout = d_cutout;
 	st.mixlevel = 0;
 	if(d_entalpha == 1)
 		st.blend = BLEND_OPAQUE;
@@ -724,9 +731,9 @@ Q_SIL u8 D_PolysetDitheredTexel(const skinwalk_t *k, s32 sfrac, s32 tfrac)
 Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
 		u8 *pdest, s32 *pz, s32 zi)
 {
-	s32 pix = st->colormap[texel + (light & 0xFF00)];
-	if(pix == 0xFF)
+	if(texel == st->cutout)
 		return;
+	s32 pix = st->colormap[texel + (light & 0xFF00)];
 	if(st->rgblight && texel < 0xE0)
 		pix = st->rgbpix[pix];
 	switch(st->blend){

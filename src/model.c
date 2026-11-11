@@ -2281,7 +2281,7 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	pheader = (aliashdr_t *)Hunk_AllocName(size, loadname);
 	mdl_t *pmodel = (mdl_t*)((u8*)&pheader[1]
 			+ (numframes-1)*sizeof(pheader->frames[0]));
-	mod->flags = pinmodel->flags;
+	mod->flags = pinmodel->flags & (0xFF | MF_HOLEY); // the rest are ours
 	// endian-adjust and copy the data, starting with the alias model header
 	pmodel->boundingradius = pinmodel->boundingradius;
 	pmodel->numskins = numskins;

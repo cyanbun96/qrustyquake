@@ -619,6 +619,7 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define GUARDSIZE 4                                                  // d_surf.c
 #define ANIM_CYCLE 2                                                  // model.c
 #define MOD_NOLERP 256
+#define MF_HOLEY (1<<14) // MarkV/QSS: skin index 255 is transparent
 #define MAX_MOD_KNOWN 4096 // johnfitz -- was 512
 #define VISPATCH_HEADER_LEN 36
 #define CON_TEXTSIZE 65536                                          // console.c
