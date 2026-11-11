@@ -2427,11 +2427,15 @@ void M_Display_Draw()
 		M_Print(64, 174, "Vanilla max is    expect bugs");
 		M_PrintWhite(64, 174, "               72");
 	}
-	if(newwinmode == 1){
+	if(newwinmode == 1){ // the list follows the window's monitor
 		static SDL_DisplayMode **modes = 0;
-		if(!modes){ 
-			modes = SDL_GetFullscreenDisplayModes(1, &moden);
-			if(modes) mode = modes[0];
+		static SDL_DisplayID modes_display = 0;
+		SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+		if(!modes || display != modes_display){
+			SDL_free(modes);
+			modes = SDL_GetFullscreenDisplayModes(display, &moden);
+			modes_display = display;
+			display_sel_moden = 0;
 		}
 		if(moden <= 0){
 			M_Print(xoffset + 204, 128, "No Fullscreen");
