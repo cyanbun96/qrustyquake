@@ -610,9 +610,12 @@ static void PF_vectoangles()
 	G_FLOAT(OFS_RETURN+2) = 0;
 }
 
-static void PF_random() // Returns a number from 0 <= num < 1
-{
-	f32 num = (rand() & 0x7fff) / ((f32)0x7fff);
+static void PF_random()
+{ // 0 < num < 1, or id's 0 <= num <= 1 with sv_gameplayfix_random 0, where
+  // floor(random() * n) can give n
+	f32 num = sv_gameplayfix_random.value ?
+		((rand() & 0x7fff) + 0.5f) * (1.f / 0x8000) :
+		(rand() & 0x7fff) / ((f32)0x7fff);
 	G_FLOAT(OFS_RETURN) = num;
 }
 
