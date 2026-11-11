@@ -183,9 +183,43 @@ breakOut:;
 	return targa_rgba;
 }
 
+#if SDL_VERSION_ATLEAST(3, 4, 0)
+static u8 *Image_LoadPNG(const c8 *name, s32 *width, s32 *height)
+{ // SDL's own decoder, into the hunk like the TGA path
+	snprintf(loadfilename, sizeof(loadfilename), "%s.png", name);
+	u8 *file = COM_LoadMallocFile(loadfilename, NULL);
+	if(!file) return NULL;
+	SDL_IOStream *io = SDL_IOFromConstMem(file, com_filesize);
+	SDL_Surface *png = io ? SDL_LoadPNG_IO(io, 1) : NULL;
+	SDL_Surface *rgba = png ?
+		SDL_ConvertSurface(png, SDL_PIXELFORMAT_RGBA32) : NULL;
+	u8 *pixels = NULL;
+	if(rgba){
+		s32 rowbytes = rgba->w * 4;
+		pixels = (u8*)Hunk_Alloc(rowbytes * rgba->h);
+		for(s32 y = 0; y < rgba->h; y++)
+			memcpy(pixels + y * rowbytes,
+				(u8*)rgba->pixels + y * rgba->pitch, rowbytes);
+		*width = rgba->w;
+		*height = rgba->h;
+	}else
+		Con_Printf("Image_LoadPNG: %s: %s\n", loadfilename,
+				SDL_GetError());
+	SDL_DestroySurface(rgba);
+	SDL_DestroySurface(png);
+	free(file);
+	return pixels;
+}
+#endif
+
 u8 *Image_LoadImage(const c8 *name, s32 *width, s32 *height)
-{ // returns a pointer to hunk allocated RGBA data
+{ // returns a pointer to hunk allocated RGBA data. PNG goes first as in
+  // Ironwail, a broken one falls back to the TGA
 	FILE *f;
+#if SDL_VERSION_ATLEAST(3, 4, 0)
+	u8 *png = Image_LoadPNG(name, width, height);
+	if(png) return png;
+#endif
 	snprintf(loadfilename, sizeof(loadfilename), "%s.tga", name);
 	COM_FOpenFile(loadfilename, &f, NULL);
 	if(f) return Image_LoadTGA(f, width, height);
