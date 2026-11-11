@@ -268,8 +268,14 @@ bool Cvar_Command()
 	cvar_t *v = Cvar_FindVar(Cmd_Argv(0)); // check variables
 	if(!v) return 0;
 	if(Cmd_Argc() == 1){ // perform a variable print or set
-		Con_Printf("\"%s\" is \"%s\"\n", v->name, v->string);
-		return 1;
+		if(v->default_string){
+			if(!strcmp (v->string, v->default_string))
+				Con_Printf("\"%s\" is \"%s\" (default)\n",
+						v->name, v->string);
+			else Con_Printf("\"%s\" is \"%s\" (default: \"%s\")\n",
+					v->name, v->string, v->default_string);
+		}
+		else Con_Printf ("\"%s\" is \"%s\"\n", v->name, v->string);
 	}
 	Cvar_Set(v->name, Cmd_Argv(1));
 	return 1;
