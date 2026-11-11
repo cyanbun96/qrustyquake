@@ -96,8 +96,18 @@ f32 CL_KeyState(kbutton_t *key)
 	return val;
 }
 
+bool CL_InCutscene()
+{ // the server keeps setting the view and there's no gun: a camera sequence,
+  // so looking around would fight it between server frames
+	return cl.fixangle && !cl.viewent.model;
+}
+
 void CL_AdjustAngles()
 { // Moves the local angle positions
+	if(CL_InCutscene()){
+		V_StopPitchDrift();
+		return;
+	}
 	f32 speed = host_frametime;
 	if(in_speed.state & 1)
 		speed *= cl_anglespeedkey.value;

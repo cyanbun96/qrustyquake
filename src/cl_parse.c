@@ -602,6 +602,7 @@ void CL_ParseServerMessage()
 	case svc_time:
 		cl.mtime[1] = cl.mtime[0];
 		cl.mtime[0] = MSG_ReadFloat();
+		cl.fixangle = 0;
 		break;
 	case svc_clientdata:
 		CL_ParseClientdata();
@@ -636,6 +637,7 @@ void CL_ParseServerMessage()
 	case svc_setangle:
 		for(i = 0; i < 3; i++)
 		       cl.viewangles[i]=MSG_ReadAngle(cl.protocolflags);
+		cl.fixangle = 1;
 		break;
 	case svc_setview:
 		cl.viewentity = MSG_ReadShort(); // the view code writes to it

@@ -600,7 +600,7 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 		Con_Printf("short roughly %d edges\n", r_outofedges * 2 / 3);
 	if(r_outofedges) V_AllocLedges();
 	if(r_outofsurfaces) V_AllocLsurfs();
-	if(!crosshair.value) return;
+	if(!crosshair.value || CL_InCutscene()) return;
 	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
 			+ cl_crossx.value, scr_vrect.y + scr_vrect.height / 2

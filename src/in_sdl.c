@@ -316,6 +316,10 @@ void IN_Move(usercmd_t *cmd)
 	else if(jmove_y < 0) jmove_y += jdeadzone.value;
 	cmd->sidemove += jmove_x*0.005*jmovesens.value;
 	cmd->forwardmove -= jmove_y*0.005*jmovesens.value;
+	if(CL_InCutscene()){ // drop the look, see CL_InCutscene
+		mouse_x = mouse_y = 0.0;
+		return;
+	}
 	if((!(SDLWindowFlags & SDL_WINDOW_FULLSCREEN
 			|| SDL_GetWindowFullscreenMode(window))
 			&& !_windowed_mouse.value) || key_dest != key_game)

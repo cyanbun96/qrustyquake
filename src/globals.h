@@ -618,6 +618,7 @@ bool SV_RecursiveHullCheck(hull_t *hull, s32 num, f32 p1f, f32 p2f, vec3_t p1,
 void Chase_Init();
 void Chase_Update();
 void CL_AdjustAngles();                                            // cl_input.c
+bool CL_InCutscene();
 void IN_MLookDown();
 EX edict_t *sv_player;                                              // sv_user.c
 EX f32 *angles;

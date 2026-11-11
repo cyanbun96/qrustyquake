@@ -1185,6 +1185,7 @@ typedef struct {
 	f32 viewheight;
 	bool paused; // send over by server
 	bool onground;
+	bool fixangle; // svc_setangle since the last svc_time
 	s32 intermission; // don't change view angle, full screen, etc
 	s32 completed_time; // latched at intermission start
 	f64 mtime[2]; // the timestamp of last two messages
