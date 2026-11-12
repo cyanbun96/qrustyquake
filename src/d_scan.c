@@ -432,7 +432,9 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	const s32 *chr = lit_chan[0], *chg = lit_chan[1], *chb = lit_chan[2];
 	const u8 *lut = &lit_lut[0][0][0];
 	const f32 time = cl.time;
-	const f32 ditherthresh = 1 - turb_opacity;
+	const u8 *bay = d_bayer[y & 7];
+	const s32 level = trans == TURBTRANS_DITHERED ?
+		D_DitherLevel(1 - turb_opacity) : 0; // how much shows through
 	const s32 foglut = (trans == TURBTRANS_MIXED) ?
 		(s32)(turb_opacity*FOG_LUT_LEVELS) : 0;
 	do{
@@ -440,7 +442,7 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 		if(trans != TURBTRANS_OPAQUE){
 			draw = *zp <= iz;
 			if(draw && trans == TURBTRANS_DITHERED)
-				draw = D_Dither(pdest, ditherthresh);
+				draw = bay[x & 7] < level;
 		}
 		if(draw){
 			u8 pix = D_TurbSample(pbase, turb, time, s, t, x, y,
@@ -753,10 +755,12 @@ Q_SIL u8 *D_SpanChunkBlend(texcursor_t *c, u8 *pdest, f32 opacity,
 }
 
 Q_SIL u8 *D_SpanChunkStipple(texcursor_t *c, u8 *pdest, f32 opacity,
-		s32 dithered)
-{
+		s32 dithered, s32 x, s32 y)
+{ // opacity is how much shows through
+	const u8 *bay = d_bayer[y & 7];
+	s32 level = D_DitherLevel(1 - opacity);
 	do{
-		if(D_SpanDepthPass() && D_Dither(pdest, 1-opacity)){
+		if(D_SpanDepthPass() && bay[x++ & 7] < level){
 			u8 pix = D_CursorTexel(c, dithered);
 			if(pix != 0xff)
 				*pdest = pix;
@@ -782,7 +786,7 @@ Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
 	if(type == SPAN_TRANS){
 		if(r_alphastyle.value == 0)
 			return D_SpanChunkBlend(&c, pdest, opacity, dithered);
-		return D_SpanChunkStipple(&c, pdest, opacity, dithered);
+		return D_SpanChunkStipple(&c, pdest, opacity, dithered, x, y);
 	}
 	return pdest;
 }

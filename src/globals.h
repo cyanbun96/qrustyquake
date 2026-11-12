@@ -348,7 +348,7 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view);
 s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel);
-s32 D_Dither(u8 *pos, f32 opacity);
+s32 D_DitherLevel(f32 opacity);
 EX s32 default_net_hostport;                                            // net.h
 EX s32 net_hostport;
 EX f64 net_time;
@@ -811,6 +811,8 @@ void CDAudio_Update();
 bool CDAudio_Init();
 void CDAudio_Shutdown();
 EX const s32 dither_s[4], dither_t[4];                               // d_scan.c
+// By screen y & 7 and x & 7, see D_DitherLevel                    // d_common.c
+EX const u8 d_bayer[8][8];
 EX u64 *r_surfmarks;                                                 // r_edge.c
 EX u64 *r_flushmarks;
 EX struct dsurf_s **r_surfdsurf;

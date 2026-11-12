@@ -31,24 +31,10 @@ static void Draw_MarkRows(s32 y0, s32 y1)
 	if(y0 < y1) memset(drawnrows[drawlayer] + y0, 1, y1 - y0);
 }
 
-s32 D_Dither(u8 *pos, f32 opacity)
-{
-	if(opacity >= 1.0f) return 1;
-	if(opacity <= 0.01f) return 0;
-	s32 dither_pat = opacity * 7.2f;
-	u64 d = pos - vid.buffer;
-	u64 x = d % vid.width;
-	u64 y = d / vid.width;
-	switch(dither_pat){
-		case 0: return !(d % 6); // 1/6
-		case 1: return(y&1) && ((y&3) == 3 ? (x&1) : !(x&1)); // 1/4
-		case 2: return !(d % 3); // 1/3
-		case 3: return(x + y) & 1; // 1/2
-		case 4: return d % 3; // 2/3
-		case 5: return !((y&1) && ((y&3) == 3 ? (x&1) : !(x&1))); // 3/4
-		default: case 6: return d % 6; // 5/6
-	}
-}
+// r_alphastyle 1 draws a pixel of something with this opacity where its
+// d_bayer threshold is below the level, on that many of each 64 pixels
+s32 D_DitherLevel(f32 opacity)
+{ return CLAMP(0, (s32)(opacity * 64 + 0.5f), 64); }
 
 void D_Init()
 {

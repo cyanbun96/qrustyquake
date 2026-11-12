@@ -9,6 +9,7 @@ typedef struct {
 	const u8 *colormap;
 	s32 blend; // BLEND_*
 	s32 mixlevel; // color_mix_lut level, for BLEND_MIX
+	s32 level; // D_DitherLevel, for BLEND_STIPPLE
 	s32 rgblight; // per-channel coloured lighting instead of the colormap
 	const u8 *rgbpix; // D_GetRGBPix of every color, with rgblight
 	s32 cutout; // d_cutout
@@ -145,7 +146,7 @@ Q_SIL void D_PolysetPixel(s32 x, s32 y, const u8 *colormap, s32 texel)
 		*dest = color_mix_lut[*dest][pix]
 			[(s32)(d_entalpha * FOG_LUT_LEVELS)];
 	else if(r_alphastyle.value == 1 && d_entalpha != 1){
-		if(D_Dither(dest, d_entalpha))
+		if(d_bayer[y & 7][x & 7] < D_DitherLevel(d_entalpha))
 			*dest = pix;
 	}else
 		*dest = pix;
@@ -650,13 +651,16 @@ static Q_NOINLINE polysetstyle_t D_PolysetPixelStyle()
 	st.rgbpix = d_rgbpix;
 	st.cutout = d_cutout;
 	st.mixlevel = 0;
+	st.level = 0;
 	if(d_entalpha == 1)
 		st.blend = BLEND_OPAQUE;
 	else if(r_alphastyle.value == 0){
 		st.blend = BLEND_MIX;
 		st.mixlevel = (s32)(d_entalpha * FOG_LUT_LEVELS);
-	}else if(r_alphastyle.value == 1)
+	}else if(r_alphastyle.value == 1){
 		st.blend = BLEND_STIPPLE;
+		st.level = D_DitherLevel(d_entalpha);
+	}
 	else
 		st.blend = BLEND_OPAQUE;
 	return st;
@@ -728,8 +732,9 @@ Q_SIL u8 D_PolysetDitheredTexel(const skinwalk_t *k, s32 sfrac, s32 tfrac)
 		: k->skin[k->row * k->skinw + k->col]; // *ptex
 }
  
+// bay and row are d_bayer's row and the screen row of pdest, for stipple
 Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
-		u8 *pdest, s32 *pz, s32 zi)
+		u8 *pdest, s32 *pz, s32 zi, const u8 *bay, const u8 *row)
 {
 	if(texel == st->cutout)
 		return;
@@ -741,7 +746,7 @@ Q_SIL void D_PolysetPlot(const polysetstyle_t *st, u8 texel, s32 light,
 		*pdest = color_mix_lut[*pdest][pix][st->mixlevel];
 		break;
 	case BLEND_STIPPLE:
-		if(D_Dither(pdest, d_entalpha))
+		if(bay[(pdest - row) & 7] < st->level)
 			*pdest = pix;
 		break;
 	default:
@@ -781,13 +786,20 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	u32 tl = ((u32)span->tfrac << 16) | (light & 0xFFFF);
 	u32 tlstep = ((u32)a_tstepxfrac << 16) | (lstep & 0xFFFF);
 	s32 skinwidth = r_affinetridesc.skinwidth;
+	const u8 *bay = NULL, *row = NULL;
+	if(st->blend == BLEND_STIPPLE){
+		s32 y = (pdest - d_viewbuffer) / screenwidth;
+		bay = d_bayer[y & 7];
+		row = d_viewbuffer + y * screenwidth;
+	}
 	if(sample == TEXSAMPLE_DITHERED)
 		D_SkinWalkBegin(k, ptex, pdest);
 	do{
 		if(zi >= *pz){
 			u8 texel = sample == TEXSAMPLE_DITHERED ?
 			  D_PolysetDitheredTexel(k, sfrac, tl >> 16) : *ptex;
-			D_PolysetPlot(st, texel, tl & 0xFFFF, pdest, pz, zi);
+			D_PolysetPlot(st, texel, tl & 0xFFFF, pdest, pz, zi,
+					bay, row);
 		}
 		pdest++;
 		pz++;

@@ -36,11 +36,6 @@ static u8 fog_level[FOG_DEPTHS]; // fog amount by depth
 static u32 fog_pair[256][FOG_LEVELS]; // low | high << 8 | threshold << 16
 static f32 fog_palf[3][256]; // the palette's channels, for Fog_Links
 static f32 *fog_cos; // by pixel of the view, for distance from the eye
-static const u8 fog_bayer[8][8] = {
-	{ 0, 32,  8, 40,  2, 34, 10, 42}, {48, 16, 56, 24, 50, 18, 58, 26},
-	{12, 44,  4, 36, 14, 46,  6, 38}, {60, 28, 52, 20, 62, 30, 54, 22},
-	{ 3, 35, 11, 43,  1, 33,  9, 41}, {51, 19, 59, 27, 49, 17, 57, 25},
-	{15, 47,  7, 39, 13, 45,  5, 37}, {63, 31, 55, 23, 61, 29, 53, 21}};
 // Sky gets map_skyfog instead of fog by distance, but it keeps its real z to
 // hide what's behind it. So this remembers the z it wrote: a pixel still shows
 // sky where the z-buffer holds that value. It's kept xor fog_skykey, a key
@@ -525,7 +520,7 @@ static void R_FogRows(s32 y0, s32 y1)
 		s32 ofs = v * vid.width + r->x; // the view and z buffers are
 		u8 *pdest = d_viewbuffer + ofs; // vid.width wide, the view
 		const s32 *zb = d_pzbuffer + ofs; // can be narrower
-		const u8 *bay = fog_bayer[v & 7];
+		const u8 *bay = d_bayer[v & 7];
 		const f32 *cos = fog_radial ? fog_cos + (v - r->y) * r->width
 			: NULL;
 		if(fog_skyrow[v] == (u32)r_framecount)

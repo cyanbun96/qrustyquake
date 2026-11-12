@@ -103,7 +103,7 @@ static bool D_ProjectParticle(const particle_t *pparticle, partdraw_t *pd)
 static void D_FillParticle(const partdraw_t *pd)
 {
 	s32 part_alpha = D_ParticleAlpha();
-	f32 p_alpha_f = (f32)part_alpha / FOG_LUT_LEVELS;
+	s32 level = D_DitherLevel((f32)part_alpha / FOG_LUT_LEVELS);
 	s32 cx0 = pd->cx0, cx1 = pd->cx1;
 	s32 cy0 = q_max(pd->cy0, d_bandy0);
 	s32 cy1 = q_min(pd->cy1, d_bandy1);
@@ -115,23 +115,24 @@ static void D_FillParticle(const partdraw_t *pd)
 	s32 *pz = d_pzbuffer +(d_zwidth * cy0) + cx0;
 	u8 *pdest = d_viewbuffer + d_scantable[cy0] + cx0;
 #define MIX_PIXEL color_mix_lut[pdest[x]][pd->color][part_alpha]
+// the row is cy1 - count in both shapes
+#define DITHER d_bayer[(cy1 - count) & 7][(cx0 + x) & 7] < level
 	if(r_particlestyle.value == 1 && part_alpha == FOG_LUT_LEVELS){// circle
 		PART_CIRCLE(pz[x] <= izi, pd->color);
 	}else if(part_alpha == FOG_LUT_LEVELS){ // square
 		PART_SQUARE(pz[x] <= izi, pd->color);
 	}else if(r_particlestyle.value == 1 && r_alphastyle.value){
 		// circle(dither alpha)
-		PART_CIRCLE(pz[x] <= izi && D_Dither(&pdest[x], p_alpha_f),
-				pd->color);
+		PART_CIRCLE(pz[x] <= izi && DITHER, pd->color);
 	}else if(r_alphastyle.value){ // square(dither alpha)
-		PART_SQUARE(pz[x] <= izi && D_Dither(&pdest[x], p_alpha_f),
-				pd->color);
+		PART_SQUARE(pz[x] <= izi && DITHER, pd->color);
 	}else if(r_particlestyle.value == 1){ // circle(mix alpha)
 		PART_CIRCLE(pz[x] <= izi, MIX_PIXEL);
 	}else{ // square(mix alpha)
 		PART_SQUARE(pz[x] <= izi, MIX_PIXEL);
 	}
 #undef MIX_PIXEL
+#undef DITHER
 }
 
 void D_DrawParticle(particle_t *pparticle)
