@@ -90,7 +90,7 @@ static bool D_SkyBlend(msurface_t *pface)
 { return r_skies[R_SkyIndexForTexture(pface->texinfo->texture)].blend; }
 
 // view is the vpn, vright and vup of the surface, brush entities have their
-// own. R_DrawFog fogs the sky by map_skyfog later.
+// own. R_FogMarkSky fogs the sky by map_skyfog after.
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view)
 {
 	for(s32 i = 0; i < 3; i++)

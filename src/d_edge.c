@@ -4,8 +4,10 @@
 // How the spans of a surface get drawn. D_SetupSurf works it out on the main
 // thread and D_DrawSurf needs nothing else, so with r_threads the workers draw
 // the spans of each band while the main thread goes on (r_thread.c).
-// DS_SKYZ and DS_SKYFAR only write z and mark the sky, its colors come from a
-// skybox or R_DrawFog. DS_LATER has to have its block built first.
+// DS_SKYZ only writes z and marks the sky, R_FogMarkSky fogs the colors there
+// (a skybox's, or none under full sky fog). The skybox pass isn't marked, what
+// isn't covered by sky faces is the void and gets full fog by its far z.
+// DS_LATER has to have its block built first.
 enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYFAR, DS_SKYBOX,
 	DS_TURB, DS_CACHED, DS_LATER };
 typedef struct dsurf_s {
@@ -449,7 +451,6 @@ static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 		break;
 	case DS_SKYFAR:
 		D_DrawZSpansFar(spans);
-		R_FogMarkSky(spans);
 		break;
 	case DS_TURB:
 		Turbulent(spans, &d->turb);
@@ -459,7 +460,6 @@ static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 	case DS_SKYBOX:
 		D_DrawSurfSpans(d, spans, SPAN_SKYBOX);
 		D_DrawZSpansFar(spans);
-		R_FogMarkSky(spans);
 		break;
 	case DS_CACHED:
 		if(d->type == SPAN_NORMAL){

@@ -37,9 +37,10 @@ static u32 fog_pair[256][FOG_LEVELS]; // low | high << 8 | threshold << 16
 static f32 fog_palf[3][256]; // the palette's channels, for Fog_Links
 static f32 *fog_cos; // by pixel of the view, for distance from the eye
 // Sky gets map_skyfog instead of fog by distance, but it keeps its real z to
-// hide what's behind it. So this remembers the z it wrote: a pixel still shows
-// sky where the z-buffer holds that value. It's kept xor fog_skykey, a key
-// for the frame, so that what an earlier frame left there is a 2^-32 chance.
+// hide what's behind it. So this remembers the z it wrote: a pixel shows sky,
+// or a translucent surface over it, where the z-buffer still holds that value.
+// It's kept xor fog_skykey, a key for the frame, so that what an earlier frame
+// left there is a 2^-32 chance.
 static u32 *fog_skyz = 0;
 static s32 fog_skyz_size = 0;
 static u32 fog_skykey;
@@ -476,8 +477,10 @@ void R_FogSkyAlloc()
 	}
 }
 
+// Fogs the sky as it's drawn, so that translucent surfaces, which don't write
+// z, go over fogged sky and R_DrawFog leaves them be
 void R_FogMarkSky(const espan_t *span)
-{ // has to come after the span's z was written
+{ // has to come after the span's z and colors were written
 	if(!fog_density) return;
 	u32 key = fog_skykey;
 	for(; span; span = span->pnext){ // locals, a u32 store could change
@@ -488,10 +491,13 @@ void R_FogMarkSky(const espan_t *span)
 		for(s32 i = 0; i < n; i++)
 			sky[i] = (u32)zb[i] ^ key;
 		fog_skyrow[span->v] = (u32)r_framecount;
+		if(fog_skylevel)
+			R_FogSky(d_viewbuffer + screenwidth * span->v
+				+ span->u, span->u, n, d_bayer[span->v & 7]);
 	}
 }
 
-// R_FogRow for a row with sky on it, the runs of sky get the sky's level
+// R_FogRow for a row with sky on it, the runs of sky are fogged already
 static void R_FogRowAroundSky(u8 *pdest, const s32 *zb, s32 x, s32 w,
 		const u8 *bay, const f32 *cos, const u32 *sky)
 {
@@ -504,8 +510,6 @@ static void R_FogRowAroundSky(u8 *pdest, const s32 *zb, s32 x, s32 w,
 		if(!issky)
 			R_FogRow(pdest + i, zb + i, x + i, end - i, bay,
 					cos ? cos + i : NULL);
-		else if(fog_skylevel)
-			R_FogSky(pdest + i, x + i, end - i, bay);
 		i = end;
 	}
 }
