@@ -120,6 +120,9 @@ static void SCR_CalcRefdef() // Must be called whenever vid changes
 	if(scr_fov.value > 170)
 		Cvar_Set("fov", "170");
 	r_refdef.fov_x = scr_fov.value;
+	if(r_fovmode.value == 1) // fov is for 4:3, widen it like modern ports
+		r_refdef.fov_x = atan(tan(scr_fov.value / 360 * M_PI) *
+			(f32)vid.width / vid.height * 0.75) * 360 / M_PI;
 	f32 size = cl.intermission ? 120 : scr_viewsize.value;
 	if(size >= 120 || hudstyle != HUD_CLASSIC ||
 			(cl.qcvm.extfuncs.CSQC_DrawHud && !cl_nocsqc.value))

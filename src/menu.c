@@ -2383,12 +2383,9 @@ void M_Display_Draw()
 	sprintf(temp, "%0.2f\n", aspectr.value);
 	sprintf(temp, "%d\n", (s32)scr_fov.value);
 	M_Print(xoffset + 204, 104, temp);
-	if(r_fovmode.value && display_cursor == 9){
-		f32 asp = r_fovmode.value==1 ?
-			((f32)vid.width / (f32)vid.height * 0.75) :
-			yaspectscale.value;
+	if(r_fovmode.value == 2 && display_cursor == 9){
 		f32 fov_modern = 2.0f * atan(tanf(scr_fov.value * (M_PI/360.0f))
-					/ asp) * (180.0f/M_PI);
+					/ yaspectscale.value) * (180.0f/M_PI);
 		M_DrawTextBox(68, 166, 19, 1);
 		M_Print(80, 174, "Modern FOV:");
 		sprintf(temp, "%0.2f\n", fov_modern);
