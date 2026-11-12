@@ -224,7 +224,6 @@ void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 void R_LabMixPalChanged(SDL_UNUSED cvar_t *cvar)
 { // what got mixed the other way gets mixed again when it's needed
 	fog_lut_built = lit_lut_initialized = 0;
-	fog_initialized = 0; // R_FogMix doesn't check fog_lut_built
 	D_FlushCaches(0); // surfaces get lit through lit_lut
 }
 
@@ -235,7 +234,7 @@ void R_WorldPalChanged()
 	R_LabMixPalChanged(0);
 	Draw_PaletteChanged();
 	Sky_PaletteChanged();
-	Fog_SetPalIndex(0);
+	Fog_PaletteChanged();
 }
 
 void R_BuildLitChan()

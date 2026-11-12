@@ -28,18 +28,14 @@ static void D_Sky_uv_To_st(s32 u, s32 v, s32 *s, s32 *t)
 	*t = (s32)((temp + 6 * (SKYSIZE / 2 - 1) * end[1]) * 65536.0f);
 }
 
-Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
-		s32 smooth, s32 blend)
+Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 smooth,
+		s32 blend)
 { // smooth samples the layers apart, the front one at a fractional offset
   // blend mixes the front 50% over the back instead of masking (Q64)
 	sky_t *sky = &r_skies[R_SkyIndexForTexture(pface->texinfo->texture)];
 	u8 *skysrc = smooth ? sky->source + 128 : sky->source;
 	u8 *front = sky->bottomsky;
 	s32 shift = smooth ? (s32)(skytime * skyspeed * 65536.0f) : 0;
-	s32 mix = 0; // D_SetupSky built the mix table
-	if(fog)
-		mix = CLAMP(0, (FOG_LUT_LEVELS-1)*map_skyfog,
-			FOG_LUT_LEVELS-1);
 	do{
 		u8 *pdest = (u8*)d_viewbuffer+(screenwidth*pspan->v)+pspan->u;
 		s32 count = pspan->count;
@@ -80,8 +76,6 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 					c = blend ? color_mix_lut[f][c]
 						[FOG_LUT_LEVELS/2] : f ? f : c;
 				}
-				if(fog) c = color_mix_lut[c]
-					[fog_pal_index][mix];
 				*pdest++ = c;
 				s += sstep;
 				t += tstep;
@@ -95,37 +89,13 @@ Q_SIL void D_SkyScans(espan_t *pspan, msurface_t *pface, s32 fog,
 static bool D_SkyBlend(msurface_t *pface)
 { return r_skies[R_SkyIndexForTexture(pface->texinfo->texture)].blend; }
 
-static void D_DrawSkyScansOnlyFog(espan_t *pspan)
-{
-	do{
-		u8 *pdest = (u8 *)((u8 *) d_viewbuffer +
-					  (screenwidth * pspan->v) + pspan->u);
-		s32 count = pspan->count;
-		do{
-			s32 spancount = count>=SKY_SPAN_MAX?SKY_SPAN_MAX:count;
-			count -= spancount;
-			do{
-				*pdest++ = fog_pal_index;
-			}while(--spancount > 0);
-		}while(count > 0);
-	}while((pspan = pspan->pnext) != NULL);
-}
-
-Q_SIL void D_SkyScansFog(espan_t *pspan, msurface_t *pface, s32 fog)
-{
-	if(!r_skysmooth.value) D_SkyScans(pspan, pface, fog, 0, 0);
-	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, fog, 1, 1);
-	else D_SkyScans(pspan, pface, fog, 1, 0);
-}
-
-// fog: 0 none, 1 the sky fogged by map_skyfog, 2 all fog. view is the vpn,
-// vright and vup of the surface, brush entities have their own
-void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
-		s32 fog)
+// view is the vpn, vright and vup of the surface, brush entities have their
+// own. R_DrawFog fogs the sky by map_skyfog later.
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view)
 {
 	for(s32 i = 0; i < 3; i++)
 		VectorCopy(view[i], sky_view[i]);
-	if(fog == 2) D_DrawSkyScansOnlyFog(pspan);
-	else if(fog) D_SkyScansFog(pspan, pface, 1);
-	else D_SkyScansFog(pspan, pface, 0);
+	if(!r_skysmooth.value) D_SkyScans(pspan, pface, 0, 0);
+	else if(D_SkyBlend(pface)) D_SkyScans(pspan, pface, 1, 1);
+	else D_SkyScans(pspan, pface, 1, 0);
 }

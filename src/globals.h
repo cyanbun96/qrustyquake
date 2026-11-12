@@ -13,12 +13,13 @@ void R_BuildColorMixLUT(cvar_t *cvar);
 void R_LabMixPalChanged(cvar_t *cvar);
 void R_WorldPalChanged();
 u32 lfsr_random();
-EX s32 fog_initialized;                                               // d_fog.c
-EX f32 fog_density;
+// The fog density of this frame, 0 without fog
+EX f32 fog_density;                                                   // d_fog.c
 void Fog_FogCommand_f();
 void Fog_ParseWorldspawn();
-void Fog_SetPalIndex(cvar_t *cvar);
-void Fog_Update(f32 d, f32 r, f32 g, f32 b);
+void Fog_PaletteChanged();
+void Fog_Update(f32 d, f32 r, f32 g, f32 b, f32 time);
+void R_FogSetupFrame();
 void R_DrawFog();
 void R_FogSkyAlloc();
 void R_FogMarkSky(const espan_t *span);
@@ -332,21 +333,18 @@ EX Q_TLS f32 d_sdivzorigin, d_tdivzorigin, d_ziorigin;
 EX s32 *d_pzbuffer; // 1/z * 0x8000 * 0x10000, WinQuake kept the top 16 bits
 EX u32 d_zwidth;
 EX u8 *d_viewbuffer;
-EX u8 fog_pal_index;
 void D_DrawSpans(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawSpansDithered(espan_t *pspans, s32 type, f32 opacity);
 void D_DrawZSpans(espan_t *pspans);
 void D_DrawZSpansTrans(espan_t *pspans);
 void D_SaveGradients(dgrad_t *g);
 void D_LoadGradients(const dgrad_t *g);
-void D_SkyFogSetup();
 void D_TurbSetup(turbstate_t *ts, f32 opacity);
 void Turbulent(espan_t *pspan, const turbstate_t *ts);
 void D_TurbSetLight(turblight_t *l, const surfcache_t *cache,
 		const msurface_t *pface, s32 mip);
 s32 R_LitWaterRGB();
-void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view,
-		s32 fog);
+void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view);
 s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
 surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel);

@@ -4,11 +4,13 @@
 // How the spans of a surface get drawn. D_SetupSurf works it out on the main
 // thread and D_DrawSurf needs nothing else, so with r_threads the workers draw
 // the spans of each band while the main thread goes on (r_thread.c).
-enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYBOX, DS_TURB,
-	DS_CACHED, DS_LATER }; // DS_LATER: its block has to be built first
+// DS_SKYZ and DS_SKYFAR only write z and mark the sky, its colors come from a
+// skybox or R_DrawFog. DS_LATER has to have its block built first.
+enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYFAR, DS_SKYBOX,
+	DS_TURB, DS_CACHED, DS_LATER };
 typedef struct dsurf_s {
 	s32 kind;
-	s32 type; // SPAN_* of DS_CACHED, the D_DrawSkyScans variant of DS_SKY
+	s32 type; // SPAN_* of DS_CACHED
 	s32 color; // DS_SOLID and DS_FAR
 	bool dithered;
 	bool zbuffer; // DS_TURB, opaque water writes its z
@@ -213,9 +215,8 @@ static void D_SetupSky(dsurf_t *d, msurface_t *pface)
 	sky_t *sky = &r_skies[R_SkyIndexForTexture(pface->texinfo->texture)];
 	if(!sky->made && !r_skysmooth.value)
 		R_MakeSky(pface->texinfo->texture);
-	d->kind = DS_SKY;
-	d->type = !(fog_density > 0) ? 0 : map_skyfog >= 1 ? 2 : 1;
-	if(d->type == 1 || (r_skysmooth.value && sky->blend))
+	d->kind = fog_density && map_skyfog >= 1 ? DS_SKYZ : DS_SKY;
+	if(d->kind == DS_SKY && r_skysmooth.value && sky->blend)
 		R_BuildColorMixLUT(0);
 	d->pface = pface;
 	VectorCopy(vpn, d->sky[0]);
@@ -233,9 +234,7 @@ static void D_SetupSkybox(dsurf_t *d, surf_t *s)
 	cacheheight = tex->height;
 	miplevel = 0;
 	D_CalcGradients(pface, 0);
-	if(fog_density > 0 && !fog_lut_built) R_BuildColorMixLUT(0);
-	D_SkyFogSetup();
-	d->kind = DS_SKYBOX;
+	d->kind = fog_density && map_skyfog >= 1 ? DS_SKYFAR : DS_SKYBOX;
 	d->dithered = r_dithertex.value != 0;
 }
 
@@ -402,7 +401,8 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		}else
 			D_SetupCached(d, s, pface, SPAN_NORMAL, 0);
 	}
-	if(d->kind == DS_SKY || d->kind == DS_SKYZ || d->kind == DS_SKYBOX)
+	if(d->kind == DS_SKY || d->kind == DS_SKYZ || d->kind == DS_SKYFAR
+			|| d->kind == DS_SKYBOX)
 		R_FogSkyAlloc();
 	// Kept for the rest of the scan. Without a block it's tried again, as
 	// the cache does, and DS_LATER gets set up by the walk.
@@ -439,12 +439,16 @@ static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 		D_DrawZSpansFar(spans);
 		break;
 	case DS_SKY:
-		D_DrawSkyScans(spans, d->pface, d->sky, d->type);
+		D_DrawSkyScans(spans, d->pface, d->sky);
 		D_DrawZSpans(spans);
 		R_FogMarkSky(spans);
 		break;
 	case DS_SKYZ:
 		D_DrawZSpans(spans);
+		R_FogMarkSky(spans);
+		break;
+	case DS_SKYFAR:
+		D_DrawZSpansFar(spans);
 		R_FogMarkSky(spans);
 		break;
 	case DS_TURB:

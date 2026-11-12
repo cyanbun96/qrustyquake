@@ -671,7 +671,6 @@ typedef struct { // the span gradients and texture block, see D_SaveGradients
 	s32 bbextents, bbextentt;
 	u8 *cacheblock;
 	s32 cachewidth, cacheheight;
-	const u8 *skyfog;
 } dgrad_t;
 typedef struct { // the light rows of lit water, see D_TurbSetLight
 	const u8 *base;

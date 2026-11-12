@@ -5,9 +5,7 @@ u8 lit_lut[LIT_LUT_RES][LIT_LUT_RES][LIT_LUT_RES];
 u8 lit_lut_initialized = 0;
 s32 lit_chan[3][256];
 u8 *lit_chan_pal;
-s32 fog_initialized = 0;                                              // d_fog.c
-f32 fog_density;
-u8 fog_pal_index;
+f32 fog_density;                                                      // d_fog.c
 u32 oldmodes[NUM_OLDMODES * 2] = {                                  // vid_sdl.c
 	320, 240,       640, 480,       800, 600,
 	320, 200,       320, 240,       640, 350,

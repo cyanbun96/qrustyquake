@@ -72,7 +72,6 @@ static Q_TLS s32 *r_turb_turb;
 static Q_TLS s32 *pz; // Manoel Kasimier - translucent water
 static Q_TLS s32 izi, izistep;
 static Q_TLS f32 turb_opacity;
-static Q_TLS const u8 *d_skyfog; // the skybox texels with the sky fog applied
 static u8 *cutoutbuf; // pixels a cutout span gave a texel, one per pixel
 static f32 dist_lut[DIST_LUT_SIZE];
 static f32 cos_lut[COS_LUT_SIZE];
@@ -674,8 +673,8 @@ Q_SIL s32 D_CursorPairs(const texcursor_t *c, s32 *sa, s32 *ta, s32 *sb,
 	return 1;
 }
 
-Q_SIL u8 *D_SpanChunkPairs(const texcursor_t *c, u8 *pdest, const u8 *fog,
-		s32 sa, s32 ta, s32 sb, s32 tb)
+Q_SIL u8 *D_SpanChunkPairs(const texcursor_t *c, u8 *pdest, s32 sa, s32 ta,
+		s32 sb, s32 tb)
 { // locals only, the byte stores could change anything behind a pointer
 	const u8 *pbase = c->pbase;
 	s32 width = c->width;
@@ -684,15 +683,13 @@ Q_SIL u8 *D_SpanChunkPairs(const texcursor_t *c, u8 *pdest, const u8 *fog,
 	for(; n >= 2; n -= 2, pdest += 2){
 		u8 a = pbase[(sa >> 16) + (ta >> 16) * width];
 		u8 b = pbase[(sb >> 16) + (tb >> 16) * width];
-		pdest[0] = fog ? fog[a] : a;
-		pdest[1] = fog ? fog[b] : b;
+		pdest[0] = a;
+		pdest[1] = b;
 		sa += sstep; ta += tstep;
 		sb += sstep; tb += tstep;
 	}
-	if(n){
-		u8 a = pbase[(sa >> 16) + (ta >> 16) * width];
-		*pdest++ = fog ? fog[a] : a;
-	}
+	if(n)
+		*pdest++ = pbase[(sa >> 16) + (ta >> 16) * width];
 	return pdest;
 }
 
@@ -700,7 +697,7 @@ Q_SIL u8 *D_SpanChunkNormal(texcursor_t *c, u8 *pdest, s32 dithered)
 {
 	s32 sa, ta, sb, tb;
 	if(dithered && D_CursorPairs(c, &sa, &ta, &sb, &tb))
-		return D_SpanChunkPairs(c, pdest, NULL, sa, ta, sb, tb);
+		return D_SpanChunkPairs(c, pdest, sa, ta, sb, tb);
 	do{
 		*pdest++ = dithered ? D_CursorTexel(c, 1) :
 			c->pbase[(c->s >> 20) + (c->t >> 20) * c->width];
@@ -726,44 +723,15 @@ Q_SIL u8 *D_SpanChunkCutout(texcursor_t *c, u8 *pdest, s32 dithered)
 	return pdest;
 }
 
-// The skybox texels with the sky fog applied, NULL without fog
-void D_SkyFogSetup()
-{
-	static u8 tab[256];
-	static s64 frame = -1;
-	static s32 pal = -1, lut = -1;
-	s32 foglut = CLAMP(0, map_skyfog*FOG_LUT_LEVELS, FOG_LUT_LEVELS-1);
-	d_skyfog = NULL;
-	if(!(fog_density > 0))
-		return;
-	if(frame != r_framecount || pal != fog_pal_index || lut != foglut){
-		for(s32 i = 0; i < 256; i++)
-			tab[i] = color_mix_lut[i][fog_pal_index][foglut];
-		frame = r_framecount;
-		pal = fog_pal_index;
-		lut = foglut;
-	}
-	d_skyfog = tab;
-}
-
 Q_SIL u8 *D_SpanChunkSkybox(texcursor_t *c, u8 *pdest, s32 dithered)
 {
-	const u8 *fog = d_skyfog;
 	s32 sa, ta, sb, tb;
 	if(dithered && D_CursorPairs(c, &sa, &ta, &sb, &tb))
-		return fog ? D_SpanChunkPairs(c, pdest, fog, sa, ta, sb, tb)
-			: D_SpanChunkPairs(c, pdest, NULL, sa, ta, sb, tb);
-	if(fog){
-		do{
-			*pdest++ = fog[D_CursorTexel(c, dithered)];
-			D_CursorAdvance(c);
-		}while(--c->count > 0);
-	}else{
-		do{
-			*pdest++ = D_CursorTexel(c, dithered);
-			D_CursorAdvance(c);
-		}while(--c->count > 0);
-	}
+		return D_SpanChunkPairs(c, pdest, sa, ta, sb, tb);
+	do{
+		*pdest++ = D_CursorTexel(c, dithered);
+		D_CursorAdvance(c);
+	}while(--c->count > 0);
 	return pdest;
 }
 
@@ -897,7 +865,6 @@ void D_SaveGradients(dgrad_t *g)
 	g->bbextents = bbextents; g->bbextentt = bbextentt;
 	g->cacheblock = cacheblock;
 	g->cachewidth = cachewidth; g->cacheheight = cacheheight;
-	g->skyfog = d_skyfog;
 }
 
 void D_LoadGradients(const dgrad_t *g)
@@ -912,7 +879,6 @@ void D_LoadGradients(const dgrad_t *g)
 	bbextents = g->bbextents; bbextentt = g->bbextentt;
 	cacheblock = g->cacheblock;
 	cachewidth = g->cachewidth; cacheheight = g->cacheheight;
-	d_skyfog = g->skyfog;
 }
 
 // Inlined into D_DrawSurfaces, the dithered loops changed how GCC allocated

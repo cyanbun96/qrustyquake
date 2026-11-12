@@ -2485,17 +2485,13 @@ static void M_Graphics_Step(s32 dir)
 {
 	switch(graphics_cursor){
 	case 300: M_TOGGLE(r_nofog); break;
-	case 301: M_ADD(r_fognoise, dir*0.1); break;
-	case 302: M_CLAMP(r_fogfactor, dir*0.1, 1); break;
-	case 303: M_ADD(r_fogscale, dir*0.1); break;
-	case 304: M_ADD(r_fogbrightness, dir*0.1); break;
-	case 305: M_CLAMP(r_fogstyle, dir, 3); break;
-	case 306: M_TOGGLE(r_fogdepthcorrection); break;
-	case 307: M_TOGGLE(r_lockfog); break;
-	case 308: M_CLAMP(r_lockfogd, dir*0.05, 1); break;
-	case 309: M_CLAMP(r_lockfogr, dir*0.05, 1); break;
-	case 310: M_CLAMP(r_lockfogg, dir*0.05, 1); break;
-	case 311: M_CLAMP(r_lockfogb, dir*0.05, 1); break;
+	case 301: M_ADD(r_fogbrightness, dir*0.1); break;
+	case 302: M_TOGGLE(r_fogdepthcorrection); break;
+	case 303: M_TOGGLE(r_lockfog); break;
+	case 304: M_CLAMP(r_lockfogd, dir*0.05, 1); break;
+	case 305: M_CLAMP(r_lockfogr, dir*0.05, 1); break;
+	case 306: M_CLAMP(r_lockfogg, dir*0.05, 1); break;
+	case 307: M_CLAMP(r_lockfogb, dir*0.05, 1); break;
 	case 400: M_TOGGLE(r_enableskybox); break;
 	case 401: M_CLAMP(r_skyfog, dir*0.1, 1); break;
 	case 402: M_CLAMP(r_skynoise, dir*0.1, 1); break;
@@ -2648,8 +2644,8 @@ void M_Graphics_Key(s32 k)
 		S_LocalSound("misc/menu1.wav");
 		if(graphics_cursor == 0) graphics_cursor = 11;
 		else if(graphics_cursor == 300){
-			if(r_lockfog.value) graphics_cursor = 311;
-			else graphics_cursor = 307;
+			if(r_lockfog.value) graphics_cursor = 307;
+			else graphics_cursor = 303;
 		}else if(graphics_cursor == 400) graphics_cursor = 403;
 		else if(graphics_cursor == 500) graphics_cursor = 502;
 		else if(graphics_cursor == 600){
@@ -2669,10 +2665,10 @@ void M_Graphics_Key(s32 k)
 			else graphics_cursor++;
 		}else if(graphics_cursor < 400){
 			if(r_lockfog.value){
-				if(graphics_cursor==311) graphics_cursor = 300;
+				if(graphics_cursor==307) graphics_cursor = 300;
 				else graphics_cursor++;
 			}else{
-				if(graphics_cursor==307) graphics_cursor = 300;
+				if(graphics_cursor==303) graphics_cursor = 300;
 				else graphics_cursor++;
 			}
 		}else if(graphics_cursor < 500){
@@ -2708,8 +2704,6 @@ void M_Graphics_Key(s32 k)
 		break;
 	default: break;
 	}
-	if(graphics_cursor >= 307 && graphics_cursor <= 311 && r_lockfog.value)
-		Fog_Update(0, 0, 0, 0);
 }
 
 void M_Menu_Graphics_f()
@@ -2780,39 +2774,26 @@ void M_Graphics_Draw()
 	}else if(graphics_cursor == 3 || graphics_cursor/100 == 3){
 		M_Print(xoffset, 32, "Enabled:");
 		M_Print(xoffset + x2, 32, r_nofog.value == 0 ? "on" : "off");
-		M_Print(xoffset, 40, "Noise:");
-		M_PrintVal(xoffset + x2, 40, "%0.1f", r_fognoise.value);
-		M_Print(xoffset, 48, "Thickness:");
-		M_PrintVal(xoffset + x2, 48, "%0.1f", r_fogfactor.value);
-		M_Print(xoffset, 56, "Distance:");
-		M_PrintVal(xoffset + x2, 56, "%0.1f", r_fogscale.value);
-		M_Print(xoffset, 64, "Brightness:");
-		M_PrintVal(xoffset + x2, 64, "%0.1f", r_fogbrightness.value);
-		M_Print(xoffset, 72, "Style:");
-		switch((s32)r_fogstyle.value){
-		case 0: M_Print(xoffset + x2, 72, "Noisy"); break;
-		case 1: M_Print(xoffset + x2, 72, "Dither"); break;
-		case 2: M_Print(xoffset + x2, 72, "Mixed"); break;
-		default:M_Print(xoffset + x2, 72, "Blend"); break;
-		}
-		M_Print(xoffset, 80, "Depth:");
-		M_Print(xoffset + x2 - 32, 80,
-			r_fogdepthcorrection.value==1 ? "Corrected" : "Simple");
-		M_Print(xoffset, 88, "Set By Map:");
-		M_Print(xoffset + x2, 88,
+		M_Print(xoffset, 40, "Brightness:");
+		M_PrintVal(xoffset + x2, 40, "%0.1f", r_fogbrightness.value);
+		M_Print(xoffset, 48, "Distance:");
+		M_Print(xoffset + x2 - 16, 48,
+			r_fogdepthcorrection.value ? "Radial" : "Planar");
+		M_Print(xoffset, 56, "Set By Map:");
+		M_Print(xoffset + x2, 56,
 			r_lockfog.value==1 ? "off" : "on");
 		if(r_lockfog.value){
-			M_Print(xoffset, 96, "Density:");
-			M_PrintVal(xoffset + x2, 96, "%0.2f",
+			M_Print(xoffset, 64, "Density:");
+			M_PrintVal(xoffset + x2, 64, "%0.2f",
 					r_lockfogd.value);
-			M_Print(xoffset, 104, "Red:");
-			M_PrintVal(xoffset + x2, 104, "%0.2f",
+			M_Print(xoffset, 72, "Red:");
+			M_PrintVal(xoffset + x2, 72, "%0.2f",
 					r_lockfogr.value);
-			M_Print(xoffset, 112, "Green:");
-			M_PrintVal(xoffset + x2, 112, "%0.2f",
+			M_Print(xoffset, 80, "Green:");
+			M_PrintVal(xoffset + x2, 80, "%0.2f",
 					r_lockfogg.value);
-			M_Print(xoffset, 120, "Blue:");
-			M_PrintVal(xoffset + x2, 120, "%0.2f",
+			M_Print(xoffset, 88, "Blue:");
+			M_PrintVal(xoffset + x2, 88, "%0.2f",
 					r_lockfogb.value);
 		}
 	}else if(graphics_cursor == 4 || graphics_cursor/100 == 4){
@@ -4363,7 +4344,7 @@ void M_Gamepad_Mouse(s32 x, s32 y)
 
 void M_Graphics_Mouse(s32 x, s32 y)
 {
-	static const s32 rows[12] = {0,0,0,8,4,3,6,4,8,4,4,6};
+	static const s32 rows[12] = {0,0,0,4,4,3,6,4,8,4,4,6};
 	s32 page = graphics_cursor / 100;
 	if(!page){
 		if(x >= 24 && x < 160 && y >= 32 && y < 32 + 12*8)
@@ -4371,7 +4352,7 @@ void M_Graphics_Mouse(s32 x, s32 y)
 		return;
 	}
 	s32 n = rows[page];
-	if(page == 3 && r_lockfog.value) n = 12;
+	if(page == 3 && r_lockfog.value) n = 8;
 	if(page == 6 && r_hlwater.value) n = 9;
 	if(x >= 160 && x < 320 && y >= 32 && y < 32 + n*8)
 		M_SetMouseCursor(&graphics_cursor, page*100 + (y-32)/8);

@@ -292,7 +292,6 @@ void R_Init()
 	Cvar_RegisterVariable(&r_slimealpha);
 	Cvar_RegisterVariable(&r_lavaalpha);
 	Cvar_RegisterVariable(&r_telealpha);
-	Cvar_RegisterVariable(&r_fogstyle);
 	Cvar_RegisterVariable(&r_nofog);
 	Cvar_RegisterVariable(&r_alphastyle);
 	Cvar_RegisterVariable(&r_entalpha);
@@ -302,9 +301,6 @@ void R_Init()
 	Cvar_RegisterVariable(&r_labmixpal);
 	Cvar_RegisterVariable(&r_rgblighting);
 	Cvar_RegisterVariable(&r_fogbrightness);
-	Cvar_RegisterVariable(&r_fogfactor);
-	Cvar_RegisterVariable(&r_fogscale);
-	Cvar_RegisterVariable(&r_fognoise);
 	Cvar_RegisterVariable(&r_lockfog);
 	Cvar_RegisterVariable(&r_lockfogd);
 	Cvar_RegisterVariable(&r_lockfogr);
@@ -352,7 +348,6 @@ void R_Init()
 	Cvar_RegisterVariable(&r_lerplightstyles);
 	Cvar_SetCallback(&r_labmixpal, R_LabMixPalChanged);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
-	Cvar_SetCallback(&r_fogbrightness, Fog_SetPalIndex);
 	Cvar_SetCallback(&r_wateralpha, R_SetWateralpha_f);
 	Cvar_SetCallback(&r_lavaalpha, R_SetLavaalpha_f);
 	Cvar_SetCallback(&r_telealpha, R_SetTelealpha_f);
@@ -396,7 +391,6 @@ static void Pal_ParseWorldspawn()
 		}
 	}
 	if(!found) ResetWorldPal();
-	Fog_SetPalIndex(0);
 }
 
 void R_NewMap()
@@ -948,6 +942,7 @@ void R_RenderView()
 	R_AllocShowTris();
 	R_TimeStamp(0);
 	R_SetupFrame();
+	R_FogSetupFrame();
 	R_MarkLeaves(); // done here so we know if we're in water
 	fesetround(FE_TOWARDZERO); // Sys_LowFPPrecision set this in WinQuake
 	R_ThreadsFPEnv(); // and the workers too
@@ -965,9 +960,9 @@ void R_RenderView()
 	R_TimeStamp(11);
 	R_DrawParticles();
 	R_TimeStamp(12);
-	if(r_dowarp) D_WarpScreen();
+	R_DrawFog(); // before the warp, the z-buffer isn't warped
 	R_TimeStamp(13);
-	R_DrawFog();
+	if(r_dowarp) D_WarpScreen();
 	R_ThreadsEndFrame();
 	R_TimeStamp(14);
 	V_SetContentsColor(r_viewleaf->contents);

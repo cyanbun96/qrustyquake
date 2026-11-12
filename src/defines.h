@@ -302,7 +302,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define VID_CBITS 6
 #define VID_ROW_SIZE 3
 #define MODE_AREA_HEIGHT 11
-#define RANDARR_SIZE 65536                                            // d_fog.h
 #define FOG_LUT_LEVELS 32                                            // rgbtoi.h
 #define LIT_LUT_RES 64
 #define RGB_LUT_SIZE 512 // 8×8×8 color space

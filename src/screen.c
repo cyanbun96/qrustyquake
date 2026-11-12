@@ -108,7 +108,6 @@ void SCR_CheckDrawCenterString()
 
 static void SCR_CalcRefdef() // Must be called whenever vid changes
 { // Internal use only
-	fog_initialized = 0;
 	vid.recalc_refdef = 0;
 	Sbar_CalcPos();
 	Sbar_Changed(); // force the status bar to redraw

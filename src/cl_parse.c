@@ -56,8 +56,8 @@ void Fog_ParseServerMessage()
 	f32 red = MSG_ReadByte() / 255.0;
 	f32 green = MSG_ReadByte() / 255.0;
 	f32 blue = MSG_ReadByte() / 255.0;
-	MSG_ReadShort(); // fade time, unused
-	Fog_Update(density, red, green, blue);
+	f32 time = MSG_ReadShort() / 100.0;
+	Fog_Update(density, red, green, blue, q_max(time, 0));
 }
 
 entity_t *CL_EntityNum(s32 num)
