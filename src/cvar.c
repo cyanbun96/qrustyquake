@@ -276,6 +276,7 @@ bool Cvar_Command()
 					v->name, v->string, v->default_string);
 		}
 		else Con_Printf ("\"%s\" is \"%s\"\n", v->name, v->string);
+		return 1;
 	}
 	Cvar_Set(v->name, Cmd_Argv(1));
 	return 1;
