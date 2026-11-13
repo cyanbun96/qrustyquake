@@ -2775,13 +2775,12 @@ void M_Graphics_Draw()
 		M_Print(xoffset, 40, "Brightness:");
 		M_PrintVal(xoffset + x2, 40, "%0.1f", r_fogbrightness.value);
 		M_Print(xoffset, 48, "Distance:");
-		M_Print(xoffset + x2 - 16, 48,
+		M_Print(xoffset + x2, 48,
 			r_fogdepthcorrection.value ? "Radial" : "Planar");
 		M_Print(xoffset, 56, "Dither:");
 		M_Print(xoffset + x2, 56, r_fogdither.value ? "on" : "off");
 		M_Print(xoffset, 64, "Set By Map:");
-		M_Print(xoffset + x2, 64,
-			r_lockfog.value==1 ? "off" : "on");
+		M_Print(xoffset + x2, 64, r_lockfog.value==1 ? "off" : "on");
 		if(r_lockfog.value){
 			M_Print(xoffset, 72, "Density:");
 			M_PrintVal(xoffset + x2, 72, "%0.2f",
