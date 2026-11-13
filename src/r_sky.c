@@ -346,6 +346,10 @@ void Sky_SkyCommand_f()
 static void Sky_SetSkyfog_f(cvar_t *var)
 { map_skyfog = var->value; }
 
+
+void Sky_ResetFog() // Reset on map load as in Ironwail
+{ Cvar_SetQuick(&r_skyfog, r_skyfog.default_string); }
+
 void Sky_Init()
 {
 	Cmd_AddCommand("sky", Sky_SkyCommand_f);

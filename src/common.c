@@ -1206,6 +1206,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	}
 	Cache_Flush();
 	Mod_ResetAll();
+	Sky_ResetFog();
 	if(cls.state != ca_dedicated){
 		W_LoadWadFile();
 		Draw_Init();

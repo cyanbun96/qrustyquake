@@ -2804,6 +2804,10 @@ void M_Graphics_Draw()
 		M_PrintVal(xoffset + x2, 48, "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset, 56, "Smooth Anim:");
 		M_Print(xoffset + x2, 56, r_skysmooth.value==0 ? "off":"on");
+		if(graphics_cursor == 401){
+			M_DrawTextBox(28, 150, 29, 1);
+			M_Print(44, 158, "Resets when a new map loads");
+		}
 		if(graphics_cursor == 402){
 			M_DrawTextBox(12, 150, 33, 1);
 			M_Print(28, 158, "Applies to newly loaded skyboxes");

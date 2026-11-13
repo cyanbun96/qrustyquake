@@ -272,6 +272,7 @@ void Host_ClearMemory() // This clears all the memory used by both the client
 	}
 	D_FlushCaches(0);
 	Mod_ClearAll();
+	Sky_ResetFog();
 	PR_ClearProgs(&sv.qcvm);
 	PR_ClearProgs(&cl.qcvm);
 	if(host_hunklevel) Hunk_FreeToLowMark(host_hunklevel);
