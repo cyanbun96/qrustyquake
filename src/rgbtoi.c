@@ -224,6 +224,7 @@ void R_BuildColorMixLUT(SDL_UNUSED cvar_t *cvar)
 void R_LabMixPalChanged(SDL_UNUSED cvar_t *cvar)
 { // what got mixed the other way gets mixed again when it's needed
 	fog_lut_built = lit_lut_initialized = 0;
+	Fog_PaletteChanged(); // r_fogdither 0 mixes through lit_lut
 	D_FlushCaches(0); // surfaces get lit through lit_lut
 }
 

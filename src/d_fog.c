@@ -5,7 +5,8 @@
 // r_fogdepthcorrection 0 it's QuakeSpasm's, density / 64 along the view axis.
 // In the palette each color's way to the fog color is a chain of palette
 // colors, and a pixel between two links gets one of them by an 8x8 Bayer
-// threshold, so that the mean of the dither follows the way.
+// threshold, so that the mean of the dither follows the way. r_fogdither 0
+// gives each step of the way the one palette color nearest it instead.
 
 // fog_level is by the top 16 bits of a float, 2^31 / distance: the z-buffer
 // holds 2^31 / z, and for distance from the eye that's times fog_cos, the
@@ -29,6 +30,7 @@ static fog_t fog_from = {0, FOG_GRAY, FOG_GRAY, FOG_GRAY}; // and began
 static f64 fade_time, fade_done;
 static u8 fog_rgb[3]; // the fog color fog_pair was built for
 static bool fog_built; // fog_pair is for fog_rgb and the palette
+static bool fog_dithered; // and r_fogdither
 static f32 fog_level_d = -1; // the density fog_level was built for
 static bool fog_radial; // fog_level is by distance from the eye
 static s32 fog_skylevel; // the fog amount of sky pixels
@@ -374,15 +376,41 @@ static void Fog_BuildChain(u32 *pair, s32 c, const f32 *fog, u32 end)
 	pair[FOG_LEVELS - 1] = end;
 }
 
-static void Fog_BuildPairs()
+// Without the dither: each level of each color the palette color nearest it,
+// from lit_lut, the way color_mix_lut and r_labmixpal would mix it
+static void Fog_BuildNearest(const f32 *fog)
+{
+	const u8 *pal = CURWORLDPAL;
+	R_BuildLitLUT();
+	for(s32 c = 0; c < 256; c++){
+		fog_pair[c][0] = c | c << 8; // no fog
+		for(s32 lev = 1; lev < FOG_LEVELS; lev++){
+			f32 s = (f32)lev / (FOG_LEVELS - 1);
+			s32 q[3]; // the nearest point of lit_lut's grid
+			for(s32 k = 0; k < 3; k++){
+				f32 v = pal[c * 3 + k]
+					+ s * (fog[k] - pal[c * 3 + k]);
+				q[k] = (v * (LIT_LUT_RES - 1) + 127.5f) / 255;
+			}
+			u32 n = lit_lut[q[0]][q[1]][q[2]];
+			fog_pair[c][lev] = n | n << 8;
+		}
+	}
+}
+
+static void Fog_BuildPairs(bool dither)
 {
 	f32 fog[3] = {fog_rgb[0], fog_rgb[1], fog_rgb[2]};
-	for(s32 i = 0; i < 256 * 3; i++)
-		fog_palf[i % 3][i / 3] = CURWORLDPAL[i];
-	u32 end = Fog_EndPair(fog);
-	for(s32 c = 0; c < 256; c++)
-		Fog_BuildChain(fog_pair[c], c, fog, end);
+	if(dither){
+		for(s32 i = 0; i < 256 * 3; i++)
+			fog_palf[i % 3][i / 3] = CURWORLDPAL[i];
+		u32 end = Fog_EndPair(fog);
+		for(s32 c = 0; c < 256; c++)
+			Fog_BuildChain(fog_pair[c], c, fog, end);
+	}else
+		Fog_BuildNearest(fog);
 	fog_built = 1;
+	fog_dithered = dither;
 }
 
 static void Fog_BuildLevels(f32 density, bool radial)
@@ -419,9 +447,10 @@ void R_FogSetupFrame()
 		return;
 	u8 rgb[3] = {Fog_Channel(f.r), Fog_Channel(f.g), Fog_Channel(f.b)};
 	bool radial = r_fogdepthcorrection.value != 0;
-	if(!fog_built || memcmp(rgb, fog_rgb, 3)){
+	bool dither = r_fogdither.value != 0;
+	if(!fog_built || memcmp(rgb, fog_rgb, 3) || fog_dithered != dither){
 		memcpy(fog_rgb, rgb, 3);
-		Fog_BuildPairs();
+		Fog_BuildPairs(dither);
 	}
 	if(fog_level_d != fog_density || fog_radial != radial)
 		Fog_BuildLevels(fog_density, radial);

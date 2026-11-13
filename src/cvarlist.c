@@ -121,6 +121,7 @@ cvar_t r_threads=                                     {"r_threads", "-1", 1,ZR};
 cvar_t r_bmodelocclusion=                      {"r_bmodelocclusion", "2", 1,ZR};
 cvar_t r_fogbrightness=                          {"r_fogbrightness", "1", 1,ZR};
 cvar_t r_fogdepthcorrection=                {"r_fogdepthcorrection", "1", 1,ZR};
+cvar_t r_fogdither=                                  {"r_fogdither", "1", 1,ZR};
 cvar_t r_fovmode=                                      {"r_fovmode", "0", 1,ZR};
 cvar_t r_fullbright=                                {"r_fullbright", "0", 0,ZR};
 cvar_t r_fullbright_list={"r_fullbright_list", "progs/spike.mdl,progs/s_spike.mdl,progs/missile.mdl,progs/k_spike.mdl,progs/proj_balllava.mdl,progs/flame2.mdl,progs/flame.mdl,progs/bolt1.mdl,progs/bolt2.mdl,progs/bolt3.mdl,progs/laser.mdl", 0, 0, 0, 0, 0};
