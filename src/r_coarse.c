@@ -601,12 +601,13 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf)
 }
 
 // Brush entities go into the edge list with the key of the BSP leaf they are
-// in, and the edge scanner shows whichever surface has the lowest key. Along
-// any line of sight the BSP order is the depth order, so where a world face is
-// nearer than a brush face, its key is lower too and the brush face can't show
-// up there. The alpha pass draws its surfaces over the finished frame instead,
-// testing every pixel against the z-buffer, so there it's the depth test that
-// says a face shows up nowhere.
+// in, or of the node they lie in the plane of, and the edge scanner shows
+// whichever surface has the lowest key. Along any line of sight the BSP order
+// is the depth order, so where a world face is nearer than a brush face, its
+// key is lower too and the brush face can't show up there. The alpha pass
+// draws its surfaces over the finished frame instead, testing every pixel
+// against the z-buffer, so there it's the depth test that says a face shows
+// up nowhere.
 bool R_CoarseOcclusionTestBmodelFace(msurface_t *fa)
 {
 	r_coarse_poly_surf = NULL;

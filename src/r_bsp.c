@@ -58,6 +58,16 @@ static void R_BEdgeBounds(const bedge_t *e, f32 *bounds)
 	}
 }
 
+static bool R_BEdgesInPlane(const bedge_t *e, const mplane_t *p)
+{ // all the vertices of a closed list of edges, within float error
+	for(; e; e = e->pnext){
+		f32 d = DotProduct(e->v[0]->position, p->normal) - p->dist;
+		if(d > 0.01f || d < -0.01f)
+			return 0;
+	}
+	return 1;
+}
+
 // Puts a new edge from v0 to v1 on a side list
 static void R_NewBEdge(bedge_t **side, mvertex_t *v0, mvertex_t *v1)
 {
@@ -91,6 +101,17 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 		half += fabsf(tplane.normal[k]) * extent;
 	}
 	s32 whole = mid - half > 1 ? 0 : mid + half < -1 ? 1 : -1;
+	// The test below puts a fragment that lies in the plane on the back
+	// side, solid where the world brush there has skip faces. It can be
+	// seen from where it faces, so it goes behind the node's own faces
+	// and in front of everything on the far side, like one of them. Not
+	// in the alpha pass: that tests depth against the opaque world faces
+	// instead of keys, and would draw it over one in the same plane.
+	if(!r_alphapass && whole < 0 && R_BEdgesInPlane(pedges, &tplane)){
+		r_currentbkey = pnode->key;
+		R_RenderBmodelFace(pedges, psurf);
+		return;
+	}
 	for(; whole >= 0 && pedges; pedges = pnextedge){
 		pnextedge = pedges->pnext;
 		pedges->pnext = psideedges[whole];
@@ -438,8 +459,9 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 					surf++;
 				}while(--c);
 			}
-			r_currentkey++;
 		}
+		// behind its faces, for brush entity faces lying in its plane
+		node->key = r_currentkey++;
 		// recurse down the back side
 		R_RecursiveWorldNode(node->children[!side], clipflags);
 	}
