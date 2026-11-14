@@ -304,7 +304,6 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define MODE_AREA_HEIGHT 11
 #define FOG_LUT_LEVELS 32                                            // rgbtoi.h
 #define LIT_LUT_RES 64
-#define RGB_LUT_SIZE 512 // 8×8×8 color space
 #define CSHIFT_CONTENTS 0                                            // client.h
 #define CSHIFT_DAMAGE 1
 #define CSHIFT_BONUS 2

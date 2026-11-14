@@ -9,8 +9,6 @@ static msurface_t *r_skyfaces;
 static mplane_t r_skyplanes[6]; // Manoel Kasimier - edited
 static mtexinfo_t r_skytexinfo[6];
 static mvertex_t *r_skyverts;
-static u8 rgb_lut[RGB_LUT_SIZE];
-static s32 rgb_lut_built = 0;
 static c8 last_skybox_name[1024]; // what r_skypixels holds
 static s32 skybox_planes[12] = {2,-128, 0,-128, 2,128, 1,128, 0,128, 1,-128};
 static vec3_t box_vecs[6][2] = { {{0,-1,0}, {-1,0,0} }, { {0,1,0}, {0,0,-1} },
@@ -61,7 +59,6 @@ void Sky_LoadSkyBox(const c8 *name)
 
 void Sky_PaletteChanged()
 { // skyboxes are palettized as they get loaded
-	rgb_lut_built = 0;
 	last_skybox_name[0] = 0;
 	if(!skybox_name[0])
 		return;
@@ -71,52 +68,15 @@ void Sky_PaletteChanged()
 	Sky_LoadSkyBox(name);
 }
 
-void R_BuildRGBLUT(){
-	for(s32 r = 0; r < 256; r += 32){
-		for(s32 g = 0; g < 256; g += 32){
-			for(s32 b = 0; b < 256; b += 32){
-				s32 i = ((r/32) << 6) | ((g/32) << 3) | (b/32);
-				rgb_lut[i] = rgbtoi(r, g, b);
-			}
-		}
-	}
-	rgb_lut_built = 1;
-}
-
-u8 fast_rgbtoi(u8 r, u8 g, u8 b)
-{
-	s32 i = ((r / 32) << 6) | ((g / 32) << 3) | (b / 32);
-	return rgb_lut[i];
-}
-
-u8 *Upscale_NearestNeighbor(u8 *src, s32 width, s32 height, s32 *new_width,
-	s32 *new_height){
-	*new_width = (width < 256) ? 256 : width;
-	*new_height = (height < 256) ? 256 : height;
-	if(*new_width == width && *new_height == height)
-		return src;
-	u8 *dest = malloc((*new_width) * (*new_height));
-	if(!dest) return 0;
-	for(s32 y = 0; y < *new_height; ++y){ // sizes that don't divide 256
-		s32 sy = y * height / *new_height; // need a fractional step
-		for(s32 x = 0; x < *new_width; ++x){
-			s32 sx = x * width / *new_width;
-			dest[y*(*new_width)+x] = src[sy*width+sx];
-		}
-	}
-	return dest;
-}
-
-u8 *Resize_Nearest(const u8 *src, s32 sw, s32 sh, s32 dw, s32 dh)
-{
-	u8 *dst = malloc(dw * dh);
+static u8 *Resize_Nearest(const u8 *src, s32 sw, s32 sh, s32 dw, s32 dh)
+{ // RGBA
+	u8 *dst = malloc(dw * dh * 4);
 	if(!dst) return NULL;
 	for(s32 y = 0; y < dh; y++){
-		s32 sy = (y * sh) / dh;
-		for(s32 x = 0; x < dw; x++){
-			s32 sx = (x * sw) / dw;
-			dst[y * dw + x] = src[sy * sw + sx];
-		}
+		const u8 *row = src + (y * sh) / dh * sw * 4;
+		u8 *out = dst + y * dw * 4;
+		for(s32 x = 0; x < dw; x++)
+			memcpy(out + x * 4, row + x * sw / dw * 4, 4);
 	}
 	return dst;
 }
@@ -131,6 +91,7 @@ s32 R_LoadSkybox(const c8 *name)
 		return 1;
 	SDL_strlcpy(skybox_name, name, sizeof(skybox_name));
 	s32 mark = Hunk_LowMark();
+	dithermeaning_t *dm = R_DitherMeaningBegin();
 	for(s32 i = 0 ; i < 6 ; i++){
 		c8 pathname[1024];
 		c8 *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
@@ -141,68 +102,25 @@ s32 R_LoadSkybox(const c8 *name)
 		u8 *pic = Image_LoadImage(pathname, &width, &height);
 		if(!pic){
 			Con_Printf("Couldn't load %s", pathname);
+			R_DitherMeaningEnd(dm, NULL);
 			return 0;
 		}
-		u8 *pdest = pic; // CyanBun96: palettize in place
-		u8 *psrc = pic; // with some noise dithering
-		if(!rgb_lut_built)
-			R_BuildRGBLUT();
-		for(s32 j = 0; j < width*height; j++, psrc+=4){
-			s32 r = psrc[0] + ((f32)(((s32)lfsr_random() % 16) - 7)
-					* r_skynoise.value);
-			s32 g = psrc[1] + ((f32)(((s32)lfsr_random() % 16) - 7)
-					* r_skynoise.value);
-			s32 b = psrc[2] + ((f32)(((s32)lfsr_random() % 16) - 7)
-					* r_skynoise.value);
-			pdest[j] = fast_rgbtoi(CLAMP(0,r,255),
-						CLAMP(0,g,255),
-						CLAMP(0,b,255));
-		}
-		u8 *final_pic = Upscale_NearestNeighbor(pic,
-				width, height, &width, &height);
-		u8 *origpic = pic;
-		pic = final_pic;
-		s32 target = 1024;
-		s32 m = width > height ? width : height;
-		bool freescaled = false;
+		s32 m = q_max(width, height), target = 1024;
 		if(m <= 512) target = 512;
 		if(m <= 256) target = 256;
-		u8 *scaled;
+		u8 *scaled = NULL;
 		if(width != target || height != target){
 			scaled = Resize_Nearest(pic,width,height,target,target);
-			freescaled = true;
 			if(!scaled){
 			    Con_Printf("skybox resize failed for %s", pathname);
 				Hunk_FreeToLowMark(mark);
+				R_DitherMeaningEnd(dm, NULL);
 				return 0;
 			}
 			width = height = target;
 			pic = scaled;
 		}
-		switch(width){ // Manoel Kasimier - hi-res skyboxes - begin
-			case 1024: // falls through
-			case 512: // falls through
-			case 256: // We're good!
-				break;
-			default: // We aren't good
-Con_Printf("skybox width(%d) for %s must be 256, 512, 1024", width, pathname);
-				Hunk_FreeToLowMark(mark);
-				if(final_pic != origpic)
-					free(final_pic);
-				return 0;
-		}
-		switch(height){
-			case 1024: // falls through
-			case 512: // falls through
-			case 256: // We're good!
-				break;
-			default:
-Con_Printf("skybox height(%d) for %s must be 256, 512, 1024", height, pathname);
-				Hunk_FreeToLowMark(mark);
-				if(final_pic != origpic)
-					free(final_pic);
-				return 0;
-		}
+		R_DitherRGBA(pic, width, height, r_skynoise.value, dm);
 		static texture_t r_skytextures[6];
 		r_skytexinfo[i].texture = &r_skytextures[i];
 		r_skytexinfo[i].texture->width = width;
@@ -219,11 +137,11 @@ Con_Printf("skybox height(%d) for %s must be 256, 512, 1024", height, pathname);
 		else
 	Con_DPrintf("Warning: No surface to load yet for WinQuake skybox");
 		memcpy(r_skypixels[i], pic, width*height);
-		if(freescaled) free(scaled);
+		free(scaled);
 		Hunk_FreeToLowMark(mark);
-		if(final_pic != origpic)
-			free(final_pic);
 	}
+	R_DitherMeaningEnd(dm, r_skymeaning);
+	r_skymeaning_id++;
 	return 1;
 }
 

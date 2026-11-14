@@ -219,6 +219,8 @@ server_static_t svs;
 globalvars_t *pr_global_struct;                                    // pr_edict.c
 qcvm_t *qcvm;
 u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                   // r_sky.c
+f32 r_skymeaning[256][3]; // what each index of r_skypixels stands for
+s32 r_skymeaning_id; // which skybox r_skymeaning is for, from 1
 s32 r_skyframe; // the last frame a skybox surface was seen
 f32 skyspeed;
 f32 skytime;

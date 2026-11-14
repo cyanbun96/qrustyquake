@@ -397,6 +397,7 @@ typedef struct { // a classic scrolling sky texture, see R_InitSky
 	u8 bottommask[128*128]; // 0xff where the front layer is see-through
 	bool blend; // Q64: the front layer is mixed 50% over the back
 } sky_t;
+typedef struct dithermeaning_s dithermeaning_t; // rgbtoi.c
 typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
 typedef struct {
 	f32 mins[3], maxs[3];

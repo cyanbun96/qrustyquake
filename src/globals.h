@@ -12,7 +12,6 @@ EX s32 fog_lut_built;
 void R_BuildColorMixLUT(cvar_t *cvar);
 void R_LabMixPalChanged(cvar_t *cvar);
 void R_WorldPalChanged();
-u32 lfsr_random();
 // The fog density of this frame, 0 without fog
 EX f32 fog_density;                                                   // d_fog.c
 void Fog_FogCommand_f();
@@ -545,6 +544,10 @@ void R_SplitEntityOnNode2(mnode_t *node);
 void R_MarkLights(dlight_t *light, u64 bit, mnode_t *node);
 u8 rgbtoi_lab(u8 r, u8 g, u8 b);
 u8 rgbtoi(u8 r, u8 g, u8 b);
+void R_DitherRGBA(u8 *pic, s32 w, s32 h, f32 dither, dithermeaning_t *dm);
+dithermeaning_t *R_DitherMeaningBegin();
+void R_DitherMeaningEnd(dithermeaning_t *dm, f32 (*q)[3]);
+void R_NearestDither(const f32 *rgb, u8 *lo, u8 *hi, s32 *t);
 void R_BuildLitLUT();
 void R_BuildLitChan();
 f32 R_LiquidAlphaForFlags(s32 flags);
@@ -793,6 +796,8 @@ EX vec3_t lightcolor;                                               // r_light.c
 EX f32 r_avertexnormals[NUMVERTEXNORMALS][3];                       // r_alias.c
 EX vec3_t r_pright, r_pup, r_ppn;                                    // r_part.c
 EX u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                // r_sky.c
+EX f32 r_skymeaning[256][3];
+EX s32 r_skymeaning_id;
 EX u32 sb_updates; // if >= vid.numpages, no update needed             // sbar.c
 u8 *Image_LoadImage(const c8 *name, s32 *width, s32 *height);         // image.c
 bool nameInList(const c8 *list, const c8 *name);                      // model.c

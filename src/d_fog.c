@@ -34,6 +34,9 @@ static bool fog_dithered; // and r_fogdither
 static f32 fog_level_d = -1; // the density fog_level was built for
 static bool fog_radial; // fog_level is by distance from the eye
 static s32 fog_skylevel; // the fog amount of sky pixels
+static s32 fog_skybuilt = -1; // the level fog_skypair is for
+static s32 fog_skyfor; // and r_skymeaning_id, 0 for the palette
+static u32 fog_skypair[256]; // fog_pair's form, for that level
 static u8 fog_level[FOG_DEPTHS]; // fog amount by depth
 static u32 fog_pair[256][FOG_LEVELS]; // low | high << 8 | threshold << 16
 static f32 fog_palf[3][256]; // the palette's channels, for Fog_Links
@@ -47,15 +50,6 @@ static u32 *fog_skyz = 0;
 static s32 fog_skyz_size = 0;
 static u32 fog_skykey;
 static u32 fog_skyrow[MAXHEIGHT]; // frame this row last got sky on
-static u32 lfsr = 0x1337; // lfsr_random's state, non-zero
-
-u32 lfsr_random()
-{
-	lfsr ^= lfsr >> 7;
-	lfsr ^= lfsr << 9;
-	lfsr ^= lfsr >> 13;
-	return lfsr;
-}
 
 // Where the fog is now, fades included
 static fog_t Fog_Faded()
@@ -150,10 +144,9 @@ static u32 Fog_Pair(s32 lo, s32 hi, s32 t)
 	return lo | hi << 8 | t << 16;
 }
 
-// The two palette colors and threshold whose dither comes nearest the fog
-// color, or one color if that's nearer. Every color's last level, so that all
-// fog looks the same once it's thick enough to hide what's in it.
-static u32 Fog_EndPair(const f32 *fog)
+// The two palette colors and threshold whose dither comes nearest the color
+// fog, or one color if that's nearer
+static u32 Fog_NearPair(const f32 *fog)
 {
 	const u8 *pal = CURWORLDPAL;
 	s32 cand[8], n = 0;
@@ -404,13 +397,44 @@ static void Fog_BuildPairs(bool dither)
 	if(dither){
 		for(s32 i = 0; i < 256 * 3; i++)
 			fog_palf[i % 3][i / 3] = CURWORLDPAL[i];
-		u32 end = Fog_EndPair(fog);
+		// every color's last level, so that all fog looks the same
+		// once it's thick enough to hide what's in it
+		u32 end = Fog_NearPair(fog);
 		for(s32 c = 0; c < 256; c++)
 			Fog_BuildChain(fog_pair[c], c, fog, end);
 	}else
 		Fog_BuildNearest(fog);
 	fog_built = 1;
 	fog_dithered = dither;
+	fog_skybuilt = -1;
+}
+
+// The sky is all at one level and often dithered already, and a chain can
+// hold a bright color far into the fog where nothing in the palette lies on
+// its way, so a skybox's few yellow pixels stayed yellow in grey fog. Sky
+// pixels get the dither nearest their fogged color instead, a skybox's
+// index the color it stands for (r_skymeaning) rather than its own.
+static void Fog_BuildSky(s32 skyfor)
+{
+	const u8 *pal = CURWORLDPAL;
+	f32 s = (f32)fog_skylevel / (FOG_LEVELS - 1);
+	for(s32 c = 0; c < 256; c++){
+		if(!fog_dithered || fog_skylevel == FOG_LEVELS - 1){
+			fog_skypair[c] = fog_pair[c][fog_skylevel];
+			continue;
+		}
+		f32 v[3];
+		u8 lo, hi;
+		s32 t;
+		for(s32 k = 0; k < 3; k++){
+			f32 m = skyfor ? r_skymeaning[c][k] : pal[c*3 + k];
+			v[k] = m + s * (fog_rgb[k] - m);
+		}
+		R_NearestDither(v, &lo, &hi, &t);
+		fog_skypair[c] = Fog_Pair(lo, hi, t);
+	}
+	fog_skybuilt = fog_skylevel;
+	fog_skyfor = skyfor;
 }
 
 static void Fog_BuildLevels(f32 density, bool radial)
@@ -455,6 +479,9 @@ void R_FogSetupFrame()
 	if(fog_level_d != fog_density || fog_radial != radial)
 		Fog_BuildLevels(fog_density, radial);
 	fog_skylevel = CLAMP(0, map_skyfog, 1) * (FOG_LEVELS - 1) + 0.5f;
+	s32 skyfor = skybox_name[0] ? r_skymeaning_id : 0;
+	if(fog_skybuilt != fog_skylevel || fog_skyfor != skyfor)
+		Fog_BuildSky(skyfor);
 	fog_skykey = (u32)r_framecount * 0x9e3779b9; // the same once in 2^32
 }
 
@@ -486,9 +513,9 @@ static void R_FogRow(u8 *pdest, const s32 *zb, s32 x, s32 w, const u8 *bay,
 // w sky pixels from screen column x
 static void R_FogSky(u8 *pdest, s32 x, s32 w, const u8 *bay)
 {
-	const u32 *pair = &fog_pair[0][fog_skylevel];
+	const u32 *pair = fog_skypair;
 	for(s32 i = 0; i < w; i++){
-		u32 e = pair[pdest[i] * FOG_LEVELS];
+		u32 e = pair[pdest[i]];
 		pdest[i] = bay[(x + i) & 7] < e >> 16 ? e >> 8 : e;
 	}
 }

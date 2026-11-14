@@ -2800,7 +2800,7 @@ void M_Graphics_Draw()
 		M_Print(xoffset + x2, 32, r_enableskybox.value==0 ? "off":"on");
 		M_Print(xoffset, 40, "Sky Fog:");
 		M_PrintVal(xoffset + x2, 40, "%0.1f\n", r_skyfog.value);
-		M_Print(xoffset, 48, "Sky Noise:");
+		M_Print(xoffset, 48, "Sky Dither:");
 		M_PrintVal(xoffset + x2, 48, "%0.1f\n", r_skynoise.value);
 		M_Print(xoffset, 56, "Smooth Anim:");
 		M_Print(xoffset + x2, 56, r_skysmooth.value==0 ? "off":"on");
