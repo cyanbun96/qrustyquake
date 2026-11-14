@@ -1893,63 +1893,122 @@ static f32 *Mod_SurfVertex(model_t *mod, msurface_t *s, s32 i)
 		.position;
 }
 
-// By bounds, with a unit of slack for the leaf's, which are rounded. Mostly
-// a vertex is in the leaf's box, which settles it.
-static bool Mod_LeafTouchesSurf(model_t *mod, mleaf_t *leaf, msurface_t *s)
-{
-	f32 b[6] = { FLT_MAX, FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX };
-	for(s32 i = 0; i < s->numedges; i++){
-		f32 *v = Mod_SurfVertex(mod, s, i);
-		s32 in = 0;
-		for(s32 k = 0; k < 3; k++){
-			b[k] = q_min(b[k], v[k]);
-			b[3 + k] = q_max(b[3 + k], v[k]);
-			in += v[k] >= leaf->minmaxs[k] - 1
-				&& v[k] <= leaf->minmaxs[3 + k] + 1;
-		}
-		if(in == 3)
-			return true;
-	}
-	for(s32 k = 0; k < 3; k++)
-		if(b[k] > leaf->minmaxs[3 + k] + 1
-				|| b[3 + k] < leaf->minmaxs[k] - 1)
-			return false;
-	return true;
-}
-
 typedef struct { s32 leaf; msurface_t *surf; } relistent_t;
 typedef struct {
-	relistent_t *e;
+	relistent_t *e; // a face for a leaf to list
 	s32 n, cap;
+	vec3_t *v; // a stack of the pieces of a face on the way down
+	s32 vn, vcap;
+	s32 *listed, *leafof; // the leaves listing each face
+	s32 *stamp; // face number + 1 in the leaves that list it already
+	u8 *solid; // nodes with a solid leaf other than 0 below them
 	bool failed;
 } relist_t;
 
-// Lists s in the leaves below node that its vertices reach, leaf 0 aside
-static void Mod_RelistDown(model_t *mod, mnode_t *node, msurface_t *s,
-		relist_t *r)
+static bool Mod_RelistSolid(model_t *mod, mnode_t *node, relist_t *r)
 {
-	while(node->contents >= 0){
+	if(node->contents < 0)
+		return node->contents == CONTENTS_SOLID
+			&& (mleaf_t *)node != mod->leafs;
+	return r->solid[node - mod->nodes];
+}
+
+static bool Mod_RelistMarkSolid(model_t *mod, mnode_t *node, relist_t *r)
+{
+	if(node->contents < 0)
+		return Mod_RelistSolid(mod, node, r);
+	bool front = Mod_RelistMarkSolid(mod, node->children[0], r);
+	bool back = Mod_RelistMarkSolid(mod, node->children[1], r);
+	r->solid[node - mod->nodes] = front || back;
+	return front || back;
+}
+
+// Room for n more vertices on the stack, returns the first
+static s32 Mod_RelistAlloc(relist_t *r, s32 n)
+{
+	if(r->vn + n > r->vcap){
+		s32 cap = q_max(r->vcap * 2, r->vn + n);
+		void *v = realloc(r->v, cap * sizeof(*r->v));
+		if(!v){
+			r->failed = 1;
+			return -1;
+		}
+		r->v = v;
+		r->vcap = cap;
+	}
+	s32 first = r->vn;
+	r->vn += n;
+	return first;
+}
+
+// Puts the part of the piece at v[first] on side (1 or -1) of p on the stack
+static s32 Mod_RelistClip(relist_t *r, s32 first, s32 n, mplane_t *p,
+		f32 side, s32 *out)
+{
+	s32 o = Mod_RelistAlloc(r, n * 2);
+	if(o < 0)
+		return 0;
+	vec3_t *in = r->v + first, *v = r->v + o;
+	s32 c = 0;
+	for(s32 i = 0; i < n; i++){
+		f32 *a = in[i], *b = in[(i + 1) % n];
+		f32 da = side * (DotProduct(a, p->normal) - p->dist);
+		f32 db = side * (DotProduct(b, p->normal) - p->dist);
+		if(da >= 0)
+			VectorCopy(a, v[c++]);
+		if((da > 0 && db < 0) || (da < 0 && db > 0)){
+			f32 t = da / (da - db);
+			for(s32 k = 0; k < 3; k++)
+				v[c][k] = a[k] + t * (b[k] - a[k]);
+			c++;
+		}
+	}
+	*out = o;
+	return c;
+}
+
+// Lists s in the solid leaves below node that the piece of it at v[first]
+// reaches, leaf 0 aside
+static void Mod_RelistDown(model_t *mod, mnode_t *node, msurface_t *s,
+		s32 first, s32 n, relist_t *r)
+{
+	while(Mod_RelistSolid(mod, node, r) && node->contents >= 0){
 		mplane_t *p = node->plane;
 		f32 lo = FLT_MAX, hi = -FLT_MAX;
-		for(s32 i = 0; i < s->numedges; i++){
-			f32 d = DotProduct(Mod_SurfVertex(mod, s, i),
-					p->normal) - p->dist;
+		for(s32 i = 0; i < n; i++){
+			f32 d = DotProduct(r->v[first + i], p->normal)
+				- p->dist;
 			lo = q_min(lo, d);
 			hi = q_max(hi, d);
 		}
-		bool front = hi > 0.1f, back = lo < -0.1f;
-		if(!front && !back)
-			front = back = 1;
-		if(front && back)
-			Mod_RelistDown(mod, node->children[1], s, r);
-		node = node->children[!front];
-	}
-	mleaf_t *leaf = (mleaf_t *)node;
-	if(leaf == mod->leafs || r->failed)
-		return;
-	for(s32 i = 0; i < leaf->nummarksurfaces; i++)
-		if(leaf->firstmarksurface[i] == s)
+		if(lo >= -0.1f && hi <= 0.1f){ // in its plane: where it faces
+			f32 dot = DotProduct(s->plane->normal, p->normal);
+			if(s->flags & SURF_PLANEBACK)
+				dot = -dot;
+			node = node->children[dot <= 0];
+			continue;
+		}
+		if(lo >= -0.1f || hi <= 0.1f){
+			node = node->children[lo < -0.1f];
+			continue;
+		}
+		s32 top = r->vn, back;
+		s32 bn = Mod_RelistClip(r, first, n, p, -1, &back);
+		if(bn >= 3)
+			Mod_RelistDown(mod, node->children[1], s, back, bn, r);
+		r->vn = top;
+		n = Mod_RelistClip(r, first, n, p, 1, &first);
+		if(n < 3 || r->failed)
 			return;
+		node = node->children[0];
+	}
+	if(!Mod_RelistSolid(mod, node, r) || r->failed)
+		return; // or a node with none below
+	s32 leaf = (mleaf_t *)node - mod->leafs;
+	s32 tag = s - mod->surfaces + 1;
+	if(r->stamp[leaf] == tag)
+		return;
+	r->stamp[leaf] = tag;
 	if(r->n == r->cap){
 		s32 cap = r->cap ? r->cap * 2 : 256;
 		void *e = realloc(r->e, cap * sizeof(*r->e));
@@ -1960,26 +2019,38 @@ static void Mod_RelistDown(model_t *mod, mnode_t *node, msurface_t *s,
 		r->e = e;
 		r->cap = cap;
 	}
-	r->e[r->n].leaf = leaf - mod->leafs;
+	r->e[r->n].leaf = leaf;
 	r->e[r->n++].surf = s;
 }
 
-static void Mod_RelistNode(model_t *mod, mnode_t *node, u8 *state,
-		relist_t *r)
+static void Mod_RelistNode(model_t *mod, mnode_t *node, relist_t *r)
 {
-	if(node->contents < 0)
+	if(node->contents < 0 || !r->solid[node - mod->nodes] || r->failed)
 		return;
 	for(u32 i = 0; i < node->numsurfaces; i++){
-		u32 f = node->firstsurface + i;
-		if(f >= (u32)mod->numsurfaces || state[f] != 1)
+		s32 f = node->firstsurface + i;
+		if(f < 0 || f >= mod->numsurfaces)
 			continue;
 		msurface_t *s = &mod->surfaces[f];
-		if(s->plane == node->plane) // the leaves in front of it
-			Mod_RelistDown(mod, node->children[
-				(s->flags & SURF_PLANEBACK) != 0], s, r);
+		mnode_t *front = node->children[
+			(s->flags & SURF_PLANEBACK) != 0];
+		// cutouts are drawn whether marked or not
+		if(s->plane != node->plane || (s->flags & SURF_DRAWCUTOUT)
+				|| !Mod_RelistSolid(mod, front, r)
+				|| r->listed[f] == r->listed[f + 1])
+			continue;
+		for(s32 j = r->listed[f]; j < r->listed[f + 1]; j++)
+			r->stamp[r->leafof[j]] = f + 1;
+		r->vn = 0;
+		s32 first = Mod_RelistAlloc(r, s->numedges);
+		if(first < 0)
+			return;
+		for(s32 j = 0; j < s->numedges; j++)
+			VectorCopy(Mod_SurfVertex(mod, s, j), r->v[first + j]);
+		Mod_RelistDown(mod, front, s, first, s->numedges, r);
 	}
-	Mod_RelistNode(mod, node->children[0], state, r);
-	Mod_RelistNode(mod, node->children[1], state, r);
+	Mod_RelistNode(mod, node->children[0], r);
+	Mod_RelistNode(mod, node->children[1], r);
 }
 
 static s32 Mod_RelistCompare(const void *a, const void *b)
@@ -1989,33 +2060,57 @@ static s32 Mod_RelistCompare(const void *a, const void *b)
 	return (la > lb) - (la < lb);
 }
 
-// Some compilers list faces in leaves nowhere near them. In sj3_jitspoe the
-// faces of a fence grate's solid leaves, the wall behind it among them, are
-// listed by a leaf 150 units away and the solid leaves list nothing. The walk
-// marks a face only from a leaf that passes the frustum test, so the wall was
-// drawn only while that far leaf was on screen. GL engines mark every face of
-// every leaf in the PVS and cull faces by their own bounds, so they draw it.
-// A face that only such far leaves list is listed again by the leaves in
-// front of it. Faces that no leaf lists stay undrawn, as in GL engines.
+// Solid leaves other than leaf 0 come from detail and fence brushes
+// (ericw-tools), and some compilers leave faces out of them. In sj3_jitspoe
+// the solid leaves of a grate and of a clock list nothing, their faces are
+// listed by other leaves of the room. The walk marks a face only from a leaf
+// that passes the frustum test, so the wall behind the grate was drawn only
+// while a leaf 150 units away was on screen, and the wall behind the clock
+// only while a sliver at its top was. GL engines mark every face of every
+// leaf in the PVS and cull faces by their own bounds, so they draw them.
+// Faces are listed again in the solid leaves in front of them that don't
+// list them. Only solid leaves: doing it for every leaf added thousands of
+// entries on big maps that show no holes (immortal, Tershibboleth). Faces
+// that no leaf lists stay undrawn, as in GL engines.
 static void Mod_RelistFaces(model_t *mod)
 {
 	s32 head = mod->submodels[0].headnode[0];
 	if(head < 0 || head >= mod->numnodes)
 		return;
-	u8 *state = calloc(mod->numsurfaces, 1); // 1 listed, 2 by a near leaf
-	if(!state)
-		return;
-	s32 nleafs = q_min(mod->submodels[0].visleafs, mod->numleafs - 1);
-	for(mleaf_t *l = mod->leafs + 1; l <= mod->leafs + nleafs; l++)
-		for(s32 i = 0; i < l->nummarksurfaces; i++){
-			msurface_t *s = l->firstmarksurface[i];
-			u8 *st = &state[s - mod->surfaces];
-			if(*st < 2)
-				*st = Mod_LeafTouchesSurf(mod, l, s) ? 2 : 1;
-		}
 	relist_t r = { 0 };
-	Mod_RelistNode(mod, mod->nodes + head, state, &r);
-	free(state);
+	s32 nleafs = q_min(mod->submodels[0].visleafs, mod->numleafs - 1);
+	s32 marks = 0;
+	for(mleaf_t *l = mod->leafs + 1; l <= mod->leafs + nleafs; l++)
+		marks += l->nummarksurfaces;
+	r.listed = calloc(mod->numsurfaces + 1, sizeof(*r.listed));
+	r.leafof = malloc(q_max(marks, 1) * sizeof(*r.leafof));
+	r.stamp = calloc(mod->numleafs, sizeof(*r.stamp));
+	r.solid = calloc(mod->numnodes, 1);
+	if(!r.listed || !r.leafof || !r.stamp || !r.solid)
+		r.failed = 1;
+	else if(Mod_RelistMarkSolid(mod, mod->nodes + head, &r)){
+		// count, then fill with listed[f] as the cursor, which leaves
+		// it at the end of face f, so shift it to be the start again
+		for(mleaf_t *l = mod->leafs + 1; l <= mod->leafs + nleafs; l++)
+			for(s32 i = 0; i < l->nummarksurfaces; i++)
+				r.listed[l->firstmarksurface[i]
+					- mod->surfaces + 1]++;
+		for(s32 f = 0; f < mod->numsurfaces; f++)
+			r.listed[f + 1] += r.listed[f];
+		for(mleaf_t *l = mod->leafs + 1; l <= mod->leafs + nleafs; l++)
+			for(s32 i = 0; i < l->nummarksurfaces; i++)
+				r.leafof[r.listed[l->firstmarksurface[i]
+					- mod->surfaces]++] = l - mod->leafs;
+		memmove(r.listed + 1, r.listed,
+				mod->numsurfaces * sizeof(*r.listed));
+		r.listed[0] = 0;
+		Mod_RelistNode(mod, mod->nodes + head, &r);
+	}
+	free(r.listed);
+	free(r.leafof);
+	free(r.stamp);
+	free(r.solid);
+	free(r.v);
 	if(r.failed || !r.n){
 		free(r.e);
 		return;
@@ -2040,8 +2135,7 @@ static void Mod_RelistFaces(model_t *mod)
 			l->nummarksurfaces++;
 		}
 	}
-	Con_DPrintf("%d marksurfaces added for faces listed by far leaves, "
-			"in %d leaves\n", r.n, leaves);
+	Con_DPrintf("%d marksurfaces added to %d solid leaves\n", r.n, leaves);
 	free(r.e);
 }
 
