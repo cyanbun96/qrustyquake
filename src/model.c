@@ -1886,6 +1886,165 @@ static void Mod_LoadLeafsExternal(FILE *f)
 	Mod_ProcessLeafs_S((dleaf_t *)in, filelen);
 }
 
+static f32 *Mod_SurfVertex(model_t *mod, msurface_t *s, s32 i)
+{
+	s32 e = mod->surfedges[s->firstedge + i];
+	return mod->vertexes[mod->edges[e > 0 ? e : -e].v[e > 0 ? 0 : 1]]
+		.position;
+}
+
+// By bounds, with a unit of slack for the leaf's, which are rounded. Mostly
+// a vertex is in the leaf's box, which settles it.
+static bool Mod_LeafTouchesSurf(model_t *mod, mleaf_t *leaf, msurface_t *s)
+{
+	f32 b[6] = { FLT_MAX, FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	for(s32 i = 0; i < s->numedges; i++){
+		f32 *v = Mod_SurfVertex(mod, s, i);
+		s32 in = 0;
+		for(s32 k = 0; k < 3; k++){
+			b[k] = q_min(b[k], v[k]);
+			b[3 + k] = q_max(b[3 + k], v[k]);
+			in += v[k] >= leaf->minmaxs[k] - 1
+				&& v[k] <= leaf->minmaxs[3 + k] + 1;
+		}
+		if(in == 3)
+			return true;
+	}
+	for(s32 k = 0; k < 3; k++)
+		if(b[k] > leaf->minmaxs[3 + k] + 1
+				|| b[3 + k] < leaf->minmaxs[k] - 1)
+			return false;
+	return true;
+}
+
+typedef struct { s32 leaf; msurface_t *surf; } relistent_t;
+typedef struct {
+	relistent_t *e;
+	s32 n, cap;
+	bool failed;
+} relist_t;
+
+// Lists s in the leaves below node that its vertices reach, leaf 0 aside
+static void Mod_RelistDown(model_t *mod, mnode_t *node, msurface_t *s,
+		relist_t *r)
+{
+	while(node->contents >= 0){
+		mplane_t *p = node->plane;
+		f32 lo = FLT_MAX, hi = -FLT_MAX;
+		for(s32 i = 0; i < s->numedges; i++){
+			f32 d = DotProduct(Mod_SurfVertex(mod, s, i),
+					p->normal) - p->dist;
+			lo = q_min(lo, d);
+			hi = q_max(hi, d);
+		}
+		bool front = hi > 0.1f, back = lo < -0.1f;
+		if(!front && !back)
+			front = back = 1;
+		if(front && back)
+			Mod_RelistDown(mod, node->children[1], s, r);
+		node = node->children[!front];
+	}
+	mleaf_t *leaf = (mleaf_t *)node;
+	if(leaf == mod->leafs || r->failed)
+		return;
+	for(s32 i = 0; i < leaf->nummarksurfaces; i++)
+		if(leaf->firstmarksurface[i] == s)
+			return;
+	if(r->n == r->cap){
+		s32 cap = r->cap ? r->cap * 2 : 256;
+		void *e = realloc(r->e, cap * sizeof(*r->e));
+		if(!e){
+			r->failed = 1;
+			return;
+		}
+		r->e = e;
+		r->cap = cap;
+	}
+	r->e[r->n].leaf = leaf - mod->leafs;
+	r->e[r->n++].surf = s;
+}
+
+static void Mod_RelistNode(model_t *mod, mnode_t *node, u8 *state,
+		relist_t *r)
+{
+	if(node->contents < 0)
+		return;
+	for(u32 i = 0; i < node->numsurfaces; i++){
+		u32 f = node->firstsurface + i;
+		if(f >= (u32)mod->numsurfaces || state[f] != 1)
+			continue;
+		msurface_t *s = &mod->surfaces[f];
+		if(s->plane == node->plane) // the leaves in front of it
+			Mod_RelistDown(mod, node->children[
+				(s->flags & SURF_PLANEBACK) != 0], s, r);
+	}
+	Mod_RelistNode(mod, node->children[0], state, r);
+	Mod_RelistNode(mod, node->children[1], state, r);
+}
+
+static s32 Mod_RelistCompare(const void *a, const void *b)
+{
+	s32 la = ((const relistent_t *)a)->leaf;
+	s32 lb = ((const relistent_t *)b)->leaf;
+	return (la > lb) - (la < lb);
+}
+
+// Some compilers list faces in leaves nowhere near them. In sj3_jitspoe the
+// faces of a fence grate's solid leaves, the wall behind it among them, are
+// listed by a leaf 150 units away and the solid leaves list nothing. The walk
+// marks a face only from a leaf that passes the frustum test, so the wall was
+// drawn only while that far leaf was on screen. GL engines mark every face of
+// every leaf in the PVS and cull faces by their own bounds, so they draw it.
+// A face that only such far leaves list is listed again by the leaves in
+// front of it. Faces that no leaf lists stay undrawn, as in GL engines.
+static void Mod_RelistFaces(model_t *mod)
+{
+	s32 head = mod->submodels[0].headnode[0];
+	if(head < 0 || head >= mod->numnodes)
+		return;
+	u8 *state = calloc(mod->numsurfaces, 1); // 1 listed, 2 by a near leaf
+	if(!state)
+		return;
+	s32 nleafs = q_min(mod->submodels[0].visleafs, mod->numleafs - 1);
+	for(mleaf_t *l = mod->leafs + 1; l <= mod->leafs + nleafs; l++)
+		for(s32 i = 0; i < l->nummarksurfaces; i++){
+			msurface_t *s = l->firstmarksurface[i];
+			u8 *st = &state[s - mod->surfaces];
+			if(*st < 2)
+				*st = Mod_LeafTouchesSurf(mod, l, s) ? 2 : 1;
+		}
+	relist_t r = { 0 };
+	Mod_RelistNode(mod, mod->nodes + head, state, &r);
+	free(state);
+	if(r.failed || !r.n){
+		free(r.e);
+		return;
+	}
+	qsort(r.e, r.n, sizeof(*r.e), Mod_RelistCompare);
+	s32 total = r.n, leaves = 0;
+	for(s32 i = 0; i < r.n; i++)
+		if(!i || r.e[i].leaf != r.e[i - 1].leaf){
+			total += mod->leafs[r.e[i].leaf].nummarksurfaces;
+			leaves++;
+		}
+	msurface_t **out = Hunk_AllocName(total * sizeof(*out), loadname);
+	for(s32 i = 0; i < r.n;){
+		s32 li = r.e[i].leaf;
+		mleaf_t *l = &mod->leafs[li];
+		memcpy(out, l->firstmarksurface,
+				l->nummarksurfaces * sizeof(*out));
+		l->firstmarksurface = out;
+		out += l->nummarksurfaces;
+		for(; i < r.n && r.e[i].leaf == li; i++){
+			*out++ = r.e[i].surf;
+			l->nummarksurfaces++;
+		}
+	}
+	Con_DPrintf("%d marksurfaces added for faces listed by far leaves, "
+			"in %d leaves\n", r.n, leaves);
+	free(r.e);
+}
+
 static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 {
 	loadmodel->type = mod_brush;
@@ -1948,6 +2107,7 @@ visdone:
 	Mod_LoadNodes(&header->lumps[5], bsp2);
 	Mod_LoadClipnodes(&header->lumps[9], bsp2);
 	Mod_LoadSubmodels(&header->lumps[14]);
+	Mod_RelistFaces(mod);
 	Mod_MakeHull0();
 	mod->numframes = 2; // regular and alternate animation
 	Mod_CheckWaterVis();
