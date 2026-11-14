@@ -93,10 +93,16 @@ void R_SplitEntityOnNode2(mnode_t *node)
 		r_pefragtopnode = node; // remember first splitter
 		return;
 	}
-	if(sides & 1) // not split yet; recurse down the contacted side
-		R_SplitEntityOnNode2(node->children[0]);
-	else
-		R_SplitEntityOnNode2(node->children[1]);
+	// not split yet; recurse down the contacted side
+	mnode_t *child = node->children[sides & 1 ? 0 : 1];
+	// A box that only touches a plane from its solid side, like that of a
+	// door slid into a skip filled slot, can have a face in that plane
+	// that shows. R_RecursiveClipBPoly draws those at the node.
+	if(child->contents == CONTENTS_SOLID){
+		r_pefragtopnode = node;
+		return;
+	}
+	R_SplitEntityOnNode2(child);
 }
 
 void R_AddEfrags(entity_t *ent)
