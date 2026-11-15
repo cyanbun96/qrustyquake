@@ -92,6 +92,46 @@ void Host_Noclip_f()
 	}
 }
 
+static void Host_SetPos_f()
+{ // QuakeSpasm, takes viewpos output as it is, parentheses and all
+	if(cmd_source == src_command){
+		Cmd_ForwardToServer();
+		return;
+	}
+	if(pr_global_struct->deathmatch) return;
+	f32 args[6];
+	s32 numargs = 0;
+	for(s32 i = 1; i < Cmd_Argc(); i++){
+		const c8 *s = Cmd_Argv(i);
+		if(strcmp(s, "(") && strcmp(s, ")") && ++numargs <= 6)
+			args[numargs - 1] = atof(s);
+	}
+	if(numargs != 6 && numargs != 3){
+		SV_ClientPrintf("usage:\n   setpos <x> <y> <z>\n"
+			"   setpos <x> <y> <z> <pitch> <yaw> <roll>\n"
+			"current values:\n   %i %i %i %i %i %i\n",
+			Q_rint(sv_player->v.origin[0]),
+			Q_rint(sv_player->v.origin[1]),
+			Q_rint(sv_player->v.origin[2]),
+			Q_rint(sv_player->v.v_angle[0]),
+			Q_rint(sv_player->v.v_angle[1]),
+			Q_rint(sv_player->v.v_angle[2]));
+		return;
+	}
+	if(sv_player->v.movetype != MOVETYPE_NOCLIP){
+		noclip_anglehack = 1;
+		sv_player->v.movetype = MOVETYPE_NOCLIP;
+		SV_ClientPrintf("noclip ON\n");
+	}
+	VectorCopy(vec3_origin, sv_player->v.velocity); // or they whizz away
+	VectorCopy(args, sv_player->v.origin);
+	if(numargs == 6){
+		VectorCopy(args + 3, sv_player->v.angles);
+		sv_player->v.fixangle = 1;
+	}
+	SV_LinkEdict(sv_player, 0);
+}
+
 void Host_Fly_f()
 { // Sets client to flymode
 	if(cmd_source == src_command){
@@ -1402,6 +1442,7 @@ void Host_InitCommands()
 	Cmd_AddCommand("reconnect", Host_Reconnect_f);
 	Cmd_AddCommand("name", Host_Name_f);
 	Cmd_AddCommand("noclip", Host_Noclip_f);
+	Cmd_AddCommand("setpos", Host_SetPos_f);
 	Cmd_AddCommand("version", Host_Version_f);
 	Cmd_AddCommand("say", Host_Say_f);
 	Cmd_AddCommand("say_team", Host_Say_Team_f);
