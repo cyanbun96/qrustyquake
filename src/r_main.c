@@ -347,6 +347,7 @@ void R_Init()
 	Cvar_RegisterVariable(&r_lerpmodels);
 	Cvar_RegisterVariable(&r_lerpmove);
 	Cvar_RegisterVariable(&r_lerplightstyles);
+	Cvar_RegisterVariable(&r_flatlightstyles);
 	Cvar_SetCallback(&r_labmixpal, R_LabMixPalChanged);
 	Cvar_SetCallback(&r_rgblighting, D_FlushCaches);
 	Cvar_SetCallback(&r_wateralpha, R_SetWateralpha_f);

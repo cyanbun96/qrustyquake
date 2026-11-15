@@ -65,6 +65,45 @@ void Con_CheckResize()
 	con_current = con_totallines - 1;
 }
 
+static void Con_Dump_f()
+{ // the console's text to condump.txt or the name given -- johnfitz
+	c8 rel[MAX_OSPATH], name[MAX_OSPATH * 2];
+	SDL_strlcpy(rel, Cmd_Argc() > 1 ? Cmd_Argv(1) : "condump",
+			sizeof(rel));
+	if(!rel[0] || strstr(rel, "..") || strpbrk(rel, "/\\:")){
+		Con_Printf("condump [filename] : not a path, it goes in %s\n",
+				COM_SkipPath(com_gamedir));
+		return; // a server can stuffcmd this
+	}
+	COM_AddExtension(rel, ".txt", sizeof(rel));
+	snprintf(name, sizeof(name), "%s/%s", com_gamedir, rel);
+	FILE *f = fopen(name, "w");
+	if(!f){
+		Con_Printf("ERROR: couldn't open file %s.\n", rel);
+		return;
+	}
+	s32 l = con_current - con_totallines + 1;
+	for(; l < con_current; l++){ // skip the empty lines at the start
+		const c8 *line = con_text
+			+ (l % con_totallines) * con_linewidth;
+		s32 x = 0;
+		while(x < con_linewidth && line[x] == ' ') x++;
+		if(x < con_linewidth) break;
+	}
+	for(; l <= con_current; l++){
+		const c8 *line = con_text
+			+ (l % con_totallines) * con_linewidth;
+		s32 n = con_linewidth;
+		while(n > 0 && line[n - 1] == ' ')
+			n--; // and the spaces at the end
+		for(s32 x = 0; x < n; x++)
+			fputc(line[x] & 0x7f, f);
+		fputc('\n', f);
+	}
+	fclose(f);
+	Con_Printf("Dumped console text to %s.\n", rel);
+}
+
 void Con_Init()
 {
 	c8 temp[MAX_OSPATH];
@@ -86,6 +125,7 @@ void Con_Init()
 	Cmd_AddCommand("messagemode", Con_MessageMode_f);
 	Cmd_AddCommand("messagemode2", Con_MessageMode2_f);
 	Cmd_AddCommand("clear", Con_Clear_f);
+	Cmd_AddCommand("condump", Con_Dump_f);
 	con_initialized = 1;
 }
 

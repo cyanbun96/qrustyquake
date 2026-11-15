@@ -554,6 +554,18 @@ static c8 *svc_strings[] = {
 	"svc_cutscene"
 };
 
+static void CL_LightstyleFlat(lightstyle_t *ls)
+{ // the average and the peak of the style, for r_flatlightstyles -- johnfitz
+	s32 total = 0;
+	ls->peak = 'a';
+	for(s32 j = 0; j < ls->length; j++){
+		total += ls->map[j] - 'a';
+		ls->peak = q_max(ls->peak, ls->map[j]);
+	}
+	ls->average = ls->length ? total / ls->length + 'a' : 'm';
+	if(!ls->length) ls->peak = 'm';
+}
+
 void CL_ParseServerMessage()
 { // if recording demos, copy the message out
 	if(cl_shownet.value == 1) Con_Printf("%i ",net_message.cursize);
@@ -652,6 +664,7 @@ void CL_ParseServerMessage()
 		SDL_strlcpy(cl_lightstyle[i].map, MSG_ReadString(),
 				MAX_STYLESTRING);
 		cl_lightstyle[i].length=strlen(cl_lightstyle[i].map);
+		CL_LightstyleFlat(&cl_lightstyle[i]);
 		break;
 	case svc_sound:
 		CL_ParseStartSoundPacket();

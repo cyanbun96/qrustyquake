@@ -391,6 +391,18 @@ void Key_Bind_f()
 	Key_SetBinding(b, cmd);
 }
 
+static void Key_Bindlist_f()
+{ // -- johnfitz
+	s32 count = 0;
+	for(s32 i = 0; i < 256; i++)
+		if(keybindings[i] && *keybindings[i]){
+			Con_SafePrintf("   %s \"%s\"\n", Key_KeynumToString(i),
+					keybindings[i]);
+			count++;
+		}
+	Con_SafePrintf("%i bindings\n", count);
+}
+
 
 void Key_WriteBindings(FILE *f) // Writes lines containing "bind key value"
 {
@@ -491,6 +503,7 @@ void Key_Init()
 	keyshift[']'] = '}'; keyshift['`'] = '~'; keyshift['\\']= '|';
 	menubound[K_ESCAPE] = 1;
 	for(s32 i = 0; i < 12; i++) menubound[K_F1 + i] = 1;
+	Cmd_AddCommand("bindlist", Key_Bindlist_f);
 	Cmd_AddCommand("bind", Key_Bind_f);
 	Cmd_AddCommand("unbind", Key_Unbind_f);
 	Cmd_AddCommand("unbindall", Key_Unbindall_f);

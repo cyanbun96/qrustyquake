@@ -1114,6 +1114,7 @@ typedef struct qcvm_s
 typedef struct {                                                     // client.h
 	s32 length;
 	c8 map[MAX_STYLESTRING];
+	c8 average, peak; // for r_flatlightstyles 1 and 2 -- johnfitz
 } lightstyle_t;
 typedef struct {
 	c8 name[MAX_SCOREBOARDNAME];

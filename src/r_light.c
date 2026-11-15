@@ -14,8 +14,13 @@ void R_AnimateLight() // light animations
 		}
 		s32 k = ls->map[i % ls->length] - 'a';
 		s32 n = ls->map[(i + 1) % ls->length] - 'a';
+		if(r_flatlightstyles.value == 1) // still, no flicker
+			k = n = ls->average - 'a';
+		else if(r_flatlightstyles.value == 2)
+			k = n = ls->peak - 'a';
 		// 1 = only smooth gradual changes, keep flickers sharp
-		if(r_lerplightstyles.value < 2 && abs(n - k) >= ('m'-'a')/2)
+		else if(r_lerplightstyles.value < 2
+				&& abs(n - k) >= ('m'-'a')/2)
 			n = k;
 		d_lightstylevalue[j] = k * 22 + (((n - k) * 22 * f) >> 8);
 	}

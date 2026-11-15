@@ -279,6 +279,43 @@ void Cmd_List_f() // Command Execution // -- johnfitz
 	Con_SafePrintf("\n");
 }
 
+static const c8 *Cmd_Tint(const c8 *in, const c8 *sub, c8 *out, size_t size)
+{ // in with each sub in it in the alternate characters
+	SDL_strlcpy(out, in, size);
+	for(c8 *m = out; (m = SDL_strcasestr(m, sub));)
+		for(size_t l = strlen(sub); l-- && *m;)
+			*m++ |= 0x80;
+	return out;
+}
+
+static void Cmd_Apropos_f()
+{ // the commands and cvars with the substring in their names -- QuakeSpasm
+	const c8 *sub = Cmd_Argv(1);
+	if(!*sub){
+		Con_SafePrintf("%s <substring> : search through commands"
+			" and cvars for the given substring\n", Cmd_Argv(0));
+		return;
+	}
+	c8 buf[256];
+	s32 hits = 0;
+	for(cmd_function_t *cmd = cmd_functions; cmd; cmd = cmd->next)
+		if(SDL_strcasestr(cmd->name, sub)){
+			Con_SafePrintf("%s\n",
+				Cmd_Tint(cmd->name, sub, buf, sizeof(buf)));
+			hits++;
+		}
+	for(cvar_t *var = cvar_vars; var; var = var->next)
+		if(SDL_strcasestr(var->name, sub)){
+			Con_SafePrintf("%s (current value: \"%s\")\n",
+				Cmd_Tint(var->name, sub, buf, sizeof(buf)),
+				var->string);
+			hits++;
+		}
+	if(!hits)
+		Con_SafePrintf("no cvars nor commands contain that"
+				" substring\n");
+}
+
 void Cmd_Init()
 {
 	Cmd_AddCommand("cmdlist", Cmd_List_f); //johnfitz
@@ -290,6 +327,8 @@ void Cmd_Init()
 	Cmd_AddCommand("alias", Cmd_Alias_f);
 	Cmd_AddCommand("cmd", Cmd_ForwardToServer);
 	Cmd_AddCommand("wait", Cmd_Wait_f);
+	Cmd_AddCommand("apropos", Cmd_Apropos_f);
+	Cmd_AddCommand("find", Cmd_Apropos_f);
 }
 
 void Cmd_TokenizeString(const c8 *text)

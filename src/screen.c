@@ -172,6 +172,8 @@ void SCR_Init()
 	Cvar_RegisterVariable(&scr_centertime);
 	Cvar_RegisterVariable(&scr_printspeed);
 	Cvar_RegisterVariable(&scr_showfps);
+	Cvar_RegisterVariable(&scr_showspeed);
+	Cvar_RegisterVariable(&scr_showspeed_ofs);
 	Cvar_RegisterVariable(&scr_sbaralpha); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_sbarscale); // only affects CSQC HUDs
 	Cvar_RegisterVariable(&scr_qchudscale); // only affects CSQC HUDs
@@ -215,6 +217,42 @@ void SCR_DrawFPS()
 			sprintf(st, "%.2f ms", 1000.f / lastfps);
 		s32 x = vid.width - (strlen(st) * 8 * uiscale);
 		Draw_StringScaled(x, 0, st, uiscale);
+	}
+}
+
+static void SCR_DrawSpeed()
+{ // the fastest horizontal speed of each 20th of a second, under the
+  // crosshair -- Ironwail
+	static f32 maxspeed, shown = -1;
+	static f64 lasttime;
+	if(cl.intermission || CL_InCutscene() || scr_viewsize.value >= 130
+			|| con_forcedup)
+		return;
+	if(lasttime > realtime){
+		lasttime = 0;
+		shown = -1;
+		maxspeed = 0;
+	}
+	f32 speed = sqrtf(cl.velocity[0] * cl.velocity[0]
+			+ cl.velocity[1] * cl.velocity[1]);
+	maxspeed = q_max(maxspeed, speed);
+	if(scr_showspeed.value && shown >= 0){
+		c8 st[16];
+		snprintf(st, sizeof(st), "%d", (s32)shown);
+		s32 x = scr_vrect.x + scr_vrect.width / 2 + cl_crossx.value
+			- strlen(st) * 4 * uiscale;
+		s32 y = scr_vrect.y + scr_vrect.height / 2 + cl_crossy.value
+			+ (4 + scr_showspeed_ofs.value) * uiscale;
+		x = CLAMP(0, x, (s32)(vid.width - strlen(st) * 8 * uiscale));
+		y = CLAMP(0, y, (s32)(vid.height - 8 * uiscale));
+		drawlayer = lyr_crosshair.value;
+		Draw_StringScaled(x, y, st, uiscale);
+		drawlayer = lyr_main.value;
+	}
+	if(realtime - lasttime >= 0.05){
+		lasttime = realtime;
+		shown = maxspeed;
+		maxspeed = 0;
 	}
 }
 
@@ -496,6 +534,7 @@ void SCR_UpdateScreen() // This is called every frame,
 		SCR_DrawConsole();
 		M_Draw();
 		SCR_DrawFPS();
+		SCR_DrawSpeed();
 	}
 	V_UpdatePalette();
 	VID_Update();

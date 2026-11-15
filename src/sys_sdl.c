@@ -161,7 +161,12 @@ static void main_loop()
 #endif
 
 int main(int c, char **v)
-{
+{ // the identifier names the window to the desktop (Wayland app_id, X11
+  // class), the same as AppImage/qrustyquake.desktop, whatever the binary
+	c8 version[16];
+	snprintf(version, sizeof(version), "%.2f", VERSION);
+	SDL_SetAppMetadata("QrustyQuake", version, "qrustyquake");
+	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game");
 	if(!SDL_Init(SDL_INIT_VIDEO))
 		Sys_Error("SDL_Init failed: %s", SDL_GetError());
 	host_parms.argc = c;
