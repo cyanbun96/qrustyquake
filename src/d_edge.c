@@ -7,7 +7,8 @@
 // DS_SKY and DS_SKYZ mark the sky, R_FogMarkSky fogs the colors there. DS_SKYZ
 // only writes z, over a skybox's colors or none under full sky fog. The skybox
 // pass (DS_SKYFAR only writes its far z) isn't marked: what sky faces don't
-// cover is the void, R_DrawFog gives it full fog by that z.
+// cover is the void, the background (DS_FAR) draws it over the box in
+// r_clearcolor, and R_DrawFog leaves its far z alone.
 // DS_LATER has to have its block built first.
 enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYFAR, DS_SKYBOX,
 	DS_TURB, DS_CACHED, DS_LATER };
@@ -696,12 +697,6 @@ void D_DrawSurfaces(s32 act)
 		if(!D_Pending(s, act) || (act == SURFS_SETUP && skybox
 				&& (s->flags & SURF_DRAWSKYBOX)))
 			continue;
-		if(s->flags & SURF_DRAWBACKGROUND){
-			if(skybox_name[0]) continue;
-			D_Surf(s, PASS_MAIN, act);
-			s->spans = NULL;
-			continue;
-		}
 		if(D_CutoutPass(s)){
 			foundcutouts = 1;
 			continue;

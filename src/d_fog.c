@@ -11,8 +11,8 @@
 // fog_level is by the top 16 bits of a float, 2^31 / distance: the z-buffer
 // holds 2^31 / z, and for distance from the eye that's times fog_cos, the
 // cosine of the angle between the pixel's direction and the view axis. The
-// background's z is negative, those floats get all of the fog: the void
-// outside the map, which isn't drawn at all under a skybox in full sky fog.
+// background's z is negative, those floats get no fog: the void outside the
+// map stays r_clearcolor.
 #define FOG_GRAY 0.3f // the fog color of a map that only sets a density
 #define FOG_LEVELS 64 // fog amounts in fog_pair, none to all
 #define FOG_DEPTHS (0xCF00 + 1) // the bits of floats down to -2^31
@@ -434,9 +434,10 @@ static void Fog_BuildLevels(f32 density, bool radial)
 		f32 f;
 		memcpy(&f, &b, sizeof(f));
 		f64 kr = k * 2147483648.0 / f; // f is 2^31 / distance
-		// past these ends it's levels 0 and 63 without exp
-		f64 a = !(kr >= 0) || kr > 3 ? 1 : kr < 0.06 ? 0
-			: 1 - exp(-kr * kr);
+		// past these ends it's levels 0 and 63 without exp, the
+		// background's negative z is past the near one. NaN, never
+		// a z, gets all.
+		f64 a = kr < 0.06 ? 0 : !(kr <= 3) ? 1 : 1 - exp(-kr * kr);
 		fog_level[i] = a * (FOG_LEVELS - 1) + 0.5;
 	}
 	fog_level_d = density;
