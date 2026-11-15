@@ -973,8 +973,10 @@ static void R_EdgeDrawing(bool alpha, s32 t)
 	R_DrawBEntitiesOnList();
 	// the skybox, once it's known whether the world or a brush entity
 	// has sky faces in view. The alpha pass draws no sky, its z-buffer
-	// is already in place, and full sky fog hides the box
-	if(r_skyframe == r_framecount && !alpha && !D_SkyAllFog())
+	// is already in place, and full sky fog hides the box. r_drawflat
+	// would draw it as six faces over all the others
+	if(r_skyframe == r_framecount && !alpha && !D_SkyAllFog()
+			&& !r_drawflat.value)
 		R_EmitSkyBox();
 	R_TimeStamp(t + 2);
 	R_ScanEdges();
