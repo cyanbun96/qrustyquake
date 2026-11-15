@@ -132,12 +132,14 @@ static void D_PolysetDrawNow()
 		D_DrawNonSubdiv();
 }
 
-// A pixel of a model drawn by points or by subdivision, its z written
-// already. colormap is the row of its light.
-Q_SIL void D_PolysetPixel(s32 x, s32 y, const u8 *colormap, s32 texel)
+// A pixel of a model drawn by points or by subdivision that passed the depth
+// test, z its depth at zbuf. colormap is the row of its light.
+Q_SIL void D_PolysetPixel(s32 x, s32 y, const u8 *colormap, s32 texel,
+		s32 *zbuf, s32 z)
 {
-	if(texel == d_cutout)
+	if(texel == d_cutout) // a hole, as in D_PolysetPlot
 		return;
+	*zbuf = z;
 	s32 pix = colormap[texel];
 	if(d_rgblight && texel < 0xE0)
 		pix = d_rgbpix[pix];
@@ -177,9 +179,8 @@ static void D_PolysetDrawPoints(finalvert_t *fv, s32 numverts)
 			u8 *row = skintable[t];
 			if(!row)
 				continue;
-			*zbuf = z;
 			D_PolysetPixel(fv->v[0], fv->v[1], (u8 *)acolormap
-					+ (fv->v[4] & 0xFF00), row[s]);
+				+ (fv->v[4] & 0xFF00), row[s], zbuf, z);
 		}
 	}
 }
@@ -518,7 +519,6 @@ split: // split this edge
 		goto nodraw; // zbuf segfault
 	s32 z = new[5];
 	if(z >= *zbuf){
-		*zbuf = z;
 		s32 s = new[2] >> 16;
 		s32 t = new[3] >> 16;
 		if(t < 0 || t >= MAX_LBM_HEIGHT)
@@ -526,7 +526,7 @@ split: // split this edge
 		u8 *row = skintable[t];
 		if(!row)
 			goto nodraw;
-		D_PolysetPixel(new[0], new[1], d_pcolormap, row[s]);
+		D_PolysetPixel(new[0], new[1], d_pcolormap, row[s], zbuf, z);
 	}
 nodraw: // recursively continue
 	D_PolysetRecursiveTriangle(lp3, lp1, new);

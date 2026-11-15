@@ -4,9 +4,10 @@
 // How the spans of a surface get drawn. D_SetupSurf works it out on the main
 // thread and D_DrawSurf needs nothing else, so with r_threads the workers draw
 // the spans of each band while the main thread goes on (r_thread.c).
-// DS_SKYZ only writes z and marks the sky, R_FogMarkSky fogs the colors there
-// (a skybox's, or none under full sky fog). The skybox pass isn't marked, what
-// isn't covered by sky faces is the void and gets full fog by its far z.
+// DS_SKY and DS_SKYZ mark the sky, R_FogMarkSky fogs the colors there. DS_SKYZ
+// only writes z, over a skybox's colors or none under full sky fog. The skybox
+// pass (DS_SKYFAR only writes its far z) isn't marked: what sky faces don't
+// cover is the void, R_DrawFog gives it full fog by that z.
 // DS_LATER has to have its block built first.
 enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYFAR, DS_SKYBOX,
 	DS_TURB, DS_CACHED, DS_LATER };
@@ -211,13 +212,17 @@ static bool D_CacheExact(const surfcache_t *c)
 	return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
+// Full sky fog hides all of the sky, its colors aren't drawn
+static bool D_SkyAllFog()
+{ return fog_density && map_skyfog >= 1; }
+
 static void D_SetupSky(dsurf_t *d, msurface_t *pface)
 {
 	r_drawnpolycount++;
 	sky_t *sky = &r_skies[R_SkyIndexForTexture(pface->texinfo->texture)];
 	if(!sky->made && !r_skysmooth.value)
 		R_MakeSky(pface->texinfo->texture);
-	d->kind = fog_density && map_skyfog >= 1 ? DS_SKYZ : DS_SKY;
+	d->kind = D_SkyAllFog() ? DS_SKYZ : DS_SKY;
 	if(d->kind == DS_SKY && r_skysmooth.value && sky->blend)
 		R_BuildColorMixLUT(0);
 	d->pface = pface;
@@ -236,7 +241,7 @@ static void D_SetupSkybox(dsurf_t *d, surf_t *s)
 	cacheheight = tex->height;
 	miplevel = 0;
 	D_CalcGradients(pface, 0);
-	d->kind = fog_density && map_skyfog >= 1 ? DS_SKYFAR : DS_SKYBOX;
+	d->kind = D_SkyAllFog() ? DS_SKYFAR : DS_SKYBOX;
 	d->dithered = r_dithertex.value != 0;
 }
 
@@ -403,8 +408,7 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		}else
 			D_SetupCached(d, s, pface, SPAN_NORMAL, 0);
 	}
-	if(d->kind == DS_SKY || d->kind == DS_SKYZ || d->kind == DS_SKYFAR
-			|| d->kind == DS_SKYBOX)
+	if(d->kind == DS_SKY || d->kind == DS_SKYZ) // for R_FogMarkSky
 		R_FogSkyAlloc();
 	// Kept for the rest of the scan. Without a block it's tried again, as
 	// the cache does, and DS_LATER gets set up by the walk.

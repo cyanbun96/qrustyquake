@@ -101,9 +101,8 @@ s32 R_LoadSkybox(const c8 *name)
 		s32 width, height;
 		u8 *pic = Image_LoadImage(pathname, &width, &height);
 		if(!pic){
-			Con_Printf("Couldn't load %s", pathname);
-			R_DitherMeaningEnd(dm, NULL);
-			return 0;
+			Con_Printf("Couldn't load %s\n", pathname);
+			goto fail;
 		}
 		s32 m = q_max(width, height), target = 1024;
 		if(m <= 512) target = 512;
@@ -112,10 +111,9 @@ s32 R_LoadSkybox(const c8 *name)
 		if(width != target || height != target){
 			scaled = Resize_Nearest(pic,width,height,target,target);
 			if(!scaled){
-			    Con_Printf("skybox resize failed for %s", pathname);
-				Hunk_FreeToLowMark(mark);
-				R_DitherMeaningEnd(dm, NULL);
-				return 0;
+				Con_Printf("skybox resize failed for %s\n",
+						pathname);
+				goto fail;
 			}
 			width = height = target;
 			pic = scaled;
@@ -143,6 +141,10 @@ s32 R_LoadSkybox(const c8 *name)
 	R_DitherMeaningEnd(dm, r_skymeaning);
 	r_skymeaning_id++;
 	return 1;
+fail:
+	Hunk_FreeToLowMark(mark);
+	R_DitherMeaningEnd(dm, NULL);
+	return 0;
 }
 
 // Manoel Kasimier - skyboxes - begin
@@ -263,7 +265,6 @@ void Sky_SkyCommand_f()
 
 static void Sky_SetSkyfog_f(cvar_t *var)
 { map_skyfog = var->value; }
-
 
 void Sky_ResetFog() // Reset on map load as in Ironwail
 { Cvar_SetQuick(&r_skyfog, r_skyfog.default_string); }

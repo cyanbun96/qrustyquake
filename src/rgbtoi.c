@@ -223,6 +223,27 @@ static s32 Pal_Dist2(const u8 *a, const u8 *b)
 	return dr * dr + dg * dg + db * db;
 }
 
+// The n palette colors nearest rgb, nearest first, and their distances
+// squared
+void R_NearestColors(const f32 *rgb, s32 n, s32 *cand, f32 *dist)
+{
+	const u8 *pal = CURWORLDPAL;
+	for(s32 i = 0, found = 0; i < 256; i++){
+		f32 v[3] = {pal[i * 3] - rgb[0], pal[i * 3 + 1] - rgb[1],
+			pal[i * 3 + 2] - rgb[2]};
+		f32 d = Dot3(v, v);
+		if(found == n && d >= dist[n - 1])
+			continue;
+		s32 j = found < n ? found++ : n - 1;
+		for(; j > 0 && dist[j - 1] > d; j--){
+			dist[j] = dist[j - 1];
+			cand[j] = cand[j - 1];
+		}
+		dist[j] = d;
+		cand[j] = i;
+	}
+}
+
 // RGBA pixels to palette indexes in place, Floyd-Steinberg on alternating
 // row directions with the error scaled by dither. Where the palette can't
 // reach a colour, full diffusion sprinkles far colours over it (blue dots
@@ -478,23 +499,10 @@ static void Lab_Jacobian(const f32 *lin, f32 (*j)[3])
 void R_NearestDither(const f32 *rgb, u8 *lo, u8 *hi, s32 *t)
 {
 	const u8 *pal = CURWORLDPAL;
-	s32 cand[NEAR_CANDS], n = 0;
+	s32 cand[NEAR_CANDS], n = NEAR_CANDS;
 	f32 dist[NEAR_CANDS], lin[3], j[3][3], w[3][3], e[NEAR_CANDS][3];
 	init_color_conv();
-	for(s32 i = 0; i < 256; i++){ // the nearest, nearest first
-		f32 v[3] = {pal[i * 3] - rgb[0], pal[i * 3 + 1] - rgb[1],
-			pal[i * 3 + 2] - rgb[2]};
-		f32 dd = Dot3(v, v);
-		if(n == NEAR_CANDS && dd >= dist[NEAR_CANDS - 1])
-			continue;
-		s32 k = n < NEAR_CANDS ? n++ : NEAR_CANDS - 1;
-		for(; k > 0 && dist[k - 1] > dd; k--){
-			dist[k] = dist[k - 1];
-			cand[k] = cand[k - 1];
-		}
-		dist[k] = dd;
-		cand[k] = i;
-	}
+	R_NearestColors(rgb, n, cand, dist);
 	for(s32 k = 0; k < 3; k++)
 		lin[k] = Lin(rgb[k]);
 	Lab_Jacobian(lin, j);
@@ -591,10 +599,9 @@ void R_WorldPalChanged()
 { // what was built from the old colors gets built again when it's needed
 	color_conv_initialized = 0;
 	refresh_palette++;
-	R_LabMixPalChanged(0);
+	R_LabMixPalChanged(0); // and Fog_PaletteChanged
 	Draw_PaletteChanged();
 	Sky_PaletteChanged();
-	Fog_PaletteChanged();
 }
 
 void R_BuildLitChan()

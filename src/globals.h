@@ -547,6 +547,7 @@ u8 rgbtoi(u8 r, u8 g, u8 b);
 void R_DitherRGBA(u8 *pic, s32 w, s32 h, f32 dither, dithermeaning_t *dm);
 dithermeaning_t *R_DitherMeaningBegin();
 void R_DitherMeaningEnd(dithermeaning_t *dm, f32 (*q)[3]);
+void R_NearestColors(const f32 *rgb, s32 n, s32 *cand, f32 *dist);
 void R_NearestDither(const f32 *rgb, u8 *lo, u8 *hi, s32 *t);
 void R_BuildLitLUT();
 void R_BuildLitChan();

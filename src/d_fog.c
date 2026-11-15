@@ -10,10 +10,12 @@
 
 // fog_level is by the top 16 bits of a float, 2^31 / distance: the z-buffer
 // holds 2^31 / z, and for distance from the eye that's times fog_cos, the
-// cosine of the angle between the pixel's direction and the view axis.
+// cosine of the angle between the pixel's direction and the view axis. The
+// background's z is negative, those floats get all of the fog: the void
+// outside the map, which isn't drawn at all under a skybox in full sky fog.
 #define FOG_GRAY 0.3f // the fog color of a map that only sets a density
 #define FOG_LEVELS 64 // fog amounts in fog_pair, none to all
-#define FOG_DEPTHS (161 << 7) // floats up to 2^32, where (u32)-1 rounds to
+#define FOG_DEPTHS (0xCF00 + 1) // the bits of floats down to -2^31
 #define FOG_SPANS 8 // stretches of a way, each gives the colors nearest it
 #define FOG_SPANLINKS 2 // as links
 #define FOG_LINKS (1 + FOG_SPANS * FOG_SPANLINKS + 2) // and c and the end pair
@@ -149,22 +151,9 @@ static u32 Fog_Pair(s32 lo, s32 hi, s32 t)
 static u32 Fog_NearPair(const f32 *fog)
 {
 	const u8 *pal = CURWORLDPAL;
-	s32 cand[8], n = 0;
+	s32 cand[8], n = 8;
 	f32 dist[8];
-	for(s32 i = 0; i < 256; i++){ // the 8 nearest, nearest first
-		f32 v[3] = {pal[i * 3] - fog[0], pal[i * 3 + 1] - fog[1],
-			pal[i * 3 + 2] - fog[2]};
-		f32 d = Fog_Dot(v, v);
-		if(n == 8 && d >= dist[7])
-			continue;
-		s32 j = n < 8 ? n++ : 7;
-		for(; j > 0 && dist[j - 1] > d; j--){
-			dist[j] = dist[j - 1];
-			cand[j] = cand[j - 1];
-		}
-		dist[j] = d;
-		cand[j] = i;
-	}
+	R_NearestColors(fog, n, cand, dist);
 	f32 best = dist[0];
 	s32 lo = cand[0], hi = lo, t = 0;
 	for(s32 i = 0; i < n; i++)
@@ -446,7 +435,8 @@ static void Fog_BuildLevels(f32 density, bool radial)
 		memcpy(&f, &b, sizeof(f));
 		f64 kr = k * 2147483648.0 / f; // f is 2^31 / distance
 		// past these ends it's levels 0 and 63 without exp
-		f64 a = kr < 0.06 ? 0 : kr > 3 ? 1 : 1 - exp(-kr * kr);
+		f64 a = !(kr >= 0) || kr > 3 ? 1 : kr < 0.06 ? 0
+			: 1 - exp(-kr * kr);
 		fog_level[i] = a * (FOG_LEVELS - 1) + 0.5;
 	}
 	fog_level_d = density;
@@ -493,7 +483,7 @@ Q_SIL void R_FogPixels(u8 *pdest, const s32 *zb, s32 x, s32 w,
 	const u8 *level = fog_level;
 	const u32 *pair = &fog_pair[0][0];
 	for(s32 i = 0; i < w; i++){
-		f32 f = (u32)zb[i]; // the void's negative z comes out near
+		f32 f = zb[i];
 		if(radial)
 			f *= cos[i];
 		u32 b;
