@@ -971,6 +971,11 @@ static void R_EdgeDrawing(bool alpha, s32 t)
 	R_RenderWorld();
 	R_TimeStamp(t + 1);
 	R_DrawBEntitiesOnList();
+	// the skybox, once it's known whether the world or a brush entity
+	// has sky faces in view. The alpha pass draws no sky, its z-buffer
+	// is already in place
+	if(r_skyframe == r_framecount && !alpha)
+		R_EmitSkyBox();
 	R_TimeStamp(t + 2);
 	R_ScanEdges();
 	R_TimeStamp(t + 3);

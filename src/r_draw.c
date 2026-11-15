@@ -431,6 +431,8 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 	// if no edges made it out, return without posting the surface
 	if(!r_emitted)
 		return;
+	if((psurf->flags & SURF_DRAWSKY) && skybox_name[0])
+		r_skyframe = r_framecount; // see R_RenderFace
 	r_polycount++;
 	surface_p->data = (void *)psurf;
 	surface_p->nearzi = r_nearzi;

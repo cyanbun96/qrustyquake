@@ -223,6 +223,10 @@ void R_EmitSkyBox()
 		r_skytexinfo[i].vecs[1][3] =
 			-DotProduct(r_origin, r_skytexinfo[i].vecs[1]);
 	}
+	// its faces are the world's, the brush entities left their own state
+	currententity = &cl_entities[0];
+	r_pcurrentvertbase = cl.worldmodel->vertexes;
+	VectorCopy(r_origin, modelorg);
 	s32 oldkey = r_currentkey; // emit the six faces
 	r_currentkey = 0x7ffffff0;
 	skybox_surf_p = surface_p;
