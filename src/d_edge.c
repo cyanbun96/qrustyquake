@@ -5,13 +5,13 @@
 // thread and D_DrawSurf needs nothing else, so with r_threads the workers draw
 // the spans of each band while the main thread goes on (r_thread.c).
 // DS_SKY and DS_SKYZ mark the sky, R_FogMarkSky fogs the colors there. DS_SKYZ
-// only writes z, over a skybox's colors or none under full sky fog. The skybox
-// pass (DS_SKYFAR only writes its far z) isn't marked: what sky faces don't
-// cover is the void, the background (DS_FAR) draws it over the box in
-// r_clearcolor, and R_DrawFog leaves its far z alone.
+// only writes z, over a skybox's colors, or over nothing under full sky fog,
+// which hides the box so it isn't drawn. The skybox pass isn't marked: what sky
+// faces don't cover is the void, the background (DS_FAR) draws it over the box
+// in r_clearcolor, and R_DrawFog leaves its far z alone.
 // DS_LATER has to have its block built first.
-enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYFAR, DS_SKYBOX,
-	DS_TURB, DS_CACHED, DS_LATER };
+enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYBOX, DS_TURB,
+	DS_CACHED, DS_LATER };
 typedef struct dsurf_s {
 	s32 kind;
 	s32 type; // SPAN_* of DS_CACHED
@@ -214,7 +214,7 @@ static bool D_CacheExact(const surfcache_t *c)
 }
 
 // Full sky fog hides all of the sky, its colors aren't drawn
-static bool D_SkyAllFog()
+bool D_SkyAllFog()
 { return fog_density && map_skyfog >= 1; }
 
 static void D_SetupSky(dsurf_t *d, msurface_t *pface)
@@ -242,7 +242,7 @@ static void D_SetupSkybox(dsurf_t *d, surf_t *s)
 	cacheheight = tex->height;
 	miplevel = 0;
 	D_CalcGradients(pface, 0);
-	d->kind = D_SkyAllFog() ? DS_SKYFAR : DS_SKYBOX;
+	d->kind = DS_SKYBOX;
 	d->dithered = r_dithertex.value != 0;
 }
 
@@ -453,9 +453,6 @@ static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 	case DS_SKYZ:
 		D_DrawZSpans(spans);
 		R_FogMarkSky(spans);
-		break;
-	case DS_SKYFAR:
-		D_DrawZSpansFar(spans);
 		break;
 	case DS_TURB:
 		Turbulent(spans, &d->turb);
@@ -681,7 +678,7 @@ void D_DrawSurfaces(s32 act)
 	D_BeginWalk(act);
 	D_BeginSurfaces();
 	s32 nsurfs = surface_p - surfaces;
-	bool skybox = skybox_name[0] && r_skyframe == r_framecount;
+	bool skybox = skybox_surf_p != NULL;
 	if(skybox){
 		FOR_SPAN_SURFS(i, skybox_surf_p - surfaces){
 			surf_t *s = &surfaces[i];

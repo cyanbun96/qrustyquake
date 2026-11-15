@@ -296,6 +296,7 @@ void D_AllocCutoutBuf(s32 size);
 s32 R_DrawSurface();
 void D_DrawSurfaces(s32 act);
 void D_DrawSurfacesAlpha(s32 act);
+bool D_SkyAllFog();
 void D_PolysetUpdateTables();
 EX Q_TLS s32 cachewidth, cacheheight;                              // r_shared.h
 EX Q_TLS u8 *cacheblock;
