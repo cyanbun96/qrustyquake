@@ -440,8 +440,9 @@ void M_Main_Key(s32 key)
 		key_dest = key_game;
 		m_state = m_none;
 		cls.demonum = m_save_demonum;
+		// a game without startdemos has no loop to go back to
 		if(cls.demonum != -1 && !cls.demoplayback
-		    && cls.state != ca_connected)
+		    && cls.state != ca_connected && cls.demos[0][0])
 			CL_NextDemo();
 		break;
 	case K_DOWNARROW:

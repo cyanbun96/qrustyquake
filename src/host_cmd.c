@@ -1002,6 +1002,7 @@ void Host_Startdemos_f()
 		c = MAX_DEMOS;
 	}
 	Con_Printf("%i demo(s) in loop\n", c);
+	memset(cls.demos, 0, sizeof(cls.demos)); // a shorter list ends early
 	for(s32 i = 1; i < c + 1; i++)
 		strncpy(cls.demos[i - 1], Cmd_Argv(i), sizeof(cls.demos[0])-1);
 	if(!sv.active && cls.demonum != -1 && !cls.demoplayback){
