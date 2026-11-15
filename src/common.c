@@ -1163,6 +1163,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	com_modified = 1;
 	CL_Disconnect(); // Kill the server
 	Host_ShutdownServer(1);
+	CL_FreeState(); // the old CSQC would draw pics from the old gfx.wad
 	memset(cls.demos, 0, sizeof(cls.demos)); // the new game lists its own
 	Host_WriteConfiguration();
 	while(com_searchpaths!=com_base_searchpaths){//Kill extra game if loaded
