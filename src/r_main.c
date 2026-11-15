@@ -394,6 +394,38 @@ static void Pal_ParseWorldspawn()
 	if(!found) ResetWorldPal();
 }
 
+// Whether the map has a liquid drawn translucent, after R_ParseWorldspawn
+static bool R_MapAlphaLiquids()
+{
+	s32 flags = 0;
+	for(s32 i = 0; i < cl.worldmodel->numsurfaces; i++)
+		flags |= cl.worldmodel->surfaces[i].flags;
+	static const s32 liquids[] = {SURF_DRAWWATER, SURF_DRAWLAVA,
+		SURF_DRAWSLIME, SURF_DRAWTELE};
+	for(s32 i = 0; i < 4; i++){
+		f32 a = R_LiquidAlphaForFlags(liquids[i]);
+		if((flags & liquids[i]) && a > 0 && a < 1)
+			return 1;
+	}
+	return 0;
+}
+
+// Whether an entity of the map has an alpha that shows what's behind it
+static bool R_MapAlphaEntities()
+{
+	c8 key[128], value[4096];
+	const c8 *data = cl.worldmodel->entities;
+	if(!r_entalpha.value || !data || !strstr(data, "alpha\""))
+		return 0; // the quick answer for most maps
+	while((data = COM_Parse(data)) && com_token[0] == '{')
+		while(COM_ParseEntityPair(&data, key, value)){
+			f32 a = atof(value);
+			if(!strcmp(key, "alpha") && a > 0 && a < 1)
+				return 1;
+		}
+	return 0;
+}
+
 void R_NewMap()
 {
 	skybox_name[0] = 0; // before a new palette can try to reload it
@@ -415,6 +447,13 @@ void R_NewMap()
 	Fog_ParseWorldspawn();
 	R_ParseWorldspawn();
 	R_ParseDebugEntities(); //init point-ent wireframe
+	// Mixed translucency builds it the first time something is
+	// translucent, about 0.1 s and more on slow machines, better while
+	// loading. Only when the map is likely to need it: CL_LoadCSProgs
+	// builds it for CSQC, alpha set by QC alone still builds it in play.
+	if(r_alphastyle.value == 0 && (r_particlealpha.value < 1
+			|| R_MapAlphaLiquids() || R_MapAlphaEntities()))
+		R_BuildColorMixLUT(0);
 }
 
 void R_SetVrect(vrect_t *pvrectin, vrect_t *pvrect, s32 lineadj)

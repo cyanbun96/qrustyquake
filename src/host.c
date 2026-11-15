@@ -468,6 +468,10 @@ static void CL_LoadCSProgs()
 			G_FLOAT(OFS_PARM2) = 10000 * VERSION;
 			PR_ExecuteProgram(qcvm->extfuncs.CSQC_Init);
 		}
+		// its drawing mixes by alpha whatever r_alphastyle is, and
+		// a HUD draws from the first frame, so while loading
+		// (see R_NewMap)
+		R_BuildColorMixLUT(0);
 	}
 	else
 		PR_ClearProgs(qcvm);
