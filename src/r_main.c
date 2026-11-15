@@ -567,6 +567,42 @@ void R_ViewChanged(vrect_t *pvrect, s32 lineadj, f32 aspect)
 	D_ViewChanged();
 }
 
+#define LEAFBIT(v, m, l) ((v)[((l) - (m)->leafs - 1) >> 3] \
+		& (1 << (((l) - (m)->leafs - 1) & 7)))
+
+static u8 *R_SeeThroughOrphans(model_t *m, u8 *vis)
+{ // the PVS plus what Mod_FindVisOrphans' leaves let through
+	static u8 *buf;
+	static s32 cap;
+	s32 row = (m->numleafs + 7) >> 3;
+	if(row * 2 > cap){
+		u8 *b = realloc(buf, row * 2);
+		if(!b) return vis;
+		buf = b;
+		cap = row * 2;
+	}
+	u8 *seen = buf, *out = buf + row;
+	memcpy(seen, vis, row); // Mod_LeafPVS below reuses vis
+	memcpy(out, vis, row);
+	mleaf_t **p = m->visorphans;
+	s32 n = m->numvisorphans * 2;
+	for(s32 i = 0; i < n; i += 2){
+		if(!LEAFBIT(seen, m, p[i + 1])) continue;
+		s32 o = p[i] - m->leafs - 1;
+		out[o >> 3] |= 1 << (o & 7);
+	}
+	p = m->vislinks;
+	n = m->numvislinks * 2;
+	for(s32 i = 0; i < n; i += 2){
+		if(!LEAFBIT(seen, m, p[i]))
+			continue;
+		u8 *v = Mod_LeafPVS(p[i + 1], m);
+		for(s32 b = 0; b < row; b++)
+			out[b] |= v[b];
+	}
+	return out;
+}
+
 static void R_MarkLeaves()
 {
 	if(r_oldviewleaf == r_viewleaf) return;
@@ -574,6 +610,8 @@ static void R_MarkLeaves()
 	r_oldviewleaf = r_viewleaf;
 	u8 *vis = r_novis.value ? Mod_NoVisPVS(cl.worldmodel)
 		: Mod_LeafPVS(r_viewleaf, cl.worldmodel);
+	if(cl.worldmodel->numvisorphans && !r_novis.value)
+		vis = R_SeeThroughOrphans(cl.worldmodel, vis);
 	for(s32 i = 0; i < cl.worldmodel->numleafs; i++){
 		if(vis[i >> 3] & (1 << (i & 7))){
 			mnode_t *nd = (mnode_t *) & cl.worldmodel->leafs[i + 1];

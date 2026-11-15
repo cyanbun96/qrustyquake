@@ -445,6 +445,10 @@ typedef struct model_s {
 	s32 numtextures;
 	texture_t **textures;
 	u8 *visdata;
+	mleaf_t **visorphans; // pairs: solid leaf no PVS has, leaf touching it
+	s32 numvisorphans;
+	mleaf_t **vislinks; // pairs of leaves vis kept apart across one
+	s32 numvislinks;
 	u8 *lightdata;
 	c8 *entities;
 	bool viswarn; // for Mod_DecompressVis()

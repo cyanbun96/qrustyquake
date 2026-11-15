@@ -2134,6 +2134,188 @@ static void Mod_RelistFaces(model_t *mod)
 	free(r.e);
 }
 
+// Pairs l with every non-solid leaf up to n within a unit of box b, or counts
+// them while there's no array yet
+static void Mod_VisOrphanNode(model_t *mod, mnode_t *node, f32 *b,
+		mleaf_t *l, s32 n, s32 *pairs)
+{
+	while(node->contents >= 0){
+		mplane_t *p = node->plane;
+		f32 lo = -p->dist, hi = -p->dist;
+		for(s32 i = 0; i < 3; i++){
+			f32 a = p->normal[i] * b[i];
+			f32 c = p->normal[i] * b[i + 3];
+			lo += q_min(a, c);
+			hi += q_max(a, c);
+		}
+		if(hi > -1 && lo < 1)
+			Mod_VisOrphanNode(mod, node->children[0], b, l, n,
+					pairs);
+		node = node->children[lo < 1];
+	}
+	mleaf_t *t = (mleaf_t *)node;
+	if(t->contents == CONTENTS_SOLID || t - mod->leafs > n)
+		return;
+	if(mod->visorphans){
+		mod->visorphans[*pairs * 2] = l;
+		mod->visorphans[*pairs * 2 + 1] = t;
+	}
+	++*pairs;
+}
+
+// Whether t lists a cutout face with l right behind it, n gets its normal
+static bool Mod_SeesInto(model_t *mod, mleaf_t *t, mleaf_t *l, vec3_t n)
+{
+	for(s32 i = 0; i < t->nummarksurfaces; i++){
+		msurface_t *s = t->firstmarksurface[i];
+		if(!(s->flags & SURF_DRAWCUTOUT) || s->numedges < 3)
+			continue;
+		VectorScale(s->plane->normal,
+				s->flags & SURF_PLANEBACK ? -1 : 1, n);
+		vec3_t c = {0, 0, 0}, p;
+		for(s32 j = 0; j < s->numedges; j++)
+			VectorAdd(c, Mod_SurfVertex(mod, s, j), c);
+		VectorScale(c, 1.0f / s->numedges, c);
+		for(s32 j = -1; j < s->numedges; j++){ // centre, then corners
+			VectorCopy(c, p);
+			if(j >= 0){
+				VectorScale(p, 0.1f, p);
+				f32 *v = Mod_SurfVertex(mod, s, j);
+				VectorMA(p, 0.9f, v, p);
+			}
+			VectorMA(p, -0.5f, n, p);
+			if(Mod_PointInLeaf(p, mod) == l)
+				return 1;
+		}
+	}
+	return 0;
+}
+
+// Whether a compressed PVS row has leaf number i (1-based)
+static bool Mod_RowHas(u8 *in, s32 row, s32 i)
+{
+	if(!in)
+		return 1;
+	s32 b = (i - 1) >> 3;
+	for(s32 j = 0; j < row;){
+		if(!*in){
+			j += in[1];
+			in += 2;
+			if(j > b)
+				return 0;
+		}else if(j++ == b)
+			return *in >> ((i - 1) & 7) & 1;
+		else in++;
+	}
+	return 0;
+}
+
+// ericw-tools gives some fence brushes (the grates in sj3_sparky) solid leaves
+// that no other leaf's PVS has, and the faces inside the brush, the strips of
+// wall it's set into, are listed only there. They were never drawn and showed
+// as holes through the grate; GL engines leave the same holes with vis on. A
+// solid leaf whose own PVS row has no non-solid leaf is taken as one of those
+// (the rows are near enough symmetric), and R_SeeThroughOrphans makes it
+// visible when a leaf touching it is. Vis can also have kept apart the leaves
+// on the two sides of such a grate (the lava pits under the floor grates of
+// mg1's horde3, the space over the ceiling grates of its start map). Two
+// leaves seeing into the same one through cutout faces on opposite sides,
+// where the PVS of the first lacks the second, make a link: when the first is
+// in the PVS, the second's PVS is added, even if the second is in it already,
+// since vis can still have left out its neighbours (the sliver behind the
+// east grate in sj3_sparky). Maps where vis saw through every grate get no
+// links (qbj3's start map).
+static void Mod_FindVisOrphans(model_t *mod)
+{
+	mod->visorphans = mod->vislinks = NULL;
+	mod->numvisorphans = mod->numvislinks = 0;
+	s32 head = mod->submodels[0].headnode[0];
+	s32 n = q_min(mod->submodels[0].visleafs, mod->numleafs - 1);
+	s32 row = (n + 7) >> 3;
+	if(!mod->visdata || head < 0 || head >= mod->numnodes)
+		return;
+	u8 *open = calloc(row + 1, 1);
+	mleaf_t **orphans = malloc(q_max(n, 1) * sizeof(*orphans));
+	if(!open || !orphans){
+		free(open);
+		free(orphans);
+		return;
+	}
+	for(s32 i = 1; i <= n; i++)
+		if(mod->leafs[i].contents != CONTENTS_SOLID)
+			open[(i - 1) >> 3] |= 1 << ((i - 1) & 7);
+	s32 numorphans = 0, pairs = 0;
+	for(s32 i = 1; i <= n; i++){
+		u8 *in = mod->leafs[i].compressed_vis;
+		if(mod->leafs[i].contents != CONTENTS_SOLID || !in)
+			continue;
+		s32 j = 0;
+		while(j < row){
+			if(!*in){
+				j += in[1];
+				in += 2;
+			}else if(*in++ & open[j++])
+				break;
+		}
+		if(j >= row)
+			orphans[numorphans++] = mod->leafs + i;
+	}
+	for(s32 pass = 0; pass < 2 && numorphans; pass++){
+		if(pass){
+			if(!pairs)
+				break;
+			mod->visorphans = Hunk_AllocName(pairs * 2
+					* sizeof(*mod->visorphans), loadname);
+			mod->numvisorphans = pairs;
+			pairs = 0;
+		}
+		for(s32 i = 0; i < numorphans; i++)
+			Mod_VisOrphanNode(mod, mod->nodes + head,
+				orphans[i]->minmaxs, orphans[i], n, &pairs);
+	}
+	free(open);
+	free(orphans);
+	pairs = mod->numvisorphans;
+	mleaf_t **p = mod->visorphans;
+	vec3_t *nrm = malloc(q_max(pairs, 1) * sizeof(*nrm));
+	u8 *in = malloc(q_max(pairs, 1));
+	if(!nrm || !in)
+		pairs = 0;
+	for(s32 i = 0; i < pairs; i++)
+		in[i] = Mod_SeesInto(mod, p[i * 2 + 1], p[i * 2], nrm[i]);
+	s32 links = 0;
+	for(s32 pass = 0; pass < 2; pass++){
+		if(pass){
+			if(!links)
+				break;
+			mod->vislinks = Hunk_AllocName(links * 2
+					* sizeof(*mod->vislinks), loadname);
+			mod->numvislinks = links;
+			links = 0;
+		}
+		for(s32 g = 0, e; g < pairs; g = e){ // grouped by orphan
+			for(e = g; e < pairs && p[e * 2] == p[g * 2]; e++);
+			for(s32 a = g; a < e; a++)
+			for(s32 t = g; t < e && in[a]; t++){
+				mleaf_t *la = p[a * 2 + 1], *lt = p[t * 2 + 1];
+				if(!in[t] || DotProduct(nrm[a], nrm[t]) >= 0
+				|| Mod_RowHas(la->compressed_vis, row,
+						lt - mod->leafs))
+					continue;
+				if(mod->vislinks){
+					mod->vislinks[links * 2] = la;
+					mod->vislinks[links * 2 + 1] = lt;
+				}
+				links++;
+			}
+		}
+	}
+	free(nrm);
+	free(in);
+	Con_DPrintf("%d solid leaves no PVS has, %d leaves touching them, "
+		"%d links\n", numorphans, mod->numvisorphans, links);
+}
+
 static void Mod_LoadBrushModel(model_t *mod, void *buffer)
 {
 	loadmodel->type = mod_brush;
@@ -2197,6 +2379,7 @@ visdone:
 	Mod_LoadClipnodes(&header->lumps[9], bsp2);
 	Mod_LoadSubmodels(&header->lumps[14]);
 	Mod_RelistFaces(mod);
+	Mod_FindVisOrphans(mod);
 	Mod_MakeHull0();
 	mod->numframes = 2; // regular and alternate animation
 	Mod_CheckWaterVis();
