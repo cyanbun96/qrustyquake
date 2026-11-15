@@ -1164,6 +1164,7 @@ Con_Printf("You must have the registered version to use modified games\n");
 	CL_Disconnect(); // Kill the server
 	Host_ShutdownServer(1);
 	CL_FreeState(); // the old CSQC would draw pics from the old gfx.wad
+	CDAudio_Stop(); // keepmusic would carry the old game's track over
 	memset(cls.demos, 0, sizeof(cls.demos)); // the new game lists its own
 	Host_WriteConfiguration();
 	while(com_searchpaths!=com_base_searchpaths){//Kill extra game if loaded
@@ -1208,7 +1209,9 @@ Con_Printf("You must have the registered version to use modified games\n");
 	}
 	Cache_Flush();
 	Mod_ResetAll();
-	Sky_ResetFog();
+	Sky_NewGame();
+	// the old game's quake.rc may have lowered it, ad sets 8192
+	Cvar_SetQuick(&max_edicts, max_edicts.default_string);
 	if(cls.state != ca_dedicated){
 		if(Host_LoadPalette()){ // a mod can bring its own
 			R_WorldPalChanged();
@@ -1222,9 +1225,10 @@ Con_Printf("You must have the registered version to use modified games\n");
 		CL_InitTEnts();
 	}
 	ExtraMaps_NewGame();
+	LOC_Init();
 	Con_Printf("\"game\" changed to \"%s\"\n", COM_SkipPath(com_gamedir));
+	Cbuf_AddText("unaliasall\n"); // the old game's aliases go too
 	Cbuf_AddText("exec quake.rc\n");
-	Cbuf_AddText("vid_unlock\n");
 }
 
 void COM_InitFilesystem()

@@ -778,6 +778,7 @@ void R_ParseWorldspawn();
 void R_InitSkyBox();                                                  // r_sky.c
 void Sky_NewMap();
 void Sky_ResetFog();
+void Sky_NewGame();
 void Sky_Init();
 void Sky_PaletteChanged();
 EX s32 r_skyframe;

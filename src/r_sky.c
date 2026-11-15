@@ -273,6 +273,12 @@ static void Sky_SetSkyfog_f(cvar_t *var)
 void Sky_ResetFog() // Reset on map load as in Ironwail
 { Cvar_SetQuick(&r_skyfog, r_skyfog.default_string); }
 
+void Sky_NewGame()
+{ // a skybox of the same name may be other art in the new game
+	skybox_name[0] = last_skybox_name[0] = 0;
+	Sky_ResetFog();
+}
+
 void Sky_Init()
 {
 	Cmd_AddCommand("sky", Sky_SkyCommand_f);
