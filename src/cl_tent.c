@@ -159,6 +159,7 @@ void CL_ParseTEnt()
 		pos[2] = MSG_ReadCoord(cl.protocolflags);
 		s32 colorStart = MSG_ReadByte();
 		s32 colorLength = MSG_ReadByte();
+		colorLength = q_max(colorLength, 1); // it divides
 		R_ParticleExplosion2(pos, colorStart, colorLength);
 		dl = CL_AllocDlight(0);
 		VectorCopy(pos, dl->origin);

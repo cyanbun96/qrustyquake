@@ -275,7 +275,6 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 	bool forcelink = ent->msgtime != cl.mtime[1];
 	ent->msgtime = cl.mtime[0];
 	s32 modnum = bits & U_MODEL ? MSG_ReadByte() : ent->baseline.modelindex;
-	if(modnum >= MAX_MODELS) Host_Error("CL_ParseModel: bad modnum");
 	ent->frame = bits & U_FRAME ? MSG_ReadByte() : ent->baseline.frame;
 	s32 i = bits & U_COLORMAP ? MSG_ReadByte() : ent->baseline.colormap;
 	if(!i) ent->colormap = CURWORLDCMAP;
@@ -329,6 +328,8 @@ void CL_ParseUpdate(s32 bits) // If an entities model or origin changes from
 		else ent->alpha = ent->baseline.alpha;
 		ent->scale = ent->baseline.scale;
 	}
+	if(modnum < 0 || modnum >= MAX_MODELS) // after U_MODEL2's high byte
+		Host_Error("CL_ParseModel: bad modnum");
 	model_t *model = cl.model_precache[modnum];
 	if(model != ent->model){ // automatic animation(torches, etc) can be
 		ent->model = model; // either all together or randomized

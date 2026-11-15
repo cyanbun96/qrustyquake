@@ -127,8 +127,8 @@ s32 CL_GetMessage()
 		}
 		if(net_message.cursize > MAX_MSGLEN)
 			Sys_Error("Demo message > MAX_MSGLEN");
-		if(fread(net_message.data, net_message.cursize,
-				1, cls.demofile) != 1){
+		if(net_message.cursize < 0 || fread(net_message.data,
+				net_message.cursize, 1, cls.demofile) != 1){
 			CL_StopPlayback();
 			return 0;
 		}
@@ -211,7 +211,7 @@ void CL_PlayDemo_f()
 	if(key_dest == key_console) key_dest = key_game; //withdraw console/menu
 	CL_Disconnect(); // disconnect from server
 	c8 name[256];
-	strcpy(name, Cmd_Argv(1)); // open the demo file
+	SDL_strlcpy(name, Cmd_Argv(1), sizeof(name)); // open the demo file
 	COM_AddExtension(name, ".dem", sizeof(name));
 	Con_Printf("Playing demo from %s.\n", name);
 	COM_FOpenFile(name, &cls.demofile, NULL);
@@ -220,10 +220,25 @@ void CL_PlayDemo_f()
 		cls.demonum = -1; // stop demo loop
 		return;
 	}
+	// The CD track, a line of its own. fscanf's "\n" would also take
+	// whitespace bytes from the first message's length -- QuakeSpasm
+	s32 c = 0, neg = 0;
+	cls.forcetrack = 0;
+	for(s32 i = 0; i < 13 && (c = getc(cls.demofile)) != '\n'; i++){
+		if(c == '-') neg = 1;
+		else cls.forcetrack = (u32)cls.forcetrack * 10 + (c - '0');
+	}
+	if(c != '\n'){
+		fclose(cls.demofile);
+		cls.demofile = NULL;
+		cls.demonum = -1;
+		Con_Printf("ERROR: demo \"%s\" is invalid\n", name);
+		return;
+	}
+	if(neg) cls.forcetrack = -cls.forcetrack;
 	cls.demoplayback = 1;
 	cls.state = ca_connected;
 	r_numskies = 0;
-	fscanf(cls.demofile, "%i\n", &cls.forcetrack);
 }
 
 void CL_TimeDemo_f()

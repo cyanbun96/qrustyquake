@@ -926,7 +926,6 @@ u8 *COM_LoadMallocFile(const c8 *path, u32 *path_id) // returns malloc'd memory
 // of the list so they override previous pack files.
 static pack_t *COM_LoadPackFile(const c8 *packfile)
 {
-	dpackfile_t info[MAX_FILES_IN_PACK];
 	s32 packhandle;
 	if(Sys_FileOpenRead(packfile, &packhandle) == -1) return NULL;
 	dpackheader_t header;
@@ -947,12 +946,16 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 	if(numpackfiles != 339) // pak0_count
 		com_modified = 1; // not the original file
 	packfile_t *newf=(packfile_t*)Z_Malloc(numpackfiles*sizeof(packfile_t));
+	// whole entries only, dirlen can be up to one short of another
+	s32 dirlen = numpackfiles * sizeof(dpackfile_t);
+	dpackfile_t *info = malloc(dirlen);
+	if(!info) Sys_Error("COM_LoadPackFile: out of memory");
 	Sys_FileSeek(packhandle, header.dirofs);
-	if(Sys_FileRead(packhandle, info, header.dirlen) != header.dirlen)
+	if(Sys_FileRead(packhandle, info, dirlen) != dirlen)
 		Sys_Error("Error reading %s", packfile);
 	u16 crc;
 	CRC_Init(&crc); // crc the directory to check for modifications
-	for(s32 i = 0; i < header.dirlen; i++)
+	for(s32 i = 0; i < dirlen; i++)
 		CRC_ProcessByte(&crc, ((u8 *)info)[i]);
 	if(crc!=13900/*v1.00*/ && crc!=62751/*v1.01*/ && crc!=32981/*v1.06*/)
 		com_modified = 1;
@@ -961,6 +964,7 @@ static pack_t *COM_LoadPackFile(const c8 *packfile)
 		newf[i].filepos = info[i].filepos;
 		newf[i].filelen = info[i].filelen;
 	}
+	free(info);
 	pack_t *pack = (pack_t *) Z_Malloc(sizeof(pack_t));
 	SDL_strlcpy(pack->filename, packfile, sizeof(pack->filename));
 	pack->handle = packhandle;

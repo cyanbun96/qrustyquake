@@ -18,6 +18,7 @@ typedef struct {
 	c8 pad1, pad2;
 	c8 name[16]; // must be null terminated
 } lumpinfo_t;
+#define TYP_QPIC 66 // a lump that is a qpic_t
 static s32 wad_numlumps;
 static lumpinfo_t *wad_lumps;
 static u8 *wad_base = NULL;
@@ -40,6 +41,20 @@ void W_CleanupName(const c8 *in, c8 *out)
 	for(; i < 16; i++) out[i] = 0;
 }
 
+static bool W_LumpOK(const lumpinfo_t *l, s64 size)
+{ // inside the file, and so are the pixels its users read
+	if(l->filepos < 0 || l->disksize < 0
+			|| (s64)l->filepos + l->disksize > size)
+		return 0;
+	if(!strcmp(l->name, "conchars")) // raw, Draw_Character reads 128x128
+		return l->disksize >= 128 * 128;
+	if(l->type != TYP_QPIC)
+		return 1;
+	const qpic_t *pic = (qpic_t *)(wad_base + l->filepos);
+	return l->disksize >= 8 && pic->width >= 0 && pic->height >= 0
+		&& (s64)pic->width * pic->height + 8 <= l->disksize;
+}
+
 void W_LoadWadFile()
 { //johnfitz -- filename is now hard-coded for honesty
 	const c8 *filename = "gfx.wad";
@@ -52,15 +67,25 @@ void W_LoadWadFile()
 "or use the -basedir command-line option to specify another directory.",
 				filename, com_basedir);
 	wadinfo_t *header = (wadinfo_t *)wad_base;
-	if(header->identification[0]!='W'||header->identification[1]!='A'||
-		header->identification[2]!='D'||header->identification[3]!='2')
+	if(com_filesize < (s32)sizeof(wadinfo_t)
+			|| memcmp(header->identification, "WAD2", 4))
 		Sys_Error("Wad file %s doesn't have WAD2 id\n",filename);
 	wad_numlumps = header->numlumps;
 	s32 infotableofs = header->infotableofs;
+	s64 size = com_filesize;
+	if(infotableofs < (s32)sizeof(wadinfo_t) || wad_numlumps < 0
+			|| infotableofs + wad_numlumps
+			* (s64)sizeof(lumpinfo_t) > size)
+		Sys_Error("Wad file %s has a bad lump table\n", filename);
 	wad_lumps = (lumpinfo_t *)(wad_base + infotableofs);
 	lumpinfo_t *lump_p = wad_lumps;
-	for(s32 i = 0; i < wad_numlumps; i++, lump_p++)
+	for(s32 i = 0; i < wad_numlumps; i++, lump_p++){
+		lump_p->name[15] = 0;
 		W_CleanupName(lump_p->name, lump_p->name);
+		if(!W_LumpOK(lump_p, size))
+			Sys_Error("Wad file %s has a bad lump %s\n",
+					filename, lump_p->name);
+	}
 }
 
 static lumpinfo_t *W_GetLumpinfo(lumpinfo_t *lumps, s32 numlumps,const c8 *name)

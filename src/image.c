@@ -84,7 +84,8 @@ u8 *Image_LoadTGA(FILE *fin, s32 *width, s32 *height)
 	}
 	s32 columns = targa_header.width;
 	s32 rows = targa_header.height;
-	if(columns <= 0 || rows <= 0){
+	// up to 65535 each, the size in bytes has to fit the hunk's s32
+	if(columns <= 0 || rows <= 0 || columns > 16384 || rows > 16384){
 		Con_Printf("Image_LoadTGA: %s has a bad size %ix%i\n",
 				loadfilename, columns, rows);
 		fclose(fin);

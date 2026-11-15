@@ -681,17 +681,18 @@ void ED_PrintEdicts()
 static void ED_PrintEdict_f()
 { // For debugging, prints a single edict
 	if(!sv.active) return;
+	qcvm_t *oldqcvm;
+	PR_PushQCVM(&sv.qcvm, &oldqcvm);
 	s32 i = atoi(Cmd_Argv(1));
-	if(i < 0 || i >= qcvm->num_edicts){
+	if(i < 0 || i >= qcvm->num_edicts)
 		Con_Printf("Bad edict number\n");
-		return;
-	}
-	ED_PrintNum(i);
+	else
+		ED_PrintNum(i);
+	PR_PopQCVM(oldqcvm);
 }
 
-static void ED_Count()
-{ // For debugging
-	if(!sv.active) return;
+static void ED_CountVM()
+{
 	s32 active = 0, models = 0, solid = 0, step = 0;
 	for(s32 i = 0; i < qcvm->num_edicts; i++){
 		edict_t *ent = EDICT_NUM(i);
@@ -706,6 +707,15 @@ static void ED_Count()
 	Con_Printf("view :%3i\n", models);
 	Con_Printf("touch :%3i\n", solid);
 	Con_Printf("step :%3i\n", step);
+}
+
+static void ED_Count()
+{ // For debugging
+	if(!sv.active) return;
+	qcvm_t *oldqcvm;
+	PR_PushQCVM(&sv.qcvm, &oldqcvm);
+	ED_CountVM();
+	PR_PopQCVM(oldqcvm);
 }
 
 void ED_WriteGlobals(FILE *f)

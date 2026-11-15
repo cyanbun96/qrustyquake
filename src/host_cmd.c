@@ -317,10 +317,11 @@ void Host_SavegameComment(c8 *text)
 	c8 *p;
 	while((p = strchr(text, '\n')) != NULL) *p = ' ';
 	while((p = strchr(text, '\r')) != NULL) *p = ' ';
-	c8 kills[20];
-	sprintf(kills,"kills:%3i/%3i", cl.stats[STAT_MONSTERS],
-					cl.stats[STAT_TOTALMONSTERS]);
-	memcpy(text+22, kills, strlen(kills));
+	c8 kills[40]; // QC sets the counts, they can be any s32
+	snprintf(kills, sizeof(kills), "kills:%3i/%3i",
+			cl.stats[STAT_MONSTERS], cl.stats[STAT_TOTALMONSTERS]);
+	memcpy(text + 22, kills,
+			q_min(strlen(kills), SAVEGAME_COMMENT_LENGTH - 22));
 	// convert space to _ to make stdio happy
 	for(s32 i = 0; i < SAVEGAME_COMMENT_LENGTH; i++)
 		if(text[i] == ' ') text[i] = '_';
@@ -888,7 +889,10 @@ void Host_Kick_f() // Kicks a user off of the server
 		}
 		if(message) SV_ClientPrintf("Kicked by %s: %s\n", who, message);
 		else SV_ClientPrintf("Kicked by %s\n", who);
+		qcvm_t *oldvm; // the console has none, ClientDisconnect runs
+		PR_PushQCVM(&sv.qcvm, &oldvm);
 		SV_DropClient(0);
+		PR_PopQCVM(oldvm);
 	}
 	host_client = save;
 }

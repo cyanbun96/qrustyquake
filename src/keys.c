@@ -310,7 +310,8 @@ void Key_Message(s32 key)
 s32 Key_StringToKeynum(c8 *str)
 {
 	if(!str || !str[0]) return -1;
-	if(!str[1]) return str[0];
+	if(!str[1]) // c8 is signed, and 128 up are K_* names
+		return (u8)str[0] < 128 ? str[0] : -1;
 	for(keyname_t *kn = keynames; kn->name; kn++)
 		if(!SDL_strcasecmp(str, kn->name)) return kn->keynum;
 	return -1;
@@ -385,8 +386,8 @@ void Key_Bind_f()
 	}
 	cmd[0] = 0; // copy the rest of command line, start with a null string
 	for(s32 i = 2; i < c; i++){
-		if(i > 2) strcat(cmd, " ");
-		strcat(cmd, Cmd_Argv(i));
+		if(i > 2) SDL_strlcat(cmd, " ", sizeof(cmd));
+		SDL_strlcat(cmd, Cmd_Argv(i), sizeof(cmd));
 	}
 	Key_SetBinding(b, cmd);
 }

@@ -193,19 +193,11 @@ static void R_ParseDebugEntities()
 	if(!cl.worldmodel || !cl.worldmodel->entities) return;
 	const c8 *data = cl.worldmodel->entities;
 	c8 key[128], value[4096];
-	while(1){
-		data = COM_Parse(data);
-		if(!data)break;
+	while((data = COM_Parse(data))){
 		if(com_token[0] != '{')continue;
 		bool is_point = true;
 		vec3_t parsed_origin = {0, 0, 0};
-		while(1){
-			data = COM_Parse(data);
-			if(!data || com_token[0] == '}')break;
-			strcpy(key, com_token);
-			data = COM_ParseEx(data, CPE_ALLOWTRUNC);
-			if(!data)break;
-			strcpy(value, com_token);
+		while(COM_ParseEntityPair(&data, key, value)){ // sizes checked
 			if(!strcmp(key, "origin"))
 				sscanf(value, "%f %f %f", &parsed_origin[0],
 					&parsed_origin[1], &parsed_origin[2]);

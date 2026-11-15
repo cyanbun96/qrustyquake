@@ -149,11 +149,18 @@ void *Z_Realloc(void *ptr, s32 size)
 		Sys_Error("Z_Realloc: realloced a freed pointer");
 	s32 old_size = block->size;
 	old_size -= (4 + (s32)sizeof(memblock_t)); // see Z_TagMalloc()
-	void *old_ptr = ptr;
+	// The new block can start in the free space before the old one and
+	// take its place, writing headers into the data before it's moved,
+	// so the data waits outside the zone
+	s32 keep = q_min(old_size, size);
+	void *tmp = malloc(q_max(keep, 1));
+	if(!tmp) Sys_Error("Z_Realloc: out of memory");
+	memcpy(tmp, ptr, keep);
 	Z_Free(ptr);
 	ptr = Z_TagMalloc(size);
 	if(!ptr) Sys_Error("Z_Realloc: failed on allocation of %i bytes", size);
-	if(ptr != old_ptr) memmove(ptr, old_ptr, q_min(old_size, size));
+	memcpy(ptr, tmp, keep);
+	free(tmp);
 	if(old_size < size) memset((u8 *)ptr + old_size, 0, size - old_size);
 	return ptr;
 }
