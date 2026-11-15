@@ -107,6 +107,19 @@ void S_Shutdown()
 	shm = NULL;
 }
 
+void S_NewGame()
+{ // forget the old game's sounds as Mod_ResetAll does its models, or a few
+  // game switches fill known_sfx. CL_InitTEnts must precache its own again
+	if(!sound_started) return;
+	S_StopAllSounds();
+	for(s32 i = 0; i < num_sfx; i++)
+		if(known_sfx[i].cache.data) Cache_Free(&known_sfx[i].cache);
+	memset(known_sfx, 0, num_sfx * sizeof(sfx_t));
+	num_sfx = 0;
+	ambient_sfx[0] = S_PrecacheSound("ambience/water1.wav");
+	ambient_sfx[1] = S_PrecacheSound("ambience/wind2.wav");
+}
+
 static sfx_t *S_FindName(const c8 *name)
 {
 	if(!name) Sys_Error("S_FindName: NULL");

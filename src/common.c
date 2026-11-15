@@ -1214,6 +1214,8 @@ Con_Printf("You must have the registered version to use modified games\n");
 		Draw_Init();
 		SCR_Init();
 		Sbar_Init();
+		S_NewGame();
+		CL_InitTEnts();
 	}
 	ExtraMaps_NewGame();
 	Con_Printf("\"game\" changed to \"%s\"\n", COM_SkipPath(com_gamedir));

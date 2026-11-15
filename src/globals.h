@@ -422,6 +422,7 @@ bool Hunk_Restart(s32 mark);
 bool Hunk_Contains(const void *p);
 void Hunk_Check();
 void Cache_Flush();
+void Cache_Free(cache_user_t *c);
 void *Cache_Check(cache_user_t *c);
 void *Cache_Alloc(cache_user_t *c, s32 size, const c8 *name);
 void Cache_Report();
@@ -448,6 +449,7 @@ bool Cmd_ExecuteString(const c8 *text, cmd_source_t src);
 void Cmd_ForwardToServer();
 void S_Init();                                                      // q_sound.h
 void S_Shutdown();
+void S_NewGame();
 void S_StartSound(s32 entnum, s32 entchannel, sfx_t *sfx, vec3_t origin,
 		f32 fvol, f32 attenuation);
 void S_StaticSound(sfx_t *sfx, vec3_t origin, f32 vol, f32 attenuation);
