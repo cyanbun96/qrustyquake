@@ -587,6 +587,33 @@ void Host_Frame(f32 time)
 	Con_Printf("serverprofile: %2i clients %2i msec\n", c, m);
 }
 
+bool Host_LoadPalette()
+{ // the game's palette and colormap, at startup and on "game". 1 if changed
+	u8 pal[768], cmap[256 * 64];
+	FILE *f; // Custom palettes
+	COM_FOpenFile("gfx/custompalette.lmp", &f, NULL);
+	if(!f) COM_FOpenFile("gfx/palette.lmp", &f, NULL);
+	if(!f) Sys_Error("Couldn't load gfx/palette.lmp");
+	if(fread(pal, 768, 1, f) != 1)
+		Sys_Error("Failed reading gfx/palette.lmp");
+	fclose(f);
+	COM_FOpenFile("gfx/customcolormap.lmp", &f, NULL);
+	if(!f) COM_FOpenFile("gfx/colormap.lmp", &f, NULL);
+	if(!f) Sys_Error("Couldn't load gfx/colormap.lmp");
+	if(fread(cmap, 256 * 64, 1, f) != 1)
+		Sys_Error("TexMgr_LoadPalette: colormap read error");
+	fclose(f);
+	if(!host_basepal){
+		host_basepal = (u8 *) Hunk_AllocName(768, "basepal");
+		host_colormap = (u8 *) Hunk_AllocName(256 * 64, "colormap");
+	}else if(!memcmp(host_basepal, pal, 768)
+			&& !memcmp(host_colormap, cmap, 256 * 64))
+		return 0;
+	memcpy(host_basepal, pal, 768); // in place, entities point at it
+	memcpy(host_colormap, cmap, 256 * 64);
+	return 1;
+}
+
 void Host_Init()
 {
 	com_argc = host_parms.argc;
@@ -612,21 +639,7 @@ void Host_Init()
 	Con_Printf("%4.1f megabyte heap\n", host_parms.memsize / (1024*1024.0));
 	R_InitTextures(); // needed even for dedicated servers
 	if(cls.state != ca_dedicated){
-		FILE *f; // Custom palettes
-		COM_FOpenFile("gfx/custompalette.lmp", &f, NULL);
-		if(!f) COM_FOpenFile("gfx/palette.lmp", &f, NULL);
-		if(!f) Sys_Error("Couldn't load gfx/palette.lmp");
-		host_basepal = (u8 *) Hunk_AllocName(768, "basepal");
-		if(fread(host_basepal, 768, 1, f) != 1)
-			Sys_Error("Failed reading gfx/palette.lmp");
-		fclose(f);
-		COM_FOpenFile("gfx/customcolormap.lmp", &f, NULL);
-		if(!f) COM_FOpenFile("gfx/colormap.lmp", &f, NULL);
-		if(!f) Sys_Error("Couldn't load gfx/colormap.lmp");
-		host_colormap = (u8 *) Hunk_AllocName(256 * 64, "colormap");
-		if(fread(host_colormap, 256 * 64, 1, f) != 1)
-			Sys_Error("TexMgr_LoadPalette: colormap read error");
-		fclose(f);
+		Host_LoadPalette();
 		IN_Init();
 		VID_Init();
 		Draw_Init();

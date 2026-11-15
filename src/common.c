@@ -1210,6 +1210,10 @@ Con_Printf("You must have the registered version to use modified games\n");
 	Mod_ResetAll();
 	Sky_ResetFog();
 	if(cls.state != ca_dedicated){
+		if(Host_LoadPalette()){ // a mod can bring its own
+			R_WorldPalChanged();
+			VID_SetPalette(host_basepal, screentop);
+		}
 		W_LoadWadFile();
 		Draw_Init();
 		SCR_Init();

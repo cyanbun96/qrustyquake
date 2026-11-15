@@ -759,6 +759,7 @@ void Host_Frame(f32 time);
 void Host_Quit_f();
 void Host_ClientCommands(c8 *fmt, ...);
 void Host_ShutdownServer(bool crash);
+bool Host_LoadPalette();
 f64 Host_GetFrameInterval();
 EX s32 current_skill;                                              // host_cmd.c
 EX bool noclip_anglehack;
