@@ -6,9 +6,10 @@
 // the spans of each band while the main thread goes on (r_thread.c).
 // DS_SKY and DS_SKYZ mark the sky, R_FogMarkSky fogs the colors there. DS_SKYZ
 // only writes z, over a skybox's colors, or over nothing under full sky fog,
-// which hides the box so it isn't drawn. The skybox pass isn't marked: what sky
-// faces don't cover is the void, the background (DS_FAR) draws it over the box
-// in r_clearcolor, and R_DrawFog leaves its far z alone.
+// which hides the box so it isn't drawn. The skybox pass writes no z and isn't
+// marked: every pixel of it gets a surface or the background drawn over it in
+// the main pass. What sky faces don't cover is the void, the background
+// (DS_FAR) draws it in r_clearcolor, and R_DrawFog leaves its far z alone.
 // DS_LATER has to have its block built first.
 enum { DS_NONE, DS_SOLID, DS_FAR, DS_SKY, DS_SKYZ, DS_SKYBOX, DS_TURB,
 	DS_CACHED, DS_LATER };
@@ -461,7 +462,6 @@ static void D_DrawSurf(const dsurf_t *d, espan_t *spans, bool load)
 		break;
 	case DS_SKYBOX:
 		D_DrawSurfSpans(d, spans, SPAN_SKYBOX);
-		D_DrawZSpansFar(spans);
 		break;
 	case DS_CACHED:
 		if(d->type == SPAN_NORMAL){
