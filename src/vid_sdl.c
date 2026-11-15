@@ -286,8 +286,11 @@ void VID_Init()
 	aspectr.value = 1.333333;
 	realwidth.value = vid.width*renderscale;
 	realheight.value = (s32)(vid.width / aspectr.value + 0.5) * renderscale;
-	window = SDL_CreateWindow("QrustyQuake",realwidth.value,
-			realheight.value,SDL_WINDOW_RESIZABLE);
+	// the size is in points, with high pixel density the window has as
+	// many pixels as the screen gives it, and the picture is scaled by us
+	window = SDL_CreateWindow("QrustyQuake", realwidth.value,
+		realheight.value,
+		SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 	if(!window) Sys_Error("Couldn't create window: %s", SDL_GetError());
 	window_format = SDL_GetWindowPixelFormat(window); // for VID_SetPalette
 	SDL_SetWindowMinimumSize(window, 320, 200);
@@ -361,8 +364,8 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 	blitRect.w = vid.width;
 	blitRect.h = vid.height;
 	s32 winW, winH;
-	if(realwidth.value == 0 || realheight.value == 0){
-		SDL_GetWindowSize(window, &winW, &winH);
+	if(realwidth.value == 0 || realheight.value == 0){ // rendered to
+		SDL_GetWindowSizeInPixels(window, &winW, &winH);
 	}else{
 		winW = realwidth.value;
 		winH = realheight.value;

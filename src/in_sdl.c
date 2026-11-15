@@ -172,8 +172,10 @@ void Sys_SendKeyEvents()
 				mouse_x += event.motion.xrel;
 				mouse_y += event.motion.yrel;
 			}else if(key_dest == key_menu && ui_mouse.value){
-				s32 mx = event.motion.x;
-				s32 my = event.motion.y;
+				// in points, destRect in pixels
+				f32 d = SDL_GetWindowPixelDensity(window);
+				s32 mx = event.motion.x * d;
+				s32 my = event.motion.y * d;
 				s32 rx = mx - destRect.x;
 				s32 ry = my - destRect.y;
 				if(rx < 0) rx = 0;
@@ -210,7 +212,7 @@ void Sys_SendKeyEvents()
 			break;
 		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 			SDLWindowFlags = SDL_GetWindowFlags(window);
-			SDL_GetWindowSize(window, &winW, &winH);
+			SDL_GetWindowSizeInPixels(window, &winW, &winH);
 			Cvar_SetValue("realwidth", winW);
 			Cvar_SetValue("realheight", winH);
 			VID_CalcScreenDimensions(0);
