@@ -507,11 +507,12 @@ void SV_WriteClientdataToMessage(edict_t *ent, sizebuf_t *msg)
 	s32 bits = 0;
 	if(ent->v.view_ofs[2] != DEFAULT_VIEWHEIGHT) bits |= SU_VIEWHEIGHT;
 	if(ent->v.idealpitch) bits |= SU_IDEALPITCH;
-// stuff sigil bits into high bits of items for sbar, or else mix in items2
+// stuff sigil bits into high bits of items for sbar, or else mix in items2.
+// Unsigned, so that the bits shifted past 31 (AD sets more flags) drop out
 	eval_t *val = GetEdictFieldValueByName(ent, "items2");
-	s32 items;
-	if(val) items = (s32)ent->v.items | ((s32)val->_float << 23);
-	else items = (s32)ent->v.items|((s32)pr_global_struct->serverflags<<28);
+	u32 high = val ? (u32)(s32)val->_float << 23
+		: (u32)(s32)pr_global_struct->serverflags << 28;
+	s32 items = (s32)ent->v.items | (s32)high;
 	bits |= SU_ITEMS;
 	if((s32)ent->v.flags & FL_ONGROUND) bits |= SU_ONGROUND;
 	if(ent->v.waterlevel >= 2) bits |= SU_INWATER;

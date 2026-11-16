@@ -2372,8 +2372,10 @@ void M_Display_Draw()
 	else if(scr_hudstyle.value==7)M_Print(xoffset+204,48,"Minimalist3");
 	else if(scr_hudstyle.value==8)M_Print(xoffset+204,48,"Classic no BG");
 	else                          M_Print(xoffset+204,48,"EZQuake");
-	if(crosshair.value){ temp[0] = cl_crosschar.value+128; temp[1] = 0; }
-	else sprintf(temp, "off");
+	if(crosshair.value){
+		temp[0] = (s32)cl_crosschar.value + 128;
+		temp[1] = 0;
+	}else sprintf(temp, "off");
 	M_Print(xoffset + 204, 56, temp);
 	M_PrintVal(xoffset + 204, 64, "%0.2f\n", aspectr.value);
 	M_DrawCheckbox(xoffset + 204, 72, aspectr_lock.value);

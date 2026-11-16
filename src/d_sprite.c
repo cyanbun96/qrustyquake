@@ -145,6 +145,12 @@ NextSpan:
 	}while(pspan->count != DS_SPAN_LIST_END);
 }
 
+// An edge under a scanline tall can have any slope. Its u step then only
+// moves past the last span, so it's clamped to keep that in range; taller
+// edges have slopes under the screen width
+static s32 D_SpriteUStep(f32 slope)
+{ return (s32)(CLAMP(-16384, slope, 16384) * 0x10000); }
+
 void D_SpriteScanLeftEdge()
 { 
 	sspan_t *pspan = sprite_spans;
@@ -163,7 +169,7 @@ void D_SpriteScanLeftEdge()
 			f32 du = pnext->u - pvert->u;
 			f32 dv = pnext->v - pvert->v;
 			f32 slope = du / dv;
-			s32 u_step = (s32)(slope * 0x10000);
+			s32 u_step = D_SpriteUStep(slope);
 			// adjust u to ceil the integer portion
 			s32 u = (s32)((pvert->u + (slope *
 				(vtop - pvert->v))) * 0x10000) + (0x10000 - 1);
@@ -216,7 +222,7 @@ void D_SpriteScanRightEdge()
 			f32 du = unext - uvert;
 			f32 dv = vnext - vvert;
 			f32 slope = du / dv;
-			s32 u_step = (s32)(slope * 0x10000);
+			s32 u_step = D_SpriteUStep(slope);
 			// adjust u to ceil the integer portion
 			s32 u = (s32)((uvert + (slope * (vtop - vvert)))
 					* 0x10000)+ (0x10000 - 1);
