@@ -22,6 +22,8 @@ void R_FogSetupFrame();
 void R_DrawFog();
 void R_FogSkyAlloc();
 void R_FogMarkSky(const espan_t *span);
+const u32 *R_FogSkyRow(s32 v, u32 *key);
+u8 R_FogOverSky(u8 pix, s32 z, s32 x, s32 y);
 void IN_InitJoystick(cvar_t *cvar);                                  // in_sdl.c
 EX s32 jaxis_move_x;
 EX s32 jaxis_move_y;

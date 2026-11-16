@@ -448,6 +448,29 @@ static void Fog_BuildLevels(f32 density, bool radial)
 static u8 Fog_Channel(f32 c)
 { return CLAMP(0, Q_rint(c * 255 * r_fogbrightness.value), 255); }
 
+// fog_cos for the view, when it has changed
+static void R_FogCosines()
+{
+	static f32 xc, yc, xs, ys;
+	static s32 w, h;
+	const vrect_t *r = &r_refdef.vrect;
+	if(fog_cos && w == r->width && h == r->height && xc == xcenter
+			&& yc == ycenter && xs == xscale && ys == yscale)
+		return;
+	w = r->width; h = r->height;
+	xc = xcenter; yc = ycenter; xs = xscale; ys = yscale;
+	free(fog_cos);
+	if(!(fog_cos = malloc(sizeof(*fog_cos) * w * h)))
+		Sys_Error("R_FogCosines: out of memory");
+	for(s32 v = 0; v < h; v++){
+		f32 ty = (r->y + v - ycenter) / yscale;
+		for(s32 u = 0; u < w; u++){
+			f32 tx = (r->x + u - xcenter) / xscale;
+			fog_cos[v * w + u] = 1 / sqrtf(1 + tx * tx + ty * ty);
+		}
+	}
+}
+
 void R_FogSetupFrame()
 { // after R_ThreadsBeginFrame and before anything is drawn
 	fog_t f = Fog_Faded();
@@ -469,6 +492,8 @@ void R_FogSetupFrame()
 	}
 	if(fog_level_d != fog_density || fog_radial != radial)
 		Fog_BuildLevels(fog_density, radial);
+	if(radial) // R_FogOverSky uses it while surfaces are drawn
+		R_FogCosines();
 	fog_skylevel = CLAMP(0, map_skyfog, 1) * (FOG_LEVELS - 1) + 0.5f;
 	s32 skyfor = skybox_name[0] ? r_skymeaning_id : 0;
 	if(fog_skybuilt != fog_skylevel || fog_skyfor != skyfor)
@@ -525,7 +550,8 @@ void R_FogSkyAlloc()
 }
 
 // Fogs the sky as it's drawn, so that translucent surfaces, which don't write
-// z, go over fogged sky and R_DrawFog leaves them be
+// z, go over fogged sky and R_DrawFog leaves them be. Their own fog they get
+// from R_FogOverSky.
 void R_FogMarkSky(const espan_t *span)
 { // has to come after the span's z and colors were written
 	if(!fog_density) return;
@@ -542,6 +568,32 @@ void R_FogMarkSky(const espan_t *span)
 			R_FogSky(d_viewbuffer + screenwidth * span->v
 				+ span->u, span->u, n, d_bayer[span->v & 7]);
 	}
+}
+
+// The sky marks of view row v if the row has sky on it, else NULL. A pixel of
+// a translucent span is over sky where its mark is the z there ^ key.
+const u32 *R_FogSkyRow(s32 v, u32 *key)
+{
+	if(!fog_density || fog_skyrow[v] != (u32)r_framecount)
+		return NULL;
+	*key = fog_skykey;
+	return fog_skyz + d_zwidth * v;
+}
+
+// A translucent texel at z over sky at screen x, y, with the fog of its own
+// depth, as R_DrawFog leaves the sky be. Before it's blended, so the sky
+// under it keeps the fog it has.
+u8 R_FogOverSky(u8 pix, s32 z, s32 x, s32 y)
+{
+	f32 f = z;
+	if(fog_radial){
+		const vrect_t *r = &r_refdef.vrect;
+		f *= fog_cos[(y - r->y) * r->width + x - r->x];
+	}
+	u32 b;
+	memcpy(&b, &f, sizeof(b));
+	u32 e = fog_pair[pix][fog_level[b >> 16]];
+	return d_bayer[y & 7][x & 7] < e >> 16 ? e >> 8 : e;
 }
 
 // R_FogRow for a row with sky on it, the runs of sky are fogged already
@@ -585,35 +637,10 @@ static void R_FogRows(s32 y0, s32 y1)
 static void R_FogCmd(SDL_UNUSED void *arg)
 { R_FogRows(d_bandy0, d_bandy1); }
 
-// fog_cos for the view, when it has changed
-static void R_FogCosines()
-{
-	static f32 xc, yc, xs, ys;
-	static s32 w, h;
-	const vrect_t *r = &r_refdef.vrect;
-	if(fog_cos && w == r->width && h == r->height && xc == xcenter
-			&& yc == ycenter && xs == xscale && ys == yscale)
-		return;
-	w = r->width; h = r->height;
-	xc = xcenter; yc = ycenter; xs = xscale; ys = yscale;
-	free(fog_cos);
-	if(!(fog_cos = malloc(sizeof(*fog_cos) * w * h)))
-		Sys_Error("R_DrawFog: out of memory");
-	for(s32 v = 0; v < h; v++){
-		f32 ty = (r->y + v - ycenter) / yscale;
-		for(s32 u = 0; u < w; u++){
-			f32 tx = (r->x + u - xcenter) / xscale;
-			fog_cos[v * w + u] = 1 / sqrtf(1 + tx * tx + ty * ty);
-		}
-	}
-}
-
 void R_DrawFog()
 {
 	if(!fog_density) return;
 	const vrect_t *r = &r_refdef.vrect;
-	if(fog_radial)
-		R_FogCosines();
 	sb_updates = 0; // draw sbar over fog
 	if(r_threaded)
 		R_RowsAdd(r->y, r->y + r->height, R_FogCmd, NULL);
