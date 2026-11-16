@@ -2523,30 +2523,30 @@ void *Mod_LoadAliasFrame(void *pin, s32 *pframeindex, s32 numv,
 void *Mod_LoadAliasGroup(void *pin, s32 *pframeindex, s32 numv,
 		aliashdr_t *pheader, c8 *name, maliasframedesc_t *frame)
 {
-	daliasgroup_t *pingroup = (daliasgroup_t *) pin;
-	Mod_CheckFile(pingroup, 1, sizeof(*pingroup));
-	s32 numframes = pingroup->numframes;
+	daliasgroup_t group;
+	Mod_CheckFile(pin, 1, sizeof(group));
+	memcpy(&group, pin, sizeof(group));
+	s32 numframes = group.numframes;
 	if(numframes < 1 || numframes > MAXALIASFRAMES) Mod_BadFile();
-	Mod_CheckFile(pingroup + 1, numframes, sizeof(daliasinterval_t));
+	u8 *pin_intervals = (u8 *)pin + sizeof(group);
+	Mod_CheckFile(pin_intervals, numframes, sizeof(daliasinterval_t));
 	frame->firstpose = posenum;
 	maliasgroup_t *paliasgroup = Hunk_AllocName(sizeof(maliasgroup_t) +
 		(numframes - 1) * sizeof(paliasgroup->frames[0]), loadname);
 	frame->numposes = numframes;
 	for(s32 i = 0; i < 3; i++){
-		frame->bboxmin.v[i] = pingroup->bboxmin.v[i];
-		frame->bboxmax.v[i] = pingroup->bboxmax.v[i];
+		frame->bboxmin.v[i] = group.bboxmin.v[i];
+		frame->bboxmax.v[i] = group.bboxmax.v[i];
 	}
 	*pframeindex = (u8 *) paliasgroup - (u8 *) pheader;
-	daliasinterval_t *pin_intervals = (daliasinterval_t *) (pingroup + 1);
-	frame->interval = pin_intervals->interval;
 	f32 *poutintervals = Hunk_AllocName(numframes * sizeof(f32), loadname);
 	paliasgroup->intervals = (u8 *) poutintervals - (u8 *) pheader;
-	for(s32 i = 0; i < numframes; i++, pin_intervals++){
-		poutintervals[i] = pin_intervals->interval;
+	memcpy(poutintervals, pin_intervals, numframes * sizeof(f32));
+	frame->interval = poutintervals[0];
+	for(s32 i = 0; i < numframes; i++)
 		if(poutintervals[i] <= 0.0)
 			Sys_Error("Mod_LoadAliasGroup: interval<=0");
-	}
-	void *ptemp = (void *)pin_intervals;
+	void *ptemp = pin_intervals + numframes * sizeof(daliasinterval_t);
 	for(s32 i = 0; i < numframes; i++)
 		ptemp = Mod_LoadAliasFrame(ptemp, &paliasgroup->frames[i].frame,
 			numv, pheader, name, frame, 1);
@@ -2636,29 +2636,27 @@ void *Mod_LoadAliasSkin(void *pin, s32 *pskinindex, s32 skinsize,
 void *Mod_LoadAliasSkinGroup(void *pin, s32 *pskinindex, s32 skinsize,
 		aliashdr_t *pheader)
 {
-	daliasskingroup_t *pinskingroup = (daliasskingroup_t *) pin;
-	Mod_CheckFile(pinskingroup, 1, sizeof(*pinskingroup));
-	s32 numskins = pinskingroup->numskins;
+	daliasskingroup_t group;
+	Mod_CheckFile(pin, 1, sizeof(group));
+	memcpy(&group, pin, sizeof(group));
+	s32 numskins = group.numskins;
 	if(numskins < 1) Mod_BadFile();
-	Mod_CheckFile(pinskingroup + 1, numskins,
+	u8 *pinskinintervals = (u8 *)pin + sizeof(group);
+	Mod_CheckFile(pinskinintervals, numskins,
 			sizeof(daliasskininterval_t));
 	maliasskingroup_t *paliasskingroup =
 		Hunk_AllocName(sizeof(maliasskingroup_t) + (numskins - 1) *
 				sizeof(paliasskingroup->skindescs[0]),loadname);
 	paliasskingroup->numskins = numskins;
 	*pskinindex = (u8 *) paliasskingroup - (u8 *) pheader;
-	daliasskininterval_t *pinskinintervals =
-		(daliasskininterval_t *) (pinskingroup + 1);
 	f32 *poutskinintervals = Hunk_AllocName(numskins*sizeof(f32), loadname);
 	paliasskingroup->intervals = (u8*)poutskinintervals - (u8*)pheader;
-	for(s32 i = 0; i < numskins; i++){
-		*poutskinintervals = pinskinintervals->interval;
-		if(*poutskinintervals <= 0)
+	memcpy(poutskinintervals, pinskinintervals, numskins * sizeof(f32));
+	for(s32 i = 0; i < numskins; i++)
+		if(poutskinintervals[i] <= 0)
 			Sys_Error("Mod_LoadAliasSkinGroup: interval<=0");
-		poutskinintervals++;
-		pinskinintervals++;
-	}
-	void *ptemp = (void *)pinskinintervals;
+	void *ptemp = pinskinintervals +
+		numskins * sizeof(daliasskininterval_t);
 	for(s32 i = 0; i < numskins; i++)
 		ptemp = Mod_LoadAliasSkin(ptemp,
 			&paliasskingroup->skindescs[i].skin, skinsize, pheader);
@@ -2710,11 +2708,11 @@ static void Mod_BuildSkinMask(aliashdr_t *pheader, const stvert_t *st,
 
 void Mod_LoadAliasModel(model_t *mod, void *buffer)
 {
-	stvert_t *pstverts, *pinstverts;
+	// a skin whose size isn't a multiple of 4 leaves everything after it
+	// misaligned, so all past the header is copied out, not read in place
+	stvert_t *pstverts;
 	mtriangle_t *ptri;
-	dtriangle_t *pintriangles;
-	daliasframetype_t *pframetype;
-	daliasskintype_t *pskintype;
+	u8 *pskintype, *pinstverts, *pintriangles, *pframetype;
 	maliasskindesc_t *pskindesc;
 	s32 start = Hunk_LowMark();
 	mdl_t *pinmodel = buffer;
@@ -2777,35 +2775,39 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	    Con_DPrintf("Mod_LoadAliasModel: skinwidth not multiple of 4\n");
 	pheader->model = (u8 *)pmodel - (u8 *)pheader;
 	s32 skinsize = pmodel->skinheight * pmodel->skinwidth; // load the skins
-	pskintype = (daliasskintype_t *)&pinmodel[1];
-	Mod_CheckFile(pskintype, numskins, sizeof(*pskintype) + skinsize);
+	pskintype = (u8 *)&pinmodel[1];
+	Mod_CheckFile(pskintype, numskins,
+			sizeof(daliasskintype_t) + skinsize);
 	pskindesc = Hunk_AllocName(numskins*sizeof(maliasskindesc_t), loadname);
 	pheader->skindesc = (u8 *)pskindesc - (u8 *)pheader;
 	for(s32 i = 0; i < numskins; i++){
-		aliasskintype_t skintype;
-		Mod_CheckFile(pskintype, 1, sizeof(*pskintype));
-		skintype = (s32)(pskintype->type);
-		pskindesc[i].type = skintype;
-		if(skintype == ALIAS_SKIN_SINGLE){
-			pskintype = (daliasskintype_t *) Mod_LoadAliasSkin(
-			  pskintype + 1, &pskindesc[i].skin, skinsize, pheader);
+		daliasskintype_t skintype;
+		Mod_CheckFile(pskintype, 1, sizeof(skintype));
+		memcpy(&skintype, pskintype, sizeof(skintype));
+		pskintype += sizeof(skintype);
+		pskindesc[i].type = skintype.type;
+		if(skintype.type == ALIAS_SKIN_SINGLE){
+			pskintype = Mod_LoadAliasSkin(pskintype,
+				&pskindesc[i].skin, skinsize, pheader);
 		}else{
-			pskintype = (daliasskintype_t *) Mod_LoadAliasSkinGroup(
-			  pskintype + 1, &pskindesc[i].skin, skinsize, pheader);
+			pskintype = Mod_LoadAliasSkinGroup(pskintype,
+				&pskindesc[i].skin, skinsize, pheader);
 		}
 	}
 	pstverts = (stvert_t *)&pmodel[1]; // set base s and t vertices
-	pinstverts = (stvert_t *)pskintype;
-	Mod_CheckFile(pinstverts, numverts, sizeof(*pinstverts));
+	pinstverts = pskintype;
+	Mod_CheckFile(pinstverts, numverts, sizeof(stvert_t));
 	pheader->stverts = (u8 *)pstverts - (u8 *)pheader;
 	s32 stclamped = 0;
 	for(s32 i = 0; i < pheader->numverts; i++){
+		stvert_t in;
+		memcpy(&in, pinstverts + i * sizeof(in), sizeof(in));
 		// some exporters write 1, which would read as ALIAS_LEFT_CLIP
-		pstverts[i].onseam = pinstverts[i].onseam ? ALIAS_ONSEAM : 0;
+		pstverts[i].onseam = in.onseam ? ALIAS_ONSEAM : 0;
 		// the rasterizer doesn't wrap, so keep s and t on the skin
-		s32 s = CLAMP(0, (s32)(pinstverts[i].s), pmodel->skinwidth-1);
-		s32 t = CLAMP(0, (s32)(pinstverts[i].t), pmodel->skinheight-1);
-		stclamped |= s != pinstverts[i].s || t != pinstverts[i].t;
+		s32 s = CLAMP(0, in.s, pmodel->skinwidth-1);
+		s32 t = CLAMP(0, in.t, pmodel->skinheight-1);
+		stclamped |= s != in.s || t != in.t;
 		// put s and t in 16.16 format
 		pstverts[i].s = s << 16;
 		pstverts[i].t = t << 16;
@@ -2814,13 +2816,15 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 		Con_DPrintf("Mod_LoadAliasModel: %s has texture coordinates "
 			"outside its skin\n", mod->name);
 	ptri = (mtriangle_t *)&pstverts[pmodel->numverts];//set up the triangles
-	pintriangles = (dtriangle_t *)&pinstverts[pmodel->numverts];
-	Mod_CheckFile(pintriangles, numtris, sizeof(*pintriangles));
+	pintriangles = pinstverts + numverts * sizeof(stvert_t);
+	Mod_CheckFile(pintriangles, numtris, sizeof(dtriangle_t));
 	pheader->triangles = (u8 *)ptri - (u8 *)pheader;
 	for(s32 i = 0; i<pheader->numtris ; i++){
-		ptri[i].facesfront = pintriangles[i].facesfront;
+		dtriangle_t in;
+		memcpy(&in, pintriangles + i * sizeof(in), sizeof(in));
+		ptri[i].facesfront = in.facesfront;
 		for(s32 j = 0; j < 3; j++){
-			s32 v = pintriangles[i].vertindex[j];
+			s32 v = in.vertindex[j];
 			// the renderer indexes its vertex arrays with these
 			if(v < 0 || v >= numverts) Mod_BadFile();
 			ptri[i].vertindex[j] = v;
@@ -2828,18 +2832,19 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 	}
 	Mod_BuildSkinMask(pheader, pstverts, ptri);
 	posenum = 0; // load the frames
-	pframetype = (daliasframetype_t *)&pintriangles[pmodel->numtris];
+	pframetype = pintriangles + numtris * sizeof(dtriangle_t);
 	for(s32 i = 0; i < numframes; i++){
-		aliasframetype_t frametype = ALIAS_SINGLE; // if it's missing
-		if(mod_end - (u8 *)pframetype >= (s64)sizeof(*pframetype))
-			frametype = (aliasframetype_t)(s32)(pframetype->type);
-		if(frametype == ALIAS_SINGLE)
-			pframetype = (daliasframetype_t *) Mod_LoadAliasFrame(
-				pframetype + 1, &pheader->frames[i].frame,
+		daliasframetype_t frametype = {ALIAS_SINGLE}; // if missing
+		if(mod_end - pframetype >= (s64)sizeof(frametype))
+			memcpy(&frametype, pframetype, sizeof(frametype));
+		pframetype += sizeof(frametype);
+		if(frametype.type == ALIAS_SINGLE)
+			pframetype = Mod_LoadAliasFrame(
+				pframetype, &pheader->frames[i].frame,
 				pmodel->numverts, pheader,
 				pheader->frames[i].name, &pheader->frames[i],0);
-		else pframetype = (daliasframetype_t *) Mod_LoadAliasGroup(
-				pframetype + 1, &pheader->frames[i].frame,
+		else pframetype = Mod_LoadAliasGroup(
+				pframetype, &pheader->frames[i].frame,
 				pmodel->numverts, pheader,
 				pheader->frames[i].name, &pheader->frames[i]);
 	}
@@ -2869,12 +2874,14 @@ void Mod_LoadAliasModel(model_t *mod, void *buffer)
 void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 {
 	s32 width, height, size, origin[2];
-	dspriteframe_t *pinframe = (dspriteframe_t *) pin;
-	Mod_CheckFile(pinframe, 1, sizeof(*pinframe));
-	width = pinframe->width;
-	height = pinframe->height;
+	dspriteframe_t inframe; // after a frame of odd size it's misaligned
+	Mod_CheckFile(pin, 1, sizeof(inframe));
+	memcpy(&inframe, pin, sizeof(inframe));
+	u8 *pixels = (u8 *)pin + sizeof(inframe);
+	width = inframe.width;
+	height = inframe.height;
 	if(width < 0 || height < 0) Mod_BadFile();
-	Mod_CheckFile(pinframe + 1, width, height);
+	Mod_CheckFile(pixels, width, height);
 	size = width * height;
 	mspriteframe_t *pspriteframe = Hunk_AllocName(sizeof(mspriteframe_t) +
 			size, loadname);
@@ -2882,38 +2889,36 @@ void *Mod_LoadSpriteFrame(void *pin, mspriteframe_t **ppframe)
 	*ppframe = pspriteframe;
 	pspriteframe->width = width;
 	pspriteframe->height = height;
-	origin[0] = pinframe->origin[0];
-	origin[1] = pinframe->origin[1];
+	origin[0] = inframe.origin[0];
+	origin[1] = inframe.origin[1];
 	pspriteframe->up = origin[1];
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
-	memcpy(&pspriteframe->pixels[0], (u8 *) (pinframe+1), size);
-	return(void *)((u8 *) pinframe + sizeof(dspriteframe_t) + size);
+	memcpy(&pspriteframe->pixels[0], pixels, size);
+	return pixels + size;
 }
 
 void *Mod_LoadSpriteGroup(void *pin, mspriteframe_t **ppframe)
 {
-	dspritegroup_t *pingroup = (dspritegroup_t *) pin;
-	Mod_CheckFile(pingroup, 1, sizeof(*pingroup));
-	s32 numframes = pingroup->numframes;
+	dspritegroup_t group;
+	Mod_CheckFile(pin, 1, sizeof(group));
+	memcpy(&group, pin, sizeof(group));
+	s32 numframes = group.numframes;
 	if(numframes < 1) Mod_BadFile();
-	Mod_CheckFile(pingroup + 1, numframes, sizeof(dspriteinterval_t));
+	u8 *pin_intervals = (u8 *)pin + sizeof(group);
+	Mod_CheckFile(pin_intervals, numframes, sizeof(dspriteinterval_t));
 	mspritegroup_t *pspritegroup = Hunk_AllocName(sizeof(mspritegroup_t) +
 		(numframes - 1) * sizeof(pspritegroup->frames[0]), loadname);
 	pspritegroup->numframes = numframes;
 	*ppframe = (mspriteframe_t *) pspritegroup;
-	dspriteinterval_t *pin_intervals = (dspriteinterval_t *) (pingroup + 1);
 	f32 *poutintervals = Hunk_AllocName(numframes*sizeof(f32),loadname);
 	pspritegroup->intervals = poutintervals;
-	for(s32 i = 0; i < numframes; i++){
-		*poutintervals = pin_intervals->interval;
-		if(*poutintervals <= 0.0)
+	memcpy(poutintervals, pin_intervals, numframes * sizeof(f32));
+	for(s32 i = 0; i < numframes; i++)
+		if(poutintervals[i] <= 0.0)
 			Sys_Error("Mod_LoadSpriteGroup: interval<=0");
-		poutintervals++;
-		pin_intervals++;
-	}
-	void *ptemp = (void *)pin_intervals;
+	void *ptemp = pin_intervals + numframes * sizeof(dspriteinterval_t);
 	for(s32 i = 0; i < numframes; i++)
 		ptemp = Mod_LoadSpriteFrame(ptemp, &pspritegroup->frames[i]);
 	return ptemp;
@@ -2921,7 +2926,6 @@ void *Mod_LoadSpriteGroup(void *pin, mspriteframe_t **ppframe)
 
 void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 {
-	dspriteframetype_t *pframetype;
 	dsprite_t *pin = (dsprite_t *) buffer;
 	Mod_CheckFile(pin, 1, sizeof(*pin));
 	s32 version = pin->version;
@@ -2950,20 +2954,19 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer)
 	// load the frames
 	mod->numframes = numframes;
 	mod->flags = 0;
-	pframetype = (dspriteframetype_t *) (pin + 1);
+	u8 *pframetype = (u8 *)(pin + 1);
 	for(s32 i = 0; i < numframes; i++){
-		spriteframetype_t frametype;
-		Mod_CheckFile(pframetype, 1, sizeof(*pframetype));
-		frametype = (s32)(pframetype->type);
-		psprite->frames[i].type = frametype;
-		if(frametype == SPR_SINGLE){
-			pframetype = (dspriteframetype_t *)
-				Mod_LoadSpriteFrame(pframetype + 1,
-						&psprite->frames[i].frameptr);
+		dspriteframetype_t frametype; // misaligned after an odd frame
+		Mod_CheckFile(pframetype, 1, sizeof(frametype));
+		memcpy(&frametype, pframetype, sizeof(frametype));
+		pframetype += sizeof(frametype);
+		psprite->frames[i].type = frametype.type;
+		if(frametype.type == SPR_SINGLE){
+			pframetype = Mod_LoadSpriteFrame(pframetype,
+					&psprite->frames[i].frameptr);
 		}else{
-			pframetype = (dspriteframetype_t *)
-				Mod_LoadSpriteGroup(pframetype + 1,
-						&psprite->frames[i].frameptr);
+			pframetype = Mod_LoadSpriteGroup(pframetype,
+					&psprite->frames[i].frameptr);
 		}
 	}
 	mod->type = mod_sprite;
