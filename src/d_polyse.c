@@ -40,7 +40,8 @@ static Q_TLS spanpackage_t *a_spans;
 static Q_TLS spanpackage_t *d_pedgespanpackage;
 static Q_TLS u8 *d_pdest, *d_ptex;
 static Q_TLS s32 *d_pz;
-static Q_TLS s32 d_sfrac, d_tfrac, d_light, d_zi;
+static Q_TLS s32 d_sfrac, d_tfrac;
+static Q_TLS u32 d_light, d_zi; // unsigned, so that wrapping is defined
 static Q_TLS s32 d_ptexextrastep, d_sfracextrastep;
 static Q_TLS s32 d_tfracextrastep, d_lightextrastep, d_pdestextrastep;
 static Q_TLS s32 d_lightbasestep, d_pdestbasestep, d_ptexbasestep;
@@ -503,7 +504,7 @@ split: // split this edge
 	new[1] = (lp1[1] + lp2[1]) >> 1;
 	new[2] = (lp1[2] + lp2[2]) >> 1;
 	new[3] = (lp1[3] + lp2[3]) >> 1;
-	new[5] = (lp1[5] + lp2[5]) >> 1;
+	new[5] = ((s64)lp1[5] + lp2[5]) >> 1; // view model z < 6 passes 2^30
 	if(lp2[1] > lp1[1]) // draw the point if splitting a leading edge
 		goto nodraw;
 	if((lp2[1] == lp1[1]) && (lp2[0] < lp1[0]))
@@ -611,6 +612,23 @@ void D_PolysetSetUpForLineScan(s32 startvertu, s32 startvertv,
 	erroradjustdown = tn;
 }
 
+// A triangle thinner than a pixel can have gradients or edge steps past s32
+// (those in the demos tried drew no pixels at all). It's drawn flat instead,
+// each span at the values of its row's left end, so that no step overflows
+static void D_PolysetFlat()
+{
+	r_lstepx = r_lstepy = r_sstepx = r_sstepy = 0;
+	r_tstepx = r_tstepy = r_zistepx = r_zistepy = 0;
+	a_sstepxfrac = a_tstepxfrac = a_ststepxwhole = 0;
+}
+
+Q_SIL s32 D_GradientFits(f32 x, f32 y) // false for NaN too
+{ return fabsf(x) < 2147483648.0f && fabsf(y) < 2147483648.0f; }
+
+Q_SIL s32 D_StepsFit(s64 base, s64 x) // an edge's base step and base + x
+{ return base >= INT32_MIN && base <= INT32_MAX
+	&& base + x >= INT32_MIN && base + x <= INT32_MAX; }
+
 Q_SIL void D_PolysetCalcGradients(s32 skinwidth)
 {
 	f32 p00_minus_p20 = r_p[0][0] - r_p[2][0];
@@ -619,25 +637,38 @@ Q_SIL void D_PolysetCalcGradients(s32 skinwidth)
 	f32 p11_minus_p21 = r_p[1][1] - r_p[2][1];
 	f32 xstepdenominv = 1.0 / (f32)d_xdenom;
 	f32 ystepdenominv = -xstepdenominv;
+	f32 t0 = r_p[0][4] - r_p[2][4];
+	f32 t1 = r_p[1][4] - r_p[2][4];
+	f32 lx = (t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv;
+	f32 ly = (t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv;
+	t0 = r_p[0][2] - r_p[2][2];
+	t1 = r_p[1][2] - r_p[2][2];
+	f32 sx = (t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv;
+	f32 sy = (t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv;
+	t0 = r_p[0][3] - r_p[2][3];
+	t1 = r_p[1][3] - r_p[2][3];
+	f32 tx = (t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv;
+	f32 ty = (t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv;
+	t0 = r_p[0][5] - r_p[2][5];
+	t1 = r_p[1][5] - r_p[2][5];
+	f32 zx = (t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv;
+	f32 zy = (t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv;
+	if(!D_GradientFits(lx, ly) || !D_GradientFits(sx, sy)
+			|| !D_GradientFits(tx, ty) || !D_GradientFits(zx, zy)){
+		D_PolysetFlat();
+		return;
+	}
 // ceil() for light so positive steps are exaggerated, negative steps
 // diminished, pushing us away from underflow toward overflow. Underflow is
 // very visible, overflow is very unlikely, because of ambient lighting
-	f32 t0 = r_p[0][4] - r_p[2][4];
-	f32 t1 = r_p[1][4] - r_p[2][4];
-	r_lstepx = Q_ceil((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
-	r_lstepy = Q_ceil((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
-	t0 = r_p[0][2] - r_p[2][2];
-	t1 = r_p[1][2] - r_p[2][2];
-	r_sstepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
-	r_sstepy = (s32)((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
-	t0 = r_p[0][3] - r_p[2][3];
-	t1 = r_p[1][3] - r_p[2][3];
-	r_tstepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
-	r_tstepy = (s32)((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
-	t0 = r_p[0][5] - r_p[2][5];
-	t1 = r_p[1][5] - r_p[2][5];
-	r_zistepx = (s32)((t1*p01_minus_p21-t0*p11_minus_p21)*xstepdenominv);
-	r_zistepy = (s32)((t1*p00_minus_p20-t0*p10_minus_p20)*ystepdenominv);
+	r_lstepx = Q_ceil(lx);
+	r_lstepy = Q_ceil(ly);
+	r_sstepx = (s32)sx;
+	r_sstepy = (s32)sy;
+	r_tstepx = (s32)tx;
+	r_tstepy = (s32)ty;
+	r_zistepx = (s32)zx;
+	r_zistepy = (s32)zy;
 	a_sstepxfrac = r_sstepx & 0xFFFF;
 	a_tstepxfrac = r_tstepx & 0xFFFF;
 	a_ststepxwhole = skinwidth * (r_tstepx >> 16) + (r_sstepx >> 16);
@@ -763,7 +794,7 @@ Q_SIL void D_PolysetClampSpanLight(s32 *light, s32 *lstep, s32 count)
 	else if(*light > LIGHT_MAX) *light = LIGHT_MAX;
 	if(count < 2)
 		return;
-	s32 end = *light + *lstep * (count - 1);
+	s64 end = *light + (s64)*lstep * (count - 1);
 	if(end > LIGHT_MAX)
 		*lstep = (LIGHT_MAX - *light) / (count - 1);
 	else if(end < 0)
@@ -779,13 +810,16 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	s32 sfrac = span->sfrac;
 	s32 light = span->light;
 	s32 lstep = r_lstepx;
-	s32 zi = span->zi;
+	u32 zi = span->zi; // the step past the last pixel can leave s32
 	D_PolysetClampSpanLight(&light, &lstep, count);
 	// tfrac:light share a register like in d_polysa.s, so light carries
 	// into tfrac there, and tfrac's carry is the step to the next skin row
 	u32 tl = ((u32)span->tfrac << 16) | (light & 0xFFFF);
 	u32 tlstep = ((u32)a_tstepxfrac << 16) | (lstep & 0xFFFF);
 	s32 skinwidth = r_affinetridesc.skinwidth;
+	// in locals, as the pixel stores could change them for all GCC knows
+	u32 zistep = r_zistepx;
+	s32 ststep = a_ststepxwhole, sstep = a_sstepxfrac;
 	const u8 *bay = NULL, *row = NULL;
 	if(st->blend == BLEND_STIPPLE){
 		s32 y = (pdest - d_viewbuffer) / screenwidth;
@@ -795,17 +829,17 @@ Q_SIL void D_PolysetDrawSpan(const spanpackage_t *span, s32 count,
 	if(sample == TEXSAMPLE_DITHERED)
 		D_SkinWalkBegin(k, ptex, pdest);
 	do{
-		if(zi >= *pz){
+		if((s32)zi >= *pz){
 			u8 texel = sample == TEXSAMPLE_DITHERED ?
 			  D_PolysetDitheredTexel(k, sfrac, tl >> 16) : *ptex;
-			D_PolysetPlot(st, texel, tl & 0xFFFF, pdest, pz, zi,
-					bay, row);
+			D_PolysetPlot(st, texel, tl & 0xFFFF, pdest, pz,
+					(s32)zi, bay, row);
 		}
 		pdest++;
 		pz++;
-		zi += r_zistepx;
-		ptex += a_ststepxwhole;
-		sfrac += a_sstepxfrac;
+		zi += zistep;
+		ptex += ststep;
+		sfrac += sstep;
 		s32 scarry = sfrac >> 16;
 		ptex += scarry;
 		sfrac &= 0xFFFF;
@@ -896,23 +930,31 @@ Q_SIL void D_PolysetSetUpLeftEdgeSteps()
 	// for negative steps in x along left edge, bias toward overflow
 	// rather than underflow(sort of turning the floor() we did in
 	// the gradient calcs into ceil(), but plus a little bit)
-	s32 working_lstepx = ubasestep < 0 ? r_lstepx - 1 : r_lstepx;
+	s64 working_lstepx = ubasestep < 0 ? r_lstepx - 1LL : r_lstepx;
 	// the extra step is the base step plus one more x step
-	s32 sbase = r_sstepy + r_sstepx * ubasestep;
-	s32 tbase = r_tstepy + r_tstepx * ubasestep;
-	s32 sextra = sbase + r_sstepx;
-	s32 textra = tbase + r_tstepx;
+	s64 sbase = r_sstepy + (s64)r_sstepx * ubasestep;
+	s64 tbase = r_tstepy + (s64)r_tstepx * ubasestep;
+	s64 lbase = r_lstepy + working_lstepx * ubasestep;
+	s64 zbase = r_zistepy + (s64)r_zistepx * ubasestep;
+	if(!D_StepsFit(sbase, r_sstepx) || !D_StepsFit(tbase, r_tstepx)
+			|| !D_StepsFit(lbase, working_lstepx)
+			|| !D_StepsFit(zbase, r_zistepx)){
+		D_PolysetFlat();
+		working_lstepx = sbase = tbase = lbase = zbase = 0;
+	}
+	s64 sextra = sbase + r_sstepx;
+	s64 textra = tbase + r_tstepx;
 	s32 skinwidth = r_affinetridesc.skinwidth;
 	d_ptexbasestep = (sbase >> 16) + (tbase >> 16) * skinwidth;
 	d_sfracbasestep = sbase & 0xFFFF;
 	d_tfracbasestep = tbase & 0xFFFF;
-	d_lightbasestep = r_lstepy + working_lstepx * ubasestep;
-	d_zibasestep = r_zistepy + r_zistepx * ubasestep;
+	d_lightbasestep = lbase;
+	d_zibasestep = zbase;
 	d_ptexextrastep = (sextra >> 16) + (textra >> 16) * skinwidth;
 	d_sfracextrastep = sextra & 0xFFFF;
 	d_tfracextrastep = textra & 0xFFFF;
-	d_lightextrastep = d_lightbasestep + working_lstepx;
-	d_ziextrastep = d_zibasestep + r_zistepx;
+	d_lightextrastep = lbase + working_lstepx;
+	d_ziextrastep = zbase + r_zistepx;
 }
 
 // scans out one left edge into span packages; fracmask is 0xFFFF to start

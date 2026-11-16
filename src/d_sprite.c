@@ -21,8 +21,8 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 	f32 sdivz8stepu = d_sdivzstepu * 8;
 	f32 tdivz8stepu = d_tdivzstepu * 8;
 	f32 zi8stepu = d_zistepu * 8;
-	// we count on FP exceptions being turned off to avoid range problems
-	s32 izistep = (s32)(d_zistepu * 0x8000 * 0x10000);
+	s32 izistep = D_ZiStep(d_zistepu);
+	s32 maybenear = D_ZiNearView();
 	do{
 		if(pspan->v < 0 || pspan->v >= (s32)vid.height)
 			goto NextSpan;
@@ -34,16 +34,24 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 			goto NextSpan;
 		if(pspan->u + pspan->count > (s32)vid.width)
 			pspan->count = vid.width - pspan->u;
-		s32 count = pspan->count;
-		u8 *pdest = d_viewbuffer + (screenwidth*pspan->v) + pspan->u;
-		s32 *pz = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+		// Pixels under a unit away are left out. Their 1/z doesn't fit
+		// in s32, and x86 made it the farthest z, so they didn't show
+		espan_t span = { .u = pspan->u, .v = pspan->v,
+			.count = pspan->count }, part[2];
+		if(maybenear && D_SplitNear(&span, part))
+			span = part[0];
+		s32 u = span.u, count = span.count;
+		if(count <= 0)
+			goto NextSpan;
+		u8 *pdest = d_viewbuffer + (screenwidth*pspan->v) + u;
+		s32 *pz = d_pzbuffer + (d_zwidth * pspan->v) + u;
 		if(pdest < d_viewbuffer
 			|| pdest+count > d_viewbuffer+vid.width*vid.height)
 			goto NextSpan;
 		if(pz<d_pzbuffer || pz+count>d_pzbuffer+vid.width*vid.height)
 			goto NextSpan;
 		// calculate the initial s/z, t/z, 1/z, s, and t and clamp
-		f32 du = (f32)pspan->u;
+		f32 du = (f32)u;
 		f32 dv = (f32)pspan->v;
 		f32 sdivz = d_sdivzorigin+dv*d_sdivzstepv+du*d_sdivzstepu;
 		f32 tdivz = d_tdivzorigin+dv*d_tdivzstepv+du*d_tdivzstepu;

@@ -324,12 +324,12 @@ Q_SIL void D_SpanWalkEndChunk(spanwalk_t *w)
 
 // 1/z steps in z-buffer units, clamped so that stepping off the last pixel
 // of a span stays in range however steep the face is
-static s32 D_ZiStep(f32 zistep)
+s32 D_ZiStep(f32 zistep)
 { return (s32)(CLAMP(-ZI_NEAR, zistep, ZI_NEAR) * 0x8000 * 0x10000); }
 
 // Whether the surface could have near pixels anywhere in the view. 1/z is
 // linear, so it's highest at a corner, plus a step for D_SplitNear.
-static s32 D_ZiNearView()
+s32 D_ZiNearView()
 {
 	f64 su = d_zistepu, sv = d_zistepv;
 	return d_ziorigin + (su > 0 ? su * vid.width : 0)
@@ -339,7 +339,7 @@ static s32 D_ZiNearView()
 // Cuts a span into the rest, part[0], and its near pixels, part[1]. Those
 // are at one end, with any pixel whose step toward that end lands there,
 // so that stepping off the rest stays in range. 0 if there are none.
-static s32 D_SplitNear(const espan_t *pspan, espan_t part[2])
+s32 D_SplitNear(const espan_t *pspan, espan_t part[2])
 {
 	f64 s = d_zistepu, n = pspan->count;
 	f64 zi = d_ziorigin + pspan->v * (f64)d_zistepv + pspan->u * s;
