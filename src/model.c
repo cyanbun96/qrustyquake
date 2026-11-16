@@ -170,6 +170,8 @@ static model_t* loadmodel;
 static c8 loadname[32]; // for hunk tags
 static u8 *mod_base;
 static u8 *mod_end; // one past the last byte of the file being loaded
+static u8 *mod_lumpbuf; // aligned copy of the lump being loaded, if needed
+static s32 mod_lumpsize;
 static void Mod_LoadSpriteModel(model_t *mod, void *buffer);
 static void Mod_LoadBrushModel(model_t *mod, void *buffer);
 static void Mod_LoadAliasModel(model_t *mod, void *buffer);
@@ -429,15 +431,33 @@ static void bilinear_u8(u8 *in, u8 *out, s32 w, s32 h, s32 new_w, s32 new_h)
 	}
 }
 
-static s32 Mod_MiptexAvail(lump_t *l, miptex_t *mt, u32 ofs)
-{ // how many bytes of pixels at ofs the lump really has (0 if none)
-	u8 *end = mod_base + l->fileofs + l->filelen;
-	if(ofs < sizeof(miptex_t) || ofs >= (u32)(end - (u8 *)mt))
-		return 0; // compilers write 0 when the texture is in a wad
-	return end - ((u8 *)mt + ofs);
+static void *Mod_LumpData(lump_t *l)
+{ // some compilers don't pad lumps to 4 bytes, and loading an s32 or f32
+  // from an odd address is undefined: ARMv7 vldr raises SIGBUS.
+  // The copy lasts until the next call
+	u8 *in = mod_base + l->fileofs;
+	if(!((uintptr_t)in & 3) || !l->filelen)
+		return in;
+	if(mod_lumpsize < l->filelen){
+		free(mod_lumpbuf);
+		mod_lumpbuf = malloc(l->filelen);
+		mod_lumpsize = mod_lumpbuf ? l->filelen : 0;
+		if(!mod_lumpbuf)
+			return in; // still works where the CPU allows it
+	}
+	memcpy(mod_lumpbuf, in, l->filelen);
+	return mod_lumpbuf;
 }
 
-static texture_t *Mod_LoadTextureQ64(lump_t *l, miptex_t *mt, s32 shift)
+static s32 Mod_MiptexAvail(u8 *end, u8 *data, u32 ofs)
+{ // how many bytes of pixels at ofs the lump really has (0 if none)
+	if(ofs < sizeof(miptex_t) || ofs >= (u32)(end - data))
+		return 0; // compilers write 0 when the texture is in a wad
+	return end - (data + ofs);
+}
+
+static texture_t *Mod_LoadTextureQ64(u8 *end, miptex_t *mt, u8 *data,
+		s32 shift)
 { // Q64 has no mips and stretches textures over 2*shift texels (Ironwail)
 	bool sky = !SDL_strncasecmp(mt->name, "sky", 3);
 	s32 srcw = mt->width, srch = mt->height;
@@ -453,8 +473,8 @@ static texture_t *Mod_LoadTextureQ64(lump_t *l, miptex_t *mt, s32 shift)
 	for(s32 j = 1; j < MIPLEVELS; j++)
 		tx->offsets[j] = tx->offsets[j-1] + (w>>(j-1)) * (h>>(j-1));
 	u8 *dst = (u8 *)tx + tx->offsets[0];
-	u8 *src = (u8 *)mt + mt->offsets[0];
-	if(Mod_MiptexAvail(l, mt, mt->offsets[0]) < srcw * srch){
+	u8 *src = data + mt->offsets[0];
+	if(Mod_MiptexAvail(end, data, mt->offsets[0]) < srcw * srch){
 		Con_DPrintf("Texture %.16s has no pixels\n", mt->name);
 		memset(dst, 0, pixels);
 	}else if(sky) for(s32 y = 0; y < h; y++)
@@ -528,17 +548,18 @@ void Mod_LoadTextures(lump_t *l)
 		loadmodel->textures = NULL;
 		return;
 	}
-	dmiptexlump_t *m = (dmiptexlump_t *) (mod_base + l->fileofs);
-	if(l->filelen < 4 || m->nummiptex < 0 ||
-			m->nummiptex > (l->filelen - 4) / 4){
+	dmiptexlump_t *m = Mod_LumpData(l);
+	u8 *end = (u8 *)m + l->filelen;
+	s32 count = l->filelen < 4 ? -1 : m->nummiptex;
+	if(count < 0 || count > (l->filelen - 4) / 4){
 		Con_Printf("Mod_LoadTextures: bad texture count in %s\n",
 				loadmodel->name);
-		m->nummiptex = l->filelen < 4 ? 0 : (l->filelen - 4) / 4;
+		count = l->filelen < 4 ? 0 : (l->filelen - 4) / 4;
 	}
-	loadmodel->numtextures = m->nummiptex;
-	loadmodel->textures = Hunk_AllocName(m->nummiptex *
+	loadmodel->numtextures = count;
+	loadmodel->textures = Hunk_AllocName(count *
 			sizeof(*loadmodel->textures), loadname);
-	for(s32 i = 0; i < m->nummiptex; i++){
+	for(s32 i = 0; i < count; i++){
 		if(m->dataofs[i] == -1) continue;
 		bool q64 = loadmodel->bspversion == BSPVERSION_QUAKE64;
 		if(m->dataofs[i] < 0 || (u32)m->dataofs[i] > l->filelen -
@@ -547,31 +568,35 @@ void Mod_LoadTextures(lump_t *l)
 					i, loadmodel->name);
 			continue;
 		}
-		miptex_t *mt = (miptex_t *) ((u8 *) m + m->dataofs[i]);
+		// compilers don't always align miptexes inside the lump
+		u8 *data = (u8 *)m + m->dataofs[i]; // offsets count from here
+		miptex_t mt;
 		s32 shift = 0;
-		if(q64){ // move name and size over the shift, so the rest
-			// can read it as a plain miptex_t
-			shift = ((miptex64_t *)mt)->shift;
-			memmove((u8 *)mt + 4, mt, offsetof(miptex64_t, shift));
-			mt = (miptex_t *)((u8 *)mt + 4);
+		if(q64){ // drop the shift, so the rest reads a plain miptex_t
+			miptex64_t mt64;
+			memcpy(&mt64, data, sizeof(mt64));
+			memcpy(&mt, &mt64, offsetof(miptex64_t, shift));
+			shift = mt64.shift;
+			data += 4; // the pixels follow the larger header
 			for(s32 j = 0; j < MIPLEVELS; j++)
-				if(mt->offsets[j]) mt->offsets[j] -= 4;
-		}
-		if(!mt->width || !mt->height || mt->width > 8192 ||
-				mt->height > 8192){
+				mt.offsets[j] = mt64.offsets[j] ?
+					mt64.offsets[j] - 4 : 0;
+		}else memcpy(&mt, data, sizeof(mt));
+		if(!mt.width || !mt.height || mt.width > 8192 ||
+				mt.height > 8192){
 			Con_Printf("Texture %.16s has bad size %ux%u\n",
-					mt->name, mt->width, mt->height);
+					mt.name, mt.width, mt.height);
 			continue;
 		}
-		if(q64 && mt->name[0] != '*' && !((mt->width|mt->height) & 7)){
+		if(q64 && mt.name[0] != '*' && !((mt.width|mt.height) & 7)){
 			loadmodel->textures[i] =
-				Mod_LoadTextureQ64(l, mt, shift);
+				Mod_LoadTextureQ64(end, &mt, data, shift);
 			continue;
 		}
-		if((mt->width & 7) || (mt->height & 7)){
-			Con_Printf("Texture %s is not 8 aligned\n", mt->name);
-			s32 srcw = mt->width;
-			s32 srch = mt->height;
+		if((mt.width & 7) || (mt.height & 7)){
+			Con_Printf("Texture %s is not 8 aligned\n", mt.name);
+			s32 srcw = mt.width;
+			s32 srch = mt.height;
 			s32 w = srcw;
 			s32 h = srch;
 			w = (w + 15) & ~15;
@@ -597,7 +622,7 @@ void Mod_LoadTextures(lump_t *l)
 			texture_t *tx = Hunk_AllocName(
 					sizeof(texture_t) + pixels, loadname);
 			loadmodel->textures[i] = tx;
-			memcpy(tx->name, mt->name, sizeof(tx->name));
+			memcpy(tx->name, mt.name, sizeof(tx->name));
 			tx->width = w;
 			tx->height = h;
 			tx->offsets[0] = sizeof(texture_t);
@@ -605,13 +630,14 @@ void Mod_LoadTextures(lump_t *l)
 			tx->offsets[2] = tx->offsets[1] + mip1;
 			tx->offsets[3] = tx->offsets[2] + mip2;
 			u8 *dst = (u8*)tx + tx->offsets[0];
-			if(Mod_MiptexAvail(l, mt, mt->offsets[0]) < srcw*srch){
+			if(Mod_MiptexAvail(end, data, mt.offsets[0])
+					< srcw * srch){
 				Con_DPrintf("Texture %.16s has no pixels\n",
-						mt->name);
+						mt.name);
 				memset(dst, 0, pixels);
 				continue;
 			}
-			u8 *src = (u8*)mt + mt->offsets[0];
+			u8 *src = data + mt.offsets[0];
 			for(s32 y = 0; y < h; y++){
 				s32 sy = y * srch / h;
 				for(s32 x = 0; x < w; x++){
@@ -635,34 +661,34 @@ void Mod_LoadTextures(lump_t *l)
 					}
 				}
 			}
-			if(!strncmp(mt->name, "sky", 3))
+			if(!strncmp(mt.name, "sky", 3))
 				R_InitSky(tx);
 			continue;
-		}else if(((mt->width & 8) || (mt->height & 8)) && !q64)
-			Con_Printf("Texture %s is not 16 aligned\n", mt->name);
-		bool is_water = (mt->name[0] == '*');
+		}else if(((mt.width & 8) || (mt.height & 8)) && !q64)
+			Con_Printf("Texture %s is not 16 aligned\n", mt.name);
+		bool is_water = (mt.name[0] == '*');
 		//CyanBun96: turbulent rendering code only supports 64x64
 		//textures, and i'm NOT trying to rewrite it to support more.
-		if(is_water && (mt->width != 64 || mt->height != 64)){
-			u8 *src = (u8 *)mt + mt->offsets[0];
+		if(is_water && (mt.width != 64 || mt.height != 64)){
+			u8 *src = data + mt.offsets[0];
 			u8 resized[64 * 64];
 			//simple nearest-neighbor downscale
-			if(Mod_MiptexAvail(l, mt, mt->offsets[0])
-					< (s32)(mt->width * mt->height))
+			if(Mod_MiptexAvail(end, data, mt.offsets[0])
+					< (s32)(mt.width * mt.height))
 				memset(resized, 0, sizeof(resized));
 			else for(s32 y = 0; y < 64; y++){
-				s32 src_y = y * mt->height / 64;
+				s32 src_y = y * mt.height / 64;
 				for(s32 x = 0; x < 64; x++){
-					s32 src_x = x * mt->width / 64;
+					s32 src_x = x * mt.width / 64;
 					resized[y * 64 + x] =
-						src[src_y * mt->width + src_x];
+						src[src_y * mt.width + src_x];
 				}
 			}
 			s32 pixels = 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8;
 			texture_t *tx = Hunk_AllocName(sizeof(texture_t)+pixels,
 							loadname);
 			loadmodel->textures[i] = tx;
-			memcpy(tx->name, mt->name, sizeof(tx->name));
+			memcpy(tx->name, mt.name, sizeof(tx->name));
 			tx->width = 64;
 			tx->height = 64;
 			tx->offsets[0] = sizeof(texture_t);//mips are not used
@@ -672,33 +698,34 @@ void Mod_LoadTextures(lump_t *l)
 			memcpy((u8*)tx + tx->offsets[0], resized, 64 * 64);
 			continue;
 		}
-		s32 pixels = mt->width * mt->height / 64 * 85;
+		s32 pixels = mt.width * mt.height / 64 * 85;
 		texture_t *tx=Hunk_AllocName(sizeof(texture_t)+pixels,loadname);
 		loadmodel->textures[i] = tx;
-		memcpy(tx->name, mt->name, sizeof(tx->name));
-		tx->width = mt->width;
-		tx->height = mt->height;
+		memcpy(tx->name, mt.name, sizeof(tx->name));
+		tx->width = mt.width;
+		tx->height = mt.height;
 		// the pixels immediately follow the structures, unless the
 		// compiler left them out or the lump got cut short
-		s32 avail = mt->offsets[0] ?
-			Mod_MiptexAvail(l, mt, sizeof(miptex_t)) : 0;
+		s32 avail = mt.offsets[0] ?
+			Mod_MiptexAvail(end, data, sizeof(miptex_t)) : 0;
 		if(avail < pixels){
 			Con_DPrintf("Texture %.16s is missing %d bytes\n",
-					mt->name, pixels - avail);
+					mt.name, pixels - avail);
 			memset((u8 *)(tx + 1) + avail, 0, pixels - avail);
 		}
-		memcpy(tx + 1, mt + 1, avail < pixels ? avail : pixels);
+		memcpy(tx + 1, data + sizeof(miptex_t),
+				avail < pixels ? avail : pixels);
 		s32 mipofs = 0;
 		for(s32 j = 0; j < MIPLEVELS; j++){
-			u32 ofs = mt->offsets[j] - sizeof(miptex_t);
-			u32 size = (mt->width >> j) * (mt->height >> j);
-			if(mt->offsets[j] < sizeof(miptex_t) ||
+			u32 ofs = mt.offsets[j] - sizeof(miptex_t);
+			u32 size = (mt.width >> j) * (mt.height >> j);
+			if(mt.offsets[j] < sizeof(miptex_t) ||
 					ofs + size > (u32)pixels)
 				ofs = mipofs; // where a compiler would put it
 			tx->offsets[j] = ofs + sizeof(texture_t);
 			mipofs += size;
 		}
-		if(!SDL_strncasecmp(mt->name, "sky", 3))
+		if(!SDL_strncasecmp(mt.name, "sky", 3))
 			R_InitSky(tx);
 		u8 *base = (u8 *)tx + (s32)(tx->offsets[0]);
 		bool rebuild[MIPLEVELS] = {0};
@@ -706,7 +733,7 @@ void Mod_LoadTextures(lump_t *l)
 		if(bad >= (s32)sizeof(miptex_t) &&
 				Mod_MiptexClobbered((u8 *)(tx + 1) + bad)){
 			Con_DPrintf("Texture %.16s has clobbered mips\n",
-					mt->name);
+					mt.name);
 			for(s32 j = 1; j < MIPLEVELS; j++){
 				s32 ofs = tx->offsets[j] - sizeof(texture_t);
 				s32 size = (tx->width>>j) * (tx->height>>j);
@@ -722,7 +749,7 @@ void Mod_LoadTextures(lump_t *l)
 					tx->width, tx->height,
 					tx->width >> j, tx->height >> j);
 	}
-	for(s32 i = 0; i < m->nummiptex; i++){ // sequence the animations
+	for(s32 i = 0; i < count; i++){ // sequence the animations
 		texture_t *tx = loadmodel->textures[i];
 		if(!tx || tx->name[0] != '+') continue;
 		if(tx->anim_next) continue; // allready sequenced
@@ -744,7 +771,7 @@ void Mod_LoadTextures(lump_t *l)
 			altanims[altmax] = tx;
 			altmax++;
 		}else Sys_Error("Bad animating texture %s", tx->name);
-		for(s32 j = i + 1; j < m->nummiptex; j++){
+		for(s32 j = i + 1; j < count; j++){
 			texture_t *tx2 = loadmodel->textures[j];
 			if(!tx2 || tx2->name[0] != '+') continue;
 			if(strcmp(tx2->name + 2, tx->name + 2)) continue;
@@ -873,8 +900,9 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 	if(l->filelen % insize)
 	Sys_Error("MOD_LoadEdges: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / insize;
-	dledge_t *inl = (dledge_t *)(mod_base + l->fileofs);
-	dedge_t *ins = (dedge_t *)(mod_base + l->fileofs);
+	void *in = Mod_LumpData(l);
+	dledge_t *inl = in;
+	dedge_t *ins = in;
 	medge_t *out = (medge_t *)Hunk_AllocName((count + 13)
 			* sizeof(*out), loadname);
 	loadmodel->edges = out;
@@ -887,7 +915,7 @@ static void Mod_LoadEdges(lump_t *l, s32 bsp2)
 
 static void Mod_LoadVertexes(lump_t *l)
 {
-	dvertex_t *in = (dvertex_t *)(mod_base + l->fileofs);
+	dvertex_t *in = Mod_LumpData(l);
 	if(l->filelen % sizeof(*in))
 	   Sys_Error("MOD_LoadVertexes: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
@@ -944,7 +972,7 @@ _load_embedded:
 
 static void Mod_LoadTexinfo(lump_t *l)
 {
-	texinfo_t *in = (void *)(mod_base + l->fileofs);
+	texinfo_t *in = Mod_LumpData(l);
 	if(l->filelen % sizeof(*in))
 	   Sys_Error("MOD_LoadTexinfo: funny lump size in %s", loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
@@ -1050,12 +1078,12 @@ static void Mod_LoadFaces(lump_t *l, bool bsp2)
 	s32 planenum, side, texinfon;
 	if(bsp2){
 		ins = NULL;
-		inl = (dlface_t *)(mod_base + l->fileofs);
+		inl = Mod_LumpData(l);
 		if(l->filelen % sizeof(*inl))
 	     Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 		count = l->filelen / sizeof(*inl);
 	}else{
-		ins = (dface_t *)(mod_base + l->fileofs);
+		ins = Mod_LumpData(l);
 		inl = NULL;
 		if(l->filelen % sizeof(*ins))
 	     Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
@@ -1454,7 +1482,7 @@ static mnode_t *Mod_LeafChild(s32 p)
 #define MOD_LOADNODES(NAME, DTYPE, LIMITED, CHILD, ISNODE, LEAF) \
 static void NAME(lump_t *l) \
 { \
-	DTYPE *in = (DTYPE *)(mod_base + l->fileofs); \
+	DTYPE *in = Mod_LumpData(l); \
 	if(l->filelen % sizeof(*in)) \
 		Sys_Error("Mod_LoadNodes: funny lump size in %s", \
 				loadmodel->name); \
@@ -1532,7 +1560,7 @@ MOD_PROCESSLEAFS(Mod_ProcessLeafs_L2, dl2leaf_t, 0)
 
 static void Mod_LoadLeafs(lump_t *l, s32 bsp2)
 {
-	void *in = (void *)(mod_base + l->fileofs);
+	void *in = Mod_LumpData(l);
 	if(bsp2 == 2) Mod_ProcessLeafs_L2((dl2leaf_t *)in, l->filelen);
 	else if(bsp2) Mod_ProcessLeafs_L1((dl1leaf_t *)in, l->filelen);
 	else Mod_ProcessLeafs_S((dleaf_t *) in, l->filelen);
@@ -1632,12 +1660,12 @@ static void Mod_LoadClipnodes(lump_t *l, bool bsp2)
 	s32 count;
 	if(bsp2){
 		ins = NULL;
-		inl = (dlclipnode_t *)(mod_base + l->fileofs);
+		inl = Mod_LumpData(l);
 		if(l->filelen % sizeof(*inl))
 	  Sys_Error("Mod_LoadClipnodes: funny lump size in %s",loadmodel->name);
 		count = l->filelen / sizeof(*inl);
 	}else{
-		ins = (dsclipnode_t *)(mod_base + l->fileofs);
+		ins = Mod_LumpData(l);
 		inl = NULL;
 		if(l->filelen % sizeof(*ins))
 	  Sys_Error("Mod_LoadClipnodes: funny lump size in %s",loadmodel->name);
@@ -1705,7 +1733,7 @@ static void Mod_MakeHull0()
 static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 {
 	if(bsp2){
-		u32 *in = (u32 *)(mod_base + l->fileofs);
+		u32 *in = Mod_LumpData(l);
 		if(l->filelen % sizeof(*in))
       Host_Error("Mod_LoadMarksurfaces: funny lump size in %s",loadmodel->name);
 		s32 count = l->filelen / sizeof(*in);
@@ -1718,7 +1746,7 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 			out[i] = loadmodel->surfaces + j;
 		}
 	}else{
-		s16 *in = (s16 *)(mod_base + l->fileofs);
+		s16 *in = Mod_LumpData(l);
 		if(l->filelen % sizeof(*in))
       Host_Error("Mod_LoadMarksurfaces: funny lump size in %s",loadmodel->name);
 		s32 count = l->filelen / sizeof(*in);
@@ -1737,7 +1765,7 @@ static void Mod_LoadMarksurfaces(lump_t *l, s32 bsp2)
 
 static void Mod_LoadSurfedges(lump_t *l)
 {
-	s32 *in = (s32 *)(mod_base + l->fileofs);
+	s32 *in = Mod_LumpData(l);
 	if(l->filelen % sizeof(*in))
 	  Sys_Error("MOD_LoadSurfedges: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
@@ -1762,7 +1790,7 @@ static void Mod_LoadSurfedges(lump_t *l)
 
 static void Mod_LoadPlanes(lump_t *l)
 {
-	dplane_t *in = (dplane_t *)(mod_base + l->fileofs);
+	dplane_t *in = Mod_LumpData(l);
 	if(l->filelen % sizeof(*in))
 	     Sys_Error("MOD_LoadPlanes: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
@@ -1792,7 +1820,7 @@ static f32 RadiusFromBounds(vec3_t min, vec3_t max)
 
 static void Mod_LoadSubmodels(lump_t *l)
 {
-	dmodel_t *in = (dmodel_t *)(mod_base + l->fileofs);
+	dmodel_t *in = Mod_LumpData(l);
 	if(l->filelen % sizeof(*in))
 	  Sys_Error("MOD_LoadSubmodels: funny lump size in %s",loadmodel->name);
 	s32 count = l->filelen / sizeof(*in);
@@ -2378,6 +2406,9 @@ visdone:
 	Mod_LoadNodes(&header->lumps[5], bsp2);
 	Mod_LoadClipnodes(&header->lumps[9], bsp2);
 	Mod_LoadSubmodels(&header->lumps[14]);
+	free(mod_lumpbuf); // all lumps are in
+	mod_lumpbuf = NULL;
+	mod_lumpsize = 0;
 	Mod_RelistFaces(mod);
 	Mod_FindVisOrphans(mod);
 	Mod_MakeHull0();
