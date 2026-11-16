@@ -270,6 +270,18 @@ void Sbar_SoloScoreboard()
 	Draw_StringScaled(WW/2+72*SCL+xx-l*4*SCL, HH-12*SCL, lvnamebuf, SCL);
 }
 
+void Sbar_ScoreSigils() // on the scorebar for the HUD styles without them
+{ // ibar's sigil box, centered or to the right of the EZQuake weapons
+	if(!sb_showscores || rogue || !(cl.items & (15u << 28)))
+		return;
+	s32 x = scr_hudstyle.value == 9 ? WW/2 + 128*SCL : WW/2 - 16*SCL;
+	s32 y = HH - 40*SCL;
+	Draw_PicScaledPartial(x - 288*SCL, y, 288, 8, 320, 24, sb_ibar, SCL);
+	for(s32 i = 0; i < 4; i++)
+		if(cl.items & (1u << (28 + i)))
+			Draw_TransPicScaled(x + i*8*SCL, y, sb_sigil[i], SCL);
+}
+
 void Sbar_CalcPos()
 {
 	s32 arcade_offs_x = scr_hudstyle.value == 4 ? 160*SCL : 0;
@@ -983,6 +995,7 @@ void Sbar_Min(s32 color)
 	if(sb_showscores || cl.stats[STAT_HEALTH] <= 0){
 		Draw_TransPicScaled(WW/2-160*SCL, HH-24*SCL, sb_scorebar, SCL);
 		Sbar_SoloScoreboard();
+		Sbar_ScoreSigils();
 		sb_updates = 0;
 		return;
 	}
@@ -1109,6 +1122,9 @@ void Sbar_Draw()
 		s32 xx = (oldhudstyle == 4 && WW/SCL >= 640)*-160*SCL;
 		Draw_TransPicScaled(WW/2-160*SCL+xx,HH-24*SCL,sb_scorebar, SCL);
 		Sbar_SoloScoreboard();
+		if(scr_hudstyle.value == 1 || scr_hudstyle.value == 2
+				|| scr_hudstyle.value == 9) // modern, EZQuake
+			Sbar_ScoreSigils();
 		sb_updates = 0;
 	}else if(scr_hudstyle.value == 9){ // EZQuake
 		Sbar_DrawArmor();
