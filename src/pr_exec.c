@@ -43,6 +43,11 @@ static const c8 *pr_opnames[] = {
 	"AND", "OR", "BITAND", "BITOR"
 };
 
+// The s32 of a QC float for the bit operations. Infinities, NaN and floats
+// past s32 are undefined as such; they get INT32_MIN, as x86 always gave them
+Q_SIL s32 PR_FloatBits(f32 f)
+{ return f >= -2147483648.0f && f < 2147483648.0f ? (s32)f : INT32_MIN; }
+
 static void PR_PrintStatement(dstatement_t *s)
 {
 	if((u32)s->op < Q_COUNTOF(pr_opnames)){
@@ -268,10 +273,12 @@ void PR_ExecuteProgram(func_t fnum)
 			OPC->_float = OPA->_float / OPB->_float;
 			break;
 		case OP_BITAND:
-			OPC->_float = (s32)OPA->_float & (s32)OPB->_float;
+			OPC->_float = PR_FloatBits(OPA->_float)
+				& PR_FloatBits(OPB->_float);
 			break;
 		case OP_BITOR:
-			OPC->_float = (s32)OPA->_float | (s32)OPB->_float;
+			OPC->_float = PR_FloatBits(OPA->_float)
+				| PR_FloatBits(OPB->_float);
 			break;
 		case OP_GE:
 			OPC->_float = OPA->_float >= OPB->_float;
