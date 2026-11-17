@@ -22,7 +22,7 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 	f32 tdivz8stepu = d_tdivzstepu * 8;
 	f32 zi8stepu = d_zistepu * 8;
 	s32 izistep = D_ZiStep(d_zistepu);
-	s32 maybenear = D_ZiNearView();
+	s32 maysplit = D_ZiSplitView();
 	do{
 		if(pspan->v < 0 || pspan->v >= (s32)vid.height)
 			goto NextSpan;
@@ -35,10 +35,11 @@ void D_SpriteDrawSpans(sspan_t *pspan)
 		if(pspan->u + pspan->count > (s32)vid.width)
 			pspan->count = vid.width - pspan->u;
 		// Pixels under a unit away are left out. Their 1/z doesn't fit
-		// in s32, and x86 made it the farthest z, so they didn't show
+		// in s32, and x86 made it the farthest z, so they didn't show.
+		// Far ones (D_SplitDepth) are behind everything anyway.
 		espan_t span = { .u = pspan->u, .v = pspan->v,
-			.count = pspan->count }, part[2];
-		if(maybenear && D_SplitNear(&span, part))
+			.count = pspan->count }, part[3];
+		if(maysplit && D_SplitDepth(&span, part))
 			span = part[0];
 		s32 u = span.u, count = span.count;
 		if(count <= 0)

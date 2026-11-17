@@ -118,7 +118,7 @@ static void D_DrawZSpansFar(espan_t *spans)
 {
 	d_zistepu = 0; // set up gradient for background surf that places it
 	d_zistepv = 0; // effectively at infinity distance from the viewpoint
-	d_ziorigin = -0.9;
+	d_ziorigin = ZI_BACKGROUND;
 	D_DrawZSpans(spans);
 }
 

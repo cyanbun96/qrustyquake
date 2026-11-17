@@ -675,6 +675,7 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define SPAN_SKYBOX 2
 #define SPAN_TRANS 4
 #define SPAN_CUTOUT 8
+#define ZI_BACKGROUND (-0.9f) // 1/z of the void: behind it all, never fogged
 #define R_MAXBANDS 1024                                            // r_thread.c
 #define R_MAXWORKERS 64
 #define SURFS_DRAW 0 // what D_DrawSurfaces does: set up and draw the spans
