@@ -1357,6 +1357,20 @@ static void PR_FillOffsetTables()
 	}
 }
 
+// A section of the progs at an odd offset (travail's compiler doesn't pad),
+// copied where its s32 and f32 can be loaded: on ARMv7 that would fault
+static void *PR_AlignedSection(u32 ofs, size_t size)
+{
+	u8 *p = (u8 *)qcvm->progs + ofs;
+	if(!(ofs & 3))
+		return p;
+	if(ofs > (u32)com_filesize || size > com_filesize - ofs)
+		Host_Error("progs.dat sections go past end of file\n");
+	void *a = Hunk_AllocName(size, "progs");
+	memcpy(a, p, size);
+	return a;
+}
+
 bool PR_LoadProgs(const c8 *filename, bool fatal)
 {
 	PR_ClearProgs(qcvm);//just in case.
@@ -1409,8 +1423,8 @@ Host_Error("%s system vars have been modified, progdefs.h is out of date",
 			return false;
 		}
 	}
-	qcvm->functions = (dfunction_t *)((u8 *)qcvm->progs
-			+ qcvm->progs->ofs_functions);
+	qcvm->functions = PR_AlignedSection(qcvm->progs->ofs_functions,
+			qcvm->progs->numfunctions * sizeof(dfunction_t));
 	qcvm->strings = (c8 *)qcvm->progs + qcvm->progs->ofs_strings;
 	if(qcvm->progs->ofs_strings + qcvm->progs->numstrings >= com_filesize)
 		Host_Error("progs.dat strings go past end of file\n");
@@ -1422,13 +1436,22 @@ Host_Error("%s system vars have been modified, progdefs.h is out of date",
 	qcvm->knownstrings = NULL;
 	qcvm->firstfreeknownstring = NULL;
 	PR_SetEngineString("");
-	qcvm->globaldefs = (ddef_t *)((u8 *)qcvm->progs
-			+ qcvm->progs->ofs_globaldefs);
+	qcvm->globaldefs = PR_AlignedSection(qcvm->progs->ofs_globaldefs,
+			qcvm->progs->numglobaldefs * sizeof(ddef_t));
 	qcvm->fielddefs = (ddef_t *)((u8 *)qcvm->progs
 			+ qcvm->progs->ofs_fielddefs);
-	qcvm->statements = (dstatement_t *)((u8 *)qcvm->progs
-			+ qcvm->progs->ofs_statements);
-	qcvm->globals = (f32 *)((u8 *)qcvm->progs + qcvm->progs->ofs_globals);
+	if(qcvm->progs->ofs_fielddefs & 3){ // malloc: owned like merged defs
+		size_t size = qcvm->progs->numfielddefs * sizeof(ddef_t);
+		ddef_t *defs = malloc(q_max(size, 1));
+		if(!defs)
+			Sys_Error("PR_LoadProgs: out of memory");
+		memcpy(defs, qcvm->fielddefs, size);
+		qcvm->fielddefs = defs;
+	}
+	qcvm->statements = PR_AlignedSection(qcvm->progs->ofs_statements,
+			qcvm->progs->numstatements * sizeof(dstatement_t));
+	qcvm->globals = PR_AlignedSection(qcvm->progs->ofs_globals,
+			qcvm->progs->numglobals * 4);
 	pr_global_struct = (globalvars_t*)qcvm->globals;
 	for(s32 i = 0; i < qcvm->progs->numfielddefs; i++)
 		if(qcvm->fielddefs[i].type & DEF_SAVEGLOBAL)
