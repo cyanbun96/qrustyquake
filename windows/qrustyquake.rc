@@ -1,0 +1,2 @@
+// The first icon in the exe, shown by Explorer and used by SDL for the window
+1 ICON "qqicon.ico"

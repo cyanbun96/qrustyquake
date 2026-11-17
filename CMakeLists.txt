@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 0.8.2)
+project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 1.0.0)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(Math)
@@ -77,6 +77,11 @@ endif()
 
 if(WIN32 OR MSVC OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(qrustyquake PRIVATE ws2_32)
+	set(QRUSTYQUAKE_RC "${PROJECT_SOURCE_DIR}/windows/qrustyquake.rc")
+	target_sources(qrustyquake PRIVATE ${QRUSTYQUAKE_RC})
+	# the RC dependency scan doesn't follow ICON lines
+	set_source_files_properties(${QRUSTYQUAKE_RC} PROPERTIES
+		OBJECT_DEPENDS "${PROJECT_SOURCE_DIR}/windows/qqicon.ico")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Haiku")
