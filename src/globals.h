@@ -466,6 +466,8 @@ void S_TouchSound(const c8 *sample);
 void S_PaintChannels(s32 endtime, bool paused);
 bool SNDDMA_Init(dma_t *dma);
 s32 SNDDMA_GetDMAPos();
+void SNDDMA_LockBuffer();
+void SNDDMA_UnlockBuffer();
 EX channel_t snd_channels[MAX_CHANNELS];
 EX dma_t *shm;
 EX s32 total_channels;

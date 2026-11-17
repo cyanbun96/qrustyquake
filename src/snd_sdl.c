@@ -7,6 +7,7 @@
 #include "quakedef.h"
 
 static s32 buffersize;
+static SDL_AudioStream *audiostream;
 
 static void SDLCALL paint_audio(SDL_UNUSED void *unused, Uint8 *stream, s32 len)
 {
@@ -95,10 +96,24 @@ bool SNDDMA_Init(dma_t *dma)
 		Con_Printf("Failed allocating memory for SDL audio\n");
 		return 0;
 	}
-	SDL_AudioStream *stream = SDL_OpenAudioDeviceStream(
+	audiostream = SDL_OpenAudioDeviceStream(
 		SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&desired, paint_audio_new, 0);
-	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream));
+	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audiostream));
 	return 1;
 }
 
-s32 SNDDMA_GetDMAPos(){ return shm->samplepos; }
+// SDL runs paint_audio with the stream locked, so holding the lock keeps it
+// out of the DMA buffer and samplepos while the main thread uses them
+void SNDDMA_LockBuffer()
+{ if(audiostream) SDL_LockAudioStream(audiostream); }
+
+void SNDDMA_UnlockBuffer()
+{ if(audiostream) SDL_UnlockAudioStream(audiostream); }
+
+s32 SNDDMA_GetDMAPos()
+{
+	SNDDMA_LockBuffer();
+	s32 pos = shm->samplepos;
+	SNDDMA_UnlockBuffer();
+	return pos;
+}

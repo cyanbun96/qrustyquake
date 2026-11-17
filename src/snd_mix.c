@@ -261,7 +261,9 @@ void S_PaintChannels(s32 endtime, bool paused)
 			S_LowpassFilter(((s32 *)paintbuffer) + 1, 2,
 					end - paintedtime, &memory_r);
 		}
+		SNDDMA_LockBuffer(); // the audio thread reads the DMA buffer
 		S_TransferPaintBuffer(end); // transfer according to DMA format
+		SNDDMA_UnlockBuffer();
 		paintedtime = end;
 	}
 }

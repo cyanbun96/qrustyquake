@@ -270,7 +270,9 @@ void S_ClearBuffer()
 	if(!shm->buffer) return;
 	s32 clear = 0;
 	if(shm->samplebits == 8 && !shm->signed8) clear = 0x80;
+	SNDDMA_LockBuffer();
 	memset(shm->buffer, clear, shm->samples * shm->samplebits / 8);
+	SNDDMA_UnlockBuffer();
 }
 
 void S_StaticSound(sfx_t *sfx, vec3_t origin, f32 vol, f32 attenuation)
