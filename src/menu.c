@@ -2455,7 +2455,7 @@ void M_Display_Draw()
 			M_DrawCursorLine(xoffset+204+8*strlen(customwidthstr),
 									132);
 			sprintf(temp, "%d", MAXWIDTH);
-			M_DrawTextBox(xoffset + 68, 166, 16 + strlen(temp), 1);
+			M_DrawTextBox(xoffset + 68, 166, 17 + strlen(temp), 1);
 			M_Print(xoffset + 80, 174, "320 <= Width <=");
 			M_Print(xoffset + 208, 174, temp);
 		}
@@ -2466,7 +2466,7 @@ void M_Display_Draw()
 			M_DrawCursorLine(xoffset+204+8*strlen(customheightstr),
 									148);
 			sprintf(temp, "%d", MAXHEIGHT);
-			M_DrawTextBox(xoffset + 68, 166, 17 + strlen(temp), 1);
+			M_DrawTextBox(xoffset + 68, 166, 18 + strlen(temp), 1);
 			M_Print(xoffset + 80, 174, "200 <= Height <=");
 			M_Print(xoffset + 216, 174, temp);
 		}
