@@ -413,9 +413,11 @@ void CL_ParseClientdata()
 			cl.stats[STAT_ACTIVEWEAPON] = i;
 			Sbar_Changed();
 		}
-	}else{
-		if(cl.stats[STAT_ACTIVEWEAPON] != (1 << i)){
-			cl.stats[STAT_ACTIVEWEAPON] = (1 << i);
+	}else{ // the weapon's bit number; some old servers sent 32 for none,
+		// which x86 shifted as 0, the same as the 0 we send for none
+		s32 w = 1u << (i & 31);
+		if(cl.stats[STAT_ACTIVEWEAPON] != w){
+			cl.stats[STAT_ACTIVEWEAPON] = w;
 			Sbar_Changed();
 		}
 	}
