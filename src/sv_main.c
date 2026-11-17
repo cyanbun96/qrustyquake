@@ -813,8 +813,9 @@ void SV_CreateBaseline()
 		if(entnum > svs.maxclients && !sve->v.modelindex) continue;
 		VectorCopy(sve->v.origin, sve->baseline.origin);//create ent
 		VectorCopy(sve->v.angles, sve->baseline.angles);//baseline
-		sve->baseline.frame = sve->v.frame;
-		sve->baseline.skin = sve->v.skin;
+		// through s32: a QC frame or skin of -1 is undefined as unsigned
+		sve->baseline.frame = (s32)sve->v.frame;
+		sve->baseline.skin = (s32)sve->v.skin;
 		if(entnum > 0 && entnum <= svs.maxclients){
 			sve->baseline.colormap = entnum;
 			sve->baseline.modelindex =
