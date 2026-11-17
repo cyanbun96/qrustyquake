@@ -103,6 +103,10 @@ void CL_WriteDemoMessage()
 	fflush(cls.demofile);
 }
 
+// The bytes of the demo not read yet: one in a pak goes on into the next file,
+// so a demo that ends without a disconnect was read past its end
+static s64 cl_demoleft;
+
 s32 CL_GetMessage()
 { // Handles recording and playback of demos, on top of NET_ code
 	if(cls.demoplayback){ // decide if it is time to grab the next message
@@ -118,6 +122,11 @@ s32 CL_GetMessage()
 			}else if(cl.time <= cl.mtime[0])
 				return 0; // don't need another message yet
 		} // get the next message
+		if(cl_demoleft < 16){
+			CL_StopPlayback();
+			return 0;
+		}
+		cl_demoleft -= 16;
 		fread(&net_message.cursize, 4, 1, cls.demofile);
 		VectorCopy(cl.mviewangles[0], cl.mviewangles[1]);
 		f32 f;
@@ -125,9 +134,15 @@ s32 CL_GetMessage()
 			fread(&f, 4, 1, cls.demofile);
 			cl.mviewangles[0][i] = f;
 		}
+		if(net_message.cursize < 0
+				|| net_message.cursize > cl_demoleft){
+			CL_StopPlayback(); // cut short, or a pak demo's end
+			return 0;
+		}
+		cl_demoleft -= net_message.cursize;
 		if(net_message.cursize > MAX_MSGLEN)
 			Sys_Error("Demo message > MAX_MSGLEN");
-		if(net_message.cursize < 0 || fread(net_message.data,
+		if(fread(net_message.data,
 				net_message.cursize, 1, cls.demofile) != 1){
 			CL_StopPlayback();
 			return 0;
@@ -214,7 +229,7 @@ void CL_PlayDemo_f()
 	SDL_strlcpy(name, Cmd_Argv(1), sizeof(name)); // open the demo file
 	COM_AddExtension(name, ".dem", sizeof(name));
 	Con_Printf("Playing demo from %s.\n", name);
-	COM_FOpenFile(name, &cls.demofile, NULL);
+	cl_demoleft = COM_FOpenFile(name, &cls.demofile, NULL);
 	if(!cls.demofile){
 		Con_Printf("ERROR: couldn't open.\n");
 		cls.demonum = -1; // stop demo loop
@@ -225,6 +240,7 @@ void CL_PlayDemo_f()
 	s32 c = 0, neg = 0;
 	cls.forcetrack = 0;
 	for(s32 i = 0; i < 13 && (c = getc(cls.demofile)) != '\n'; i++){
+		cl_demoleft--;
 		if(c == '-') neg = 1;
 		else cls.forcetrack = (u32)cls.forcetrack * 10 + (c - '0');
 	}
@@ -235,6 +251,7 @@ void CL_PlayDemo_f()
 		Con_Printf("ERROR: demo \"%s\" is invalid\n", name);
 		return;
 	}
+	cl_demoleft--; // the '\n'
 	if(neg) cls.forcetrack = -cls.forcetrack;
 	cls.demoplayback = 1;
 	cls.state = ca_connected;
