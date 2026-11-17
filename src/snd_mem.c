@@ -104,12 +104,10 @@ static s16 GetLittleShort()
 
 static s32 GetLittleLong()
 {
-	s32 val = *data_p;
-	val = val + (*(data_p+1)<<8);
-	val = val + (*(data_p+2)<<16);
-	val = val + (*(data_p+3)<<24);
+	u32 val = data_p[0] | data_p[1] << 8 | data_p[2] << 16
+		| (u32)data_p[3] << 24;
 	data_p += 4;
-	return val;
+	return (s32)val;
 }
 
 static void FindNextChunk(const c8 *name)

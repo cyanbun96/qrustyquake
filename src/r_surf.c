@@ -301,8 +301,10 @@ void R_DrawSurfaceBlock()
 		lightleft = r_lightptr[0];
 		lightright = r_lightptr[1];
 		r_lightptr += r_lightwidth;
-		lightleftstep = (r_lightptr[0] - lightleft) >> blockdivshift;
-		lightrightstep = (r_lightptr[1] - lightright) >> blockdivshift;
+		lightleftstep = ((s32)r_lightptr[0] - lightleft)
+			>> blockdivshift;
+		lightrightstep = ((s32)r_lightptr[1] - lightright)
+			>> blockdivshift;
 		for(s32 i = 0; i < blocksize; i++){
 			s32 lighttemp = lightleft - lightright;
 			s32 lightstep = lighttemp >> blockdivshift;
