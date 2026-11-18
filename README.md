@@ -1,8 +1,10 @@
 # Qrusty Quake
 
-Quake like you remember it.
+### Quake like you remember it.
 
 A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and easy portability.
+
+See the Github [Releases](https://github.com/cyanbun96/qrustyquake/releases) for downloads.
 
 Compatible with most modern mods, check [Compatibility List](https://github.com/cyanbun96/qrustyquake/wiki/Compatibility-List) for details.
 
@@ -10,243 +12,195 @@ Use Github "Issues" tab to report bugs, but check [Known Issues](https://github.
 
 # Features
 
-- A "Modern Options" menu, can be toggled with "newoptions 0/1"
+Almost everything below can be set from the menus, under **Options → Modern Options**. Console names are given in `code` for those who'd rather type.
 
-- Integer/nearest neighbor scaling
+## Faithful to the original
+![](screenshots/wq_qq.png)
+- Software rendering only, in Quake's 256-color palette, just like DOS Quake and WinQuake. No GPU needed
+- With the original game data, the picture matches the original WINQUAKE.EXE almost pixel for pixel, quirks of its hand-written assembly renderer included
+- The original look and sound by default: sharp nearest-neighbor scaling, 11025 Hz audio, and 320x200 shown with tall pixels on a 4:3 picture
+- All the original menus are kept and work, including "Video Options" and "Use Mouse" in windowed mode. `newoptions 0` hides the "Modern Options" entry for a completely stock Options menu
+- Menu background fade: brown DOS (default), dithered WinQuake, dark, or none at all, which is handy while tuning graphics ("Menu BG Style", `scr_menubgstyle`)
+- Exit screen: the DOS text screen with its VGA blurbs, the WinQuake one, or a quick exit with no screen at all ("Exit Style", `exitstyle`)
 
-   - "vid_scalemode" cvar can be set to 0 (true nearest, default), 1 (linear scaling), or 2 (nearest but smoother)
+## Display
 
-- Borderless window with -borderless parameter or through the "Display menu"
+- Any resolution from 320x200 up to 16K (15360x8640). WinQuake stopped at 1280x1024
+- Windowed, borderless or exclusive fullscreen at any mode your monitor supports. Set it in the "Display" menu, on the command line (`-window`, `-borderless`, `-fullscreen`, `-width`, `-height`) or in the console (`vid_setmode <width> <height> <mode>`, where mode is 0 for windowed, 1 for fullscreen, 2 for borderless). The mode is remembered
+- Scaling filter, `vid_scalemode`: 0 for sharp nearest neighbor (default), 1 for smooth, 2 for sharp but with softer edges between pixels
+- Lower internal resolution with `r_renderscale`: e.g. `r_renderscale 2` and `vid_setmode 320 240 1` play at 320x240 on a 640x480 fullscreen
+- Aspect ratio correction ("Aspect Ratio", `aspectr`, 0 for automatic) for non-square pixel modes like 320x200 and 640x400, or any ratio you like. "Lock Aspect" keeps it when the window changes
+- Widescreen field of view ("Vertical FOV"): Classic as in the original, Modern for the wider view other modern ports use, or Manual (`yaspectscale`). In Manual, the menu shows the FOV value that gives the same view in other modern ports
+- The weapon doesn't get stretched at high FOV (`cl_gun_fovscale`)
+- Menus, HUD and console are scaled to the largest size that fits the screen. Pick your own with "UI Scale" (`scr_uiscale`) and keep it with "Lock UI Scale". "UI Width Ratio" (`scr_uixscale`) changes the UI's width on its own
+- "Center Menus" (`scr_centermenus`) puts the menus and intermission screens in the middle of the screen
+- FPS counter ("FPS Counter", `scr_showfps 1`)
+- Higher framerates ("FPS Limit", `host_maxfps`, 0 for no limit). The game itself still updates 72 times a second like the original, only the picture is drawn more often
 
-- Auto-resolution fullscreen with -fullscreen_desktop
+## Modern effects, in software
 
-- r_renderscale cvar that can be used to render at lower resolutions in exclusive fullscreen
-  
-  - In console, use "r_renderscale 2" and "vid_setmode 320 240 1" to render at 320x240 in 640x480 fullscreen
+All of these are drawn by the software renderer inside the 256-color palette, with color mixing tables and dithering instead of GPU shaders. The **Graphics** menu has three presets: Default (the features modern mods use), Classic (all of them off) and Fancy (Default plus dithered textures, smooth animation, round particles and farther mipmaps).
 
-- High resolution support
-  
-  - Maximum tested is 16K, 2000 times bigger than 320x200
-  
-  - Defined by MAXHEIGHT and MAXWIDTH in r_shared.h
-  
-  - Can probably be set higher for billboard gaming
+- Colored lighting from .lit files ("Lighting", `r_rgblighting`) and lit water (`r_litwater`), with a choice of LAB or RGB color matching (`r_labmixpal`)
+- Translucent water, slime, lava and teleporters on maps made for it ("Liquids", `r_wateralpha`, `r_slimealpha`, `r_lavaalpha`, `r_telealpha`, or the map's own values). "No VIS" (`r_novis 1`) allows it on any map, at a cost in speed
+- Translucent entities and models for mods that use them (`r_entalpha`). "Alpha Style" (`r_alphastyle`) picks how translucency is drawn: Mix (default) blends colors like hardware-accelerated ports do, Dither uses a dither pattern
+- Cutout textures for fences, grates and foliage, on walls and on models
+- Fog that looks like Ironwail's, set by the map or with QuakeSpasm's `fog` command
+  - Dithered between two palette colors for smooth fades ("Dither", `r_fogdither`, on by default). Off uses the single nearest color
+  - Brightness (`r_fogbrightness`)
+  - Distance from the eye, so the fog doesn't move with the camera ("Distance: Radial", `r_fogdepthcorrection 1`, default). Planar works like QuakeSpasm
+  - Turn off "Set By Map" (`r_lockfog 1`) to use your own density and color (`r_lockfogd`, `r_lockfogr`, `r_lockfogg`, `r_lockfogb`), or turn fog off entirely (`r_nofog 1`)
+- Skyboxes in TGA, or PNG when built with SDL 3.4 or newer, from the map or with `sky <name>`
+  - Sky fog blends the sky into the fog color (`r_skyfog`) and sky noise dithers it (`r_skynoise`)
+  - Maps can have several skies, including on moving parts of the level
+  - Classic scrolling skies can move smoothly ("Smooth Anim", `r_skysmooth`)
+- Half-Life-style water warping ("Liquids → Style: HL", `r_hlwater`), with quality, ripple and wave settings
+- Unreal-style dithered texture filtering ("Textures: Dithered", `r_dithertex`): smoother textures up close that keep the pixel look
+- Mipmaps rebuilt on map load ("Rebuild Mipmaps", `r_rebuildmips`, Auto by default), which gets rid of stray bright red pixels on dark textures in the distance and pink edges around cutouts. "Mipmap Distance" (`r_mipscale`) sets how far away textures switch to lower detail
+- Particles: square or round (`r_particlestyle`), scaled (`r_particlescale`) or a fixed size (`r_particlesize`), and translucent (`r_particlealpha`)
+- Strength of the screen flashes for being underwater, taking damage, picking up items and powerups, from 0 to 100: `gl_cshiftpercent`, `gl_cshiftpercent_contents`, `gl_cshiftpercent_damage`, `gl_cshiftpercent_bonus`, `gl_cshiftpercent_powerup`
+- Picture adjustments in the "Palette" menu: brightness, gamma, contrast, saturation, vibrance, hue shift, and red, green and blue levels
+- Custom palettes: `worldpal <palette> <colormap>` for the world and `uipal <palette>` for the menus and HUD. A mod's gfx/custompalette.lmp and gfx/customcolormap.lmp load automatically, and maps can set their own
+- Menus, HUD, console and text are drawn on separate layers, so they keep the standard palette when the world uses a custom one ("Layers")
+- `r_showtris 1` or `2` for a wireframe view
 
-- Horizontal FOV scaling for modern widescreen resolutions (yaspectscale cvar)
+## Smooth motion
 
-- Non-square pixels for 320x200 and 640x400 modes and modern aspect ratios
-  
-  - aspectr cvar can be used for more granular adjustment
-  
-  - UI can be scaled independently with scr_uixscale and scr_uiyscale
-  
-  - Implemented through a customizable "layer" system
-  
-  - Several independently scalable layers for different UI elements
+In the "Graphics → Interpolation" menu:
 
-- General feature parity with the original WinQuake
-  
-  - "Use Mouse" option in windowed mode (also _windowed_mouse cvar)
-  
-  - Video configuration menu 
-    
-    - Mostly for show, use -width and -height or the new menu
+- Smooth model animation (`r_lerpmodels`) and movement (`r_lerpmove`)
+- Smooth weapon recoil (`v_gunkick 2`)
+- Smooth light animations (`r_lerplightstyles`): On keeps flickering lights sharp, All smooths every change
 
-- Proper UI scaling
-  
-  - scr_uiscale 1 for no scaling, scr_uiscale 2 for 200% size etc.
+## Performance
 
-- Mouse controls in menus
+In the "Graphics → Performance" menu:
 
-  - Off by default, enable in the "Modern Options" menu
+- Multithreaded rendering ("Multithreading", `r_threads`). Auto (default) finds the fastest number of threads while you play, and the picture is exactly the same as with one thread
+- Skipping parts of the level, models and moving brushes that are hidden behind walls ("World Culling", "Model Culling", "Brush Culling"). Auto (default) uses them only on modern maps, where they help the most
 
-- 10 HUD styles (hudstyle 0-9)
-  
-  - Classic, Modern, QW, Arcade, EZQuake, Minimalist and variations
-  
-  - Transparent UI elements for modern mods
+Memory is allocated as needed, so huge maps like The Immortal Lock load without `-heapsize`.
 
-- Custom menu BG fading options
-  
-  - DOSQuake for the DOS-styled brown fade
-  
-  - WinQuake for the default dithered fade
-  
-  - 50% black
-  
-  - None at all (useful for graphics settings adjustment)
+## Sound and music
 
-- BGM support
-  
-  - All the formats you can think of (i.e. whatever sdl3_mixer supports)
-  
-  - Optional, requires sdl3_mixer
- 
-  - "keepmusic 1" in console to keep the music from restarting on death/load
+- Music from files in OGG, Opus, MP3, FLAC, MIDI, MOD or WAV, e.g. music/track02.ogg (needs SDL3_mixer, which is optional when building). Mod folders are searched first, and tracks loop
+- `music <name>`, `music_stop`, `music_pause` and `music_resume`, and `-nomusic` to turn music off
+- "Keep Music" (`keepmusic 1`) stops the music from restarting on death or reload
+- "Sample Rate" (`sndspeed`): 11025 Hz by default for the original muffled sound, or 44100 Hz for clearer sound
+- "Pause Sounds" (`snd_allowpause 1`) silences the world while the game is paused
 
-- The default audio rate is 11025 for more muffled WinQuake sound
+## Controls
 
-- vim-like keybinds that work in menus, enable with -vimmode flag
+- Mouse in menus ("UI Mouse", off by default): left button for Enter, right button for Escape, wheel to change values. "Loud" also plays the menu sound as the cursor moves
+- Separate vertical mouse speed ("Y Mouse Speed", `sensitivityyscale`), which applies to gamepads too
+- Mouse thumb buttons can be bound
+- Gamepad support with its own "Gamepad" menu
+  - Pick the controller (several can be connected, and they can be plugged in while playing), or turn it off
+  - Deadzone, move and look speed, trigger threshold, axes, and buttons for Enter and Escape
+  - A live display of the sticks and triggers
+- Held keys and D-pad directions repeat in menus
+- "Prev. weapon" in the key bindings menu
+- `-vimmode` makes h, j, k and l work as arrow keys
 
-- Modern gamepad support
+## Console
 
-- Mouse sensitivity Y-axis scaling with sensitivityyscale cvar
-  
-  - Affects gamepads
+- Left and Right move the cursor without erasing, Ctrl moves and erases whole words, Ctrl+V pastes, Ctrl+C clears the line
+- Hold Ctrl or Shift with PgUp/PgDn to scroll faster, or use the mouse wheel
+- Typing a cvar's name shows its current and default values
+- Centerprint messages are copied to the console, so they can be read later (`con_logcenterprint`)
+- `maps` lists the installed maps with their titles, and `mods` (or `games`) lists installed mods, with descriptions of well-known ones
+- `screenshot` saves a BMP of exactly what's on screen, custom palettes and all
 
-- FPS counter, scr_showfps 1
-
-- Unlocked FPS with host_maxfps cvar
-  
-  - Render-server separation for 72<FPS
-
-- Expanded limits, Fitzquake protocol allowing for modern mod support
-  
-  - 2026 rerelease/DotM support, requires the "id1" folder from the KEX version to support mg3 properly
-
-- Custom palette support
-
-  - "World" palette can be loaded with the console command "worldpal [palette] [colormap]"
- 
-       - Also gets loaded from "gfx/custompalette.lmp" and "gfx/customcolormap.lmp" automatically
- 
-  - UI palette can be loaded separately with the "uipal [palette]" console command
-  
-  - Also settable through worldspawn flags in custom maps
-
-- CSQC HUD support
-
-  - Can be configured through the "Custom HUD" menu
-
-  - scr_sbaralpha and scr_sbarscale cvars from modern engines work ONLY on CSQC HUDs
-
-  - scr_qchudscale to adjust the CSQC HUD size independently of mod logic
-
-- Modern console features
-
-  - Centerprint logging with con_logcenterprint 1
-
-  - Movable cursor (vanilla just erased characters when you pressed "left")
-
-  - Hold Ctrl to erase/move whole words
-
-  - Paste from clipboard with Ctrl+V
-
-  - Ctrl+C to clear input
-
-  - Hold Crtl/Shift when scrolling with PgUp/PgDn to scroll faster
-
-- Autosaving/loading
-
-  - sv_autosave, sv_autoload, and sv_autosave_interval cvars
-
-- Software imitations of modern rendering features
-  
-  - Colored lighting, .lit file support
-    
-    - r_rgblighting 0,1 to toggle
-    
-    - Lit water is supported with r_litwater cvar
-  
-  - Translucent liquids on supported maps (r_{water,slime,lava,tele}alpha 0-1)
-
-    - "r_novis 1" enables translucent liquids on all maps at the cost of performance
-  
-  - Translucent entities with the "alpha" tag
-  
-  - r_alphastyle cvar and respective menu entry for the translucency rendering variations
-    
-    - Mix (default) - emulates the hardware-accelerated translucency by mixing the surface colors
-    
-    - Dither - much less memory-hungry option, but with less gradual translucency levels
-  
-  - Cubemapped skyboxes ("sky filename_"), only .tga format for now
-    
-    - r_skyfog [0-1] blends between sky and fog colors
-    
-    - r_skynoise [0-1] for noise dithering
-  
-  - Cutout textures (transparency)
-  
-  - Fog (Quakespasm-like syntax "fog" command)
-    
-    - r_nofog 1 to disable
-    
-    - r_lockfog 1 to disable forced setting by custom maps, r_lockfog{d,r,g,b} to set custom
-    
-    - r_fognoise to adjust noise bias level: 0 - disable, 1 - noisy
-    
-    - r_fogfactor to adjust fog thickness: 0.5 - lighter, 1 - full
-    
-    - r_fogscale to adjust the distance to the fog: 0.5 - further, 2 - closer
-    
-    - r_fogstyle 0/1/2/3, with 3 being the default and most "modern-looking"
-    
-    - r_fogbrightness (0.5 for half brightness, 2 for double), independent of the fog color dictated by the map
-    
-    - r_fogdepthcorrection (0,1) to avoid the old-style "fog moving with camera"
-  
-  - Better mipmaps
-    
-    - Regenerated on map load with r_rebuildmips 1 (all textures) or 2 (cutouts, and textures with fullbrights only in their mipmaps)
-    
-    - Solves random fullbright pixels on dark textures and bright fringe around cutout textures
-  
-  - Dithered texture filtering, Unreal-style
-  
-  - HL-style liquid warping shader
-  
-  - Configurable particles
-    
-    - r_particlescale for relative scaling
-    
-    - r_particlesize for fixed size
-    
-    - r_particlestyle 0 - square, 1 - circle
-    
-    - r_particlealpha [0-1] for translucency, affected by r_alphastyle
-  
-  - r_mipscale for LOD distance adjustment
-
-  - gl_cshiftpercent and (_contents, damage, bonus, powerup) variants for adjusting screen flashes/overlays
-
-- Palette customization menu
-
-  - v_saturation, v_contrast, v_redlevel, v_greenlevel, v_bluelevel, v_vibrance, v_brightness, and v_hue cvars
+## Playing
 
 - "Custom Maps" menu
+  - Lists the maps from id1 and from the current mod separately, with their titles
+  - Sorts by name, monsters, secrets or date
+  - PgUp/PgDn or U/D (AUX1/AUX2 on controllers) to scroll quickly
+- "Mods" menu to switch mods without restarting (also `game <name>`)
+- Autosaves from Ironwail ("Autosave/Load", `sv_autosave`, `sv_autoload`, `sv_autosave_interval`): saves at a safe moment, not in the middle of a fight, and when you die offers to load it instead of restarting the level
+- Delete saves from the Load and Save menus with the Delete key, or with `deletesave <name>`
+- `resurrect` brings you back to life where you died, weapons and all (a cheat)
+- "Startup Behavior": play the demos (default), or open the menu or the console. Clicking during the demos opens the menu
 
-  - Sorting by name, monsters, secrets, and date
+## HUD
 
-  - Quick scroll with D/U or PgDn/PgUp keys, AUX1 and AUX2 on controllers
+- 10 HUD styles ("HUD Style", `hudstyle 0-9`): Classic, Modern 1 and 2, QuakeWorld, Arcade, Minimalist 1, 2 and 3, Classic without background, and EZQuake
+- A choice of crosshairs ("Crosshair", `cl_crosschar`)
+- Deathmatch scores on the side of the screen (`scr_sidescore`)
+- Custom HUDs from mods that include their own (CSQC), like Arcane Dimensions and Quake Brutalist Jam 3. The "Custom HUD" menu can turn them off (`cl_nocsqc 1`) and set their translucency (`scr_sbaralpha`) and size (`scr_sbarscale`, which the mod decides how to use, and `scr_qchudscale`, which works the same in every mod). These cvars only affect custom HUDs
+- Sega Saturn-style animated popup text ("Popup Style", `scr_saturntext`), plus centered notifications ("Notifications", `con_notifycenter`) for the full Saturn look
 
-- "Mods" menu
+## Mod and map support
 
-- "resurrect" command
+![](screenshots/qq_scrs.png)
+*Maps on the screenshots: mg1 start, mg3 start, qbj3 start, ad_tears, alk_corrupt, ad_azad, ad_tfuma, jam6_ericwtronyn, ino_naitelveni*
 
-- "Center Menus" option
+- The protocols modern mods and maps need: 666 and 999 (the default), as well as the original 15 (`sv_protocol`).
+- Much higher limits than the original:
 
-- "Saturn" animated text notification style, with a separate notification centering option for full "Saturn" look 
+  | | WinQuake | Qrusty Quake |
+  |---|---|---|
+  | Resolution | 1280x1024 | 15360x8640 |
+  | Entities | 600 | 16384 (`max_edicts`, up to 32000) |
+  | Entities on screen | 256 | 16384 |
+  | Models | 256 | 4096 |
+  | Sounds | 256 | 2048 |
+  | Static entities (torches etc.) | 128 | 4096 |
+  | Dynamic lights | 32 | 64 |
+  | Network message size | 8000 bytes | 65536 bytes |
+  | Memory | fixed, set with `-heapsize` | grows as needed |
 
-- "Exit Style" option: faithful DOS (with VGA blurbs) and WinQuake styles, with a new "quick" variant
-
-- "Startup Behavior" option: Demos (default), Console, Menu
-
-- Delete saves in menus with Delete key, or from console with "deletesave" command
-
-- "r_showtris (1/2)" cvar for wireframe drawing
+- BSP2 and 2PSB maps for very large levels, and Quake 64 maps
+- The 2021 rerelease and its 2026 update, including Dawn of the Machine: requires the "id1" folder from the KEX version to support mg3 properly
+- Maps and mods made on Windows work on Linux and macOS: file names aren't case-sensitive, and Windows-style paths work
+- Broken models, textures and maps print a warning instead of crashing, wherever possible
 
 # Planned
 
-- An actual design document. Lots of documentation, really.
+- Documentation
 
-- Big cleanup of the code aimed at eliminating platform-specific bugs
+- Continuous improvements in modern mod support
+
+- Testing and optimization for more exotic platforms
 
 - Probably not
   
   - Advanced mapping/speedrunning/development features that are not directly related to gameplay (I'm not a mapper, speedrunner or developer)
 
 Contributions of any kind are very welcome. If someone implements their favorite speedrunning cvar or something I'll definitely try to merge it. Issue reports are also greatly appreciated.
+
+# System requirements
+
+Windows (v1.0.0):
+
+- Windows XP or higher
+
+- The 32-bit binary ran on a WinXP VM with 64MB of RAM, which is the minimum required to run the system itself.
+
+- If it can run modern Windows, it can run QrustyQuake
+
+Linux AppImage (v1.0.0):
+
+- Ubuntu 22.04, Debian 12, Fedora 36, RHEL/Rocky/Alma 9 or anything newer
+
+  - Ubuntu 22.04 needs its updates installed. The original 22.04 release won't start
+
+  - Older distros can build from source (see Building)
+
+- Any 64-bit x86 CPU
+
+- PipeWire and JACK libraries, even if you use neither for sound
+
+  - Most desktops have them. If the game says "libjack.so.0" or "libpipewire-0.3.so.0" is missing, install:
+
+    - Debian/Ubuntu: `libjack-jackd2-0` and `libpipewire-0.3-0`
+
+    - Fedora/RHEL: `pipewire-jack-audio-connection-kit-libs` and `pipewire-libs`
+
+    - Arch: `pipewire-jack` (or `jack2`) and `libpipewire`
+
+- If the AppImage doesn't open, install fuse3 or run it with --appimage-extract-and-run
 
 # Building
 
@@ -258,27 +212,45 @@ Linux release AppImage is built with AppImage/build.sh
 
 Use Build_SteamOS.sh for Steam Deck
 
+Build requirements (v1.0.0):
+
+- A C99 compiler. GCC 5 or newer works with the Makefile as is
+
+  - GCC 4.8: make RELEASE_FLAGS="-O3 -flto -g -std=gnu99"
+
+- SDL 3.2.0 or newer
+
+- SDL3_mixer 3.2.0 or newer for music, which needs SDL 3.4.0 or newer. Without it the Makefile builds without music
+
+- CMake 3.16 or newer to build SDL3 and SDL3_mixer from source, 3.22 or newer for the CMake build of the game
+
+- Ubuntu 20.04 and Debian 11 are the oldest distros whose own CMake can build SDL3. With a newer CMake from cmake.org it builds back to Ubuntu 14.04 and CentOS 7
+
+  - Ubuntu 14.04: configure SDL with -DSDL_X11_XINPUT=OFF, or the game hangs when its window opens (a libXi bug)
+
 # Successful builds
 
 x86_64 unless specified otherwise.
 
 VM is VirtualBox unless specified otherwise.
 
-- Arch Linux [HW] v0.9.0
+- Arch Linux [HW] v1.0.0
   
   - The main platform that this port is developed on. The most likely one to work
   
   - Tested with gcc, clang, and tcc
 
-- Debian 11 [VM] v0.5.1
-  
-  - The oldest tested distro
+- Ubuntu 14.04 [Docker] v1.0.0
 
-- FreeBSD [HW] v0.8.0
+  - The oldest tested distro. GCC 4.8, with SDL3 and SDL3_mixer built from source using CMake from cmake.org
+
+  - See "Build requirements" for the GCC 4.8 make command and the SDL option it needs
+
+- FreeBSD [HW] v1.0.0
   
   - Seemingly perfect
 
-- OpenBSD [HW] v0.8.0
+- OpenBSD [HW] v1.0.0
   
   - Seemingly perfect
 
@@ -286,13 +258,11 @@ VM is VirtualBox unless specified otherwise.
   
   - "timedemo demo1" at 320x200 with all graphics layers set to 0 gets 17 FPS
 
-- HaikuOS [HW] v0.6.1
+- HaikuOS [HW] v1.0.0
   
-  - Built with cmake against SDL3 and SDL3_mixer under "haiku/"
-  
-  - Default heapsize crashes on launch, works with "-heapsize 100000"
+  - Seemingly perfect
 
-- Android [HW, Termux, AARCH64, clang] v0.8.3
+- Android [HW, Termux, AARCH64, clang] v1.0.0
   
   - Ran through X11 with touch controls. *unpleasant*
 
@@ -304,7 +274,7 @@ VM is VirtualBox unless specified otherwise.
   
   - Compiles with Makefile and SDL3 from brew on MacOS 15.7.2 (mixer not tested)
 
-- Emscripten [Browsers with WebAssembly] v0.8.2
+- Emscripten [Browsers with WebAssembly] v1.0.0
   
   - Dark magic performed by Erysdren, please don't ask me about it
 
@@ -314,9 +284,7 @@ VM is VirtualBox unless specified otherwise.
 
   - Build_SteamOS.sh script by Pup Luka
 
-- Windows [VM, HW] v0.9.0
-
-  - Runs on Android through Winlator. Set "DX Wrapper" to "CNC DDraw" if you get "No outputs found" error.
+- Windows [VM, HW] v1.0.0
 
 # Credits
 
