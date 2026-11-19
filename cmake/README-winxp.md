@@ -2,12 +2,14 @@
 
 `winxp-i686-mingw.cmake` cross-compiles a 32-bit build that runs on Windows
 XP, using MinGW-w64 on Linux. Tested on Arch Linux (MinGW-w64 GCC 16.2,
-mingw-w64-crt 14) with Windows XP Professional SP3 in VirtualBox.
+mingw-w64-crt 14) and Debian 13 (GCC 14.2, the GitHub Actions build) with
+Windows XP Professional SP3 in VirtualBox.
 
 ## Requirements
 
-- MinGW-w64 for i686 with both gcc and g++, GCC 13 or newer
-  (`i686-w64-mingw32-gcc --version`). On Arch: `mingw-w64-gcc`.
+- MinGW-w64 for i686 with both gcc and g++, GCC 14 or newer
+  (`i686-w64-mingw32-gcc --version`); GCC 13 has no `-mcrtdll`. On Arch:
+  `mingw-w64-gcc`. On Debian 13: `gcc-mingw-w64-i686 g++-mingw-w64-i686`.
 - CMake 3.22 or newer.
 - git and network access: SDL3 and SDL3_mixer are cloned from GitHub
   during configure.

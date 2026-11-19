@@ -1,4 +1,4 @@
-# 32-bit Windows XP cross build with MinGW-w64, GCC 13+ for -mcrtdll:
+# 32-bit Windows XP cross build with MinGW-w64, GCC 14+ for -mcrtdll:
 # cmake -B bxp -DCMAKE_TOOLCHAIN_FILE=cmake/winxp-i686-mingw.cmake \
 #	-DCMAKE_BUILD_TYPE=Release -DQRUSTYQUAKE_VENDOR_SDL=ON
 set(CMAKE_SYSTEM_NAME Windows)

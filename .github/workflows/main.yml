@@ -25,6 +25,39 @@ jobs:
           path: build/Release/qrustyquake.exe
           if-no-files-found: error
 
+  windows-xp:
+    runs-on: ubuntu-latest
+    # -mcrtdll needs MinGW GCC 14; Ubuntu 24.04 ships 13
+    container: debian:trixie
+
+    steps:
+      - name: Install MinGW-w64
+        run: >
+          apt-get update && apt-get install -y --no-install-recommends
+          gcc-mingw-w64-i686 g++-mingw-w64-i686 cmake make git
+          ca-certificates
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -B bxp -DCMAKE_TOOLCHAIN_FILE=cmake/winxp-i686-mingw.cmake
+          -DCMAKE_BUILD_TYPE=Release -DQRUSTYQUAKE_VENDOR_SDL=ON
+
+      - name: Build
+        run: cmake --build bxp --parallel $(nproc)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: qrustyquake-windows-xp
+          path: |
+            bxp/qrustyquake.exe
+            bxp/SDL3.dll
+            bxp/SDL3_mixer.dll
+          if-no-files-found: error
+
   linux-appimage:
     runs-on: ubuntu-latest
 
