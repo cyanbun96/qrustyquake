@@ -297,6 +297,17 @@ void VID_Init()
 	aspectr.value = 1.333333;
 	realwidth.value = vid.width*renderscale;
 	realheight.value = (s32)(vid.width / aspectr.value + 0.5) * renderscale;
+#ifdef SDL_PLATFORM_DOS // the window is a VESA mode, and a config from another
+	SDL_DisplayMode m; // machine can ask for more than the card has
+	if(!SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(),
+			realwidth.value, realheight.value, 0, 0, &m)){
+		Con_Printf("No video mode for %dx%d, using 320x240\n",
+			(s32)realwidth.value, (s32)realheight.value);
+		realwidth.value = vid.width = 320;
+		realheight.value = vid.height = 240;
+		renderscale = 1;
+	}
+#endif
 	// the size is in points, with high pixel density the window has as
 	// many pixels as the screen gives it, and the picture is scaled by us
 	window = SDL_CreateWindow("QrustyQuake", realwidth.value,
