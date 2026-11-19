@@ -204,9 +204,9 @@ Linux AppImage (v1.0.0):
 
 # Building
 
-Linux: cd src && make
+Linux: cd src && make -j$(nproc)
 
-Windows and BSDs: cmake -B build -DCMAKE_BUILD_TYPE=Release && cd build && cmake --build .
+Windows and BSDs: cmake -B build -DCMAKE_BUILD_TYPE=Release && cd build && cmake --build . --parallel
 
 Linux release AppImage is built with AppImage/build.sh
 
