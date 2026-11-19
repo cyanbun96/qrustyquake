@@ -111,9 +111,11 @@ void VID_SetWindowed()
 	return;
 #endif
 	SDL_SetWindowFullscreen(window, 0);
+#ifndef __EMSCRIPTEN__ // the page's CSS sizes the canvas, a set size stretches
 	SDL_SetWindowSize(window,vid.width*renderscale,vid.height*renderscale);
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED);
+#endif
 }
 
 void VID_SetFullscreen(s32 w, s32 h)
@@ -745,6 +747,7 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 	R_ThreadsIdle(); // the bands are cut for the old size
 	if(modenum == vid_modenum && (!custw || !custh))
 		return;
+	u32 oldw = vid.width, oldh = vid.height;
 	if(custw && custh){
 		vid.width = custw;
 		vid.height = custh;
@@ -801,6 +804,8 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 		else VID_SetBorderless();
 	}
 	realwidth.value = 0;
+	if(!aspectr_lock.value && (vid.width != oldw || vid.height != oldh))
+		aspectr.value = 0; // follow the new shape
 	VID_CalcScreenDimensions(0);
 	Cvar_SetROM("vid_mode", va("%d", vid_modenum));
 	if(vid_testingmode) return; // the config keeps the mode to return to

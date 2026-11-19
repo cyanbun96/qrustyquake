@@ -521,13 +521,8 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define CLIP_RIGHT 2
 #define CLIP_BOTTOM 4
 #define CLIP_TOP 8 // r_showtris 
-#ifdef __EMSCRIPTEN__
-#define MAXHEIGHT 600 // erysdren
-#define MAXWIDTH 800
-#else
 #define MAXHEIGHT 8640 // CyanBun96: 16k resolution. futureproofing.
 #define MAXWIDTH 15360
-#endif
 #define SIN_BUFFER_SIZE (((MAXHEIGHT>MAXWIDTH)?MAXHEIGHT:MAXWIDTH)+128)
 #define MAXSPANS 32768 // CyanBun96: expanding limits
 #define ALIAS_LEFT_CLIP 0x0001 // flags in finalvert_t.flags

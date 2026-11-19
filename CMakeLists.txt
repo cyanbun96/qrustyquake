@@ -73,7 +73,14 @@ if(EMSCRIPTEN)
 		target_link_options(qrustyquake PRIVATE -O3)
 	endif()
 	target_link_options(qrustyquake PRIVATE -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=1gb -sSTACK_SIZE=10mb -sASYNCIFY)
+	# 16K modes take ~3 GiB, past the 2 GiB default
+	target_link_options(qrustyquake PRIVATE -sMAXIMUM_MEMORY=4gb)
 	target_link_options(qrustyquake PRIVATE --preload-file id1)
+	# the link packs id1, so a changed file there has to relink
+	file(GLOB_RECURSE QRUSTYQUAKE_PRELOAD CONFIGURE_DEPENDS
+		"${PROJECT_BINARY_DIR}/id1/*")
+	set_property(TARGET qrustyquake APPEND PROPERTY
+		LINK_DEPENDS ${QRUSTYQUAKE_PRELOAD})
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		target_compile_options(qrustyquake PRIVATE -gsource-map)
 	endif()

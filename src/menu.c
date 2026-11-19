@@ -2247,12 +2247,10 @@ void M_Display_Key(s32 k)
 		}else if(display_cursor == 13 && newwinmode == 1 && moden
 			   && VID_SizeOK(mode->w, mode->h)){
 			VID_SetMode(-1, mode->w, mode->h, newwinmode);
-			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		}else if(display_cursor == 14 && VID_SizeOK(
 			   atoi(customwidthstr), atoi(customheightstr))){
 			VID_SetMode(-1, atoi(customwidthstr),
 				    atoi(customheightstr), newwinmode);
-			if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		}
 		break;
 	case K_UPARROW:
@@ -3353,7 +3351,6 @@ void M_Video_Key(s32 key)
 	case K_ENTER:
 		S_LocalSound("misc/menu1.wav");
 		VID_SetMode(vid_line, 0, 0, 0);
-		if(!aspectr_lock.value)Cvar_SetValue("aspectr", 0);
 		break;
 	case 'T':
 	case 't':
