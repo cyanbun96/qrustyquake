@@ -18,6 +18,16 @@ static SDL_Texture *idxtex[3]; // world, top, ui, NULL to convert on the CPU
 static SDL_Palette *idxpals[3]; // top and ui, the world uses sdlpals[0]
 static u8 idxrows[3][MAXHEIGHT]; // overlay rows the textures hold drawings in
 static bool idxany[3]; // anything drawn in the overlay textures
+// scr_uixscale and scr_uiyscale stretch the ui and sbar layers here, SDL's
+// scaled blits of colour-keyed 8-bit surfaces go through its slow generic loop
+static struct {
+	u32 x0, x1, y0, y1; // the part of the screen the layers cover
+	u16 x[MAXWIDTH], y[MAXHEIGHT]; // the source column and row of each
+} vid_str;
+static u8 *uiscaledpixels; // the stretched ui layer
+static u8 uiscaledrows[MAXHEIGHT]; // its rows that hold a drawing
+static u8 sbarmap[256]; // the sbar palette's indices in the world palette
+static bool sbarmapok;
 static s32 renderscale;
 static s32 scalemode;
 // what a mode test from the video menu returns to
@@ -84,6 +94,7 @@ void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 				colors[i].b);
 	}
 	SDL_SetPaletteColors(sdlpals[l], colors, 0, 256);
+	if(l == 0 || l == 3) sbarmapok = false;
 	if(l == 1 || l == 2){
 		if(!idxpals[l] && !(idxpals[l] = SDL_CreatePalette(256)))
 			return;
@@ -395,11 +406,18 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 	Sbar_CalcPos();
 }
 
+static struct { // the composite of the frame, see VID_CompositeRuns
+	u32 *pixels;
+	s32 pitch, rs1;
+	const u8 *ui; // screenui's pixels or the stretched copy
+	u8 rows[MAXHEIGHT]; // which layers each row has
+} vid_comp;
+
 Q_SIL void VID_CompositeRows(u32 *d, s32 pitch, s32 rs, s32 ui, s32 top,
 		u32 y0, u32 y1)
 { // world, ui and top layers to window_format in one pass, rs x rs nearest
 	const u8 *w = (u8 *)screen->pixels + y0 * vid.width;
-	const u8 *u = (u8 *)screenui->pixels + y0 * vid.width;
+	const u8 *u = vid_comp.ui + y0 * vid.width;
 	const u8 *t = (u8 *)screentop->pixels + y0 * vid.width;
 	const u32 *wl = pallut[0], *tl = pallut[1], *ul = pallut[2];
 	u32 width = vid.width; // a local, the u32 stores could change vid
@@ -436,12 +454,6 @@ static u32 VID_RowRun(const u8 *rows, u32 y)
 	return e;
 }
 
-static struct { // the composite of the frame, see VID_CompositeRuns
-	u32 *pixels;
-	s32 pitch, rs1;
-	u8 rows[MAXHEIGHT]; // which layers each row has
-} vid_comp;
-
 static void VID_CompositeRuns(u32 y0, u32 y1)
 {
 	for(u32 y = y0, e; y < y1; y = e){
@@ -464,16 +476,83 @@ static void VID_CompositeFrame()
 	R_ThreadsHelp();
 }
 
-static void VID_UploadOverlay(s32 l, bool used)
+static void VID_StretchMaps(const SDL_Rect *r)
+{ // SDL's nearest stepping, from the middle of each pixel
+	vid_str.x0 = vid_str.x1 = vid_str.y0 = vid_str.y1 = 0;
+	if(r->w <= 0 || r->h <= 0) return;
+	vid_str.x0 = q_max(r->x, 0);
+	vid_str.x1 = q_min(r->x + r->w, (s32)vid.width);
+	vid_str.y0 = q_max(r->y, 0);
+	vid_str.y1 = q_min(r->y + r->h, (s32)vid.height);
+	u32 inc = (vid.width << 16) / r->w;
+	for(u32 x = vid_str.x0; x < vid_str.x1; ++x)
+		vid_str.x[x] = (inc / 2 + (u32)((s32)x - r->x) * inc) >> 16;
+	inc = (vid.height << 16) / r->h;
+	for(u32 y = vid_str.y0; y < vid_str.y1; ++y)
+		vid_str.y[y] = (inc / 2 + (u32)((s32)y - r->y) * inc) >> 16;
+}
+
+static void VID_SbarMap()
+{ // as SDL maps 8-bit blits: the same index if the colours match, else nearest
+	const SDL_Color *s = sdlpals[3]->colors, *w = sdlpals[0]->colors;
+	bool same = !memcmp(s, w, 256 * sizeof(SDL_Color));
+	for(s32 i = 0; i < 256; ++i){
+		sbarmap[i] = i;
+		for(u32 j = 0, best = ~0u; !same && j < 256 && best; ++j){
+			s32 r = w[j].r - s[i].r, g = w[j].g - s[i].g,
+				b = w[j].b - s[i].b;
+			u32 d = r * r + g * g + b * b;
+			if(d < best){ best = d; sbarmap[i] = j; }
+		}
+	}
+	sbarmapok = true;
+}
+
+static void VID_StretchSbar()
+{ // keyed onto the world, the rows from drawn source rows only
+	if(!sbarmapok) VID_SbarMap();
+	const u8 *s = screensbar->pixels;
+	for(u32 y = vid_str.y0; y < vid_str.y1; ++y){
+		if(!drawnrows[3][vid_str.y[y]]) continue;
+		const u8 *sr = s + vid_str.y[y] * vid.width;
+		u8 *d = (u8 *)screen->pixels + y * vid.width;
+		for(u32 x = vid_str.x0; x < vid_str.x1; ++x){
+			u8 c = sr[vid_str.x[x]];
+			if(c != 255) d[x] = sbarmap[c];
+		}
+	}
+}
+
+static void VID_StretchUI()
+{ // a layer of the screen's size for the paths that take the layers as is
+	const u8 *s = screenui->pixels;
+	for(u32 y = 0; y < vid.height; ++y){
+		u8 *d = uiscaledpixels + y * vid.width;
+		if(y < vid_str.y0 || y >= vid_str.y1
+				|| !drawnrows[2][vid_str.y[y]]){
+			if(uiscaledrows[y]) memset(d, 255, vid.width);
+			uiscaledrows[y] = 0;
+			continue;
+		}
+		const u8 *sr = s + vid_str.y[y] * vid.width;
+		memset(d, 255, vid_str.x0);
+		for(u32 x = vid_str.x0; x < vid_str.x1; ++x)
+			d[x] = sr[vid_str.x[x]];
+		memset(d + vid_str.x1, 255, vid.width - vid_str.x1);
+		uiscaledrows[y] = 1;
+	}
+}
+
+static void VID_UploadOverlay(s32 l, const u8 *pixels, const u8 *drawn,
+		bool used)
 { // the rows drawn in now and the ones still holding an older drawing
 	u8 rows[MAXHEIGHT];
 	idxany[l] = false;
 	for(u32 y = 0; y < vid.height; ++y){
-		rows[y] = (used && drawnrows[l][y]) || idxrows[l][y];
-		idxrows[l][y] = used && drawnrows[l][y];
+		rows[y] = (used && drawn[y]) || idxrows[l][y];
+		idxrows[l][y] = used && drawn[y];
 		idxany[l] |= idxrows[l][y];
 	}
-	const u8 *pixels = scrbuffs[l]->pixels;
 	for(u32 y = 0, e; y < vid.height; y = e){
 		e = VID_RowRun(rows, y);
 		SDL_Rect r = {0, y, vid.width, e - y};
@@ -510,9 +589,9 @@ void VID_Update()
 	scRect2.x = ((s32)vid.width*renderscale - scRect2.w) / 2;
 	scRect2.y = ((s32)vid.height*renderscale - scRect2.h) / 2;
 	u8 *sbrows = drawnrows[3];
-	if(blitscreensbar && (scRect.w != blitRect.w || scRect.h != blitRect.h))
-		SDL_BlitSurfaceScaled(screensbar, &blitRect, screen,
-			&scRect, SDL_SCALEMODE_NEAREST); // 8-bit to 8-bit
+	bool scaled = scRect.w != blitRect.w || scRect.h != blitRect.h;
+	if(scaled) VID_StretchMaps(&scRect);
+	if(blitscreensbar && scaled) VID_StretchSbar();
 	else if(blitscreensbar) // unscaled, the other rows are clear
 		for(u32 y = 0, e; y < vid.height; y = e){
 			e = VID_RowRun(sbrows, y);
@@ -524,28 +603,34 @@ void VID_Update()
 	// nearest sampling and alpha 0 or 1 make the GPU's layering exact,
 	// screenshots need the converted pixels
 	bool indexed = idxtex[0] && renderscale == 1 && !scrshot_name[0]
-		&& scalemode == SDL_SCALEMODE_NEAREST
-		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h));
+		&& scalemode == SDL_SCALEMODE_NEAREST;
+	bool composite = SDL_BYTESPERPIXEL(window_format) == 4
+		&& (renderscale == 1 || scalemode != SDL_SCALEMODE_LINEAR);
+	vid_comp.ui = screenui->pixels;
+	const u8 *uirows = drawnrows[2];
+	if(blitscreenui && scaled && (indexed || composite)){
+		VID_StretchUI();
+		vid_comp.ui = uiscaledpixels;
+		uirows = uiscaledrows;
+	}
 	if(indexed){
 		SDL_UpdateTexture(idxtex[0], NULL, screen->pixels, vid.width);
-		VID_UploadOverlay(1, blitscreentop);
-		VID_UploadOverlay(2, blitscreenui);
+		VID_UploadOverlay(1, screentop->pixels, drawnrows[1],
+				blitscreentop);
+		VID_UploadOverlay(2, vid_comp.ui, uirows, blitscreenui);
 	}else
 	if(SDL_LockTexture(texture,0, &argbbuffer->pixels, &argbbuffer->pitch)){
-		if(SDL_BYTESPERPIXEL(window_format) == 4
-		&& (renderscale == 1 || scalemode != SDL_SCALEMODE_LINEAR)
-		&& (!blitscreenui || (scRect2.w==dst.w && scRect2.h==dst.h)))
-		{ // rows without overlays on them take the plain world loop
+		if(composite){ // rows without overlays take the plain loop
 			u8 *rows = vid_comp.rows;
 			for(u32 y = 0; y < vid.height; ++y)
-				rows[y] = (blitscreenui && drawnrows[2][y]) * 2
+				rows[y] = (blitscreenui && uirows[y]) * 2
 					+ (blitscreentop && drawnrows[1][y]);
 			vid_comp.pixels = argbbuffer->pixels;
 			vid_comp.pitch = argbbuffer->pitch / 4;
 			vid_comp.rs1 = renderscale == 1;
 			VID_CompositeFrame();
 		}
-		else{ // linear filtering or a scaled UI layer
+		else{ // linear filtering at a render scale, or not 32-bit
 			SDL_BlitSurfaceScaled(screen, &blitRect, argbbuffer,
 					&dst, scalemode);
 			if(blitscreenui)
@@ -617,13 +702,17 @@ void VID_AllocBuffers()
 	toppixels = realloc(toppixels, area);
 	uipixels = realloc(uipixels, area);
 	sbarpixels = realloc(sbarpixels, area);
+	uiscaledpixels = realloc(uiscaledpixels, area);
 	free(r_warpbuffer); // calloc doesn't touch it until it's used
 	r_warpbuffer = calloc(area, 1);
-	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!r_warpbuffer)
+	if(!screenpixels||!toppixels||!uipixels||!sbarpixels||!uiscaledpixels
+			||!r_warpbuffer)
 		Sys_Error("Not enough memory for video mode");
 	D_AllocCutoutBuf(area);
 	memset(toppixels, 255, area); // 255 is transparent in the overlays
 	memset(uipixels, 255, area);
+	memset(uiscaledpixels, 255, area);
+	memset(uiscaledrows, 0, sizeof(uiscaledrows));
 	memset(sbarpixels, 255, area);
 	memset(drawnrows, 0, sizeof(drawnrows));
 	screen->pixels = vid.buffer = screenpixels;
