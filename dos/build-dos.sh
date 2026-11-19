@@ -12,7 +12,8 @@
 # a byte-identical QRUSTYQ.EXE.
 #
 # Host: Linux x86_64 (the DJGPP below is a Linux build) with git, curl,
-# tar, bzip2, unzip, cmake 3.22 or newer, make and sha256sum.
+# tar, bzip2, unzip, cmake 3.22 or newer, make and sha256sum, and flex's
+# libfl.so.2, which DJGPP's ar loads (package libfl2 on Debian and Ubuntu).
 #
 # The same steps by hand:
 #
@@ -132,6 +133,8 @@ download "$DJGPP_URL/$DJGPP_TAR" $DJGPP_SHA "$dl/$DJGPP_TAR"
 download "$CWS_URL" $CWS_SHA "$dl/csdpmi7b.zip"
 rm -rf "$work/djgpp" "$work/cwsdpmi" "$work/qrustyquake"
 tar -xjf "$dl/$DJGPP_TAR" -C "$work"
+"$work/djgpp/bin/i586-pc-msdosdjgpp-ar" --version >/dev/null 2>&1 ||
+	die "DJGPP's ar does not run, is libfl.so.2 (flex) missing?"
 unzip -q "$dl/csdpmi7b.zip" bin/CWSDPMI.EXE bin/cwsdpmi.doc \
 	-d "$work/cwsdpmi"
 echo "taking $commit from $repo"

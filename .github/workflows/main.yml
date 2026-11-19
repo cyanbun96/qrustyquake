@@ -42,3 +42,23 @@ jobs:
           name: qrustyquake-linux
           path: AppImage/qrustyquake*.AppImage
           if-no-files-found: error
+
+  dos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install libfl2
+        run: sudo apt-get update && sudo apt-get install -y libfl2
+
+      - name: Build
+        run: sh dos/build-dos.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: qrustyquake-dos
+          path: dos/build/dist/
+          if-no-files-found: error
