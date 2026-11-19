@@ -42,6 +42,9 @@ void Sys_Error(const c8 *error, ...)
 	fprintf(stderr, "Error: %s\n", str);
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "QrustyQuake", str, 0);
 	Host_Shutdown();
+#ifdef SDL_PLATFORM_DOS // again, as going back to text mode cleared the screen
+	fprintf(stderr, "Error: %s\n", str);
+#endif
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();
 #else
@@ -160,6 +163,9 @@ static void main_loop()
 }
 #endif
 
+#ifdef SDL_PLATFORM_DOS // SDL's main runs this one, after locking memory for
+#include <SDL3/SDL_main.h> // its interrupt handlers and enabling near pointers
+#endif
 int main(int c, char **v)
 { // the identifier names the window to the desktop (Wayland app_id, X11
   // class), the same as AppImage/qrustyquake.desktop, whatever the binary
@@ -173,7 +179,11 @@ int main(int c, char **v)
 	host_parms.argv = (c8**)v;
 	COM_InitArgv(host_parms.argc, (c8**)host_parms.argv);
 	// the first hunk segment, as in Ironwail; more are added when it fills
+#ifdef SDL_PLATFORM_DOS // CWSDPMI backs a big one with its swap file, and
+	host_parms.memsize = 24*1024*1024; // DOSBox died on 162 MB of that
+#else
 	host_parms.memsize = 384*1024*1024;
+#endif
 	if(COM_CheckParm("-heapsize")){
 		s32 t = COM_CheckParm("-heapsize") + 1;
 		if(t < c) host_parms.memsize = q_max(atoi(v[t]), 1024) * 1024;

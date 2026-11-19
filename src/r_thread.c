@@ -12,7 +12,9 @@
 #include <sched.h>
 #endif
 #include "quakedef.h"
+#ifndef SDL_PLATFORM_DOS // DJGPP has none, sysincludes.h stands in for it
 #include <fenv.h>
+#endif
 
 #define R_BANDSPERWORKER 4
 #define R_STACKSIZE (4 << 20) // D_PolysetDraw keeps a span per screen row

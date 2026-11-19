@@ -8,7 +8,9 @@
 #else
 #define Q_SIL static inline __attribute__((always_inline))
 #define Q_NOINLINE __attribute__((noinline))
-#ifdef __TINYC__ // no thread local storage, so no render threads (r_thread.c)
+// tcc has no thread local storage and DOS has no preemptive threads, so no
+// render threads there (r_thread.c)
+#if defined(__TINYC__) || defined(SDL_PLATFORM_DOS)
 #define Q_TLS
 #define Q_NOTHREADS
 #else

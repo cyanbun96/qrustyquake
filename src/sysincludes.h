@@ -18,10 +18,12 @@
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/ioctl.h>
+#ifndef SDL_PLATFORM_DOS // DJGPP has no sockets, loopback only (net_bsd.c)
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
 #else // SDL_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #ifndef _USE_WINSOCK2
@@ -31,6 +33,17 @@
 #include <ws2tcpip.h>
 #include <direct.h>
 #include <io.h>
+#endif
+#ifdef SDL_PLATFORM_DOS // DJGPP has no fenv.h; the rounding r_main.c and
+#define FE_TONEAREST RC_NEAR // r_thread.c set is the x87 control word's
+#define FE_TOWARDZERO RC_CHOP
+typedef unsigned int fenv_t;
+#define fesetround(r) _control87((r), MCW_RC)
+#define fegetenv(e) (*(e) = _control87(0, 0))
+#define fesetenv(e) _control87(*(e), 0xffff)
+// nor C99 fmin and fmax (model.c)
+static inline double fmin(double a, double b){return b!=b || a<b ? a : b;}
+static inline double fmax(double a, double b){return b!=b || a>b ? a : b;}
 #endif
 #include <SDL3/SDL.h>
 #ifdef AVAIL_SDL3MIXER

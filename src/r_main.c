@@ -1,6 +1,8 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
+#ifndef SDL_PLATFORM_DOS // DJGPP has none, sysincludes.h stands in for it
 #include <fenv.h>
+#endif
 
 #ifndef FE_TOWARDZERO // not every target can change it
 #define FE_TOWARDZERO FE_TONEAREST

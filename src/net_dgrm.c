@@ -2,6 +2,7 @@
 // Copyright(C) 2010-2014 QuakeSpasm developers
 // GPLv3 See LICENSE for details.
 #include "quakedef.h"
+#ifndef SDL_PLATFORM_DOS // no sockets in DJGPP, see net_bsd.c
 
 #define sfunc net_landrivers[sock->landriver] // readability macros
 #define dfunc net_landrivers[net_landriverlevel]
@@ -1096,3 +1097,4 @@ qsocket_t *Datagram_Connect(const c8 *host)
 }
 #undef sfunc
 #undef dfunc
+#endif

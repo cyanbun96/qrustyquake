@@ -4,6 +4,7 @@
 // GPLv3 See LICENSE for details.
 
 #include "quakedef.h"
+#ifndef SDL_PLATFORM_DOS // no sockets in DJGPP, see net_bsd.c
 
 #ifdef SDL_PLATFORM_WINDOWS
 const c8 *__WSAE_StrError(s32 errcode)
@@ -343,3 +344,4 @@ s32 UDP_SetSocketPort(struct qsockaddr *addr, s32 port)
 	((struct sockaddr_in *)addr)->sin_port = htons((u16)port);
 	return 0;
 }
+#endif

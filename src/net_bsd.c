@@ -5,13 +5,16 @@ net_driver_t net_drivers[] = {
 	 Loop_Connect, Loop_CheckNewConnections, Loop_GetMessage,
 	 Loop_SendMessage, Loop_SendUnreliableMessage, Loop_CanSendMessage,
 	 Loop_Close, Loop_Shutdown },
+#ifndef SDL_PLATFORM_DOS // DJGPP has no sockets, so single player only
 	{ 0, Datagram_Init, Datagram_Listen,
 	 Datagram_SearchForHosts, Datagram_Connect,
 	 Datagram_CheckNewConnections, Datagram_GetMessage,
 	 Datagram_SendMessage, Datagram_SendUnreliableMessage,
 	 Datagram_CanSendMessage, Datagram_Close, Datagram_Shutdown }
+#endif
 };
 const s32 net_numdrivers = Q_COUNTOF(net_drivers);
+#ifndef SDL_PLATFORM_DOS
 net_landriver_t net_landrivers[] = {
 	{ 0, 0, UDP_Init, UDP_Shutdown, UDP_Listen, UDP_OpenSocket,
 	 UDP_CloseSocket, UDP_Connect, UDP_CheckNewConnections, UDP_Read,
@@ -19,3 +22,4 @@ net_landriver_t net_landrivers[] = {
 	 UDP_GetNameFromAddr, UDP_GetAddrFromName,
 	 UDP_AddrCompare, UDP_GetSocketPort, UDP_SetSocketPort } };
 const s32 net_numlandrivers = Q_COUNTOF(net_landrivers);
+#endif
