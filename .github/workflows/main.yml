@@ -43,6 +43,24 @@ jobs:
           path: AppImage/qrustyquake*.AppImage
           if-no-files-found: error
 
+  linux-appimage-aarch64:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build AppImage
+        working-directory: AppImage
+        run: ./build.sh linux/arm64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: qrustyquake-linux-aarch64
+          path: AppImage/qrustyquake*.AppImage
+          if-no-files-found: error
+
   dos:
     runs-on: ubuntu-latest
 
