@@ -110,6 +110,9 @@ void Sys_SendKeyEvents()
 			case SDLK_F11: sym = K_F11; break;
 			case SDLK_F12: sym = K_F12; break;
 			case SDLK_PAUSE: sym = K_PAUSE; break;
+#ifdef SDL_PLATFORM_ANDROID
+			case SDLK_AC_BACK: sym = K_ESCAPE; break;
+#endif
 			// CyanBun96: vim-like keybinds that work in menus
 			case SDLK_H: sym = vimmode ? K_LEFTARROW : 'h'; break;
 			case SDLK_J: sym = vimmode ? K_DOWNARROW : 'j'; break;

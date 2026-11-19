@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<uses-feature android:glEsVersion="0x00020000" />
+	<uses-feature android:name="android.hardware.touchscreen"
+		android:required="false" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<!-- the game data is read from shared storage with plain fopen -->
+	<uses-permission
+		android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+	<uses-permission
+		android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+		android:maxSdkVersion="29" />
+	<application android:label="QrustyQuake"
+		android:icon="@drawable/ic_launcher"
+		android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+		android:appCategory="game"
+		android:requestLegacyExternalStorage="true"
+		android:enableOnBackInvokedCallback="false"
+		android:hardwareAccelerated="true">
+		<meta-data android:name="SDL_ENV.SDL_ORIENTATIONS"
+			android:value="LandscapeLeft LandscapeRight" />
+		<!-- the back button is Escape, not the end of the game -->
+		<meta-data android:name="SDL_ENV.SDL_ANDROID_TRAP_BACK_BUTTON"
+			android:value="1" />
+		<activity android:name=".QrustyQuakeActivity"
+			android:alwaysRetainTaskState="true"
+			android:launchMode="singleInstance"
+			android:configChanges="layoutDirection|locale|grammaticalGender|fontScale|fontWeightAdjustment|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
+			android:preferMinimalPostProcessing="true"
+			android:exported="true">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category
+				android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+	</application>
+</manifest>

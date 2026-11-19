@@ -105,6 +105,11 @@ void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 
 void VID_SetWindowed()
 {
+#ifdef SDL_PLATFORM_ANDROID // the window is the whole screen either way,
+	SDL_SetWindowFullscreenMode(window, 0); // but this hides the bars
+	SDL_SetWindowFullscreen(window, 1);
+	return;
+#endif
 	SDL_SetWindowFullscreen(window, 0);
 	SDL_SetWindowSize(window,vid.width*renderscale,vid.height*renderscale);
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_UNDEFINED,

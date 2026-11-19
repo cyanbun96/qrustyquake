@@ -1,0 +1,70 @@
+// Android APK. Needs JDK 17, the Android SDK (ANDROID_HOME or a
+// local.properties with sdk.dir) and the NDK and CMake versions below.
+//   ./gradlew assembleRelease
+//   adb install build/outputs/apk/release/qrustyquake-release.apk
+// The release build is signed with the debug key so it installs as it is,
+// the debug build has unoptimized native code and is too slow to play.
+// The game data goes in the qrustyquake folder of the shared storage, and
+// the app asks for "All files access" on its first start.
+plugins {
+	id 'com.android.application' version '8.7.3'
+}
+
+def cmake = file('../CMakeLists.txt').text
+def qqver = (cmake =~ /VERSION (\d+)\.(\d+)\.(\d+)\)/)[0]
+
+// SDL's Android packages carry its Java half with the .so it belongs to,
+// prefab hands the libraries to the find_package calls in CMakeLists.txt
+def sdlaar(String repo, String lib, String ver, String sha256)
+{
+	def aar = file("build/sdl/${lib}-${ver}.aar")
+	if(aar.exists()) return aar
+	def zip = file("build/sdl/${lib}-devel-${ver}-android.zip")
+	zip.parentFile.mkdirs()
+	ant.get(src: "https://github.com/libsdl-org/${repo}/releases/" +
+		"download/release-${ver}/${zip.name}", dest: zip)
+	def sum = java.security.MessageDigest.getInstance('SHA-256')
+		.digest(zip.bytes).encodeHex().toString()
+	if(sum != sha256)
+		throw new GradleException("${zip.name}: bad checksum ${sum}")
+	copy { from zipTree(zip); include aar.name; into aar.parentFile }
+	zip.delete()
+	return aar
+}
+
+android {
+	namespace 'io.github.cyanbun96.qrustyquake'
+	compileSdk 35
+	ndkVersion '28.2.13676358'
+	defaultConfig {
+		applicationId 'io.github.cyanbun96.qrustyquake'
+		minSdk 21
+		targetSdk 35
+		versionName "${qqver[1]}.${qqver[2]}.${qqver[3]}"
+		versionCode qqver[1].toInteger() * 10000
+			+ qqver[2].toInteger() * 100 + qqver[3].toInteger()
+		ndk.abiFilters 'arm64-v8a'
+	}
+	sourceSets.main {
+		manifest.srcFile 'AndroidManifest.xml'
+		java.srcDirs = ['java']
+		res.srcDirs = ['res']
+	}
+	buildFeatures.prefab true
+	externalNativeBuild.cmake {
+		path '../CMakeLists.txt'
+		version '3.31.6'
+	}
+	buildTypes.release {
+		signingConfig signingConfigs.debug
+		externalNativeBuild.cmake.arguments '-DCMAKE_BUILD_TYPE=Release'
+	}
+	lint.abortOnError false
+}
+
+dependencies {
+	implementation files(sdlaar('SDL', 'SDL3', '3.4.8',
+		'c4c23cec585cb99ea626625dc06b421933dd78733b3841628d86be1c13ab16c6'),
+		sdlaar('SDL_mixer', 'SDL3_mixer', '3.2.2',
+		'bc9684da3d36eb6df7c5f645493dcdaa847822b8613aefadc889e1f8614427f3'))
+}

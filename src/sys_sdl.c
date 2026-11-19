@@ -1,5 +1,19 @@
 #include "quakedef.h"
 static FILE *sys_handles[MAX_HANDLES];
+#ifdef SDL_PLATFORM_ANDROID
+#include <SDL3/SDL_main.h> // main becomes SDL_main, run by SDLActivity
+static jmp_buf sys_exitjmp; // Android wants main to return, not exit()
+static s32 sys_exitcode;
+static SDL_ThreadID sys_mainthread;
+static void Sys_Exit(s32 code)
+{
+	if(SDL_GetCurrentThreadID() != sys_mainthread) exit(code);
+	sys_exitcode = code;
+	longjmp(sys_exitjmp, 1);
+}
+#else
+#define Sys_Exit exit
+#endif
 
 void Sys_Printf(const c8 *fmt, ...)
 {
@@ -10,13 +24,21 @@ void Sys_Printf(const c8 *fmt, ...)
 	vsnprintf(qtext, sizeof(qtext), fmt, argptr);
 	va_end(argptr);
 	UTF8_FromQuake(u8text, sizeof(u8text), qtext);
+#ifdef SDL_PLATFORM_ANDROID
+	SDL_Log("%s", u8text); // to logcat, stdout goes nowhere
+#else
 	printf("%s", u8text);
+#endif
 }
 
 void Sys_Quit()
 {
 	CDAudio_Stop();
-	if(!exitstyle.value){
+	bool endscreen = !exitstyle.value;
+#ifdef SDL_PLATFORM_ANDROID // in the background or being closed, unseen
+	if(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) endscreen = 0;
+#endif
+	if(endscreen){
 		u16 *screen; // erysdren(it/its)
 		if(registered.value)screen=(u16*)COM_LoadHunkFile("end2.bin",0);
 		else screen = (u16*)COM_LoadHunkFile("end1.bin", 0);
@@ -27,7 +49,7 @@ void Sys_Quit()
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();
 #else
-	exit(0);
+	Sys_Exit(0);
 #endif
 }
 
@@ -48,7 +70,7 @@ void Sys_Error(const c8 *error, ...)
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();
 #else
-	exit(1);
+	Sys_Exit(1);
 #endif
 }
 
@@ -169,6 +191,10 @@ static void main_loop()
 int main(int c, char **v)
 { // the identifier names the window to the desktop (Wayland app_id, X11
   // class), the same as AppImage/qrustyquake.desktop, whatever the binary
+#ifdef SDL_PLATFORM_ANDROID
+	sys_mainthread = SDL_GetCurrentThreadID();
+	if(setjmp(sys_exitjmp)) return sys_exitcode;
+#endif
 	c8 version[16];
 	snprintf(version, sizeof(version), "%.2f", VERSION);
 	SDL_SetAppMetadata("QrustyQuake", version, "qrustyquake");

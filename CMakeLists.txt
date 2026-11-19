@@ -61,7 +61,11 @@ endif()
 file(GLOB QRUSTYQUAKE_HEADERS CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.h")
 file(GLOB QRUSTYQUAKE_SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.c")
 
-add_executable(qrustyquake)
+if(ANDROID) # loaded by SDLActivity, see android/
+	add_library(qrustyquake SHARED)
+else()
+	add_executable(qrustyquake)
+endif()
 
 if(EMSCRIPTEN)
 	if(CMAKE_BUILD_TYPE STREQUAL "Release")
