@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 1.0.0)
+project(qrustyquake LANGUAGES C HOMEPAGE_URL "https://github.com/cyanbun96/qrustyquake/" VERSION 1.0.1)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(Math)

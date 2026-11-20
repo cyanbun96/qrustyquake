@@ -432,7 +432,7 @@ Cmd_AddCommand2(cmdname,func,src_server) //command came from a server
 #define ALIAS_Z_CLIP_PLANE 5
 #define LIT_LUT_RES 64
 #define QUANT(x) (((x) * (LIT_LUT_RES - 1)) / 255)
-#define VERSION 1.00                                               // quakedef.h
+#define VERSION 1.01                                               // quakedef.h
 #define GAMENAME "id1"
 #define CMDLINE_LENGTH 256
 #define CACHE_SIZE 32 // used to align key data structures

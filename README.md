@@ -172,7 +172,7 @@ Contributions of any kind are very welcome. If someone implements their favorite
 
 # System requirements
 
-Windows (v1.0.0):
+Windows (v1.0.1):
 
 - Windows XP or higher
 
@@ -180,7 +180,7 @@ Windows (v1.0.0):
 
 - If it can run modern Windows, it can run QrustyQuake
 
-Linux AppImage (v1.0.0):
+Linux AppImage (v1.0.1):
 
 - Ubuntu 22.04, Debian 12, Fedora 36, RHEL/Rocky/Alma 9 or anything newer
 
@@ -212,7 +212,7 @@ Linux release AppImage is built with AppImage/build.sh
 
 Use Build_SteamOS.sh for Steam Deck
 
-Build requirements (v1.0.0):
+Build requirements (v1.0.1):
 
 - A C99 compiler. GCC 5 or newer works with the Makefile as is
 
@@ -232,22 +232,22 @@ Build requirements (v1.0.0):
 
 | Platform | CPU | Tested on | Version | Notes |
 |:--|:--|:--|:-:|:--|
-| **Arch Linux** | x86_64 | Hardware | 1.0.0 | The main platform this port is developed on, so the most likely to work. Built with GCC, Clang and TinyCC |
-| **Ubuntu 14.04** | x86_64 | Docker | 1.0.0 | The oldest distro tested. GCC 4.8, with SDL3 and SDL3_mixer built from source using CMake from cmake.org. See [Building](#building) for the GCC 4.8 make command and the SDL option it needs |
-| **Linux AppImage** | x86_64 | Docker | 1.0.0 | Starts on Ubuntu 22.04, Debian 12, Fedora 36, Rocky 9 and newer. See [System requirements](#system-requirements) |
+| **Arch Linux** | x86_64 | Hardware | 1.0.1 | The main platform this port is developed on, so the most likely to work. Built with GCC, Clang and TinyCC |
+| **Ubuntu 14.04** | x86_64 | Docker | 1.0.1 | The oldest distro tested. GCC 4.8, with SDL3 and SDL3_mixer built from source using CMake from cmake.org. See [Building](#building) for the GCC 4.8 make command and the SDL option it needs |
+| **Linux AppImage** | x86_64 | Docker | 1.0.1 | Starts on Ubuntu 22.04, Debian 12, Fedora 36, Rocky 9 and newer. See [System requirements](#system-requirements) |
 | **Linux AppImage** | AArch64 | QEMU (Debian 12) | 1.0.1 | Plays with sound in an emulated VM, too slow there to judge speed. Not tried on real ARM hardware yet |
 | **Ubuntu** | RISC-V | MangoPi MQ Pro | 0.8.1 | `timedemo demo1` at 320x200 with all graphics layers set to 0 gets 17 fps |
 | **SteamOS** | x86_64 | Steam Deck | 0.8.2 | [`Build_SteamOS.sh`](Build_SteamOS.sh) script by Pup Luka |
-| **FreeBSD** | x86_64 | Hardware | 1.0.0 | Seemingly perfect |
-| **OpenBSD** | x86_64 | Hardware | 1.0.0 | Seemingly perfect |
-| **HaikuOS** | x86_64 | Hardware | 1.0.0 | Seemingly perfect. SDL3_mixer has no Haiku package, so build it from source |
+| **FreeBSD** | x86_64 | Hardware | 1.0.1 | Seemingly perfect |
+| **OpenBSD** | x86_64 | Hardware | 1.0.1 | Seemingly perfect |
+| **HaikuOS** | x86_64 | Hardware | 1.0.1 | Seemingly perfect. SDL3_mixer has no Haiku package, so build it from source |
 | **macOS** | x86_64 | Hardware | 0.6.2 | 14.6.1: CMake build with SDL3 from Homebrew, without SDL3_mixer. 15.7.2: Makefile build with SDL3 from Homebrew, mixer not tested |
-| **Windows** | x86_64 | Hardware, VirtualBox | 1.0.0 | Also runs under Wine |
-| **Windows XP** | i686 | VirtualBox | 1.0.0 | Ran with 64 MB of RAM. Cross-built with MinGW, see [`cmake/README-winxp.md`](cmake/README-winxp.md) |
+| **Windows** | x86_64 | Hardware, VirtualBox | 1.0.1 | Also runs under Wine |
+| **Windows XP** | i686 | VirtualBox | 1.0.1 | Ran with 64 MB of RAM. Cross-built with MinGW, see [`cmake/README-winxp.md`](cmake/README-winxp.md) |
 | **DOS** | x86 | FreeDOS (QEMU), DOSBox | 1.0.1 | Built with DJGPP by [`dos/build-dos.sh`](dos/build-dos.sh). `timedemo` against QUAKE.EXE 1.06: 920 vs 680 fps in FreeDOS, 95 vs 112 in DOSBox. In DOSBox, sound stutters below about 25 fps and 1024 or 1280 wide modes stay black |
 | **Android APK** | AArch64 | Redmi 9 (LineageOS 20) | 1.0.1 | No touch controls, play with a keyboard (Bluetooth works). The game data goes in `qrustyquake/id1` in the phone's storage. `timedemo demo1` gets 233 fps at 320x240 |
-| **Android Termux** | AArch64 | Hardware | 1.0.0 | Ran through X11 with touch controls. *Unpleasant*. The Windows build runs through Winlator: set "DX Wrapper" to "CNC DDraw" if you get a "No outputs found" error |
-| **Web (Emscripten)** | WebAssembly | Browsers | 1.0.0 | Dark magic performed by Erysdren, please don't ask me about it. CMakeLists updated by Pup Luka (since commit 5b68511) |
+| **Android Termux** | AArch64 | Hardware | 1.0.1 | Ran through X11 with touch controls. *Unpleasant*. The Windows build runs through Winlator: set "DX Wrapper" to "CNC DDraw" if you get a "No outputs found" error |
+| **Web (Emscripten)** | WebAssembly | Browsers | 1.0.1 | Dark magic performed by Erysdren, please don't ask me about it. CMakeLists updated by Pup Luka (since commit 5b68511) |
 
 GitHub Actions builds Windows, both Linux AppImages, DOS and the Android APK on every push.
 
