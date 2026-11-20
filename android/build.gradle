@@ -4,8 +4,9 @@
 //   adb install build/outputs/apk/release/qrustyquake-release.apk
 // The release build is signed with the debug key so it installs as it is,
 // the debug build has unoptimized native code and is too slow to play.
-// The game data goes in the qrustyquake folder of the shared storage, and
-// the app asks for "All files access" on its first start.
+// The game data goes in the qrustyquake folder of the shared storage, or
+// another folder picked on the screen before the game, which also asks for
+// "All files access".
 plugins {
 	id 'com.android.application' version '8.7.3'
 }
@@ -43,6 +44,7 @@ android {
 		versionName "${qqver[1]}.${qqver[2]}.${qqver[3]}"
 		versionCode qqver[1].toInteger() * 10000
 			+ qqver[2].toInteger() * 100 + qqver[3].toInteger()
+		resValue 'string', 'title', "QrustyQuake ${versionName}"
 		ndk.abiFilters 'arm64-v8a'
 	}
 	sourceSets.main {
