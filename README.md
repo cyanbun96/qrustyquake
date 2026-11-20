@@ -4,6 +4,8 @@
 
 A modernized, SDL3-based WinQuake port aimed at faithfulness to the original and easy portability.
 
+Try it in your browser (requires WebAssembly support): [https://qrustyquake.pages.dev/](https://qrustyquake.pages.dev/)
+
 See the Github [Releases](https://github.com/cyanbun96/qrustyquake/releases) for downloads.
 
 Compatible with most modern mods, check [Compatibility List](https://github.com/cyanbun96/qrustyquake/wiki/Compatibility-List) for details.
