@@ -3,13 +3,38 @@
 static bool mouse_avail;
 static f32 mouse_x;
 static f32 mouse_y;
-static f64 jhatup=0, jhatright=0, jhatleft=0, jhatdown=0; // last pressed time
+static SDL_Joystick *joystick;
+static SDL_Gamepad *gamepad; // opened instead of joystick when SDL maps it
+static u8 jhat; // held hat or D-pad directions, SDL_HAT_* bits
+static f64 jhattime[4]; // last press or repeat of each direction
+static const s32 jhatkeys[4] = {
+	K_UPARROW, K_RIGHTARROW, K_DOWNARROW, K_LEFTARROW };
+// Gamepads get the numbers the Linux xpad driver gives an Xbox pad, which the
+// j* cvar defaults and JOY/AUX binds assume. Buttons past these follow SDL's
+// order from MISC1 on, the D-pad acts as the hat.
+static const SDL_GamepadButton gpbuttons[] = {
+	SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST,
+	SDL_GAMEPAD_BUTTON_WEST, SDL_GAMEPAD_BUTTON_NORTH,
+	SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
+	SDL_GAMEPAD_BUTTON_BACK, SDL_GAMEPAD_BUTTON_START,
+	SDL_GAMEPAD_BUTTON_GUIDE, SDL_GAMEPAD_BUTTON_LEFT_STICK,
+	SDL_GAMEPAD_BUTTON_RIGHT_STICK };
+#define GP_CORE (s32)Q_COUNTOF(gpbuttons)
+#define GP_BUTTONS (GP_CORE+SDL_GAMEPAD_BUTTON_COUNT-SDL_GAMEPAD_BUTTON_MISC1)
+static const s32 gpaxes[SDL_GAMEPAD_AXIS_COUNT] = { 0, 1, 3, 4, 2, 5 };
+
+static void IN_CloseJoystick()
+{
+	if(gamepad){ SDL_CloseGamepad(gamepad); gamepad = 0; }
+	if(joystick){ SDL_CloseJoystick(joystick); joystick = 0; }
+}
 
 void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
 {
 	if(joysticknum.value <= -1){
 		Con_Printf("Joystick disabled\n");
 		SDL_SetJoystickEventsEnabled(0);
+		SDL_SetGamepadEventsEnabled(0);
 		return;
 	}
 	s32 count = -1;
@@ -24,18 +49,32 @@ void IN_InitJoystick(SDL_UNUSED cvar_t *cvar)
 		}
 		else Con_Printf("No joysticks found\n");
 	}else if(count > 0){
-		Con_Printf("Using joystick: %s\n",
-			SDL_GetJoystickNameForID(joys[(s32)joysticknum.value]));
-		if(joystick){ SDL_CloseJoystick(joystick); joystick = 0; }
-		joystick = SDL_OpenJoystick(joys[(s32)joysticknum.value]);
+		SDL_JoystickID id = joys[(s32)joysticknum.value];
+		IN_CloseJoystick();
+		if(SDL_IsGamepad(id)) gamepad = SDL_OpenGamepad(id);
+		if(!gamepad) joystick = SDL_OpenJoystick(id);
+		Con_Printf("Using %s: %s\n", gamepad ? "gamepad" : "joystick",
+			SDL_GetJoystickNameForID(id));
 		SDL_SetJoystickEventsEnabled(1);
+		SDL_SetGamepadEventsEnabled(1);
 	}else Con_Printf("No joysticks found\n");
 	SDL_free(joys);
 }
 
+static void IN_JoyHat(u8 hat) // arrows are held while the hat is
+{
+	for(s32 i = 0; i < 4; i++){
+		if(!((hat ^ jhat) & 1 << i)) continue;
+		Key_Event(jhatkeys[i], hat & 1 << i);
+		jhattime[i] = Sys_DoubleTime();
+	}
+	jhat = hat;
+}
+
 void IN_RemoveJoystick()
 {
-	if(joystick){ SDL_CloseJoystick(joystick); joystick = 0; }
+	IN_JoyHat(0);
+	IN_CloseJoystick();
 	jaxis_move_x = 0;
 	jaxis_move_y = 0;
 	jaxis_look_x = 0;
@@ -47,29 +86,70 @@ void IN_RemoveJoystick()
 void IN_HatRepeat()
 {
 	if(key_dest == key_game) return;
-	f64 delay = 0.5;
-	f64 repeat = 0.05;
 	f64 t = Sys_DoubleTime();
-	if(jhatup && jhatup + delay < t){
-		Key_Event(K_UPARROW, 1);
-		Key_Event(K_UPARROW, 0);
-		jhatup += repeat;
+	for(s32 i = 0; i < 4; i++){
+		if(!(jhat & 1 << i) || jhattime[i] + 0.5 >= t) continue;
+		Key_Event(jhatkeys[i], 0); // up first so the key stays held
+		Key_Event(jhatkeys[i], 1);
+		jhattime[i] += 0.05;
 	}
-	if(jhatright && jhatright + delay < t){
-		Key_Event(K_RIGHTARROW, 1);
-		Key_Event(K_RIGHTARROW, 0);
-		jhatright += repeat;
+}
+
+static void IN_JoyButton(s32 b, bool down)
+{
+	if(b == jenterbutton.value) Key_Event(K_ENTER, down);
+	else if(b == jescapebutton.value) Key_Event(K_ESCAPE, down);
+	else if(b < K_AUX31 - K_JOY1) // AUX31 and 32 are the triggers
+		Key_Event(K_JOY1 + b, down);
+}
+
+static void IN_PadButton(s32 b, bool down)
+{
+	static const u8 dpad[4] = {
+		SDL_HAT_UP, SDL_HAT_DOWN, SDL_HAT_LEFT, SDL_HAT_RIGHT };
+	if(b >= SDL_GAMEPAD_BUTTON_DPAD_UP
+			&& b <= SDL_GAMEPAD_BUTTON_DPAD_RIGHT){
+		u8 bit = dpad[b - SDL_GAMEPAD_BUTTON_DPAD_UP];
+		IN_JoyHat(down ? jhat | bit : jhat & ~bit);
+		return;
 	}
-	if(jhatleft && jhatleft + delay < t){
-		Key_Event(K_LEFTARROW, 1);
-		Key_Event(K_LEFTARROW, 0);
-		jhatleft += repeat;
-	}
-	if(jhatdown && jhatdown + delay < t){
-		Key_Event(K_DOWNARROW, 1);
-		Key_Event(K_DOWNARROW, 0);
-		jhatdown += repeat;
-	}
+	s32 i = 0;
+	while(i < GP_CORE && gpbuttons[i] != b) i++;
+	if(i == GP_CORE) i += b - SDL_GAMEPAD_BUTTON_MISC1;
+	IN_JoyButton(i, down);
+}
+
+static void IN_JoyAxis(s32 axis, s32 value)
+{
+	if     (axis == jmoveaxisx.value) jaxis_move_x = value;
+	else if(axis == jmoveaxisy.value) jaxis_move_y = value;
+	else if(axis == jlookaxisx.value) jaxis_look_x = value;
+	else if(axis == jlookaxisy.value) jaxis_look_y = value;
+	else if(axis == jtrigaxis1.value){
+		Key_Event(K_AUX31, value > jtriggerthresh.value);
+		jaxis_trig_1 = value; }
+	else if(axis == jtrigaxis2.value){
+		Key_Event(K_AUX32, value > jtriggerthresh.value);
+		jaxis_trig_2 = value; }
+}
+
+s32 IN_JoyButtons() // in the numbering binds and cvars use
+{
+	if(gamepad) return GP_BUTTONS;
+	return SDL_GetNumJoystickButtons(joystick);
+}
+
+s32 IN_JoyAxes()
+{
+	if(gamepad) return SDL_GAMEPAD_AXIS_COUNT;
+	return SDL_GetNumJoystickAxes(joystick);
+}
+
+bool IN_JoyButtonHeld(s32 b)
+{
+	if(!gamepad) return SDL_GetJoystickButton(joystick, b);
+	return SDL_GetGamepadButton(gamepad, b < GP_CORE ? gpbuttons[b] :
+		(SDL_GamepadButton)(SDL_GAMEPAD_BUTTON_MISC1 + b - GP_CORE));
 }
 
 void Sys_SendKeyEvents()
@@ -228,53 +308,27 @@ void Sys_SendKeyEvents()
 			break;
 		case SDL_EVENT_JOYSTICK_BUTTON_UP:
 		case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
-			if(event.jbutton.button == jenterbutton.value)
-				Key_Event(K_ENTER, event.jbutton.down);
-			else if(event.jbutton.button == jescapebutton.value)
-				Key_Event(K_ESCAPE, event.jbutton.down);
-			else Key_Event(K_JOY1+event.jbutton.button,
+			if(!gamepad) IN_JoyButton(event.jbutton.button,
 					event.jbutton.down);
 			break;
 		case SDL_EVENT_JOYSTICK_HAT_MOTION:
-			if(event.jhat.value & 1){
-				Key_Event(K_UPARROW, 1);
-				Key_Event(K_UPARROW, 0);
-				jhatup = Sys_DoubleTime();
-			}else{ jhatup = 0; }
-			if(event.jhat.value & 2){
-				Key_Event(K_RIGHTARROW, 1);
-				Key_Event(K_RIGHTARROW, 0);
-				jhatright = Sys_DoubleTime();
-			}else{ jhatright = 0; }
-			if(event.jhat.value & 4){
-				Key_Event(K_DOWNARROW, 1);
-				Key_Event(K_DOWNARROW, 0);
-				jhatdown = Sys_DoubleTime();
-			}else{ jhatdown = 0; }
-			if(event.jhat.value & 8){
-				Key_Event(K_LEFTARROW, 1);
-				Key_Event(K_LEFTARROW, 0);
-				jhatleft = Sys_DoubleTime();
-			}else{ jhatleft = 0; }
+			if(!gamepad && !event.jhat.hat)
+				IN_JoyHat(event.jhat.value);
 			break;
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-			if      (event.jaxis.axis == jmoveaxisx.value)
-				jaxis_move_x = event.jaxis.value;
-			else if(event.jaxis.axis == jmoveaxisy.value)
-				jaxis_move_y = event.jaxis.value;
-			else if(event.jaxis.axis == jlookaxisx.value)
-				jaxis_look_x = event.jaxis.value;
-			else if(event.jaxis.axis == jlookaxisy.value)
-				jaxis_look_y = event.jaxis.value;
-			else if(event.jaxis.axis == jtrigaxis1.value){
-				Key_Event(K_AUX31, event.jaxis.value >
-						jtriggerthresh.value);
-				jaxis_trig_1 = event.jaxis.value; }
-			else if(event.jaxis.axis == jtrigaxis2.value){
-				Key_Event(K_AUX32, event.jaxis.value >
-						jtriggerthresh.value);
-				jaxis_trig_2 = event.jaxis.value; }
+			if(!gamepad) IN_JoyAxis(event.jaxis.axis,
+					event.jaxis.value);
 			break;
+		case SDL_EVENT_GAMEPAD_BUTTON_UP:
+		case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+			IN_PadButton(event.gbutton.button, event.gbutton.down);
+			break;
+		case SDL_EVENT_GAMEPAD_AXIS_MOTION:{
+			s32 v = event.gaxis.value; // triggers go 0 to 32767
+			if(event.gaxis.axis >= SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
+				v = v * 2 - 32768;
+			IN_JoyAxis(gpaxes[event.gaxis.axis], v);
+			break; }
 		case SDL_EVENT_JOYSTICK_ADDED: IN_InitJoystick(0); break;
 		case SDL_EVENT_JOYSTICK_REMOVED: IN_RemoveJoystick(); break;
 		default:
@@ -288,7 +342,7 @@ void IN_Init()
 	if(COM_CheckParm("-nomouse")) return;
 	mouse_x = mouse_y = 0.0;
 	mouse_avail = 1;
-	SDL_Init(SDL_INIT_JOYSTICK);
+	SDL_Init(SDL_INIT_GAMEPAD);
 	IN_InitJoystick(0);
 }
 

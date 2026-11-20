@@ -1472,10 +1472,10 @@ void M_Gamepad_Draw()
 	else M_Print(120, 160, "Trig2");
 	M_DrawSlider(176, 152, ((f32)(jaxis_trig_1+(1<<15))/(1<<16)));
 	M_DrawSlider(176, 160, ((f32)(jaxis_trig_2+(1<<15))/(1<<16)));
-	s32 total = SDL_GetNumJoystickButtons(joystick);
+	s32 total = IN_JoyButtons();
 	SDL_strlcpy(temp, "Held buttons:", 14);
 	for(s32 i = 0; i < total; i++){
-		if(SDL_GetJoystickButton(joystick, i)){
+		if(IN_JoyButtonHeld(i)){
 			c8 btn[4];
 			snprintf(btn, 4, " %d", i);
 			SDL_strlcat(temp, btn, 28);
@@ -3059,8 +3059,8 @@ void M_New_Draw()
 
 void M_Gamepad_Key(s32 k)
 {
-	s32 axis = SDL_GetNumJoystickAxes(joystick) - 1;
-	s32 buts = SDL_GetNumJoystickButtons(joystick) - 1;
+	s32 axis = IN_JoyAxes() - 1;
+	s32 buts = IN_JoyButtons() - 1;
 	switch(k){
 	case K_MOUSE2:
 		if(!ui_mouse.value)break;
@@ -3086,16 +3086,16 @@ void M_Gamepad_Key(s32 k)
 		    CLAMP(8-(1<<15),jtriggerthresh.value-(1<<16)/10,(1<<15)-8));
 		else if(gamepad_cursor == 5 && jmoveaxisx.value >= 0)
 			Cvar_SetValue("jmoveaxisx", jmoveaxisx.value - 1);
-		else if(gamepad_cursor == 6 && jmoveaxisx.value >= 0)
+		else if(gamepad_cursor == 6 && jmoveaxisy.value >= 0)
 			Cvar_SetValue("jmoveaxisy", jmoveaxisy.value - 1);
 		else if(gamepad_cursor == 7 && jlookaxisx.value >= 0)
 			Cvar_SetValue("jlookaxisx", jlookaxisx.value - 1);
 		else if(gamepad_cursor == 8 && jlookaxisy.value >= 0)
 			Cvar_SetValue("jlookaxisy", jlookaxisy.value - 1);
 		else if(gamepad_cursor == 9 && jtrigaxis1.value >= 0)
-			Cvar_SetValue("trigaxis1", jtrigaxis1.value - 1);
+			Cvar_SetValue("jtrigaxis1", jtrigaxis1.value - 1);
 		else if(gamepad_cursor == 10 && jtrigaxis2.value >= 0)
-			Cvar_SetValue("trigaxis2", jtrigaxis2.value - 1);
+			Cvar_SetValue("jtrigaxis2", jtrigaxis2.value - 1);
 		else if(gamepad_cursor == 11 && jenterbutton.value >= 0)
 			Cvar_SetValue("jenterbutton", jenterbutton.value - 1);
 		else if(gamepad_cursor == 12 && jescapebutton.value >= 0)
@@ -3120,16 +3120,16 @@ void M_Gamepad_Key(s32 k)
 		    CLAMP(8-(1<<15),jtriggerthresh.value+(1<<16)/10,(1<<15)-8));
 		else if(gamepad_cursor == 5 && jmoveaxisx.value < axis)
 			Cvar_SetValue("jmoveaxisx", jmoveaxisx.value + 1);
-		else if(gamepad_cursor == 6 && jmoveaxisx.value < axis)
+		else if(gamepad_cursor == 6 && jmoveaxisy.value < axis)
 			Cvar_SetValue("jmoveaxisy", jmoveaxisy.value + 1);
 		else if(gamepad_cursor == 7 && jlookaxisx.value < axis)
 			Cvar_SetValue("jlookaxisx", jlookaxisx.value + 1);
 		else if(gamepad_cursor == 8 && jlookaxisy.value < axis)
 			Cvar_SetValue("jlookaxisy", jlookaxisy.value + 1);
 		else if(gamepad_cursor == 9 && jtrigaxis1.value < axis)
-			Cvar_SetValue("trigaxis1", jtrigaxis1.value + 1);
+			Cvar_SetValue("jtrigaxis1", jtrigaxis1.value + 1);
 		else if(gamepad_cursor == 10 && jtrigaxis2.value < axis)
-			Cvar_SetValue("trigaxis2", jtrigaxis2.value + 1);
+			Cvar_SetValue("jtrigaxis2", jtrigaxis2.value + 1);
 		else if(gamepad_cursor == 11 && jenterbutton.value < buts)
 			Cvar_SetValue("jenterbutton", jenterbutton.value + 1);
 		else if(gamepad_cursor == 12 && jescapebutton.value < buts)

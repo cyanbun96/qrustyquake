@@ -25,13 +25,15 @@ void R_FogMarkSky(const espan_t *span);
 const u32 *R_FogSkyRow(s32 v, u32 *key);
 u8 R_FogOverSky(u8 pix, s32 z, s32 x, s32 y);
 void IN_InitJoystick(cvar_t *cvar);                                  // in_sdl.c
+s32 IN_JoyButtons();
+s32 IN_JoyAxes();
+bool IN_JoyButtonHeld(s32 b);
 EX s32 jaxis_move_x;
 EX s32 jaxis_move_y;
 EX s32 jaxis_look_x;
 EX s32 jaxis_look_y;
 EX s32 jaxis_trig_1;
 EX s32 jaxis_trig_2;
-EX SDL_Joystick *joystick;
 EX u32 oldmodes[NUM_OLDMODES*2];                                    // vid_sdl.c
 EX c8 modelist[NUM_OLDMODES][8];
 EX SDL_FRect destRect;

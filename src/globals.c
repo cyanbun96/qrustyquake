@@ -95,7 +95,6 @@ s32 jaxis_look_x = 0;
 s32 jaxis_look_y = 0;
 s32 jaxis_trig_1 = -32768;
 s32 jaxis_trig_2 = -32768;
-SDL_Joystick *joystick = 0;
 edict_t *sv_player;                                                 // sv_user.c
 f32 *angles;
 f32 *origin;
