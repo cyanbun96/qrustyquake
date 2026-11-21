@@ -86,6 +86,10 @@ void IN_RemoveJoystick()
 void IN_HatRepeat()
 {
 	if(key_dest == key_game) return;
+	if(joysticknum.value <= -1){
+		jhat = 0; // jet go of the keys
+		return;
+	}
 	f64 t = Sys_DoubleTime();
 	for(s32 i = 0; i < 4; i++){
 		if(!(jhat & 1 << i) || jhattime[i] + 0.5 >= t) continue;
