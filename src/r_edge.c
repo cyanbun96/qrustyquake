@@ -41,6 +41,13 @@ static u32 *cut_list; // surfaces with any edge on this scanline
 static s32 cut_count; // valid entries in cut_list
 static s32 cut_surfs; // cutout/skybox surfaces in this frame
 static s32 cut_right0; // reset value of cutspan_t.right
+// The edges that only cutout/skybox surfaces have. Those surfaces only need
+// the rightmost leading and the leftmost trailing edge, in whatever order, so
+// the edges stay out of the sorted active edge list, where they'd be in the
+// way.
+typedef struct { s64 u, u_step; u32 surfs[2]; s32 vlast; } cutedge_t;
+static cutedge_t *cut_edges;
+static s32 cut_nedges, cut_edgecap;
 
 // In the alpha pass every surface but the background is drawn like a cutout
 static bool R_IsCutSurf(const surf_t *s)
@@ -80,6 +87,7 @@ static void R_CutoutBeginFrame()
 {
 	cut_surfs = 0;
 	cut_count = 0;
+	cut_nedges = 0;
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
 		if(R_IsCutSurf(s))
 			cut_surfs++;
@@ -97,6 +105,13 @@ static void R_CutoutBeginFrame()
 		cut_cap = need;
 	}
 	cut_right0 = (s32)r_refdef.vrectright;
+	if(cut_edgecap < r_ledges_size){
+		free(cut_edges);
+		cut_edges = malloc(r_ledges_size * sizeof(*cut_edges));
+		if(!cut_edges)
+			Sys_Error("R_CutoutBeginFrame: out of memory");
+		cut_edgecap = r_ledges_size;
+	}
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
 		if(!R_IsCutSurf(s))
 			continue;
@@ -208,6 +223,32 @@ static edge_t *R_SortNewEdges(edge_t *list)
 	}
 	*link = NULL;
 	return head;
+}
+
+// Moves the edges that only cutout/skybox surfaces have from a scanline's new
+// edges to cut_edges, returns the others
+static edge_t *R_SplitCutEdges(edge_t *list)
+{
+	edge_t *keep = NULL, **link = &keep;
+	cutedge_t *ce = cut_edges + cut_nedges;
+	for(edge_t *e = list; e; e = e->next){
+		u32 s0 = e->surfs[0], s1 = e->surfs[1];
+		if((s0 && !R_IsCutSurf(&surfaces[s0]))
+				|| (s1 && !R_IsCutSurf(&surfaces[s1]))){
+			*link = e;
+			link = &e->next;
+			continue;
+		}
+		ce->u = e->u;
+		ce->u_step = e->u_step;
+		ce->surfs[0] = s0;
+		ce->surfs[1] = s1;
+		ce->vlast = e->vlast;
+		ce++;
+	}
+	*link = NULL;
+	cut_nedges = ce - cut_edges;
+	return keep;
 }
 
 // Adds the edges in the linked list edgestoadd, adding them to the edges in the
@@ -446,10 +487,10 @@ gotposition:
 	}
 }
 
-static inline void R_CutTrailing(u32 sn, const edge_t *edge)
+static inline void R_CutTrailing(u32 sn, s64 u)
 {
 	cutspan_t *acc = &cut_acc[sn];
-	s64 iu = edge->u >> 20;
+	s64 iu = u >> 20;
 	if(acc->left == CUT_IDLE){
 		acc->left = CUT_NOLEAD;
 		cut_list[cut_count++] = sn;
@@ -458,10 +499,10 @@ static inline void R_CutTrailing(u32 sn, const edge_t *edge)
 		acc->right = iu;
 }
 
-static inline void R_CutLeading(u32 sn, const edge_t *edge)
+static inline void R_CutLeading(u32 sn, s64 u)
 {
 	cutspan_t *acc = &cut_acc[sn];
-	s64 iu = edge->u >> 20;
+	s64 iu = u >> 20;
 	if(iu < 0)
 		iu = 0;
 	if(acc->left < 0){ // first leading edge
@@ -471,6 +512,27 @@ static inline void R_CutLeading(u32 sn, const edge_t *edge)
 	}else if(iu > acc->left){
 		acc->left = iu;
 	}
+}
+
+// The cutout edges on this scanline, and then on to the next one
+Q_SIL void R_CutEdges(bool step)
+{
+	cutedge_t *e = cut_edges;
+	s32 n = cut_nedges;
+	for(s32 i = 0; i < n;){
+		if(e[i].surfs[0])
+			R_CutTrailing(e[i].surfs[0], e[i].u);
+		if(e[i].surfs[1])
+			R_CutLeading(e[i].surfs[1], e[i].u);
+		if(step && e[i].vlast == current_iv){
+			e[i] = e[--n]; // done with it, the last one moves in
+			continue;
+		}
+		if(step)
+			e[i].u += e[i].u_step;
+		i++;
+	}
+	cut_nedges = n;
 }
 
 // every edge has been seen by now. An inverted span(trailing before
@@ -531,20 +593,21 @@ Q_SIL void R_GenerateSpansImpl(bool step, bool mark)
 		if(s0){
 			surf_t *surf = &sbase[s0];
 			if(surf->flags & SURF_CUTMASK)
-				R_CutTrailing(s0, edge);
+				R_CutTrailing(s0, edge->u);
 			else
 				R_TrailingEdge(surf, edge, mark);
 		}
 		if(s1){
 			surf_t *surf = &sbase[s1];
 			if(surf->flags & SURF_CUTMASK)
-				R_CutLeading(s1, edge);
+				R_CutLeading(s1, edge->u);
 			else
 				R_LeadingEdge(edge, surf, mark);
 		}
 		if(step)
 			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
+	R_CutEdges(step);
 	if(mark) R_EmitCutSpansMarked();
 	else R_EmitCutSpans();
 	R_CleanupSpan(mark);
@@ -560,12 +623,13 @@ Q_SIL void R_GenerateSpansAlphaImpl(bool step, bool mark)
 		next = edge->next;
 		u32 s0 = edge->surfs[0], s1 = edge->surfs[1];
 		if(s0)
-			R_CutTrailing(s0, edge);
+			R_CutTrailing(s0, edge->u);
 		if(s1)
-			R_CutLeading(s1, edge);
+			R_CutLeading(s1, edge->u);
 		if(step)
 			prev_u = R_StepEdge(edge, next, prev_u, current_iv);
 	}
+	R_CutEdges(step);
 	if(mark) R_EmitCutSpansMarked();
 	else R_EmitCutSpans();
 }
@@ -659,6 +723,8 @@ void R_ScanEdges()
 {
 	R_MarksBeginScan();
 	R_CutoutBeginFrame();
+	// r_draworder has no cutouts of its own
+	bool split = cut_surfs && (r_alphapass || !r_draworder.value);
 	s64 room = r_refdef.vrect.width + cut_surfs;
 	s64 flush = R_SpanBuffer(room);
 	espan_t *flush_p = span_p; // the spans since the last flush
@@ -691,9 +757,11 @@ void R_ScanEdges()
 		fv = (f32)iv;
 		// mark that the head(background start) span is pre-included
 		surfaces[1].spanstate = 1;
-		if(newedges[iv])
-			R_InsertNewEdges(R_SortNewEdges(newedges[iv]),
-					edge_head.next);
+		edge_t *add = newedges[iv];
+		if(add && split)
+			add = R_SplitCutEdges(add);
+		if(add)
+			R_InsertNewEdges(R_SortNewEdges(add), edge_head.next);
 		// also steps/removes the edges, no need on the last scan
 		bool last = iv == bottom;
 		(*pdrawfunc)(!last);
