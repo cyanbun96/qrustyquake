@@ -1011,6 +1011,17 @@ static void R_EdgeDrawing(bool alpha, s32 t)
 	if(r_skyframe == r_framecount && !alpha && !D_SkyAllFog()
 			&& !r_drawflat.value)
 		R_EmitSkyBox();
+	// All of the pass is in. The faces that didn't fit would take a
+	// surface each and as many edges as the others on average, but with
+	// them in, they'd hide about half of the ones after them, so half is
+	// counted. A heavy map is short for a frame or two after loading
+	// instead of growing twice what it takes.
+	s32 ns = surface_p - surfaces, ne = edge_p - r_edges;
+	s32 more = r_outofsurfaces / 2;
+	ne += (s64)ne * more / ns;
+	ns += more;
+	r_needsurfs = ns > r_needsurfs ? ns : r_needsurfs;
+	r_neededges = ne > r_neededges ? ne : r_neededges;
 	R_TimeStamp(t + 2);
 	R_ScanEdges();
 	R_TimeStamp(t + 3);

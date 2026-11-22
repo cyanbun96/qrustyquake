@@ -557,10 +557,15 @@ void V_CalcRefdef()
 	if(chase_active.value) Chase_Update();
 }
 
-void V_AllocLedges()
+// Room for need edges and more, the view may take more next frame. Grown to
+// about what the frame took at once: one that's short drops the faces that
+// come last, the skybox among them. Never shrinks.
+static void V_AllocLedges(s32 need)
 {
-	r_ledges_size *= 1.2;
-	r_ledges_size += 2400; // numstackedges
+	s32 size = need * 1.2 + 2400; // numstackedges
+	if(ledges && size <= r_ledges_size)
+		return;
+	r_ledges_size = size;
 	Con_DPrintf("Reallocing ledges %d\n", r_ledges_size);
 	s32 alloc_sz = (r_ledges_size+((CACHE_SIZE-1)/sizeof(edge_t))+1)
 				* sizeof(edge_t);
@@ -568,10 +573,12 @@ void V_AllocLedges()
 	memset(ledges, 0, alloc_sz);
 }
 
-void V_AllocLsurfs()
+static void V_AllocLsurfs(s32 need)
 {
-	r_lsurfs_size *= 1.2;
-	r_lsurfs_size += 800; // numstacksurfaces
+	s32 size = need * 1.2 + 800; // numstacksurfaces
+	if(lsurfs && size <= r_lsurfs_size)
+		return;
+	r_lsurfs_size = size;
 	Con_DPrintf("Reallocing lsurfs %d\n", r_lsurfs_size);
 	s32 alloc_sz = (r_lsurfs_size+((CACHE_SIZE-1)/sizeof(surf_t))+1)
 				* sizeof(surf_t);
@@ -594,12 +601,15 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 	R_PushDlights();
 	R_RenderView();
 	if(r_speeds.value) R_PrintDSpeeds();
-	if(r_reportsurfout.value && r_outofsurfaces)
-		Con_Printf("short %d surfaces\n", r_outofsurfaces);
-	if(r_reportedgeout.value && r_outofedges)
-		Con_Printf("short roughly %d edges\n", r_outofedges * 2 / 3);
-	if(r_outofedges) V_AllocLedges();
-	if(r_outofsurfaces) V_AllocLsurfs();
+	if(r_reportsurfout.value && r_needsurfs > r_lsurfs_size)
+		Con_Printf("short %d surfaces\n", r_needsurfs - r_lsurfs_size);
+	if(r_reportedgeout.value && r_neededges > r_ledges_size)
+		Con_Printf("short roughly %d edges\n",
+				r_neededges - r_ledges_size);
+	if(r_outofsurfaces){ // a face didn't fit, a surface or edges short
+		V_AllocLedges(r_neededges);
+		V_AllocLsurfs(r_needsurfs);
+	}
 	if(!crosshair.value || CL_InCutscene()) return;
 	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
@@ -671,6 +681,6 @@ void V_Init()
 	Cvar_SetCallback(&gl_cshiftpercent_damage, V_PaletteCallback);
 	Cvar_SetCallback(&gl_cshiftpercent_bonus, V_PaletteCallback);
 	Cvar_SetCallback(&gl_cshiftpercent_powerup, V_PaletteCallback);
-	V_AllocLedges();
-	V_AllocLsurfs();
+	V_AllocLedges(0);
+	V_AllocLsurfs(0);
 }

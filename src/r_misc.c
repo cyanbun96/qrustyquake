@@ -238,6 +238,7 @@ void R_SetupFrame()
 	r_amodels_drawn = 0;
 	r_amodels_occluded = 0;
 	r_outofsurfaces = 0;
-	r_outofedges = 0;
+	r_needsurfs = 0;
+	r_neededges = 0;
 	D_SetupFrame();
 }

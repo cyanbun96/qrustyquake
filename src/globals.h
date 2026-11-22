@@ -510,7 +510,7 @@ EX s32 screenwidth;
 EX f32 aliasxscale, aliasyscale, aliasxcenter, aliasycenter;
 EX f32 r_aliastransition, r_resfudge;
 EX s32 r_outofsurfaces;
-EX s32 r_outofedges;
+EX s32 r_needsurfs, r_neededges; // what the frame's faces took, see view.c
 EX mvertex_t *r_pcurrentvertbase;
 EX f64 d_times[15];
 EX s32 r_maxsurfsseen, r_maxedgesseen;

@@ -252,19 +252,15 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 			R_RecordAlphaFace(fa, clipflags);
 		return;
 	}
-	if((surface_p) >= surf_max){ // skip out if no more surfs
-		r_outofsurfaces++;
-		return;
-	}
-	// ditto if not enough edges left
-	if((edge_p + fa->numedges + 4) >= edge_max){
-		r_outofedges += fa->numedges;
-		return;
-	}
 	c_faceclip++;
 	clipplane_t *pclip = R_ClipPlaneList(clipflags);
 	if(r_coarse_active && R_CoarseOcclusionTestSurface(fa)){
 		r_coarse_rejected++;
+		return;
+	}
+	// skip out if no more surfs or not enough edges left
+	if(surface_p >= surf_max || edge_p + fa->numedges + 4 >= edge_max){
+		r_outofsurfaces++;
 		return;
 	}
 	r_emitted = 0; // push the edges through
@@ -389,13 +385,9 @@ void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 {
 	if(!R_SurfaceInPass(psurf))
 		return;
-	if(surface_p >= surf_max){ // skip out if no more surfs
+	// skip out if no more surfs or not enough edges left
+	if(surface_p >= surf_max || edge_p + psurf->numedges + 4 >= edge_max){
 		r_outofsurfaces++;
-		return;
-	}
-	// ditto if not enough edges left
-	if((edge_p + psurf->numedges + 4) >= edge_max){
-		r_outofedges += psurf->numedges;
 		return;
 	}
 	c_faceclip++;
