@@ -444,20 +444,21 @@ static s32 R_CoarseOccClip(const coarse_occ_vertex_t *in, s32 count,
 }
 
 // Build projected, viewport-clipped polygon, in viewport-relative pixels.
-// Returns false when we cannot conservatively construct the polygon. If zi
-// isn't NULL it gets the lowest and highest 1/z of the vertices, the farthest
-// and the nearest point.
+// Returns 0 when we cannot conservatively construct the polygon, -1 for a face
+// on screen that is too small to cover any pixel, else 1. If zi isn't NULL it
+// gets the lowest and highest 1/z of the vertices, the farthest and the
+// nearest point.
 // Important:
 // if ANY vertex is behind the near plane, we bail out rather than attempting to
 // perform near-plane clipping. This loses optimization opportunities but cannot
 // produce a false occlusion result.
-static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
+static s32 R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		coarse_occ_vertex_t *poly, s32 *outcount, f32 *zi)
 {
 	coarse_occ_vertex_t tmp[COARSE_POLY_SIZE];
 	if(!fa || fa->numedges < 3 ||
 			fa->numedges > COARSE_OCCLUSION_MAX_VERTS)
-		return false;
+		return 0;
 	model_t *model = currententity->model;
 	medge_t *edges = model->edges;
 	// R_EmitEdge projects from modelorg, which is the player's position in
@@ -478,7 +479,7 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		TransformVector(local, transformed);
 		// Do not try to handle near-plane-crossing faces here.
 		// R_ClipEdge() remains authoritative for those.
-		if(transformed[2] <= NEAR_CLIP) return false;
+		if(transformed[2] <= NEAR_CLIP) return 0;
 		f32 vzi = 1.0f / transformed[2];
 		if(vzi > nearzi) nearzi = vzi;
 		if(vzi < farzi) farzi = vzi;
@@ -499,13 +500,22 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 	if(count >= COARSE_OCCLUSION_MAX_VERTS || minx < left || maxx > right
 			|| miny < top || maxy > bottom){
 		count = R_CoarseOccClip(poly, count, tmp, 1, left, 1);
-		if(count < 3) return false;
+		if(count < 3) return 0;
 		count = R_CoarseOccClip(tmp, count, poly, 1, right, 0);
-		if(count < 3) return false;
+		if(count < 3) return 0;
 		count = R_CoarseOccClip(poly, count, tmp, 0, top, 1);
-		if(count < 3) return false;
+		if(count < 3) return 0;
 		count = R_CoarseOccClip(tmp, count, poly, 0, bottom, 0);
-		if(count < 3) return false;
+		if(count < 3) return 0;
+	}else{
+		// The edge list draws rows ceil(top) to ceil(bottom) - 1 and
+		// the same for columns, so a face that has no whole coordinate
+		// between its ends either way draws nothing, also with some
+		// float error. Far away foliage is mostly faces like that.
+		const f32 m = COARSE_OCCLUSION_MARGIN;
+		if(R_CoarseOccCeil(miny - m) == R_CoarseOccCeil(maxy + m) ||
+			R_CoarseOccCeil(minx - m) == R_CoarseOccCeil(maxx + m))
+			return -1;
 	}
 	for(s32 i = 0; i < count; i++){
 		poly[i].x -= left;
@@ -516,16 +526,18 @@ static bool R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 		zi[0] = farzi;
 		zi[1] = nearzi;
 	}
-	return true;
+	return 1;
 }
 
 // Builds the polygon of a face and tests it, leaving it for
-// R_CoarseOcclusionAddSurface
+// R_CoarseOcclusionAddSurface. Without depth, a face that covers no pixel is
+// hidden too.
 static bool R_CoarseOccTestFace(msurface_t *fa, bool depth)
 {
-	if(!R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly,
-				&r_coarse_poly_count, r_coarse_poly_zi))
-		return false;
+	s32 built = R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly,
+			&r_coarse_poly_count, r_coarse_poly_zi);
+	if(built <= 0)
+		return built && !depth;
 	r_coarse_poly_surf = fa;
 	return R_CoarseOccPolyCovered(r_coarse_poly, r_coarse_poly_count,
 			depth, r_coarse_poly_zi[1]);
@@ -588,7 +600,7 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf)
 	}else{
 		poly = local;
 		zi = localzi;
-		if(!R_CoarseOcclusionBuildPolygon(fa, poly, &count, zi))
+		if(R_CoarseOcclusionBuildPolygon(fa, poly, &count, zi) <= 0)
 			return;
 	}
 	r_coarse_poly_surf = NULL;
