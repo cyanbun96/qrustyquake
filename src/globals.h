@@ -20,10 +20,10 @@ void Fog_PaletteChanged();
 void Fog_Update(f32 d, f32 r, f32 g, f32 b, f32 time);
 void R_FogSetupFrame();
 void R_DrawFog();
-void R_FogSkyAlloc();
+void R_FogMarkAlloc();
 void R_FogMarkSky(const espan_t *span);
-const u32 *R_FogSkyRow(s32 v, u32 *key);
-u8 R_FogOverSky(u8 pix, s32 z, s32 x, s32 y);
+s32 R_FogUnder(const espan_t *span, fogrow_t *f);
+u8 R_FogTexel(const fogrow_t *f, u8 pix, s32 z, s32 x);
 void IN_InitJoystick(cvar_t *cvar);                                  // in_sdl.c
 s32 IN_JoyButtons();
 s32 IN_JoyAxes();

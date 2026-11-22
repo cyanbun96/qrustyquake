@@ -409,8 +409,9 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		}else
 			D_SetupCached(d, s, pface, SPAN_NORMAL, 0);
 	}
-	if(d->kind == DS_SKY || d->kind == DS_SKYZ) // for R_FogMarkSky
-		R_FogSkyAlloc();
+	// the sky and translucent surfaces mark what they fog
+	if(d->kind == DS_SKY || d->kind == DS_SKYZ || pass == PASS_ALPHA)
+		R_FogMarkAlloc();
 	// Kept for the rest of the scan. Without a block it's tried again, as
 	// the cache does, and DS_LATER gets set up by the walk.
 	if(slot && d->kind != DS_LATER){

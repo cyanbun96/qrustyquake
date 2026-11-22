@@ -686,9 +686,17 @@ typedef struct { // the light rows of lit water, see D_TurbSetLight
 	s32 smax, tmax;
 	s32 mode;
 } turblight_t;
+typedef struct { // a translucent span's fog, see R_FogUnder
+	const u8 *level; // fog amount by the top bits of a float z
+	const u32 *pair; // fog_pair
+	const u8 *bay; // the row's Bayer thresholds
+	const f32 *cos; // fog_cos from screen column x on, NULL for planar
+	s32 x; // the span's first column
+} fogrow_t;
 typedef struct { // what Turbulent draws with, see D_TurbSetup
 	turblight_t light;
 	f32 opacity;
+	bool trans; // the alpha pass's, drawn over what's there
 	s32 func;
 	s32 *turb;
 	u8 *pbase;

@@ -43,15 +43,17 @@ static u8 fog_level[FOG_DEPTHS]; // fog amount by depth
 static u32 fog_pair[256][FOG_LEVELS]; // low | high << 8 | threshold << 16
 static f32 fog_palf[3][256]; // the palette's channels, for Fog_Links
 static f32 *fog_cos; // by pixel of the view, for distance from the eye
-// Sky gets map_skyfog instead of fog by distance, but it keeps its real z to
-// hide what's behind it. So this remembers the z it wrote: a pixel shows sky,
-// or a translucent surface over it, where the z-buffer still holds that value.
-// It's kept xor fog_skykey, a key for the frame, so that what an earlier frame
-// left there is a 2^-32 chance.
-static u32 *fog_skyz = 0;
-static s32 fog_skyz_size = 0;
-static u32 fog_skykey;
-static u32 fog_skyrow[MAXHEIGHT]; // frame this row last got sky on
+// Pixels fogged before R_DrawFog, which it leaves be. Sky gets map_skyfog
+// instead of fog by distance, but it keeps its real z to hide what's behind
+// it. Translucent surfaces write no z, so what's behind them gets the fog of
+// the z there before they go over it, and they get the fog of their own
+// depth. This remembers the z of each: a pixel is fogged already where the
+// z-buffer still holds that value. It's kept xor fog_markkey, a key for the
+// frame, so that what an earlier frame left there is a 2^-32 chance.
+static u32 *fog_mark = 0;
+static s32 fog_mark_size = 0;
+static u32 fog_markkey;
+static u32 fog_markrow[MAXHEIGHT]; // frame this row last got marks on
 
 // Where the fog is now, fades included
 static fog_t Fog_Faded()
@@ -492,23 +494,31 @@ void R_FogSetupFrame()
 	}
 	if(fog_level_d != fog_density || fog_radial != radial)
 		Fog_BuildLevels(fog_density, radial);
-	if(radial) // R_FogOverSky uses it while surfaces are drawn
+	if(radial) // R_FogUnder uses it while surfaces are drawn
 		R_FogCosines();
 	fog_skylevel = CLAMP(0, map_skyfog, 1) * (FOG_LEVELS - 1) + 0.5f;
 	s32 skyfor = skybox_name[0] ? r_skymeaning_id : 0;
 	if(fog_skybuilt != fog_skylevel || fog_skyfor != skyfor)
 		Fog_BuildSky(skyfor);
-	fog_skykey = (u32)r_framecount * 0x9e3779b9; // the same once in 2^32
+	fog_markkey = (u32)r_framecount * 0x9e3779b9; // the same once in 2^32
 }
 
 // w pixels of a view row from screen column x. bay is the row's thresholds,
-// cos the pixels' fog_cos. Inlined so that radial gets its own loop.
+// cos the pixels' fog_cos. With mark, only those not marked yet, which it
+// marks. Inlined so that radial and mark get their own loops.
 Q_SIL void R_FogPixels(u8 *pdest, const s32 *zb, s32 x, s32 w,
-		const u8 *bay, const f32 *cos, s32 radial)
+		const u8 *bay, const f32 *cos, s32 radial, u32 *mark)
 { // in locals, the stores to pdest could change any global
 	const u8 *level = fog_level;
 	const u32 *pair = &fog_pair[0][0];
+	u32 key = fog_markkey;
 	for(s32 i = 0; i < w; i++){
+		if(mark){
+			u32 m = (u32)zb[i] ^ key;
+			if(mark[i] == m)
+				continue;
+			mark[i] = m;
+		}
 		f32 f = zb[i];
 		if(radial)
 			f *= cos[i];
@@ -522,8 +532,8 @@ Q_SIL void R_FogPixels(u8 *pdest, const s32 *zb, s32 x, s32 w,
 static void R_FogRow(u8 *pdest, const s32 *zb, s32 x, s32 w, const u8 *bay,
 		const f32 *cos)
 {
-	if(fog_radial) R_FogPixels(pdest, zb, x, w, bay, cos, 1);
-	else R_FogPixels(pdest, zb, x, w, bay, NULL, 0);
+	if(fog_radial) R_FogPixels(pdest, zb, x, w, bay, cos, 1, NULL);
+	else R_FogPixels(pdest, zb, x, w, bay, NULL, 0, NULL);
 }
 
 // w sky pixels from screen column x
@@ -536,81 +546,94 @@ static void R_FogSky(u8 *pdest, s32 x, s32 w, const u8 *bay)
 	}
 }
 
-void R_FogSkyAlloc()
-{ // before R_FogMarkSky, on the main thread
+void R_FogMarkAlloc()
+{ // before the sky or a translucent surface is drawn, on the main thread
 	if(!fog_density) return;
 	s32 size = vid.width * vid.height;
-	if(fog_skyz_size != size){
+	if(fog_mark_size != size){
 		R_ThreadsSync();
-		free(fog_skyz);
-		fog_skyz = calloc(size, sizeof(*fog_skyz));
-		if(!fog_skyz) Sys_Error("R_FogMarkSky: out of memory");
-		fog_skyz_size = size;
+		free(fog_mark);
+		fog_mark = calloc(size, sizeof(*fog_mark));
+		if(!fog_mark) Sys_Error("R_FogMarkAlloc: out of memory");
+		fog_mark_size = size;
 	}
 }
 
-// Fogs the sky as it's drawn, so that translucent surfaces, which don't write
-// z, go over fogged sky and R_DrawFog leaves them be. Their own fog they get
-// from R_FogOverSky.
+// Fogs the sky as it's drawn, so that translucent surfaces go over fogged sky
+// and R_DrawFog leaves them be. Their own fog they get from R_FogTexel.
 void R_FogMarkSky(const espan_t *span)
 { // has to come after the span's z and colors were written
 	if(!fog_density) return;
-	u32 key = fog_skykey;
+	u32 key = fog_markkey;
 	for(; span; span = span->pnext){ // locals, a u32 store could change
 		s32 ofs = d_zwidth * span->v + span->u; // span->count
 		s32 n = span->count;
 		const s32 *zb = d_pzbuffer + ofs;
-		u32 *sky = fog_skyz + ofs;
+		u32 *mark = fog_mark + ofs;
 		for(s32 i = 0; i < n; i++)
-			sky[i] = (u32)zb[i] ^ key;
-		fog_skyrow[span->v] = (u32)r_framecount;
+			mark[i] = (u32)zb[i] ^ key;
+		fog_markrow[span->v] = (u32)r_framecount;
 		if(fog_skylevel)
 			R_FogSky(d_viewbuffer + screenwidth * span->v
 				+ span->u, span->u, n, d_bayer[span->v & 7]);
 	}
 }
 
-// The sky marks of view row v if the row has sky on it, else NULL. A pixel of
-// a translucent span is over sky where its mark is the z there ^ key.
-const u32 *R_FogSkyRow(s32 v, u32 *key)
+// A translucent texel at z, screen column x, with the fog of its own depth,
+// by R_FogUnder's f for its span. Its loops keep f in a local, the stores to
+// the view could change it.
+u8 R_FogTexel(const fogrow_t *f, u8 pix, s32 z, s32 x)
 {
-	if(!fog_density || fog_skyrow[v] != (u32)r_framecount)
-		return NULL;
-	*key = fog_skykey;
-	return fog_skyz + d_zwidth * v;
-}
-
-// A translucent texel at z over sky at screen x, y, with the fog of its own
-// depth, as R_DrawFog leaves the sky be. Before it's blended, so the sky
-// under it keeps the fog it has.
-u8 R_FogOverSky(u8 pix, s32 z, s32 x, s32 y)
-{
-	f32 f = z;
-	if(fog_radial){
-		const vrect_t *r = &r_refdef.vrect;
-		f *= fog_cos[(y - r->y) * r->width + x - r->x];
-	}
+	f32 d = z;
+	if(f->cos)
+		d *= f->cos[x - f->x];
 	u32 b;
-	memcpy(&b, &f, sizeof(b));
-	u32 e = fog_pair[pix][fog_level[b >> 16]];
-	return d_bayer[y & 7][x & 7] < e >> 16 ? e >> 8 : e;
+	memcpy(&b, &d, sizeof(b));
+	u32 e = f->pair[pix * FOG_LEVELS + f->level[b >> 16]];
+	return f->bay[x & 7] < e >> 16 ? e >> 8 : e;
 }
 
-// R_FogRow for a row with sky on it, the runs of sky are fogged already
-static void R_FogRowAroundSky(u8 *pdest, const s32 *zb, s32 x, s32 w,
-		const u8 *bay, const f32 *cos, const u32 *sky)
+// R_FogRow for a row with marks on it, the marked runs are fogged already
+static void R_FogRowAroundMarks(u8 *pdest, const s32 *zb, s32 x, s32 w,
+		const u8 *bay, const f32 *cos, const u32 *mark)
 {
-	u32 key = fog_skykey;
+	u32 key = fog_markkey;
 	for(s32 i = 0; i < w;){
-		bool issky = sky[i] == ((u32)zb[i] ^ key);
+		bool done = mark[i] == ((u32)zb[i] ^ key);
 		s32 end = i + 1;
-		while(end < w && (sky[end] == ((u32)zb[end] ^ key)) == issky)
+		while(end < w && (mark[end] == ((u32)zb[end] ^ key)) == done)
 			end++;
-		if(!issky)
+		if(!done)
 			R_FogRow(pdest + i, zb + i, x + i, end - i, bay,
 					cos ? cos + i : NULL);
 		i = end;
 	}
+}
+
+// Fogs what's under a translucent span as R_DrawFog would, by the z there,
+// and marks it, so that the span's texels can go over it with the fog of
+// their own depth: f is for R_FogTexel. 0 without fog.
+s32 R_FogUnder(const espan_t *span, fogrow_t *f)
+{ // before the span is drawn
+	if(!fog_density) return 0;
+	const vrect_t *r = &r_refdef.vrect;
+	s32 u = span->u, v = span->v, n = span->count;
+	s32 ofs = d_zwidth * v + u;
+	u8 *pdest = d_viewbuffer + screenwidth * v + u;
+	const s32 *zb = d_pzbuffer + ofs;
+	u32 *mark = fog_mark + ofs;
+	f->level = fog_level;
+	f->pair = &fog_pair[0][0];
+	f->bay = d_bayer[v & 7];
+	f->x = u;
+	f->cos = NULL;
+	if(fog_radial){
+		f->cos = fog_cos + (v - r->y) * r->width + u - r->x;
+		R_FogPixels(pdest, zb, u, n, f->bay, f->cos, 1, mark);
+	}else
+		R_FogPixels(pdest, zb, u, n, f->bay, NULL, 0, mark);
+	fog_markrow[v] = (u32)r_framecount;
+	return 1;
 }
 
 // Rows y0 to y1 - 1 of the view, before any warp
@@ -626,9 +649,9 @@ static void R_FogRows(s32 y0, s32 y1)
 		const u8 *bay = d_bayer[v & 7];
 		const f32 *cos = fog_radial ? fog_cos + (v - r->y) * r->width
 			: NULL;
-		if(fog_skyrow[v] == (u32)r_framecount)
-			R_FogRowAroundSky(pdest, zb, r->x, r->width, bay, cos,
-					fog_skyz + ofs);
+		if(fog_markrow[v] == (u32)r_framecount)
+			R_FogRowAroundMarks(pdest, zb, r->x, r->width, bay,
+					cos, fog_mark + ofs);
 		else
 			R_FogRow(pdest, zb, r->x, r->width, bay, cos);
 	}

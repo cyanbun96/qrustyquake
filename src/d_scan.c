@@ -12,8 +12,8 @@ typedef struct {
 	s32 lsstep, ltstep;
 	s32 count;
 	s32 x, y; // screen position, for the dither pattern
-	const u32 *sky; // translucent: R_FogSkyRow's row, NULL without sky
-	u32 key;
+	s32 fogged; // translucent: R_FogUnder fogged what's under, fog is
+	fogrow_t fog; // for the texels
 } turbchunk_t;
 typedef struct {
 	s32 shift;
@@ -429,10 +429,6 @@ Q_SIL s32 D_SpanDepthPass()
 Q_SIL void D_SpanDepthStep()
 { izi += izistep; pz++; }
 
-// Is the pixel at z, screen column x, sky? sky is R_FogSkyRow's row or NULL.
-Q_SIL s32 D_OverSky(const u32 *sky, u32 key, const s32 *z, s32 x)
-{ return sky && sky[x] == ((u32)*z ^ key); }
-
 Q_SIL s32 D_DitherIndex(s32 x, s32 y)
 { return(x & 1) + ((y & 1) << 1); }
 
@@ -488,8 +484,8 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 		D_DitherLevel(1 - turb_opacity) : 0; // how much shows through
 	const s32 foglut = (trans == TURBTRANS_MIXED) ?
 		(s32)(turb_opacity*FOG_LUT_LEVELS) : 0;
-	const u32 *sky = c->sky;
-	const u32 key = c->key;
+	const s32 fogged = c->fogged;
+	const fogrow_t fog = c->fog;
 	do{
 		s32 draw = 1;
 		if(trans != TURBTRANS_OPAQUE){
@@ -510,9 +506,8 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 				u8 ib = cmap[(l[2] << 8) + pix];
 				pix = lut[chr[ir] + chg[ig] + chb[ib]];
 			}
-			if(trans != TURBTRANS_OPAQUE
-					&& D_OverSky(sky, key, zp, x))
-				pix = R_FogOverSky(pix, iz, x, y);
+			if(trans != TURBTRANS_OPAQUE && fogged)
+				pix = R_FogTexel(&fog, pix, iz, x);
 			if(trans == TURBTRANS_MIXED)
 				pix = color_mix_lut[pix][*pdest][foglut];
 			*pdest = pix;
@@ -561,6 +556,7 @@ void D_TurbSetup(turbstate_t *ts, f32 opacity)
 	if(r_alphastyle.value == 0 && opacity != 1 && opacity)
 		R_BuildColorMixLUT(0);
 	ts->opacity = opacity;
+	ts->trans = r_alphapass;
 	ts->func = D_TurbFuncIndex(ts->light.mode);
 	ts->turb = sintable + ((s32)(cl.time*TURB_SPEED) & (TURB_CYCLE-1));
 	ts->pbase = (u8 *)cacheblock;
@@ -621,7 +617,7 @@ Q_SIL void D_TurbSetLightChunk(turbchunk_t *c, const spanwalk_t *w)
 }
 
 Q_SIL void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan,
-		s32 zpart)
+		s32 trans, s32 zpart)
 {
 	spanwalk_t w;
 	turbchunk_t c;
@@ -631,8 +627,7 @@ Q_SIL void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan,
 	c.iz = zpart ? D_ZPartDepth(zpart) : D_SpanDepthStart(w.zi);
 	c.x = pspan->u;
 	c.y = pspan->v;
-	c.key = 0; // only the translucent variants look
-	c.sky = R_FogSkyRow(pspan->v, &c.key);
+	c.fogged = trans && R_FogUnder(pspan, &c.fog);
 	do{
 		D_SpanWalkNextChunk(&w, 1);
 		D_TurbSetChunk(&c, &w);
@@ -646,14 +641,14 @@ Q_SIL void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan,
 
 // The parts from D_SplitDepth, out of line as it's this rare
 static Q_NOINLINE void D_TurbSpanParts(const espan_t part[3],
-		turbspanfunc_t drawspan)
+		turbspanfunc_t drawspan, s32 trans)
 {
 	for(s32 i = ZPART_STEP; i <= ZPART_FAR; i++){
 		if(!part[i].count)
 			continue;
 		if(i)
 			izistep = 0;
-		D_TurbSpan(&part[i], drawspan, i);
+		D_TurbSpan(&part[i], drawspan, trans, i);
 	}
 	D_SpanDepthSetup();
 }
@@ -670,9 +665,9 @@ void Turbulent(espan_t *pspan, const turbstate_t *ts)
 	do{
 		espan_t part[3];
 		if(maysplit && D_SplitDepth(pspan, part))
-			D_TurbSpanParts(part, drawspan);
+			D_TurbSpanParts(part, drawspan, ts->trans);
 		else
-			D_TurbSpan(pspan, drawspan, 0);
+			D_TurbSpan(pspan, drawspan, ts->trans, 0);
 	}while((pspan = pspan->pnext) != NULL);
 }
 
@@ -802,15 +797,18 @@ Q_SIL u8 *D_SpanChunkSkybox(texcursor_t *c, u8 *pdest, s32 dithered)
 }
 
 Q_SIL u8 *D_SpanChunkBlend(texcursor_t *c, u8 *pdest, f32 opacity,
-		s32 dithered, s32 x, s32 y, const u32 *sky, u32 key)
+		s32 dithered, s32 x, const fogrow_t *fog)
 {
 	s32 foglut = opacity*FOG_LUT_LEVELS; // D_SetupCached built the table
+	fogrow_t f = {0};
+	if(fog)
+		f = *fog;
 	do{
 		if(D_SpanDepthPass()){
 			u8 pix = D_CursorTexel(c, dithered);
 			if(pix != 0xff){
-				if(D_OverSky(sky, key, pz, x))
-					pix = R_FogOverSky(pix, izi, x, y);
+				if(fog)
+					pix = R_FogTexel(&f, pix, izi, x);
 				*pdest = color_mix_lut[pix][*pdest][foglut];
 			}
 		}
@@ -823,16 +821,19 @@ Q_SIL u8 *D_SpanChunkBlend(texcursor_t *c, u8 *pdest, f32 opacity,
 }
 
 Q_SIL u8 *D_SpanChunkStipple(texcursor_t *c, u8 *pdest, f32 opacity,
-		s32 dithered, s32 x, s32 y, const u32 *sky, u32 key)
+		s32 dithered, s32 x, s32 y, const fogrow_t *fog)
 { // opacity is how much shows through
 	const u8 *bay = d_bayer[y & 7];
 	s32 level = D_DitherLevel(1 - opacity);
+	fogrow_t f = {0};
+	if(fog)
+		f = *fog;
 	do{
 		if(D_SpanDepthPass() && bay[x & 7] < level){
 			u8 pix = D_CursorTexel(c, dithered);
 			if(pix != 0xff)
-				*pdest = D_OverSky(sky, key, pz, x) ?
-					R_FogOverSky(pix, izi, x, y) : pix;
+				*pdest = fog ?
+					R_FogTexel(&f, pix, izi, x) : pix;
 		}
 		pdest++;
 		x++;
@@ -843,8 +844,7 @@ Q_SIL u8 *D_SpanChunkStipple(texcursor_t *c, u8 *pdest, f32 opacity,
 }
 
 Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
-		f32 opacity, s32 dithered, s32 x, s32 y, const u32 *sky,
-		u32 key)
+		f32 opacity, s32 dithered, s32 x, s32 y, const fogrow_t *fog)
 { // x and y are the chunk's screen position, for the dither pattern
 	texcursor_t c;
 	D_CursorBegin(&c, w, dithered, x, y);
@@ -857,9 +857,9 @@ Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
 	if(type == SPAN_TRANS){
 		if(r_alphastyle.value == 0)
 			return D_SpanChunkBlend(&c, pdest, opacity, dithered,
-					x, y, sky, key);
+					x, fog);
 		return D_SpanChunkStipple(&c, pdest, opacity, dithered, x, y,
-				sky, key);
+				fog);
 	}
 	return pdest;
 }
@@ -867,9 +867,9 @@ Q_SIL u8 *D_DrawSpanChunk(const spanwalk_t *w, u8 *pdest, s32 type,
 static u8 *D_SpanDest(const espan_t *pspan)
 { return (u8 *)d_viewbuffer + (screenwidth * pspan->v) + pspan->u; }
 
-// sky and key are R_FogSkyRow's for a translucent span on a row with sky
+// fog is R_FogUnder's for a translucent span, NULL without fog
 Q_SIL void D_DrawSpanChunks(const espan_t *pspan, s32 type, f32 opacity,
-		s32 dithered, s32 fine, s32 zpart, const u32 *sky, u32 key)
+		s32 dithered, s32 fine, s32 zpart, const fogrow_t *fog)
 {
 	spanwalk_t w;
 	u8 *pdest = D_SpanDest(pspan);
@@ -880,36 +880,32 @@ Q_SIL void D_DrawSpanChunks(const espan_t *pspan, s32 type, f32 opacity,
 	do{
 		D_SpanWalkNextChunk(&w, 0);
 		pdest = D_DrawSpanChunk(&w, pdest, type, opacity,
-				dithered, x, pspan->v, sky, key);
+				dithered, x, pspan->v, fog);
 		x += w.len;
 		D_SpanWalkEndChunk(&w);
 	}while(w.count > 0);
 }
 
-// A translucent span on a row with sky, out of line like D_DrawSpanParts: its
-// loops look for the sky under each texel, so the others don't have to
-static Q_NOINLINE void D_DrawSpanOverSky(const espan_t *pspan, f32 opacity,
-		s32 dithered, s32 zpart, const u32 *sky, u32 key)
+// A translucent span with fog, out of line like D_DrawSpanParts: its loops
+// fog each texel by its depth, so the others don't have to look
+static Q_NOINLINE void D_DrawSpanFogged(const espan_t *pspan, f32 opacity,
+		s32 dithered, s32 zpart, const fogrow_t *fog)
 {
 	if(dithered)
-		D_DrawSpanChunks(pspan, SPAN_TRANS, opacity, 1, 0, zpart,
-				sky, key);
+		D_DrawSpanChunks(pspan, SPAN_TRANS, opacity, 1, 0, zpart, fog);
 	else
-		D_DrawSpanChunks(pspan, SPAN_TRANS, opacity, 0, 0, zpart,
-				sky, key);
+		D_DrawSpanChunks(pspan, SPAN_TRANS, opacity, 0, 0, zpart, fog);
 }
 
 Q_SIL void D_DrawSpan(const espan_t *pspan, s32 type, f32 opacity,
 		s32 dithered, s32 fine, s32 zpart)
 {
-	u32 key = 0;
-	const u32 *sky = type == SPAN_TRANS ? R_FogSkyRow(pspan->v, &key)
-		: NULL;
-	if(sky)
-		D_DrawSpanOverSky(pspan, opacity, dithered, zpart, sky, key);
+	fogrow_t fog;
+	if(type == SPAN_TRANS && R_FogUnder(pspan, &fog))
+		D_DrawSpanFogged(pspan, opacity, dithered, zpart, &fog);
 	else
 		D_DrawSpanChunks(pspan, type, opacity, dithered, fine, zpart,
-				NULL, 0);
+				NULL);
 }
 
 // The parts from D_SplitDepth, out of line so that something this rare
