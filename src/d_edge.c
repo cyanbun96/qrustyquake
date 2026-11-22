@@ -96,14 +96,13 @@ static void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 		bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
 	}
 	else{ // Tiled textures(water, sky) always have miplevel of 0
-		// WinQuake's -8192 mins, then whole tiles to stay near them
+		// WinQuake's -8192 mins, then whole tiles to stay near them.
+		// The coords wrap around, no extents (D_WalkCoord).
 		s64 mins = (s64)-8192 * 0x10000;
 		sadjust = D_Adjust(p_temp, p_saxis, tex->vecs[0][3], t, mins)
 			- (s64)(pface->texturemins[0] & -TURB_CYCLE) * 0x10000;
 		tadjust = D_Adjust(p_temp, p_taxis, tex->vecs[1][3], t, mins)
 			- (s64)(pface->texturemins[1] & -TURB_CYCLE) * 0x10000;
-		bbextents = 0x3fffffff;
-		bbextentt = 0x3fffffff;
 	}
 }
 

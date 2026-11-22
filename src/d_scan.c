@@ -6,7 +6,7 @@ typedef struct {
 	u8 *pdest;
 	s32 *zp;
 	s32 iz;
-	s32 s, t;
+	u32 s, t; // wrap around like the tile, see D_WalkCoord
 	s32 sstep, tstep;
 	s32 ls, lt; // lit water: lightmap cache coords
 	s32 lsstep, ltstep;
@@ -252,8 +252,22 @@ static inline s32 D_StepDiv(s32 d, s32 n)
 static inline s32 D_ClampCoord(s64 v, s32 lo, s32 hi)
 { if(v > hi) return hi; if(v < lo) return lo; return v; }
 
+// A 16.16 texture coord, s/z times z plus the adjust. A tiled texture (water)
+// repeats every TURB_CYCLE texels, so its coords wrap around s32 instead and
+// any face fits. Clamped to extents, a face more than 8k texels across
+// smeared the last texel in reach over the rest of it.
+Q_SIL s32 D_WalkCoord(s32 tiled, f32 c, s64 adjust, s32 lo, s32 hi)
+{
+	s64 v = (s64)c + adjust;
+	return tiled ? (s32)(u32)v : D_ClampCoord(v, lo, hi);
+}
+
+// b - a, also when a tiled coord wrapped around between them
+Q_SIL s32 D_CoordDiff(s32 tiled, s32 a, s32 b)
+{ return tiled ? (s32)((u32)b - (u32)a) : b - a; }
+
 Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
-		s32 fine)
+		s32 fine, s32 tiled)
 {
 	f32 du = (f32)pspan->u;
 	f32 dv = (f32)pspan->v;
@@ -268,23 +282,23 @@ Q_SIL void D_SpanWalkBegin(spanwalk_t *w, const espan_t *pspan, s32 shift,
 	w->tdivz_chunk = d_tdivzstepu * (1 << shift);
 	w->zi_chunk = d_zistepu * (1 << shift);
 	f32 z = (f32)0x10000 / w->zi;
-	w->s = D_ClampCoord((s64)(w->sdivz * z) + sadjust, 0, bbextents);
-	w->t = D_ClampCoord((s64)(w->tdivz * z) + tadjust, 0, bbextentt);
+	w->s = D_WalkCoord(tiled, w->sdivz * z, sadjust, 0, bbextents);
+	w->t = D_WalkCoord(tiled, w->tdivz * z, tadjust, 0, bbextentt);
 	w->snext = w->s;
 	w->tnext = w->t;
 	w->sstep = 0;
 	w->tstep = 0;
 }
 
-Q_SIL void D_SpanWalkEvalEnd(spanwalk_t *w)
+Q_SIL void D_SpanWalkEvalEnd(spanwalk_t *w, s32 tiled)
 {
 	s32 lo = w->fine ? 4096 : 1 << w->shift;
 	f32 z = (f32)0x10000 / w->zi;
-	w->snext = D_ClampCoord((s64)(w->sdivz * z) + sadjust, lo, bbextents);
-	w->tnext = D_ClampCoord((s64)(w->tdivz * z) + tadjust, lo, bbextentt);
+	w->snext = D_WalkCoord(tiled, w->sdivz * z, sadjust, lo, bbextents);
+	w->tnext = D_WalkCoord(tiled, w->tdivz * z, tadjust, lo, bbextentt);
 }
 
-Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
+Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w, s32 tiled)
 {
 	w->len = w->count;
 	if(w->len >= (1 << w->shift))
@@ -296,17 +310,19 @@ Q_SIL void D_SpanWalkNextChunk(spanwalk_t *w)
 		w->sdivz += w->sdivz_chunk;
 		w->tdivz += w->tdivz_chunk;
 		w->zi += w->zi_chunk;
-		D_SpanWalkEvalEnd(w);
-		w->sstep = (w->snext - w->s) >> (w->shift - w->fine);
-		w->tstep = (w->tnext - w->t) >> (w->shift - w->fine);
+		D_SpanWalkEvalEnd(w, tiled);
+		s32 sh = w->shift - w->fine;
+		w->sstep = D_CoordDiff(tiled, w->s, w->snext) >> sh;
+		w->tstep = D_CoordDiff(tiled, w->t, w->tnext) >> sh;
 	}else{
 		f32 lastpixel = (f32)(w->len - 1);
 		w->sdivz += d_sdivzstepu * lastpixel;
 		w->tdivz += d_tdivzstepu * lastpixel;
 		w->zi += d_zistepu * lastpixel;
-		D_SpanWalkEvalEnd(w);
+		D_SpanWalkEvalEnd(w, tiled);
 		if(w->len > 1){
-			s32 ds = w->snext - w->s, dt = w->tnext - w->t;
+			s32 ds = D_CoordDiff(tiled, w->s, w->snext);
+			s32 dt = D_CoordDiff(tiled, w->t, w->tnext);
 			s32 n = w->len - 1;
 			w->sstep = (u32)(w->fine ? D_StepDiv(ds, n) : ds / n)
 				<< w->fine;
@@ -421,7 +437,7 @@ Q_SIL s32 D_DitherIndex(s32 x, s32 y)
 { return(x & 1) + ((y & 1) << 1); }
 
 Q_SIL u8 D_TurbSample(const u8 *pbase, const s32 *turb, f32 time,
-		s32 s, s32 t, s32 x, s32 y, s32 filtered, s32 hl)
+		u32 s, u32 t, s32 x, s32 y, s32 filtered, s32 hl)
 {
 	if(filtered){
 		s32 dither_idx = D_DitherIndex(x, y);
@@ -447,8 +463,8 @@ Q_SIL void D_TurbChunk(turbchunk_t *c, s32 trans, s32 filtered, s32 lit, s32 hl)
 	u8 *pdest = c->pdest;
 	s32 *zp = c->zp;
 	s32 iz = c->iz;
-	s32 s = c->s;
-	s32 t = c->t;
+	u32 s = c->s;
+	u32 t = c->t;
 	s32 count = c->count;
 	s32 x = c->x;
 	s32 y = c->y;
@@ -579,16 +595,20 @@ void D_TurbSetLight(turblight_t *l, const surfcache_t *cache,
 	l->tmax = ((pface->extents[1] << 16) >> mip) - 1;
 }
 
+// Lightmap coords follow the unwarped texture coords, clamped to the face.
+// Light rows fit faces up to 2k texels (D_SCAlloc), whose coords only wrap
+// from float error.
 Q_SIL void D_TurbSetLightChunk(turbchunk_t *c, const spanwalk_t *w)
-{ // lightmap coords follow the unwarped texture coords, clamped like them
+{
 	s32 lo = 1 << w->shift;
 	s32 mip = turblight.mip;
 	s32 smax = turblight.smax;
 	s32 tmax = turblight.tmax;
-	c->ls = D_ClampCoord((w->s - turblight.soff) >> mip, 0, smax);
-	c->lt = D_ClampCoord((w->t - turblight.toff) >> mip, 0, tmax);
-	s32 snext = D_ClampCoord((w->snext - turblight.soff) >> mip, lo, smax);
-	s32 tnext = D_ClampCoord((w->tnext - turblight.toff) >> mip, lo, tmax);
+	s64 soff = turblight.soff, toff = turblight.toff;
+	c->ls = D_ClampCoord((w->s - soff) >> mip, 0, smax);
+	c->lt = D_ClampCoord((w->t - toff) >> mip, 0, tmax);
+	s32 snext = D_ClampCoord((w->snext - soff) >> mip, lo, smax);
+	s32 tnext = D_ClampCoord((w->tnext - toff) >> mip, lo, tmax);
 	c->lsstep = 0;
 	c->ltstep = 0;
 	if(w->count){
@@ -606,7 +626,7 @@ Q_SIL void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan,
 	spanwalk_t w;
 	turbchunk_t c;
 	c.pdest = (u8*)((u8*)d_viewbuffer + (screenwidth*pspan->v) + pspan->u);
-	D_SpanWalkBegin(&w, pspan, 4, 0); // exact coords every 16px
+	D_SpanWalkBegin(&w, pspan, 4, 0, 1); // exact coords every 16px
 	c.zp = D_SpanDepthPtr(pspan);
 	c.iz = zpart ? D_ZPartDepth(zpart) : D_SpanDepthStart(w.zi);
 	c.x = pspan->u;
@@ -614,7 +634,7 @@ Q_SIL void D_TurbSpan(const espan_t *pspan, turbspanfunc_t drawspan,
 	c.key = 0; // only the translucent variants look
 	c.sky = R_FogSkyRow(pspan->v, &c.key);
 	do{
-		D_SpanWalkNextChunk(&w);
+		D_SpanWalkNextChunk(&w, 1);
 		D_TurbSetChunk(&c, &w);
 		if(turblight.mode)
 			D_TurbSetLightChunk(&c, &w);
@@ -854,11 +874,11 @@ Q_SIL void D_DrawSpanChunks(const espan_t *pspan, s32 type, f32 opacity,
 	spanwalk_t w;
 	u8 *pdest = D_SpanDest(pspan);
 	s32 x = pspan->u;
-	D_SpanWalkBegin(&w, pspan, 4, fine); // exact coords every 16px
+	D_SpanWalkBegin(&w, pspan, 4, fine, 0); // exact coords every 16px
 	if(type == SPAN_TRANS || type == SPAN_CUTOUT)
 		D_SpanDepthBegin(pspan, w.zi, zpart);
 	do{
-		D_SpanWalkNextChunk(&w);
+		D_SpanWalkNextChunk(&w, 0);
 		pdest = D_DrawSpanChunk(&w, pdest, type, opacity,
 				dithered, x, pspan->v, sky, key);
 		x += w.len;
