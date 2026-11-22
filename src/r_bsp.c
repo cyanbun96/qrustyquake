@@ -500,8 +500,9 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 		s32 side = dot >= 0 ? 0 : 1;
 		// recurse down the children, front side first
 		R_RecursiveWorldNode(node->children[side], clipflags);
-		// draw the faces that face us, and the cutouts, which can be
-		// seen through from either side
+		// draw the faces that face us, the cutouts even where no leaf
+		// marked them. Seen from behind, a face's edges come out the
+		// wrong way round and the edge list draws none of it.
 		s32 c = node->numsurfaces;
 		if(c){
 			msurface_t *surf = cl.worldmodel->surfaces
@@ -509,9 +510,9 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 			if(dot < -BACKFACE_EPSILON || dot > BACKFACE_EPSILON){
 				s32 back = dot < 0 ? SURF_PLANEBACK : 0;
 				do{
-					if((surf->flags & SURF_DRAWCUTOUT) ||
-						((surf->flags & SURF_PLANEBACK)
-						== back &&
+					s32 f = surf->flags;
+					if((f & SURF_PLANEBACK) == back &&
+						((f & SURF_DRAWCUTOUT) ||
 						surf->visframe == r_framecount))
 						R_RenderFace(surf, clipflags);
 					surf++;
