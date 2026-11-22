@@ -78,6 +78,53 @@ static void R_NewBEdge(bedge_t **side, mvertex_t *v0, mvertex_t *v1)
 	e->v[1] = v1;
 }
 
+// Closes both sides along the clip plane like R_RecursiveClipBPoly does for a
+// convex face, which crosses it twice. Float error can zigzag an edge that
+// runs along the plane across it more often, and joining only two of the
+// crossings left both sides open: a face with no edge to close it on a row got
+// a span to the right of the screen in the alpha pass. The crossings are the
+// last n clipped vertices. In order along the line the face meets the plane
+// on, each joins the nearest one of the other kind.
+static Q_NOINLINE bool R_JoinBCrossings(bedge_t **sides, s32 n,
+		mnode_t *pnode, msurface_t *psurf)
+{
+	typedef struct { mvertex_t *v; f32 along; bool enter; } bcross_t;
+	bcross_t c[64];
+	if(n > (s32)Q_COUNTOF(c))
+		return 0;
+	vec3_t normal, dir; // the node's plane in model space, as clipped
+	const f32 *pn = pnode->plane->normal;
+	for(s32 k = 0; k < 3; k++)
+		normal[k] = DotProduct(entity_rotation[k], pn);
+	CrossProduct(normal, psurf->plane->normal, dir);
+	for(s32 i = 0; i < n; i++){
+		bcross_t x = { .v = &pbverts[numbverts - n + i] };
+		x.along = DotProduct(x.v->position, dir);
+		// the front side goes on from where it comes in
+		bedge_t *e = sides[0];
+		while(e && e->v[0] != x.v)
+			e = e->pnext;
+		x.enter = e != NULL;
+		s32 j = i;
+		for(; j > 0 && c[j - 1].along > x.along; j--)
+			c[j] = c[j - 1];
+		c[j] = x;
+	}
+	s32 open = 0; // c[0..open) wait for one of the other kind
+	for(s32 i = 0; i < n; i++){
+		bcross_t x = c[i];
+		if(!open || c[open - 1].enter == x.enter){
+			c[open++] = x;
+			continue;
+		}
+		mvertex_t *o = c[--open].v;
+		mvertex_t *in = x.enter ? x.v : o, *out = x.enter ? o : x.v;
+		R_NewBEdge(&sides[0], out, in);
+		R_NewBEdge(&sides[1], in, out);
+	}
+	return 1;
+}
+
 static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 		msurface_t *psurf, const f32 *bounds)
 {
@@ -118,6 +165,8 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 		psideedges[whole] = pedges;
 	}
 	static mvertex_t *pfrontenter, *pfrontexit;
+	static s32 ncross; // more than two only through float error
+	ncross = 0;
 	for(; pedges; pedges = pnextedge){ // clip edges to BSP plane
 		pnextedge = pedges->pnext;
 		// set the status for the last point as the previous point
@@ -134,8 +183,11 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 		if(side != lastside){
 			if(numbverts >= MAX_BMODEL_VERTS) // clipped
 				return;
-			// generate the clipped vertex
+			// generate the clipped vertex. With both in front, the
+			// threshold put one behind, and it's at that one
 			f32 frac = lastdist / (lastdist - dist);
+			if(lastdist > 0 && dist > 0)
+				frac = side;
 			mvertex_t *ptvert = &pbverts[numbverts++];
 			for(s32 k = 0; k < 3; k++)
 				ptvert->position[k] = plastvert->position[k] +
@@ -153,6 +205,7 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 				pfrontenter = ptvert;
 			else
 				pfrontexit = ptvert;
+			ncross++;
 			split = 1;
 		}else{ // add the edge to the appropriate side
 			pedges->pnext = psideedges[side];
@@ -162,12 +215,17 @@ static void R_RecursiveClipBPoly(bedge_t *pedges, mnode_t *pnode,
 	// if anything was clipped, reconstitute and add the edges along
 	// the clip plane to both sides(but in opposite directions)
 	if(split){
-		if(numbedges >= (MAX_BMODEL_EDGES - 2)){
+		if(numbedges >= MAX_BMODEL_EDGES - ncross){
 			Con_Printf("Out of edges for bmodel\n");
 			return;
 		}
-		R_NewBEdge(&psideedges[0], pfrontexit, pfrontenter);
-		R_NewBEdge(&psideedges[1], pfrontenter, pfrontexit);
+		if(ncross > 2){
+			if(!R_JoinBCrossings(psideedges, ncross, pnode, psurf))
+				return;
+		}else{
+			R_NewBEdge(&psideedges[0], pfrontexit, pfrontenter);
+			R_NewBEdge(&psideedges[1], pfrontenter, pfrontexit);
+		}
 	}
 	for(s32 i = 0; i < 2; i++){ // draw or recurse further
 		if(!psideedges[i])
