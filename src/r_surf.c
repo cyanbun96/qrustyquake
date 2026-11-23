@@ -143,9 +143,9 @@ void R_BuildLightMap()
 					+ blocklights_b[i]) / 3;
 }
 
-texture_t *R_TextureAnimation(texture_t *base)
-{ // Returns the proper texture for a given time and base texture
-	if(currententity->frame && base->alternate_anims)
+texture_t *R_TextureAnimation(texture_t *base, s32 frame)
+{ // the texture for the time and the frame of the entity it's on
+	if(frame && base->alternate_anims)
 		base = base->alternate_anims;
 	if(!base->anim_total)
 		return base;

@@ -29,10 +29,26 @@ static f32 r_coarse_occ_vw, r_coarse_occ_vh; // viewport size in pixels
 // occluder right afterwards. The clipping can write one vertex past the limit
 // before it gives up.
 #define COARSE_POLY_SIZE (COARSE_OCCLUSION_MAX_VERTS + 1)
-static msurface_t *r_coarse_poly_surf;
-static coarse_occ_vertex_t r_coarse_poly[COARSE_POLY_SIZE];
-static s32 r_coarse_poly_count;
-static f32 r_coarse_poly_zi[2];
+static Q_TLS msurface_t *r_coarse_poly_surf;
+static Q_TLS coarse_occ_vertex_t r_coarse_poly[COARSE_POLY_SIZE];
+static Q_TLS const coarse_occ_vertex_t *r_coarse_polyp; // that or a slot's
+static Q_TLS s32 r_coarse_poly_count;
+static Q_TLS f32 r_coarse_poly_zi[2];
+// The polygons of world faces that a worker built ahead of the world walk,
+// see R_RunAheadNode. They're what the walk would build, so it takes them.
+#define PRE_MAXV 8
+typedef struct {
+	SDL_AtomicInt stamp; // r_prestamp when built
+	s32 built, count;
+	bool sure; // R_EmitSure
+	f32 zi[2];
+	coarse_occ_vertex_t poly[PRE_MAXV];
+} prepoly_t;
+static prepoly_t *r_prepoly; // by face
+static s32 r_prepolycap;
+static u32 r_prestamp; // counts frames
+static bool r_preon; // slots may have been built this frame
+static Q_TLS const prepoly_t *r_coarse_prep; // the one the last test took
 
 // r_coarseocclusion enables conservative coarse screen-space occlusion:
 // - Static tile coverage bitmap, one bit per tile.
@@ -140,6 +156,15 @@ void R_CoarseOcclusionBeginFrame()
 		r_coarse_occlusion_words = words;
 		r_coarse_occ_rows_n = r_refdef.vrect.height;
 	}
+	if(cl.worldmodel && r_prepolycap < cl.worldmodel->numsurfaces){
+		free(r_prepoly);
+		r_prepolycap = cl.worldmodel->numsurfaces;
+		r_prepoly = calloc(r_prepolycap, sizeof(*r_prepoly));
+		if(!r_prepoly)
+			r_prepolycap = 0;
+	}
+	r_prestamp++;
+	r_preon = 0;
 	r_coarse_occ_vw = (f32)r_refdef.vrect.width;
 	r_coarse_occ_vh = (f32)r_refdef.vrect.height;
 	r_coarse_poly_surf = NULL;
@@ -259,6 +284,23 @@ Q_SIL bool R_CoarseOccRunCovered(s32 r, s32 a, s32 b, bool depth, f32 zi)
 	return depth && r_coarse_occ_bused && R_CoarseOccRunUnion(r, a, b, zi);
 }
 
+// The pixel rows of a polygon, from ceil(top) to ceil(bottom) - 1 like
+// R_EmitEdge, none if y0 > y1. The viewport edges are exact (the polygon was
+// clipped to them), everything else keeps a safety margin.
+static s32 R_CoarseOccPolyRows(const coarse_occ_vertex_t *p, s32 n, s32 *y1)
+{
+	const f32 m = COARSE_OCCLUSION_MARGIN;
+	f32 ymin = p[0].y, ymax = p[0].y;
+	for(s32 i = 1; i < n; i++){
+		if(p[i].y < ymin) ymin = p[i].y;
+		if(p[i].y > ymax) ymax = p[i].y;
+	}
+	*y1 = R_CoarseOccCeil(ymax - m) - 1;
+	if(*y1 >= r_refdef.vrect.height)
+		*y1 = r_refdef.vrect.height - 1;
+	return ymin <= 0.0f ? 0 : R_CoarseOccCeil(ymin + m);
+}
+
 // poly is convex, clipped to the viewport and in viewport-relative pixels.
 // Returns true when every tile the polygon touches is already FULL. With depth
 // set, the tiles must also be covered by faces that are in front of 1/z value
@@ -360,17 +402,7 @@ static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
 	const s32 vw = r_refdef.vrect.width, vh = r_refdef.vrect.height;
 	f32 *xl = r_coarse_occ_rows; // per pixel row
 	f32 *xr = xl + vh;
-	f32 ymin = p[0].y, ymax = p[0].y;
-	for(s32 i = 1; i < n; i++){
-		if(p[i].y < ymin) ymin = p[i].y;
-		if(p[i].y > ymax) ymax = p[i].y;
-	}
-	// rows from ceil(top) to ceil(bottom) - 1, like R_EmitEdge. The
-	// viewport edges are exact (the polygon was clipped to them),
-	// everything else keeps a safety margin.
-	s32 y0 = ymin <= 0.0f ? 0 : R_CoarseOccCeil(ymin + m);
-	s32 y1 = R_CoarseOccCeil(ymax - m) - 1;
-	if(y1 >= vh) y1 = vh - 1;
+	s32 y1, y0 = R_CoarseOccPolyRows(p, n, &y1);
 	if(y0 > y1)
 		return;
 	for(s32 y = y0; y <= y1; y++){
@@ -534,12 +566,31 @@ static s32 R_CoarseOcclusionBuildPolygon(msurface_t *fa,
 // hidden too.
 static bool R_CoarseOccTestFace(msurface_t *fa, bool depth)
 {
-	s32 built = R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly,
+	const prepoly_t *p = NULL;
+	if(r_preon && currententity == &cl_entities[0]){
+		p = &r_prepoly[fa - cl.worldmodel->surfaces];
+		if((u32)SDL_GetAtomicInt((SDL_AtomicInt *)&p->stamp)
+				!= r_prestamp)
+			p = NULL;
+	}
+	s32 built;
+	r_coarse_prep = p;
+	if(p){
+		SDL_MemoryBarrierAcquire();
+		built = p->built;
+		r_coarse_poly_count = p->count;
+		r_coarse_poly_zi[0] = p->zi[0];
+		r_coarse_poly_zi[1] = p->zi[1];
+		r_coarse_polyp = p->poly;
+	}else{
+		built = R_CoarseOcclusionBuildPolygon(fa, r_coarse_poly,
 			&r_coarse_poly_count, r_coarse_poly_zi);
+		r_coarse_polyp = r_coarse_poly;
+	}
 	if(built <= 0)
 		return built && !depth;
 	r_coarse_poly_surf = fa;
-	return R_CoarseOccPolyCovered(r_coarse_poly, r_coarse_poly_count,
+	return R_CoarseOccPolyCovered(r_coarse_polyp, r_coarse_poly_count,
 			depth, r_coarse_poly_zi[1]);
 }
 
@@ -564,6 +615,14 @@ bool R_CoarseOcclusionTestSurface(msurface_t *fa)
 	return R_CoarseOccTestFace(fa, r_alphapass);
 }
 
+// Can the face hide what's behind it, going by its flags? The skybox is drawn
+// close by, but sorts behind everything else.
+static bool R_CoarseOpaqueFace(const msurface_t *fa)
+{
+	return !(fa->flags & (SURF_DRAWSKY | SURF_DRAWSKYBOX
+		| SURF_WINQUAKE_DRAWTRANSLUCENT | SURF_DRAWCUTOUT));
+}
+
 // Opaque world faces, and in the main pass the opaque faces of brush entities.
 // Those come after the world walk, when only tests with depth are left, so it
 // doesn't matter that they don't come in BSP order.
@@ -573,11 +632,7 @@ static bool R_CoarseOccluderEligible(msurface_t *fa)
 	if(currententity != &cl_entities[0] &&
 			(r_alphapass || !r_bmodel_occ_faces))
 		return 0;
-	if(fa->flags & SURF_DRAWSKY) return 0;
-	// the skybox is drawn close by, but sorts behind everything else
-	if(fa->flags & SURF_DRAWSKYBOX) return 0;
-	if(fa->flags & SURF_WINQUAKE_DRAWTRANSLUCENT) return 0;
-	if(fa->flags & SURF_DRAWCUTOUT) return 0;
+	if(!R_CoarseOpaqueFace(fa)) return 0;
 	if(winquake_surface_liquid_alpha < 1.0f) return 0;
 	return 1;
 }
@@ -588,19 +643,19 @@ void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf)
   // the face got in the edge list, its 1/z is remembered for the brush entity
   // tests.
 	coarse_occ_vertex_t local[COARSE_POLY_SIZE];
-	coarse_occ_vertex_t *poly;
+	const coarse_occ_vertex_t *poly;
 	s32 count;
 	f32 localzi[2], *zi;
 	if(!r_coarse_occlusion_bits) return;
 	if(!R_CoarseOccluderEligible(fa)) return;
 	if(r_coarse_poly_surf == fa){ // built by the test a moment ago
-		poly = r_coarse_poly;
+		poly = r_coarse_polyp;
 		count = r_coarse_poly_count;
 		zi = r_coarse_poly_zi;
 	}else{
 		poly = local;
 		zi = localzi;
-		if(R_CoarseOcclusionBuildPolygon(fa, poly, &count, zi) <= 0)
+		if(R_CoarseOcclusionBuildPolygon(fa, local, &count, zi) <= 0)
 			return;
 	}
 	r_coarse_poly_surf = NULL;
@@ -746,4 +801,57 @@ bool R_CoarseOcclusionTestNode(mnode_t *node)
 	if(!r_coarse_active || !r_coarse_occlusion_bits) return false;
 	return R_CoarseOccBoxCovered(node->minmaxs, node->minmaxs + 3,
 			r_alphapass);
+}
+
+// Can R_CoarsePreFace build polygons for this frame?
+bool R_CoarsePreReady()
+{ return r_coarse_active && r_coarse_occlusion_bits && r_prepoly; }
+
+// The world walk may find polygons built ahead from now on
+void R_CoarsePreOn()
+{ r_preon = 1; }
+
+// Builds the polygon of world face fa for the world walk, on the run ahead's
+// thread. The walk only takes it once it's all there.
+void R_CoarsePreFace(msurface_t *fa)
+{
+	coarse_occ_vertex_t poly[COARSE_POLY_SIZE];
+	s32 count = 0;
+	f32 zi[2] = {0, 0};
+	s32 built = R_CoarseOcclusionBuildPolygon(fa, poly, &count, zi);
+	if(built > 0 && count > PRE_MAXV)
+		return; // the walk builds it itself
+	prepoly_t *p = &r_prepoly[fa - cl.worldmodel->surfaces];
+	p->built = built;
+	// R_CoarseFaceSure asks for the faces the walk would fill in
+	s32 y1 = -1, y0 = 0;
+	if(built > 0)
+		y0 = R_CoarseOccPolyRows(poly, count, &y1);
+	p->sure = y0 <= y1 && R_CoarseOpaqueFace(fa) && R_EmitSure(fa);
+	p->count = count;
+	p->zi[0] = zi[0];
+	p->zi[1] = zi[1];
+	if(built > 0)
+		memcpy(p->poly, poly, count * sizeof(*poly));
+	SDL_MemoryBarrierRelease();
+	SDL_SetAtomicInt(&p->stamp, r_prestamp);
+}
+
+// Would R_CoarseOcclusionAddSurface fill in any of the face just tested?
+bool R_CoarseOcclusionWillFill(msurface_t *fa)
+{
+	if(!r_coarse_occlusion_bits || r_coarse_poly_surf != fa
+			|| !R_CoarseOccluderEligible(fa))
+		return 0;
+	s32 y1, y0 = R_CoarseOccPolyRows(r_coarse_polyp, r_coarse_poly_count,
+			&y1);
+	return y0 <= y1;
+}
+
+// R_EmitSure for the face just tested, as the run ahead found it if it did
+bool R_CoarseFaceSure(msurface_t *fa)
+{
+	if(r_coarse_prep && r_coarse_poly_surf == fa)
+		return r_coarse_prep->sure;
+	return R_EmitSure(fa);
 }

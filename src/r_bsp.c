@@ -11,20 +11,24 @@ static alphaface_t *r_alphafaces;
 static s32 r_numalphafaces;
 static bool r_alphafaces_lost; // ran out of memory, traverse instead
 
-void R_EntityRotate(vec3_t vec)
+void R_RotateBy(f32 m[3][3], vec3_t vec)
 {
 	vec3_t tvec;
 	VectorCopy(vec, tvec);
-	vec[0] = DotProduct(entity_rotation[0], tvec);
-	vec[1] = DotProduct(entity_rotation[1], tvec);
-	vec[2] = DotProduct(entity_rotation[2], tvec);
+	vec[0] = DotProduct(m[0], tvec);
+	vec[1] = DotProduct(m[1], tvec);
+	vec[2] = DotProduct(m[2], tvec);
 }
 
-void R_RotateBmodel()
+void R_EntityRotate(vec3_t vec)
+{ R_RotateBy(entity_rotation, vec); }
+
+// The turn of e's model, which R_RotateBy applies
+void R_EntityRotation(const entity_t *e, f32 m[3][3])
 {
 	f32 s[3], c[3];
 	for(s32 i = 0; i < 3; i++){
-		f32 angle = currententity->angles[i] * M_PI * 2 / 360;
+		f32 angle = e->angles[i] * M_PI * 2 / 360;
 		s[i] = sin(angle);
 		c[i] = cos(angle);
 	}
@@ -35,7 +39,12 @@ void R_RotateBmodel()
 		{0, -s[ROLL], c[ROLL]}};
 	f32 temp[3][3];
 	R_ConcatRotations(pitch, yaw, temp);
-	R_ConcatRotations(roll, temp, entity_rotation);
+	R_ConcatRotations(roll, temp, m);
+}
+
+void R_RotateBmodel()
+{
+	R_EntityRotation(currententity, entity_rotation);
 	R_EntityRotate(modelorg); // rotate modelorg and transformation matrix
 	R_EntityRotate(vpn);
 	R_EntityRotate(vright);
@@ -430,6 +439,60 @@ void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel)
 void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags)
 { R_BmodelFaces(pmodel, clipflags, R_UnclippedBmodelFace); }
 
+// The clip planes of clipflags that the node still crosses, -1 if it's off
+// screen
+Q_SIL s32 R_NodeClipFlags(const mnode_t *node, s32 clipflags)
+{
+	for(s32 i = 0; i < 4; i++){
+		if(!(clipflags & (1 << i)))
+			continue; // don't need to clip against it
+		// generate accept and reject points
+		s32 *pindex = frustum_indexes[i];
+		vec3_t acceptpt, rejectpt;
+		rejectpt[0] = (f32)node->minmaxs[pindex[0]];
+		rejectpt[1] = (f32)node->minmaxs[pindex[1]];
+		rejectpt[2] = (f32)node->minmaxs[pindex[2]];
+		f64 d = DotProduct(rejectpt, view_clipplanes[i].normal);
+		d -= view_clipplanes[i].dist;
+		if(d <= 0)
+			return -1;
+		acceptpt[0] = (f32)node->minmaxs[pindex[3 + 0]];
+		acceptpt[1] = (f32)node->minmaxs[pindex[3 + 1]];
+		acceptpt[2] = (f32)node->minmaxs[pindex[3 + 2]];
+		d = DotProduct(acceptpt, view_clipplanes[i].normal);
+		d -= view_clipplanes[i].dist;
+		if(d >= 0) // node is entirely on screen
+			clipflags &= ~(1 << i);
+	}
+	return clipflags;
+}
+
+// The side of the node's plane the view is on, as a distance
+Q_SIL f64 R_NodeDot(const mnode_t *node)
+{
+	mplane_t *plane = node->plane;
+	switch(plane->type){
+	case PLANE_X: return modelorg[0] - plane->dist;
+	case PLANE_Y: return modelorg[1] - plane->dist;
+	case PLANE_Z: return modelorg[2] - plane->dist;
+	default: return DotProduct(modelorg, plane->normal) - plane->dist;
+	}
+}
+
+// The run-ahead job (R_RunAheadNode) skips the nodes the walk found hidden,
+// this time if it's fallen behind, or the last time: they likely are again.
+// What it doesn't build the walk builds itself.
+static SDL_AtomicInt *r_prehidden; // by node, r_worldpass when found hidden
+static s32 r_prehiddencap;
+static bool r_runahead; // the walk has the job
+
+Q_SIL void R_FoundHidden(mnode_t *node)
+{
+	if(r_runahead)
+		SDL_SetAtomicInt(&r_prehidden[node - cl.worldmodel->nodes],
+				r_worldpass);
+}
+
 void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 {
 	// Solid leaves other than leaf 0 come from detail and fence brushes
@@ -437,34 +500,15 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 	// sit on, so they still mark them, as QuakeSpasm does.
 	if(node->visframe != r_visframecount)
 		return;
-	if(clipflags){ // cull the clipping planes if not trivial accept
-		for(s32 i = 0; i < 4; i++){
-			if(!(clipflags & (1 << i)))
-				continue; // don't need to clip against it
-			// generate accept and reject points
-			s32 *pindex = frustum_indexes[i];
-			vec3_t acceptpt, rejectpt;
-			rejectpt[0] = (f32)node->minmaxs[pindex[0]];
-			rejectpt[1] = (f32)node->minmaxs[pindex[1]];
-			rejectpt[2] = (f32)node->minmaxs[pindex[2]];
-			f64 d=DotProduct(rejectpt,view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
-			if(d <= 0)
-				return;
-			acceptpt[0] = (f32)node->minmaxs[pindex[3 + 0]];
-			acceptpt[1] = (f32)node->minmaxs[pindex[3 + 1]];
-			acceptpt[2] = (f32)node->minmaxs[pindex[3 + 2]];
-			d = DotProduct(acceptpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
-			if(d >= 0) // node is entirely on screen
-				clipflags &= ~(1 << i);
-		}
-	}
+	// cull the clipping planes if not trivial accept
+	if(clipflags && (clipflags = R_NodeClipFlags(node, clipflags)) < 0)
+		return;
 	// Hidden behind the world faces drawn so far? Not asked of leaves: the
 	// faces they mark are tested one by one anyway, and on big maps the
 	// box tests cost more than the marking they save.
 	if(node->contents >= 0 && R_CoarseOcclusionTestNode(node)){
 		r_nodes_occluded++;
+		R_FoundHidden(node);
 		return;
 	}
 	node->keypass = r_worldpass;
@@ -487,16 +531,7 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 	}else{
 		// node is just a decision point so go down the apropriate sides
 		// find which side of the node we are on
-		mplane_t *plane = node->plane;
-		f64 dot;
-		switch(plane->type){
-		case PLANE_X: dot = modelorg[0] - plane->dist; break;
-		case PLANE_Y: dot = modelorg[1] - plane->dist; break;
-		case PLANE_Z: dot = modelorg[2] - plane->dist; break;
-		default:
-			dot = DotProduct(modelorg, plane->normal) - plane->dist;
-			break;
-		}
+		f64 dot = R_NodeDot(node);
 		s32 side = dot >= 0 ? 0 : 1;
 		// recurse down the children, front side first
 		R_RecursiveWorldNode(node->children[side], clipflags);
@@ -525,6 +560,57 @@ void R_RecursiveWorldNode(mnode_t *node, s32 clipflags)
 		R_RecursiveWorldNode(node->children[!side], clipflags);
 	}
 }
+
+// The run ahead: a worker walks the world tree in the same order while the
+// world walk goes on, without its occlusion tests, and builds the coarse
+// occlusion polygons of the faces it comes to (R_CoarsePreFace). It marks the
+// faces of the leaves it goes into itself, they're a few more. Of what it
+// reads the walk only changes r_prehidden.
+static u32 *r_premark; // by face, the frame a leaf it went into listed it
+static s32 r_premarkcap;
+static SDL_AtomicInt r_prestop; // the walk is over
+
+static void R_RunAheadNode(mnode_t *node, s32 clipflags)
+{
+	if(node->visframe != r_visframecount || SDL_GetAtomicInt(&r_prestop))
+		return;
+	if(clipflags && (clipflags = R_NodeClipFlags(node, clipflags)) < 0)
+		return;
+	if(node->contents >= 0){ // see R_FoundHidden
+		s32 n = node - cl.worldmodel->nodes;
+		s32 h = SDL_GetAtomicInt(&r_prehidden[n]);
+		if(h && r_worldpass - h <= 1)
+			return;
+	}
+	msurface_t *base = cl.worldmodel->surfaces;
+	u32 frame = (u32)r_framecount;
+	if(node->contents < 0){
+		mleaf_t *pleaf = (mleaf_t *)node;
+		msurface_t **mark = pleaf->firstmarksurface;
+		for(s32 c = pleaf->nummarksurfaces; c; c--, mark++)
+			r_premark[*mark - base] = frame;
+		return;
+	}
+	f64 dot = R_NodeDot(node);
+	s32 side = dot >= 0 ? 0 : 1;
+	R_RunAheadNode(node->children[side], clipflags);
+	s32 c = node->numsurfaces;
+	if(c && (dot < -BACKFACE_EPSILON || dot > BACKFACE_EPSILON)){
+		s32 back = dot < 0 ? SURF_PLANEBACK : 0;
+		msurface_t *surf = base + node->firstsurface;
+		for(; c; c--, surf++){
+			s32 f = surf->flags;
+			if((f & SURF_PLANEBACK) == back && !(f & SURF_DRAWSKY)
+				&& ((f & SURF_DRAWCUTOUT) ||
+				r_premark[surf - base] == frame))
+				R_CoarsePreFace(surf);
+		}
+	}
+	R_RunAheadNode(node->children[!side], clipflags);
+}
+
+static void R_RunAheadJob(SDL_UNUSED void *arg)
+{ R_RunAheadNode(cl.worldmodel->nodes, 15); }
 
 // Called by R_RenderFace in the main pass for world faces that belong in the
 // alpha pass. Each gets a key of its own, to be drawn with later.
@@ -569,6 +655,32 @@ void R_RenderWorld()
 		r_numalphafaces = 0;
 		r_alphafaces_lost = 0;
 		r_worldpass++;
+		R_WalkBegin(); // a lone worker takes its emit job first
+		s32 job = -1;
+		if(r_threaded && R_CoarsePreReady()){
+			s32 n = clmodel->numsurfaces, nn = clmodel->numnodes;
+			if(r_premarkcap < n){
+				free(r_premark);
+				r_premark = calloc(n, sizeof(*r_premark));
+				r_premarkcap = r_premark ? n : 0;
+			}
+			if(r_prehiddencap < nn){
+				free(r_prehidden);
+				r_prehidden = calloc(nn, sizeof(*r_prehidden));
+				r_prehiddencap = r_prehidden ? nn : 0;
+			}
+			if(r_premark && r_prehidden){
+				SDL_SetAtomicInt(&r_prestop, 0);
+				job = R_JobAdd(R_RunAheadJob, NULL);
+				R_JobsPublish();
+				R_CoarsePreOn();
+				r_runahead = 1;
+			}
+		}
 		R_RecursiveWorldNode(clmodel->nodes, 15);
+		SDL_SetAtomicInt(&r_prestop, 1);
+		R_JobCancel(job);
+		r_runahead = 0;
+		R_WalkEnd();
 	}
 }

@@ -3,6 +3,8 @@
 // the bands its rows touch, and the workers run the commands of a band in the
 // order they were recorded, one thread per band at a time. So every pixel goes
 // through the same steps in the same order as when one thread draws it all.
+// Jobs are work that any thread may take, the main thread too while it waits
+// for one: the result mustn't depend on which thread did it, or when.
 // The commands only write the pixels of their band and draw state kept in
 // Q_TLS variables, which the main thread only reads right after writing it.
 // A worker that finds nothing to do for a moment sleeps until more is
@@ -21,6 +23,7 @@
 #define R_SPINNS 50000 // how long a worker looks for work before it sleeps
 #define R_AUTOMAX 8 // the most workers r_threads -1 tries, on 16 CPUs the
 	// last few added 1-3% each
+#define R_MAXJOBS 2048 // in a frame
 
 typedef struct rcmd_s {
 	struct rcmd_s *next;
@@ -45,8 +48,14 @@ typedef struct {
 	SDL_Semaphore *wake;
 	SDL_AtomicInt sleeping; // waiting for wake, see R_Sleep
 } rworker_t;
+enum { JOB_FREE, JOB_READY, JOB_RUNNING, JOB_DONE };
+typedef union {
+	struct { rcmdfn_t fn; void *arg; SDL_AtomicInt state; } j;
+	u8 pad[64];
+} rjob_t;
 
 Q_TLS s32 d_bandy0 = 0, d_bandy1 = MAXHEIGHT; // the rows being drawn
+Q_TLS s32 r_slot = R_MAXWORKERS; // the worker's number, the main thread's last
 #ifdef __ANDROID__ // Bionic keeps the 64 bytes after the thread pointer for
 	// itself on arm and won't start a program whose TLS is aligned less
 static Q_TLS u8 r_tlsalign __attribute__((aligned(64), used));
@@ -64,12 +73,19 @@ static SDL_AtomicInt r_quit;
 static union { SDL_AtomicInt n; u8 pad[128]; } r_sleepers; // active ones
 	// waiting to be woken, read at every R_BandPublish
 static u64 r_framestart; // when the frame began, for r_threads -1
-static u8 *r_arena; // the commands and their data, for one frame
-static size_t r_arenasize, r_arenaused;
-static void **r_oldarenas; // outgrown ones, freed when the frame is over
-static s32 r_numold, r_capold;
+typedef struct {
+	u8 *base; // the commands and their data, for one frame
+	size_t size, used;
+	void **old; // outgrown ones, freed when the frame is over
+	s32 nold, capold;
+} rarena_t;
+static rarena_t r_arenas[R_MAXWORKERS + 1]; // each thread's, by r_slot
 static fenv_t r_fenv; // the rounding R_RenderView draws with, every thread
 static s32 r_fenvframe; // counts the times r_fenv was taken
+static Q_TLS s32 r_envframe = -1; // the one a worker has
+static rjob_t r_jobs[R_MAXJOBS];
+static SDL_AtomicInt r_njobs; // published
+static s32 r_jobsadded;
 
 static bool R_BandPending(rband_t *band)
 {
@@ -89,13 +105,12 @@ static bool R_RunBand(rband_t *band, bool worker)
 		SDL_SetAtomicInt(&band->b.lease, 0);
 		return 0;
 	}
-	static Q_TLS s32 envframe = -1; // the workers keep what they have
 	fenv_t mainenv;
 	if(!worker)
 		fegetenv(&mainenv);
-	if(!worker || envframe != r_fenvframe){
+	if(!worker || r_envframe != r_fenvframe){
 		fesetenv(&r_fenv);
-		envframe = worker ? r_fenvframe : -1;
+		r_envframe = worker ? r_fenvframe : -1;
 	}
 	u32 n = SDL_GetAtomicInt(&band->b.pushed);
 	u32 done = SDL_GetAtomicInt(&band->b.done);
@@ -118,6 +133,46 @@ static bool R_RunBand(rband_t *band, bool worker)
 	return 1;
 }
 
+static void R_RunJob(rjob_t *j)
+{
+	SDL_MemoryBarrierAcquire();
+	if(r_slot != R_MAXWORKERS && r_envframe != r_fenvframe){
+		fesetenv(&r_fenv); // the main thread has it already
+		r_envframe = r_fenvframe;
+	}
+	j->j.fn(j->j.arg);
+	SDL_MemoryBarrierRelease();
+	SDL_SetAtomicInt(&j->j.state, JOB_DONE);
+}
+
+static bool R_TakeJob(rjob_t *j)
+{
+	return SDL_GetAtomicInt(&j->j.state) == JOB_READY &&
+		SDL_CompareAndSwapAtomicInt(&j->j.state, JOB_READY,
+			JOB_RUNNING);
+}
+
+// Runs the first job nobody has taken
+static bool R_AnyJob()
+{
+	s32 n = SDL_GetAtomicInt(&r_njobs);
+	for(s32 i = 0; i < n; i++)
+		if(R_TakeJob(&r_jobs[i])){
+			R_RunJob(&r_jobs[i]);
+			return 1;
+		}
+	return 0;
+}
+
+static bool R_JobsReady()
+{
+	s32 n = SDL_GetAtomicInt(&r_njobs);
+	for(s32 i = 0; i < n; i++)
+		if(SDL_GetAtomicInt(&r_jobs[i].j.state) == JOB_READY)
+			return 1;
+	return 0;
+}
+
 // Runs bands until none has anything left, w is the worker or NULL for the
 // main thread, which only waits without help. A worker goes on looking for as
 // long as the frame lasts, unless it found nothing for R_SPINNS or it isn't
@@ -126,6 +181,10 @@ static void R_Work(rworker_t *w, bool help)
 {
 	u64 idle = 0;
 	for(u32 spins = 0;; spins++){
+		if(w && R_AnyJob()){
+			idle = 0;
+			continue;
+		}
 		bool any = 0, ran = 0;
 		s32 n = SDL_GetAtomicInt(&r_pollbands);
 		for(s32 i = 0; i < n && !ran; i++){
@@ -157,6 +216,8 @@ static void R_Work(rworker_t *w, bool help)
 // Is there a band with commands that no thread is running?
 static bool R_Claimable()
 {
+	if(R_JobsReady())
+		return 1;
 	s32 n = SDL_GetAtomicInt(&r_pollbands);
 	for(s32 i = 0; i < n; i++)
 		if(R_BandPending(&r_bands[i])
@@ -189,6 +250,7 @@ static void R_Sleep(rworker_t *w)
 static s32 SDLCALL R_Worker(void *data)
 {
 	rworker_t *w = data;
+	r_slot = w - r_workers;
 	for(;;){
 		R_Sleep(w);
 		if(SDL_GetAtomicInt(&r_quit))
@@ -263,30 +325,31 @@ static void R_StartWorkers(s32 n, bool quiet)
 #endif
 }
 
-static void R_GrowArena(size_t size)
+static void R_GrowArena(rarena_t *a, size_t size)
 { // the old one stays until the frame is over, commands point into it
-	if(r_arena && r_numold == r_capold){
-		r_capold = r_capold ? r_capold * 2 : 16;
-		r_oldarenas = realloc(r_oldarenas,
-				r_capold * sizeof(*r_oldarenas));
-		if(!r_oldarenas)
+	if(a->base && a->nold == a->capold){
+		a->capold = a->capold ? a->capold * 2 : 16;
+		a->old = realloc(a->old, a->capold * sizeof(*a->old));
+		if(!a->old)
 			Sys_Error("R_FrameAlloc: out of memory");
 	}
-	if(r_arena)
-		r_oldarenas[r_numold++] = r_arena;
-	r_arenasize = q_max(r_arenasize * 2, size + (1 << 20));
-	if(!(r_arena = malloc(r_arenasize)))
+	if(a->base)
+		a->old[a->nold++] = a->base;
+	a->size = q_max(a->size * 2, size + (1 << 20));
+	if(!(a->base = malloc(a->size)))
 		Sys_Error("R_FrameAlloc: out of memory");
-	r_arenaused = 0;
+	a->used = 0;
 }
 
+// Memory for the frame, from the calling thread's arena
 void *R_FrameAlloc(size_t size)
 {
+	rarena_t *a = &r_arenas[r_slot];
 	size = (size + 15) & ~(size_t)15;
-	if(r_arenaused + size > r_arenasize)
-		R_GrowArena(size);
-	void *p = r_arena + r_arenaused;
-	r_arenaused += size;
+	if(a->used + size > a->size)
+		R_GrowArena(a, size);
+	void *p = a->base + a->used;
+	a->used += size;
 	return p;
 }
 
@@ -333,6 +396,68 @@ void R_ThreadsHelp()
 	for(s32 b = 0; b < r_nbands; b++)
 		R_BandPublish(b);
 	R_Work(NULL, 1);
+}
+
+// A job for any thread, if there's room for more, else -1
+s32 R_JobTry(rcmdfn_t fn, void *arg)
+{
+	if(r_jobsadded == R_MAXJOBS)
+		return -1;
+	rjob_t *j = &r_jobs[r_jobsadded];
+	j->j.fn = fn;
+	j->j.arg = arg;
+	SDL_MemoryBarrierRelease();
+	SDL_SetAtomicInt(&j->j.state, JOB_READY);
+	return r_jobsadded++;
+}
+
+// Or run right away if there's no room
+s32 R_JobAdd(rcmdfn_t fn, void *arg)
+{
+	s32 i = R_JobTry(fn, arg);
+	if(i < 0)
+		fn(arg);
+	return i;
+}
+
+// The workers can take the jobs added so far
+void R_JobsPublish()
+{
+	SDL_SetAtomicInt(&r_njobs, r_jobsadded);
+	R_WakeWorkers(0, r_nactive);
+}
+
+// Waits for a job, running it or any other that nobody has taken meanwhile
+void R_JobWait(s32 i)
+{
+	if(i < 0)
+		return;
+	rjob_t *j = &r_jobs[i];
+	while(SDL_GetAtomicInt(&j->j.state) != JOB_DONE){
+		if(R_TakeJob(j))
+			R_RunJob(j);
+		else if(!R_AnyJob())
+			SDL_CPUPauseInstruction();
+	}
+	SDL_MemoryBarrierAcquire();
+}
+
+// Takes a job back if nobody has started it
+bool R_JobTakeBack(s32 i)
+{
+	return i >= 0 && SDL_CompareAndSwapAtomicInt(&r_jobs[i].j.state,
+			JOB_READY, JOB_DONE);
+}
+
+// Takes a job back if nobody has started it, else waits for it
+void R_JobCancel(s32 i)
+{
+	if(i < 0 || R_JobTakeBack(i))
+		return;
+	rjob_t *j = &r_jobs[i];
+	while(SDL_GetAtomicInt(&j->j.state) != JOB_DONE)
+		SDL_CPUPauseInstruction();
+	SDL_MemoryBarrierAcquire();
 }
 
 void R_RowsAdd(s32 y0, s32 y1, rcmdfn_t fn, void *arg)
@@ -517,10 +642,19 @@ s32 R_ThreadsActive(){ return r_nactive; }
 void R_ThreadsBeginFrame()
 {
 	R_ThreadsSync(); // in case a frame was cut short
+	for(s32 i = 0; i < r_jobsadded; i++){ // and its jobs too
+		R_JobCancel(i);
+		SDL_SetAtomicInt(&r_jobs[i].j.state, JOB_FREE);
+	}
+	r_jobsadded = 0;
+	SDL_SetAtomicInt(&r_njobs, 0);
 	r_threaded = 0;
-	for(; r_numold > 0; r_numold--)
-		free(r_oldarenas[r_numold - 1]);
-	r_arenaused = 0;
+	for(s32 i = 0; i <= R_MAXWORKERS; i++){ // nothing points into them
+		rarena_t *a = &r_arenas[i];
+		for(; a->nold > 0; a->nold--)
+			free(a->old[a->nold - 1]);
+		a->used = 0;
+	}
 	bool tune = r_threads.value < 0;
 	s32 want = tune ? R_ThreadsAutoMax()
 		: CLAMP(0, (s32)r_threads.value, R_MAXWORKERS);

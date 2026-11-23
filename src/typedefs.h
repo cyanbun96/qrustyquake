@@ -490,6 +490,7 @@ typedef struct edge_s {
 	s32 vlast; // last scanline this edge is active on
 	f32 nearzi;
 	u8 rev; // reverse edge, used for detecting cache conflicts
+	s32 vstart; // first scanline
 } edge_t;
 
 typedef struct {                                                    // d_iface.h
@@ -669,6 +670,11 @@ typedef struct sspan_s {
 	s32 u, v, count;
 } sspan_t;
 typedef void (*rcmdfn_t)(void *arg); // a command for the render threads
+typedef struct { u32 surf; espan_t *spans; } scanrec_t; // see R_ScanBand
+typedef struct { // D_RecordBandJob
+	s32 band, n;
+	const scanrec_t *recs;
+} drecjob_t;
 typedef struct { // the span gradients and texture block, see D_SaveGradients
 	f32 sdivzstepu, tdivzstepu, zistepu;
 	f32 sdivzstepv, tdivzstepv, zistepv;

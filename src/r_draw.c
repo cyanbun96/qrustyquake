@@ -1,17 +1,18 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-static u32 cacheoffset;
-static medge_t *r_pedge;
-static bool r_leftclipped, r_rightclipped;
-static bool r_nearzionly;
-static mvertex_t r_leftenter, r_leftexit;
-static mvertex_t r_rightenter, r_rightexit;
-static s32 r_emitted;
-static f32 r_nearzi;
-static bool r_lastvertvalid;
-static bool makeleftedge, makerightedge;
-static u8 r_edgerev; // direction of the face currently being walked
+// The world walk's emit job uses them on a worker (R_EmitFaceJob)
+static Q_TLS u32 cacheoffset;
+static Q_TLS medge_t *r_pedge;
+static Q_TLS bool r_leftclipped, r_rightclipped;
+static Q_TLS bool r_nearzionly;
+static Q_TLS mvertex_t r_leftenter, r_leftexit;
+static Q_TLS mvertex_t r_rightenter, r_rightexit;
+static Q_TLS s32 r_emitted;
+static Q_TLS f32 r_nearzi;
+static Q_TLS bool r_lastvertvalid;
+static Q_TLS bool makeleftedge, makerightedge;
+static Q_TLS u8 r_edgerev; // direction of the face currently being walked
 
 // The order WinQuake's compiler used, which matters under chop rounding, and
 // the same goes for the order of the multiplications by distinv below
@@ -27,8 +28,8 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	f32 *world;
 	f32 scale, lzi0, u0, v0;
 	s64 ceilv0;
-	static f32 r_u1, r_v1, r_lzi1;
-	static s32 r_ceilv1;
+	static Q_TLS f32 r_u1, r_v1, r_lzi1;
+	static Q_TLS s32 r_ceilv1;
 	if(r_lastvertvalid){
 		u0 = r_u1;
 		v0 = r_v1;
@@ -125,6 +126,11 @@ void R_EmitEdge(mvertex_t *pv0, mvertex_t *pv1)
 	edge->next = newedges[v];
 	newedges[v] = edge;
 	edge->vlast = (s32)v2;
+	if(r_scanbanded){ // the bands below this one start with it
+		edge->vstart = (s32)v;
+		if(r_bandof[v2] != r_bandof[v])
+			R_CarryEdge(edge, r_bandof[v], r_bandof[v2]);
+	}
 }
 
 void R_ClipEdge(mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
@@ -236,33 +242,70 @@ bool R_SurfaceInPass(msurface_t *fa)
 	return 1;
 }
 
-void R_RenderFace(msurface_t *fa, s32 clipflags)
+// The world walk with the workers hands its faces to a job that emits them in
+// the same order (R_EmitFaceJob), and goes on with the next ones. The
+// occlusion fill of a face has to know that it went in. R_EmitSure, and the
+// room left as far as the job has got, can tell for most, else the walk waits.
+#define R_EMITQ 4096 // a power of two
+#define R_QBATCH 32 // the faces the job gets at a time
+typedef struct {
+	msurface_t *fa;
+	s32 clipflags, key;
+	s64 edges; // at most this many edges in the faces before it
+} qface_t;
+// The pads keep what one side writes off the lines the other one reads
+static struct {
+	u8 pad0[64];
+	qface_t q[R_EMITQ]; // the walk's
+	s32 put; // faces queued, head lags behind by up to R_QBATCH
+	s32 seen; // what the walk knows of the job: faces done,
+	s64 seensurfs, seenedges; // and surface_p, edge_p after them
+	s64 edgesum;
+	s32 job;
+	bool queue; // the faces go to the job
+	u8 pad1[64];
+	SDL_AtomicInt head, stop; // published by the walk
+	u8 pad2[64];
+	bool in[R_EMITQ]; // the job's: whether it went in
+	SDL_AtomicInt tail, surfs, edges; // faces done, surface_p, edge_p
+	u8 pad3[64];
+	bool walking; // in the world walk, see R_RenderFace
+	clipplane_t planes[16][4]; // as R_ClipPlaneList links them, for
+	clipplane_t *clip[16]; // each clipflags, during the walk
+	edge_t *edge_p; // the job's edge_p, surface_p and r_polycount at its
+	surf_t *surface_p; // start and end, see R_WalkEnd
+	s32 polys;
+	u8 pad4[64];
+} r_q = { .job = -1 };
+
+// The plane of a face as 1/z on the screen. Once, for the edge list and for
+// the occlusion fill alike.
+Q_NOINLINE void R_FaceZi(msurface_t *fa, surf_t *s)
 {
-	// Manoel Kasimier - skyboxes - begin
-	// Code taken from the ToChriS engine - Author: Vic
-	// sky surfaces encountered in the world will cause the
-	// environment box surfaces to be emited
-	if((fa->flags & SURF_DRAWSKY) && skybox_name[0])
-		r_skyframe = r_framecount;
-	// Manoel Kasimier - skyboxes - end
-	if(!R_SurfaceInPass(fa)){
-		if(!r_alphapass && winquake_surface_liquid_alpha > 0 &&
-				currententity == &cl_entities[0] &&
-				!insubmodel)
-			R_RecordAlphaFace(fa, clipflags);
-		return;
-	}
-	c_faceclip++;
-	clipplane_t *pclip = R_ClipPlaneList(clipflags);
-	if(r_coarse_active && R_CoarseOcclusionTestSurface(fa)){
-		r_coarse_rejected++;
-		return;
-	}
+	mplane_t *pplane = fa->plane;
+	vec3_t p_normal;
+	TransformVector(pplane->normal, p_normal);
+	f32 distinv = 1.0 / (pplane->dist - R_PlaneDot(pplane));
+	s->d_zistepu = (p_normal[0] * distinv) * xscaleinv;
+	s->d_zistepv = -((p_normal[1] * distinv) * yscaleinv);
+	s->d_ziorigin = p_normal[2] * distinv -
+		xcenter * s->d_zistepu - ycenter * s->d_zistepv;
+}
+
+// The edges and the surface of a face that got past the occlusion test, with
+// key, or the next one if that's -1. False if it didn't go in.
+Q_SIL bool R_EmitFace(msurface_t *fa, s32 clipflags, s32 key)
+{
 	// skip out if no more surfs or not enough edges left
 	if(surface_p >= surf_max || edge_p + fa->numedges + 4 >= edge_max){
 		r_outofsurfaces++;
-		return;
+		return 0;
 	}
+	// the walk's are copies, the job doesn't write the planes it reads
+	clipplane_t *planes = r_q.walking ? r_q.planes[clipflags]
+		: view_clipplanes;
+	clipplane_t *pclip = r_q.walking ? r_q.clip[clipflags]
+		: R_ClipPlaneList(clipflags);
 	r_emitted = 0; // push the edges through
 	r_nearzi = 0;
 	r_nearzionly = 0;
@@ -354,11 +397,11 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 		r_pedge = &tedge;
 		r_lastvertvalid = 0;
 		r_nearzionly = 1;
-		R_ClipEdge(&r_rightexit, &r_rightenter,view_clipplanes[1].next);
+		R_ClipEdge(&r_rightexit, &r_rightenter, planes[1].next);
 	}
 	// if no edges made it out, return without posting the surface
 	if(!r_emitted)
-		return;
+		return 0;
 	r_polycount++;
 	surface_p->data = (void *)fa;
 	surface_p->nearzi = r_nearzi;
@@ -366,18 +409,271 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 	surface_p->insubmodel = insubmodel;
 	surface_p->spanstate = 0;
 	surface_p->entity = currententity;
-	surface_p->key = r_currentkey++;
+	surface_p->key = key < 0 ? r_currentkey++ : key;
 	surface_p->spans = NULL;
-	mplane_t *pplane = fa->plane;
-	vec3_t p_normal;
-	TransformVector(pplane->normal, p_normal);
-	f32 distinv = 1.0 / (pplane->dist - R_PlaneDot(pplane));
-	surface_p->d_zistepu = (p_normal[0] * distinv) * xscaleinv;
-	surface_p->d_zistepv = -((p_normal[1] * distinv) * yscaleinv);
-	surface_p->d_ziorigin = p_normal[2] * distinv -
-		xcenter * surface_p->d_zistepu - ycenter * surface_p->d_zistepv;
+	R_FaceZi(fa, surface_p);
 	surface_p++;
-	if(r_coarse_active)
+	return 1;
+}
+
+// Will R_EmitFace put the face in, whatever the faces before it left in the
+// edge cache? It will once R_EmitEdge gets an edge that no face can have
+// cached as fully clipped: one that a clip plane cuts and that keeps a piece
+// inside all four (R_ClipEdge), or one inside all four that crosses a row.
+// The margins cover rounding other than theirs.
+bool R_EmitSure(msurface_t *fa)
+{
+	const model_t *m = currententity->model;
+	const s32 *sedges = m->surfedges + fa->firstedge;
+	for(s32 i = 0; i < fa->numedges; i++){
+		s32 l = sedges[i];
+		const medge_t *e = &m->edges[l < 0 ? -l : l];
+		const f32 *p0 = r_pcurrentvertbase[e->v[0]].position;
+		const f32 *p1 = r_pcurrentvertbase[e->v[1]].position;
+		f32 lo = 0, hi = 1; // the piece inside all four by the margin
+		bool cut = 0;
+		for(s32 c = 0; c < 4 && lo < hi; c++){
+			const clipplane_t *cp = &view_clipplanes[c];
+			f32 a0 = DotProduct(p0, cp->normal);
+			f32 a1 = DotProduct(p1, cp->normal);
+			f32 mg = q_max(fabsf(a0), fabsf(a1)) + fabsf(cp->dist);
+			mg = mg * 1e-4f + 1e-3f;
+			f32 d0 = a0 - cp->dist, d1 = a1 - cp->dist;
+			if(d0 > mg && d1 > mg)
+				continue;
+			cut = 1;
+			if(d0 > mg && d1 < -mg)
+				hi = q_min(hi, (d0 - mg) / (d0 - d1));
+			else if(d0 < -mg && d1 > mg)
+				lo = q_max(lo, (mg - d0) / (d1 - d0));
+			else
+				hi = 0; // outside, or too close to call
+		}
+		if(lo >= hi)
+			continue;
+		if(cut)
+			return 1;
+		f32 v[2];
+		for(s32 k = 0; k < 2; k++){
+			vec3_t local, t;
+			VectorSubtract(k ? p1 : p0, modelorg, local);
+			TransformVector(local, t);
+			if(t[2] < NEAR_CLIP)
+				t[2] = NEAR_CLIP;
+			f32 lzi = 1.0 / t[2];
+			f32 scale = yscale * lzi;
+			v[k] = ycenter - scale * t[1];
+			v[k] = q_max(v[k], r_refdef.fvrecty_adj);
+			v[k] = q_min(v[k], r_refdef.fvrectbottom_adj);
+		}
+		f32 vlo = q_min(v[0], v[1]) + 0.01f;
+		f32 vhi = q_max(v[0], v[1]) - 0.01f;
+		if(Q_ceil(vlo) < vhi) // a whole row between them
+			return 1;
+	}
+	return 0;
+}
+
+static Q_NOINLINE bool R_EmitQueued(const qface_t *f)
+{
+	return R_EmitFace(f->fa, f->clipflags, f->key);
+}
+
+static void R_EmitFaceJob(SDL_UNUSED void *arg)
+{
+	edge_p = r_q.edge_p;
+	surface_p = r_q.surface_p;
+	r_polycount = r_q.polys;
+	for(s32 t = 0;;){
+		if(t == SDL_GetAtomicInt(&r_q.head)){
+			if(SDL_GetAtomicInt(&r_q.stop) &&
+					t == SDL_GetAtomicInt(&r_q.head))
+				break;
+			SDL_CPUPauseInstruction();
+			continue;
+		}
+		SDL_MemoryBarrierAcquire();
+		r_q.in[t & (R_EMITQ - 1)] =
+			R_EmitQueued(&r_q.q[t & (R_EMITQ - 1)]);
+		SDL_SetAtomicInt(&r_q.surfs, surface_p - surfaces);
+		SDL_SetAtomicInt(&r_q.edges, edge_p - r_edges);
+		SDL_MemoryBarrierRelease();
+		SDL_SetAtomicInt(&r_q.tail, ++t);
+	}
+	r_q.edge_p = edge_p;
+	r_q.surface_p = surface_p;
+	r_q.polys = r_polycount;
+}
+
+// The walk can't go on without the job. If no worker has taken it, the walk
+// emits the faces itself from now on.
+static void R_QueueStall()
+{
+	if(!R_JobTakeBack(r_q.job))
+		return; // it's running
+	for(s32 t = SDL_GetAtomicInt(&r_q.tail); t != r_q.put; t++){
+		r_q.in[t & (R_EMITQ - 1)] =
+			R_EmitQueued(&r_q.q[t & (R_EMITQ - 1)]);
+	}
+	SDL_SetAtomicInt(&r_q.tail, r_q.put);
+	r_q.queue = 0;
+	r_q.job = -1;
+}
+
+static void R_QueuePublish()
+{
+	SDL_MemoryBarrierRelease();
+	SDL_SetAtomicInt(&r_q.head, r_q.put);
+}
+
+// Did queued face i go in? Waits for the job to get there.
+static bool R_QueuedIn(s32 i)
+{
+	R_QueuePublish();
+	while(SDL_GetAtomicInt(&r_q.tail) <= i){
+		R_QueueStall();
+		SDL_CPUPauseInstruction();
+	}
+	SDL_MemoryBarrierAcquire();
+	return r_q.in[i & (R_EMITQ - 1)];
+}
+
+// Is there sure to be room for queued face i when the job gets to it? Every
+// face before it takes a surface and numedges + 1 edges at most. Where the
+// job has got is only looked up when that's not enough.
+static bool R_QueueRoomAfter(s32 i, const msurface_t *fa)
+{
+	s64 surfs = r_q.seensurfs + (i - r_q.seen);
+	s64 edges = r_q.seenedges + r_q.q[i & (R_EMITQ - 1)].edges
+		- r_q.q[r_q.seen & (R_EMITQ - 1)].edges;
+	return surfs < surf_max - surfaces
+		&& edges + fa->numedges + 4 < edge_max - r_edges;
+}
+
+static bool R_QueueRoom(s32 i, const msurface_t *fa)
+{
+	if(R_QueueRoomAfter(i, fa))
+		return 1;
+	s32 t = SDL_GetAtomicInt(&r_q.tail);
+	if(t > i)
+		return 0; // R_QueuedIn knows
+	r_q.seen = t; // the counts may be from after t, that's more
+	r_q.seensurfs = SDL_GetAtomicInt(&r_q.surfs);
+	r_q.seenedges = SDL_GetAtomicInt(&r_q.edges);
+	return R_QueueRoomAfter(i, fa);
+}
+
+// Hands the face to the job and fills it in for the occlusion tests if it goes
+// in. False if the walk has to emit it itself.
+static bool R_QueueFace(msurface_t *fa, s32 clipflags, s32 key)
+{
+	s32 h = r_q.put;
+	if(h - r_q.seen >= R_EMITQ){
+		R_QueuePublish();
+		while(h - (r_q.seen = SDL_GetAtomicInt(&r_q.tail)) >= R_EMITQ){
+			R_QueueStall();
+			if(!r_q.queue)
+				return 0;
+			SDL_CPUPauseInstruction();
+		}
+		r_q.seensurfs = SDL_GetAtomicInt(&r_q.surfs);
+		r_q.seenedges = SDL_GetAtomicInt(&r_q.edges);
+	}
+	qface_t *f = &r_q.q[h & (R_EMITQ - 1)];
+	f->fa = fa;
+	f->clipflags = clipflags;
+	f->key = key;
+	f->edges = r_q.edgesum;
+	r_q.edgesum += fa->numedges + 1;
+	if(!(++r_q.put & (R_QBATCH - 1)))
+		R_QueuePublish();
+	if(!r_coarse_active || !R_CoarseOcclusionWillFill(fa))
+		return 1;
+	if(!(R_CoarseFaceSure(fa) && R_QueueRoom(h, fa)) && !R_QueuedIn(h))
+		return 1;
+	surf_t zs;
+	R_FaceZi(fa, &zs);
+	R_CoarseOcclusionAddSurface(fa, &zs);
+	return 1;
+}
+
+// Around the world walk
+void R_WalkBegin()
+{
+	r_q.walking = 1;
+	for(s32 f = 0; f < 16; f++){
+		clipplane_t *p = r_q.planes[f], *next = NULL;
+		for(s32 i = 3; i >= 0; i--){
+			p[i] = view_clipplanes[i];
+			p[i].next = next;
+			if(f & (1 << i))
+				next = &p[i];
+		}
+		r_q.clip[f] = next;
+	}
+	if(!r_threaded)
+		return;
+	r_q.put = r_q.seen = 0;
+	r_q.seensurfs = surface_p - surfaces;
+	r_q.seenedges = edge_p - r_edges;
+	r_q.edgesum = 0;
+	r_q.edge_p = edge_p;
+	r_q.surface_p = surface_p;
+	r_q.polys = r_polycount;
+	SDL_SetAtomicInt(&r_q.head, 0);
+	SDL_SetAtomicInt(&r_q.tail, 0);
+	SDL_SetAtomicInt(&r_q.stop, 0);
+	SDL_SetAtomicInt(&r_q.surfs, r_q.seensurfs);
+	SDL_SetAtomicInt(&r_q.edges, r_q.seenedges);
+	r_q.job = R_JobTry(R_EmitFaceJob, NULL);
+	r_q.queue = r_q.job >= 0;
+	R_JobsPublish();
+}
+
+// The job's edge_p, surface_p and r_polycount are its thread's own: the walk
+// takes them over
+void R_WalkEnd()
+{
+	if(r_q.job >= 0){
+		R_QueuePublish();
+		SDL_SetAtomicInt(&r_q.stop, 1);
+		R_JobWait(r_q.job); // runs it here if no worker took it
+		r_q.job = -1;
+		r_q.queue = 0;
+		edge_p = r_q.edge_p;
+		surface_p = r_q.surface_p;
+		r_polycount = r_q.polys;
+	}
+	r_q.walking = 0;
+}
+
+void R_RenderFace(msurface_t *fa, s32 clipflags)
+{
+	// Manoel Kasimier - skyboxes - begin
+	// Code taken from the ToChriS engine - Author: Vic
+	// sky surfaces encountered in the world will cause the
+	// environment box surfaces to be emited
+	if((fa->flags & SURF_DRAWSKY) && skybox_name[0])
+		r_skyframe = r_framecount;
+	// Manoel Kasimier - skyboxes - end
+	if(!R_SurfaceInPass(fa)){
+		if(!r_alphapass && winquake_surface_liquid_alpha > 0 &&
+				currententity == &cl_entities[0] &&
+				!insubmodel)
+			R_RecordAlphaFace(fa, clipflags);
+		return;
+	}
+	c_faceclip++;
+	if(r_coarse_active && R_CoarseOcclusionTestSurface(fa)){
+		r_coarse_rejected++;
+		return;
+	}
+	// The world walk's faces take their key whether they go in or not, so
+	// the walk needn't wait for R_EmitFace
+	s32 key = r_q.walking ? r_currentkey++ : -1;
+	if(r_q.queue && R_QueueFace(fa, clipflags, key))
+		return;
+	if(R_EmitFace(fa, clipflags, key) && r_coarse_active)
 		R_CoarseOcclusionAddSurface(fa, surface_p - 1);
 }
 

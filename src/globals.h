@@ -71,9 +71,12 @@ void VID_SetScaleModeCommand_f();
 void VID_SetRenderScaleCommand_f(SDL_UNUSED cvar_t *cvar);
 EX u8 r_foundtranswater, r_alphapass;                                // r_main.c
 EX bool r_dowarp;
-EX s32 r_coarse_rejected;
+// Q_TLS keeps what the world walk writes for each face or node off the cache
+// lines its jobs read (R_EmitFaceJob, R_RunAheadNode). edge_p, surface_p and
+// r_polycount are the emit job's own while it runs.
+EX Q_TLS s32 r_coarse_rejected;
 EX bool r_coarse_active;
-EX f32 winquake_surface_liquid_alpha;
+EX Q_TLS f32 winquake_surface_liquid_alpha;
 EX refdef_t r_refdef;
 EX s64 r_framecount;
 EX texture_t *r_notexture_mip;
@@ -86,7 +89,7 @@ EX bool r_bmodel_occ_active; // brush entity occlusion is on this frame
 EX bool r_ent_occ_active; // alias entity occlusion is on this frame
 EX bool r_bmodel_occ_faces; // test the faces of the brush entity being drawn
 EX s32 r_bmodels_occluded, r_bmodel_faces_occluded;
-EX s32 r_nodes_occluded;
+EX Q_TLS s32 r_nodes_occluded;
 EX s32 r_worldpass; // counts R_RenderWorld calls, see mleaf_t keypass
 EX vec3_t v_punchangles[2];
 void R_DrawDebugLine3D(vec3_t p1, vec3_t p2);
@@ -99,6 +102,15 @@ bool R_CoarseOcclusionTestBox(const f32 *mn, const f32 *mx);
 bool R_CoarseOcclusionTestNode(mnode_t *node);
 bool R_CoarseOcclusionTestSurface(msurface_t *fa);
 void R_CoarseOcclusionAddSurface(msurface_t *fa, const surf_t *surf);
+bool R_CoarsePreReady();
+void R_CoarsePreOn();
+void R_CoarsePreFace(msurface_t *fa);
+bool R_CoarseOcclusionWillFill(msurface_t *fa);
+bool R_CoarseFaceSure(msurface_t *fa);
+bool R_EmitSure(msurface_t *fa);
+void R_FaceZi(msurface_t *fa, surf_t *s);
+void R_WalkBegin();
+void R_WalkEnd();
 void M_Init();                                                         // menu.h
 void M_Keydown(s32 key);
 void M_Draw();
@@ -276,7 +288,7 @@ void D_AllocCaches();
 EX Q_TLS affinetridesc_t r_affinetridesc;                           // d_iface.h
 EX spritedesc_t r_spritedesc;
 EX Q_TLS void *acolormap;
-EX drawsurf_t r_drawsurf;
+EX Q_TLS drawsurf_t r_drawsurf;
 EX f32 skyspeed;
 EX f32 skytime;
 EX s32 c_surf;
@@ -320,7 +332,8 @@ EX f32 xscaleshrink, yscaleshrink;
 EX s32 d_lightstylevalue[256];
 EX c8 skybox_name[1024];
 EX f32 map_skyfog; // r_skyfog, or the map's own value until that changes
-EX surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
+EX surf_t *surfaces, *surf_max, *skybox_surf_p;
+EX Q_TLS surf_t *surface_p;
 void R_MakeSky(texture_t *mt);
 void Sky_LoadSkyBox(const c8 *name);
 void R_EmitSkyBox();
@@ -353,8 +366,8 @@ void D_TurbSetLight(turblight_t *l, const surfcache_t *cache,
 s32 R_LitWaterRGB();
 void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view);
 s32 R_SkyIndexForTexture(texture_t *mt);
-surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel);
-surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel);
+surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel, s32 frame);
+surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel, s32 frame);
 s32 D_DitherLevel(f32 opacity);
 EX s32 default_net_hostport;                                            // net.h
 EX s32 net_hostport;
@@ -493,18 +506,19 @@ EX mplane_t screenedge[4];
 EX vec3_t r_entorigin;
 EX s64 r_visframecount;
 EX bool insubmodel;
-EX s32 c_faceclip;
-EX s32 r_polycount;
+EX Q_TLS s32 c_faceclip;
+EX Q_TLS s32 r_polycount;
 EX s32 frustum_indexes[4][6];
 EX Q_TLS s64 sadjust, tadjust;
 EX Q_TLS s32 bbextents, bbextentt;
-EX s32 r_currentkey;
+EX Q_TLS s32 r_currentkey;
 EX s32 r_currentbkey;
 EX finalvert_t *pfinalverts;
 EX auxvert_t *pauxverts;
 EX s32 r_amodels_drawn;
 EX s32 r_amodels_occluded;
-EX edge_t *r_edges, *edge_p, *edge_max;
+EX edge_t *r_edges, *edge_max;
+EX Q_TLS edge_t *edge_p;
 EX edge_t *newedges[MAXHEIGHT];
 EX s32 screenwidth;
 EX f32 aliasxscale, aliasyscale, aliasxcenter, aliasycenter;
@@ -525,7 +539,7 @@ void R_RenderFace(msurface_t *fa, s32 clipflags);
 void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf);
 void R_TransformFrustum();
 void R_SetSkyFrame();
-texture_t *R_TextureAnimation(texture_t *base);
+texture_t *R_TextureAnimation(texture_t *base, s32 frame);
 void R_DrawSubmodelPolygons(model_t *pmodel, s32 clipflags);
 void R_DrawSolidClippedSubmodelPolygons(model_t *pmodel);
 void R_AliasDrawModel(alight_t *plighting, bool cull);
@@ -533,8 +547,12 @@ void R_BeginEdgeFrame();
 void R_ScanEdges();
 void D_DrawSurfacesFlat(s32 act);
 void D_BeginRecords();
+void D_RecordBandJob(void *arg);
+void D_StampBlocks();
 void D_SurfCacheHazard();
 void R_RotateBmodel();
+void R_EntityRotation(const entity_t *e, f32 m[3][3]);
+void R_RotateBy(f32 m[3][3], vec3_t vec);
 void R_AliasValidateFrame();
 bool R_AliasCheckBBox();
 bool R_AliasOccluded();
@@ -737,7 +755,7 @@ EX surf_t *lsurfs;
 EX s32 r_ledges_size;
 EX s32 r_lsurfs_size;
 EX f32 scale_for_mip;                                                // d_edge.c
-EX s32 miplevel;
+EX Q_TLS s32 miplevel;
 EX surfcache_t *d_initial_rover;                                     // d_init.c
 EX bool d_roverwrapped;
 EX s32 d_minmip;
@@ -748,7 +766,7 @@ EX s32 d_scantable[MAXHEIGHT];
 EX s32 *zspantable[MAXHEIGHT];
 EX bool r_cache_thrash;                                              // d_surf.c
 EX surfcache_t *sc_rover;
-EX s32 r_lightonly;
+EX Q_TLS s32 r_lightonly;
 EX s32 drawlayer;                                                      // draw.c
 EX u8 drawnrows[4][MAXHEIGHT];
 EX quakeparms_t host_parms;                                            // host.c
@@ -792,7 +810,7 @@ void Sky_ResetFog();
 void Sky_NewGame();
 void Sky_Init();
 void Sky_PaletteChanged();
-EX s32 r_skyframe;
+EX Q_TLS s32 r_skyframe;
 EX u8 lit_loaded;                                                     //r_surf.c
 EX u8 worldpal[768];                                                 // common.c
 EX u8 worldcmap[64*256];
@@ -839,8 +857,13 @@ EX const u8 d_bayer[8][8];
 EX u64 *r_surfmarks;                                                 // r_edge.c
 EX u64 *r_flushmarks;
 EX struct dsurf_s **r_surfdsurf;
-EX u32 *r_surfscan, r_scan;
+EX SDL_AtomicInt *r_surfscan; // r_scan when set up, see D_SetupSurf
+EX u32 r_scan;
+EX bool r_scanbanded; // scanned in bands, see R_ScanBand
+EX s16 r_bandof[MAXHEIGHT]; // the scan band of each row
+void R_CarryEdge(edge_t *e, s32 b0, s32 b1);
 EX bool r_threaded; // this frame is drawn by the workers          // r_thread.c
+EX Q_TLS s32 r_slot; // the worker's number, R_MAXWORKERS on the main thread
 EX s32 r_nbands, r_bandrows;
 EX s32 r_recordband; // the band D_DrawSurfaces records the spans for
 EX Q_TLS s32 d_bandy0, d_bandy1; // the rows the thread is drawing
@@ -860,5 +883,11 @@ void *R_FrameAlloc(size_t size);
 void R_BandAdd(s32 band, rcmdfn_t fn, void *arg);
 void R_BandPublish(s32 band);
 void R_RowsAdd(s32 y0, s32 y1, rcmdfn_t fn, void *arg);
+s32 R_JobAdd(rcmdfn_t fn, void *arg);
+void R_JobsPublish();
+void R_JobWait(s32 job);
+void R_JobCancel(s32 job);
+s32 R_JobTry(rcmdfn_t fn, void *arg);
+bool R_JobTakeBack(s32 job);
 #undef EX
 #endif

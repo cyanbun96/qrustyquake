@@ -204,11 +204,12 @@ static s32 D_LightAdjMatches(msurface_t *surf, surfcache_t *cache)
 }
 
 // The cached surface if it can be drawn as it is, else NULL and it needs
-// building
-surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel)
+// building. With the workers, the caller marks it used (see D_BlockUsed).
+surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel, s32 frame)
 {
 	// if the surface is animating or flashing, flush the cache
-	r_drawsurf.texture = R_TextureAnimation(surface->texinfo->texture);
+	r_drawsurf.texture = R_TextureAnimation(surface->texinfo->texture,
+			frame);
 	r_drawsurf.lightadj[0] = d_lightstylevalue[surface->styles[0]];
 	r_drawsurf.lightadj[1] = d_lightstylevalue[surface->styles[1]];
 	r_drawsurf.lightadj[2] = d_lightstylevalue[surface->styles[2]];
@@ -217,19 +218,19 @@ surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel)
 	surfcache_t *cache = surface->cachespots[miplevel];
 	if(cache && !cache->dlight && surface->dlightframe != r_framecount
 	    && cache->texture == r_drawsurf.texture
-	    && D_LightAdjMatches(surface, cache)){
+	    && D_LightAdjMatches(surface, cache))
+		return cache;
+	return NULL;
+}
+
+surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel, s32 frame)
+{
+	surfcache_t *cache = D_CacheLookup(surface, miplevel, frame);
+	if(cache){
 		if(r_threaded)
 			cache->frame = r_framecount & 0x7fffffff;
 		return cache;
 	}
-	return NULL;
-}
-
-surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel)
-{
-	surfcache_t *cache = D_CacheLookup(surface, miplevel);
-	if(cache)
-		return cache;
 	cache = surface->cachespots[miplevel];
 	if(r_threaded && cache && D_BlockUsed(cache))
 		D_SurfCacheHazard(); // the old texture may still be drawn from

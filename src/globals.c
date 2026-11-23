@@ -33,9 +33,9 @@ c8 scrshot_name[MAX_OSPATH*2];
 u8 r_foundtranswater, r_alphapass;                                   // r_main.c
 s32 r_outofsurfaces;
 s32 r_needsurfs, r_neededges;
-s32 r_coarse_rejected;
+Q_TLS s32 r_coarse_rejected;
 bool r_coarse_active; // set once per frame, see R_CoarseOcclusionBeginFrame
-f32 winquake_surface_liquid_alpha; // set by R_SurfaceInPass
+Q_TLS f32 winquake_surface_liquid_alpha; // set by R_SurfaceInPass
 bool r_dowarp, r_dowarpold, r_viewchanged;
 mvertex_t *r_pcurrentvertbase;
 s32 c_surf;
@@ -57,7 +57,7 @@ f32 pixelAspect;
 mplane_t screenedge[4];
 s64 r_visframecount; // refresh flags
 s64 r_framecount = 1; // so frame counts initialized to 0 don't match
-s32 r_polycount;
+Q_TLS s32 r_polycount;
 s32 r_drawnpolycount;
 s32 frustum_indexes[4][6];
 mleaf_t *r_viewleaf, *r_oldviewleaf;
@@ -75,7 +75,7 @@ bool r_ent_occ_active = 0;
 bool r_bmodel_occ_faces = 0;
 s32 r_bmodels_occluded;
 s32 r_bmodel_faces_occluded;
-s32 r_nodes_occluded;
+Q_TLS s32 r_nodes_occluded;
 s32 r_worldpass;
 vec3_t v_punchangles[2];
 Q_TLS f32 d_sdivzstepu, d_tdivzstepu, d_zistepu;                     // d_vars.c
@@ -140,7 +140,7 @@ u32 sb_updates; // if >= vid.numpages, no update needed                // sbar.c
 s32 sb_lines; // scan lines to draw
 bool r_cache_thrash; // set if surface cache is thrashing            // d_surf.c
 surfcache_t *sc_rover;
-s32 r_lightonly; // cache light rows only, for lit water
+Q_TLS s32 r_lightonly; // cache light rows only, for lit water
 s32 drawlayer = 0;                                                     // draw.c
 u8 drawnrows[4][MAXHEIGHT]; // rows of each layer drawn on this frame
 qpic_t *draw_disc;
@@ -170,7 +170,7 @@ entity_t *currententity;
 vec3_t modelorg, base_modelorg; // viewpoint reletive to currently rendering ent
 vec3_t r_entorigin; // the currently rendering entity in world coordinates
 s32 r_currentbkey;
-s32 c_faceclip; // number of faces clipped                           // r_draw.c
+Q_TLS s32 c_faceclip; // number of faces clipped                     // r_draw.c
 clipplane_t view_clipplanes[4];
 s32 sintable[SIN_BUFFER_SIZE];
 s32 intsintable[SIN_BUFFER_SIZE];
@@ -178,10 +178,12 @@ edge_t *ledges;                                                      // r_edge.c
 surf_t *lsurfs;
 s32 r_ledges_size = 0;
 s32 r_lsurfs_size = 0;
-edge_t *r_edges, *edge_p, *edge_max;
-surf_t *surfaces, *surface_p, *surf_max, *skybox_surf_p;
+edge_t *r_edges, *edge_max;
+Q_TLS edge_t *edge_p;
+surf_t *surfaces, *surf_max, *skybox_surf_p;
+Q_TLS surf_t *surface_p;
 edge_t *newedges[MAXHEIGHT];
-s32 r_currentkey;
+Q_TLS s32 r_currentkey;
 s32 net_driverlevel;                                               // net_main.c
 f64 net_time;
 s32 hostCacheCount = 0;
@@ -220,14 +222,14 @@ qcvm_t *qcvm;
 u8 r_skypixels[6][SKYBOX_MAX_SIZE*SKYBOX_MAX_SIZE];                   // r_sky.c
 f32 r_skymeaning[256][3]; // what each index of r_skypixels stands for
 s32 r_skymeaning_id; // which skybox r_skymeaning is for, from 1
-s32 r_skyframe; // the last frame a skybox surface was seen
+Q_TLS s32 r_skyframe; // the last frame a skybox surface was seen
 f32 skyspeed;
 f32 skytime;
 sky_t *r_skies; // grows as maps bring more sky textures
 s32 r_numskies;
 c8 skybox_name[1024]; // name of current skybox, or "" if no skybox
 f32 map_skyfog;
-drawsurf_t r_drawsurf;                                               // r_surf.c
+Q_TLS drawsurf_t r_drawsurf;                                         // r_surf.c
 u8 lit_loaded = 0;
 u8 worldpal[768]; // custom world palette, set with "worldpal"       // common.c
 u8 worldcmap[64*256];
@@ -247,7 +249,7 @@ vec3_t r_pright, r_pup, r_ppn;                                       // r_part.c
 spritedesc_t r_spritedesc;                                         // r_sprite.c
 cmd_source_t cmd_source;                                                // cmd.c
 f32 scale_for_mip;                                                   // d_edge.c
-s32 miplevel;
+Q_TLS s32 miplevel;
 f32 cur_ent_alpha = 1;                                             // d_polyse.c
 vec3_t lightcolor; //johnfitz -- lit support via lordhavoc          // r_light.c
 const s32 dither_s[4] = { // Unreal-style 2×2 dither matrix scaled   // d_scan.c

@@ -1,9 +1,11 @@
 // Copyright(C) 1996-1997 Id Software, Inc. GPLv3 See LICENSE for details.
 #include "quakedef.h"
 
-// How the spans of a surface get drawn. D_SetupSurf works it out on the main
-// thread and D_DrawSurf needs nothing else, so with r_threads the workers draw
-// the spans of each band while the main thread goes on (r_thread.c).
+// How the spans of a surface get drawn. D_SetupSurf works it out and
+// D_DrawSurf needs nothing else, so with r_threads the workers draw the spans
+// of each band while the main thread goes on (r_thread.c). The setup of a
+// band's surfaces can be a job too (D_RecordBandJob), so what it works with is
+// the thread's own.
 // DS_SKY and DS_SKYZ mark the sky, R_FogMarkSky fogs the colors there. DS_SKYZ
 // only writes z, over a skybox's colors, or over nothing under full sky fog,
 // which hides the box so it isn't drawn. The skybox pass writes no z and isn't
@@ -32,10 +34,39 @@ typedef struct dsurf_s {
 } dsurf_t;
 typedef struct { const dsurf_t *d; espan_t *spans; } dsurfcmd_t;
 
-static vec3_t transformed_modelorg;
-static vec3_t world_transformed_modelorg;
-static bool d_nobuild; // set up only what needs no cache block built
+static Q_TLS vec3_t transformed_modelorg;
+static Q_TLS vec3_t world_transformed_modelorg;
+static Q_TLS vec3_t d_vpn, d_vright, d_vup; // the view in d_entity's space
+static Q_TLS entity_t *d_entity; // the one being set up
+static Q_TLS bool d_nobuild; // set up only what needs no cache block built
+static Q_TLS s32 d_npolys; // set up, for r_drawnpolycount
+static SDL_AtomicInt d_jobpolys; // of the jobs
+static SDL_Mutex *d_lazy; // for what's built the first time it's needed
 static u32 d_walk; // counts the setup walks
+static Q_TLS bool d_injob; // D_RecordBandJob
+// The cache blocks the jobs found, which the main thread marks used once
+// they're done (D_StampBlocks). Two jobs can look up the same block: a brush
+// face cut by the world's leaves is a surface for each piece.
+typedef struct { surfcache_t **c; s32 n, cap; } dfound_t;
+static dfound_t d_found[R_MAXWORKERS + 1];
+#define D_BUSY (-1) // r_surfscan: the surface is being set up
+
+// Tables and the console aren't the jobs' to change at the same time
+static void D_Lazy(bool lock)
+{
+	if(!d_lazy)
+		return;
+	if(lock) SDL_LockMutex(d_lazy);
+	else SDL_UnlockMutex(d_lazy);
+}
+
+// TransformVector in d_entity's space
+static void D_Transform(const vec3_t in, vec3_t out)
+{
+	out[0] = DotProduct(in, d_vright);
+	out[1] = DotProduct(in, d_vup);
+	out[2] = DotProduct(in, d_vpn);
+}
 
 static s32 D_MipLevelForScale(f32 scale)
 {
@@ -71,8 +102,8 @@ static void D_CalcGradients(msurface_t *pface, s32 tiledextents)
 {
 	f32 mipscale = 1.0 / (f32)(1 << miplevel);
 	vec3_t p_saxis, p_taxis, p_temp;
-	TransformVector(pface->texinfo->vecs[0], p_saxis);
-	TransformVector(pface->texinfo->vecs[1], p_taxis);
+	D_Transform(pface->texinfo->vecs[0], p_saxis);
+	D_Transform(pface->texinfo->vecs[1], p_taxis);
 	f32 t = xscaleinv * mipscale;
 	d_sdivzstepu = p_saxis[0] * t;
 	d_tdivzstepu = p_taxis[0] * t;
@@ -148,43 +179,52 @@ static void D_FitLitWaterMip(msurface_t *pface)
 }
 
 static void D_SwitchSubModelOn(surf_t *s)
-{
-	currententity = s->entity;
+{ // as R_RotateBmodel turns the view
+	d_entity = s->entity;
 	vec3_t local_modelorg;
-	VectorSubtract(r_origin, currententity->origin, local_modelorg);
-	TransformVector(local_modelorg, transformed_modelorg);
-	R_RotateBmodel();
+	VectorSubtract(r_origin, d_entity->origin, local_modelorg);
+	D_Transform(local_modelorg, transformed_modelorg);
+	f32 m[3][3];
+	R_EntityRotation(d_entity, m);
+	R_RotateBy(m, d_vpn);
+	R_RotateBy(m, d_vright);
+	R_RotateBy(m, d_vup);
 }
 
 static void D_SwitchSubModelOff()
 {
-	currententity = &cl_entities[0];
+	d_entity = &cl_entities[0];
 	VectorCopy(world_transformed_modelorg, transformed_modelorg);
-	VectorCopy(base_vpn, vpn);
-	VectorCopy(base_vup, vup);
-	VectorCopy(base_vright, vright);
-	VectorCopy(base_modelorg, modelorg);
-	R_TransformFrustum();
+	VectorCopy(base_vpn, d_vpn);
+	VectorCopy(base_vup, d_vup);
+	VectorCopy(base_vright, d_vright);
 }
 
-// Brush entity faces are drawn in the space of their entity. Those of one
-// entity come one after another, so it only switches when the entity changes.
-// NULL goes back to the world.
-static void D_SwitchEntity(surf_t *s)
+static Q_NOINLINE void D_SwitchTo(entity_t *e, surf_t *s)
 {
-	entity_t *e = s && s->insubmodel ? s->entity : &cl_entities[0];
-	if(e == currententity)
-		return;
-	if(currententity != &cl_entities[0])
+	if(d_entity != &cl_entities[0])
 		D_SwitchSubModelOff();
 	if(e != &cl_entities[0])
 		D_SwitchSubModelOn(s);
 }
 
+// Brush entity faces are drawn in the space of their entity. Those of one
+// entity come one after another, so it only switches when the entity changes.
+// NULL goes back to the world.
+Q_SIL void D_SwitchEntity(surf_t *s)
+{
+	entity_t *e = s && s->insubmodel ? s->entity : &cl_entities[0];
+	if(e != d_entity)
+		D_SwitchTo(e, s);
+}
+
 static void D_BeginSurfaces()
 {
-	currententity = &cl_entities[0];
-	TransformVector(modelorg, transformed_modelorg);
+	d_entity = &cl_entities[0];
+	VectorCopy(base_vpn, d_vpn);
+	VectorCopy(base_vup, d_vup);
+	VectorCopy(base_vright, d_vright);
+	D_Transform(base_modelorg, transformed_modelorg);
 	VectorCopy(transformed_modelorg, world_transformed_modelorg);
 }
 
@@ -192,9 +232,11 @@ static bool D_BrokenSurf(surf_t *s, msurface_t *pface)
 {
 	if(pface && pface->extents[0] && pface->extents[1])
 		return 0;
+	D_Lazy(1);
 	if(pface)Con_DPrintf("Broken surface extents %hd %hd\n",
 			pface->extents[0], pface->extents[1]);
 	else Con_DPrintf("Broken surface\n");
+	D_Lazy(0);
 	s->spans = NULL;
 	return 1;
 }
@@ -219,22 +261,24 @@ bool D_SkyAllFog()
 
 static void D_SetupSky(dsurf_t *d, msurface_t *pface)
 {
-	r_drawnpolycount++;
+	d_npolys++;
 	sky_t *sky = &r_skies[R_SkyIndexForTexture(pface->texinfo->texture)];
+	d->kind = D_SkyAllFog() ? DS_SKYZ : DS_SKY;
+	D_Lazy(1);
 	if(!sky->made && !r_skysmooth.value)
 		R_MakeSky(pface->texinfo->texture);
-	d->kind = D_SkyAllFog() ? DS_SKYZ : DS_SKY;
 	if(d->kind == DS_SKY && r_skysmooth.value && sky->blend)
 		R_BuildColorMixLUT(0);
+	D_Lazy(0);
 	d->pface = pface;
-	VectorCopy(vpn, d->sky[0]);
-	VectorCopy(vright, d->sky[1]);
-	VectorCopy(vup, d->sky[2]);
+	VectorCopy(d_vpn, d->sky[0]);
+	VectorCopy(d_vright, d->sky[1]);
+	VectorCopy(d_vup, d->sky[2]);
 }
 
 static void D_SetupSkybox(dsurf_t *d, surf_t *s)
 { // Manoel Kasimier
-	r_drawnpolycount++;
+	d_npolys++;
 	msurface_t *pface = s->data;
 	texture_t *tex = pface->texinfo->texture;
 	cacheblock = (u8*)(r_skypixels[tex->offsets[0]]);
@@ -252,12 +296,22 @@ static void D_SetupSkybox(dsurf_t *d, surf_t *s)
 static surfcache_t *D_SurfBlock(dsurf_t *d, msurface_t *pface)
 {
 	if(!d_nobuild)
-		return D_CacheSurface(pface, miplevel);
-	surfcache_t *c = D_CacheLookup(pface, miplevel);
+		return D_CacheSurface(pface, miplevel, d_entity->frame);
+	surfcache_t *c = D_CacheLookup(pface, miplevel, d_entity->frame);
 	if(!c){
 		d->kind = DS_LATER;
 		d->early = 0;
-	}
+	}else if(d_injob){
+		dfound_t *f = &d_found[r_slot];
+		if(f->n == f->cap){
+			f->cap = f->cap ? f->cap * 2 : 256;
+			f->c = realloc(f->c, f->cap * sizeof(*f->c));
+			if(!f->c)
+				Sys_Error("D_SurfBlock: out of memory");
+		}
+		f->c[f->n++] = c;
+	}else if(r_threaded)
+		c->frame = r_framecount & 0x7fffffff; // see D_BlockUsed
 	return c;
 }
 
@@ -279,13 +333,16 @@ static void D_SetupCached(dsurf_t *d, surf_t *s, msurface_t *pface, s32 type,
 	surfcache_t *pcurrentcache = D_SurfBlock(d, pface);
 	if(pcurrentcache == NULL)
 		return;
-	r_drawnpolycount++;
+	d_npolys++;
 	cacheblock = (u8*) pcurrentcache->data;
 	cachewidth = pcurrentcache->width;
 	cacheheight = pcurrentcache->height;
 	D_CalcGradients(pface, 0);
-	if(type == SPAN_TRANS && r_alphastyle.value == 0)
+	if(type == SPAN_TRANS && r_alphastyle.value == 0){
+		D_Lazy(1);
 		R_BuildColorMixLUT(0);
+		D_Lazy(0);
+	}
 	d->kind = DS_CACHED;
 	d->type = type;
 	d->opacity = opacity;
@@ -295,13 +352,15 @@ static void D_SetupCached(dsurf_t *d, surf_t *s, msurface_t *pface, s32 type,
 
 static void D_SetupWater(dsurf_t *d, msurface_t *pface, f32 opacity)
 { // Manoel Kasimier
-	r_drawnpolycount++;
+	d_npolys++;
 	cacheblock = (u8*)((u8*)pface->texinfo->texture
 			+ pface->texinfo->texture->offsets[0]);
 	cachewidth = 64;
 	cacheheight = 64;
 	D_CalcGradients(pface, 1);
+	D_Lazy(1);
 	D_TurbSetup(&d->turb, opacity);
+	D_Lazy(0);
 	d->kind = DS_TURB;
 	d->zbuffer = !r_alphapass;
 }
@@ -343,18 +402,31 @@ enum { PASS_MAIN, PASS_CUTOUT, PASS_SKYBOX, PASS_ALPHA, PASS_FLAT };
 
 // Works out how the spans of s get drawn. For the workers the result stays
 // with the surface for the rest of its pass, so the flushes after the first
-// only check it. Without them it's drawn right away from the draw state.
+// only check it, the jobs of other bands too. Without them it's drawn right
+// away from the draw state.
 static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 {
 	static dsurf_t now;
 	dsurf_t *d = &now;
 	dsurf_t **slot = NULL;
+	s32 i = s - surfaces;
 	if(r_threaded){
-		s32 i = s - surfaces;
 		slot = &r_surfdsurf[i];
-		if(r_surfscan[i] == r_scan && *slot && D_SurfStillValid(*slot))
-			return *slot;
-		r_surfscan[i] = 0; // not set up while it's being set up
+		for(;;){ // a job of another band may be at it
+			s32 st = SDL_GetAtomicInt(&r_surfscan[i]);
+			if(st == D_BUSY){
+				SDL_CPUPauseInstruction();
+				continue;
+			}
+			if((u32)st == r_scan){
+				SDL_MemoryBarrierAcquire();
+				if(*slot && D_SurfStillValid(*slot))
+					return *slot;
+			}
+			if(SDL_CompareAndSwapAtomicInt(&r_surfscan[i], st,
+					D_BUSY))
+				break;
+		}
 		d = R_FrameAlloc(sizeof(*d));
 	}
 	d->kind = DS_NONE;
@@ -363,7 +435,7 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 	d->walk = d_walk;
 	msurface_t *pface = s->data;
 	if(pass == PASS_FLAT){
-		r_drawnpolycount++;
+		d_npolys++;
 		D_SetZGradients(s);
 		d->kind = DS_SOLID;
 		d->color = (uintptr_t)s->data & 0xFF;
@@ -371,7 +443,7 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		D_SetZGradients(s);
 		D_SetupSkybox(d, s);
 	}else if(s->flags & SURF_DRAWBACKGROUND){
-		r_drawnpolycount++;
+		d_npolys++;
 		d->kind = DS_FAR;
 		d->color = (s32)r_clearcolor.value & 0xFF;
 	}else if(pass == PASS_ALPHA){
@@ -394,9 +466,11 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		if(pass == PASS_CUTOUT)
 			D_SetupCached(d, s, pface, SPAN_CUTOUT, 0);
 		else if(s->flags & SURF_NOTEXTURE){
+			D_Lazy(1);
 			Con_DPrintf("D_DrawSurfaces: drawing "
 					"SURF_NOTEXTURE\n");
-			r_drawnpolycount++;
+			D_Lazy(0);
+			d_npolys++;
 			d->kind = DS_SOLID;
 			d->color = 0;
 		}else if(s->flags & SURF_DRAWSKY){
@@ -409,15 +483,21 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		}else
 			D_SetupCached(d, s, pface, SPAN_NORMAL, 0);
 	}
-	// the sky and translucent surfaces mark what they fog
+	// the sky and translucent surfaces mark what they fog, the marks are
+	// there already for the jobs (D_BeginRecords)
 	if(d->kind == DS_SKY || d->kind == DS_SKYZ || pass == PASS_ALPHA)
 		R_FogMarkAlloc();
 	// Kept for the rest of the scan. Without a block it's tried again, as
 	// the cache does, and DS_LATER gets set up by the walk.
-	if(slot && d->kind != DS_LATER){
-		*slot = d->kind == DS_NONE ? NULL : d;
-		r_surfscan[s - surfaces] = r_scan;
-		D_SaveGradients(&d->g);
+	if(slot){
+		s32 st = 0;
+		if(d->kind != DS_LATER){
+			*slot = d->kind == DS_NONE ? NULL : d;
+			D_SaveGradients(&d->g);
+			st = r_scan;
+		}
+		SDL_MemoryBarrierRelease();
+		SDL_SetAtomicInt(&r_surfscan[i], st);
 	}
 	return d;
 }
@@ -496,26 +576,37 @@ static void D_SurfCmdAdd(s32 band, const dsurf_t *d, espan_t *spans)
 // of the rest. The setup walk at each flush of the span buffer sets those up,
 // in the order they'd have without the workers: they fill the surface cache,
 // and what it keeps depends on that order (r_lerplightstyles keeps old light,
-// the RAM icon, the cache growing).
-typedef struct { u32 surf; s32 band; espan_t *spans; bool done; } srecord_t;
-static srecord_t *d_records; // the spans the bands got since the last setup
-static s32 d_nrecords, d_recordcap;
+// the RAM icon, the cache growing). Each band keeps its own records, so its
+// walk can be a job (D_RecordBandJob).
+typedef struct { u32 surf; espan_t *spans; } srecord_t;
+typedef struct {
+	srecord_t *r; // the spans the band got since the last setup
+	s32 n, cap, next; // the ones up to next are handed over
+} brecords_t;
+static brecords_t d_records[R_MAXBANDS];
 
-void D_BeginRecords(){ d_nrecords = 0; } // in case a frame was cut short
+void D_BeginRecords()
+{ // in case a frame was cut short
+	for(s32 b = 0; b < R_MAXBANDS; b++)
+		d_records[b].n = d_records[b].next = 0;
+	for(s32 i = 0; i <= R_MAXWORKERS; i++)
+		d_found[i].n = 0;
+	if(!d_lazy)
+		d_lazy = SDL_CreateMutex();
+	R_FogMarkAlloc(); // before any job marks with it
+}
 
-static void D_RecordSurf(surf_t *s)
+static void D_RecordSurf(s32 band, surf_t *s, espan_t *spans)
 {
-	if(d_nrecords == d_recordcap){
-		d_recordcap = d_recordcap ? d_recordcap * 2 : 1024;
-		d_records = realloc(d_records, d_recordcap*sizeof(srecord_t));
-		if(!d_records)
+	brecords_t *b = &d_records[band];
+	if(b->n == b->cap){
+		b->cap = b->cap ? b->cap * 2 : 256;
+		b->r = realloc(b->r, b->cap * sizeof(*b->r));
+		if(!b->r)
 			Sys_Error("D_RecordSurf: out of memory");
 	}
-	srecord_t *r = &d_records[d_nrecords++];
-	r->surf = s - surfaces;
-	r->band = r_recordband;
-	r->spans = s->spans;
-	r->done = 0;
+	b->r[b->n].surf = s - surfaces;
+	b->r[b->n++].spans = spans;
 }
 
 // Can n be drawn before the setup walk is over? Set up in this scan, with
@@ -523,33 +614,28 @@ static void D_RecordSurf(surf_t *s)
 static bool D_SetUpEarly(u32 n)
 {
 	const dsurf_t *d = r_surfdsurf[n];
-	return r_surfscan[n] == r_scan && (!d || (D_SurfStillValid(d)
-			&& (d->early || d->walk == d_walk)));
+	return (u32)SDL_GetAtomicInt(&r_surfscan[n]) == r_scan && (!d ||
+		(D_SurfStillValid(d) && (d->early || d->walk == d_walk)));
 }
 
 // Hands the bands what they recorded, as far as the surfaces are set up: in
 // the order of each band, so a band stops at its first surface that isn't
 static void D_PublishRecords(bool all)
 {
-	static u8 blocked[R_MAXBANDS];
-	memset(blocked, 0, r_nbands);
-	for(s32 i = 0; i < d_nrecords; i++){
-		srecord_t *r = &d_records[i];
-		if(r->done || blocked[r->band])
-			continue;
-		if(!all && !D_SetUpEarly(r->surf)){
-			blocked[r->band] = 1;
-			continue;
+	for(s32 band = 0; band < r_nbands; band++){
+		brecords_t *b = &d_records[band];
+		for(; b->next < b->n; b->next++){
+			srecord_t *r = &b->r[b->next];
+			if(!all && !D_SetUpEarly(r->surf))
+				break;
+			const dsurf_t *d = r_surfdsurf[r->surf];
+			if(d && d->kind != DS_NONE)
+				D_SurfCmdAdd(band, d, r->spans);
 		}
-		r->done = 1;
-		const dsurf_t *d = r_surfdsurf[r->surf];
-		if(d && d->kind != DS_NONE)
-			D_SurfCmdAdd(r->band, d, r->spans);
+		if(all)
+			b->n = b->next = 0;
+		R_BandPublish(band);
 	}
-	if(all)
-		d_nrecords = 0;
-	for(s32 b = 0; b < r_nbands; b++)
-		R_BandPublish(b);
 }
 
 // A block of the surface cache drawn from in this frame is about to change:
@@ -566,29 +652,36 @@ void D_SurfCacheHazard()
 // away. The others wait for the setup walk at the flush, and so does whatever
 // has to come after them: the cutouts come after all of the main pass, and the
 // alpha pass in its order. The main pass faces don't overlap.
-static bool d_waitmain, d_waitrest;
+typedef struct { bool waitmain, waitrest; } dwait_t;
+static dwait_t d_wait; // of the main thread's walk
+
+static void D_Record(s32 band, surf_t *s, espan_t *spans, s32 pass,
+		dwait_t *w)
+{
+	bool can = pass == PASS_CUTOUT ? !w->waitmain && !w->waitrest
+		: pass == PASS_ALPHA ? !w->waitrest : 1;
+	const dsurf_t *d = NULL;
+	if(can){
+		d_nobuild = 1;
+		d = D_SetupSurf(s, pass);
+		d_nobuild = 0;
+	}
+	if(d && d->early){
+		if(d->kind != DS_NONE && spans)
+			D_SurfCmdAdd(band, d, spans);
+		return;
+	}
+	if(pass == PASS_MAIN)
+		w->waitmain = 1;
+	else
+		w->waitrest = 1;
+	D_RecordSurf(band, s, spans);
+}
 
 Q_SIL void D_Surf(surf_t *s, s32 pass, s32 act)
 {
 	if(act == SURFS_RECORD){
-		bool can = pass == PASS_CUTOUT ? !d_waitmain && !d_waitrest
-			: pass == PASS_ALPHA ? !d_waitrest : 1;
-		const dsurf_t *d = NULL;
-		if(can){
-			d_nobuild = 1;
-			d = D_SetupSurf(s, pass);
-			d_nobuild = 0;
-		}
-		if(d && d->early){
-			if(d->kind != DS_NONE && s->spans)
-				D_SurfCmdAdd(r_recordband, d, s->spans);
-			return;
-		}
-		if(pass == PASS_MAIN)
-			d_waitmain = 1;
-		else
-			d_waitrest = 1;
-		D_RecordSurf(s);
+		D_Record(r_recordband, s, s->spans, pass, &d_wait);
 		return;
 	}
 	dsurf_t *d = D_SetupSurf(s, pass);
@@ -635,6 +728,8 @@ static s32 D_NextSpanSurf(s32 i, s32 end, s32 act)
 static void D_EndSurfaces(s32 nsurfs, s32 act)
 { // start the next flush clean
 	s32 words = (nsurfs + 63) >> 6;
+	r_drawnpolycount += d_npolys + SDL_SetAtomicInt(&d_jobpolys, 0);
+	d_npolys = 0;
 	if(act == SURFS_SETUP){
 		memset(r_flushmarks, 0, words * sizeof(*r_flushmarks));
 		D_PublishRecords(1);
@@ -658,7 +753,7 @@ Q_SIL bool D_Pending(const surf_t *s, s32 act)
 // The per-band state of the surface walks with the workers
 static void D_BeginWalk(s32 act)
 {
-	d_waitmain = d_waitrest = 0;
+	d_wait.waitmain = d_wait.waitrest = 0;
 	d_walk += act == SURFS_SETUP;
 }
 
@@ -710,6 +805,54 @@ void D_DrawSurfaces(s32 act)
 	}
 	D_SwitchEntity(NULL);
 	D_EndSurfaces(nsurfs, act);
+}
+
+// D_DrawSurfaces' record walk of the main pass for one band, on any thread.
+// The record walks between two setup walks all go by the same surface cache,
+// so they can go on at the same time, each with what its band got: n records
+// sorted by surface.
+void D_RecordBandJob(void *arg)
+{
+	const drecjob_t *j = arg;
+	const scanrec_t *r = j->recs;
+	dwait_t w = {0, 0};
+	d_injob = 1;
+	D_BeginSurfaces();
+	u32 sky0 = skybox_surf_p ? (u32)(skybox_surf_p - surfaces) : ~0u;
+	bool cutouts = 0;
+	for(s32 i = 0; i < j->n; i++){
+		surf_t *s = &surfaces[r[i].surf];
+		if(r[i].surf >= sky0 && (s->flags & SURF_DRAWSKYBOX))
+			D_Record(j->band, s, r[i].spans, PASS_SKYBOX, &w);
+	}
+	for(s32 i = 0; i < j->n; i++){
+		surf_t *s = &surfaces[r[i].surf];
+		if(r[i].surf >= sky0 && (s->flags & SURF_DRAWSKYBOX))
+			continue;
+		if(D_CutoutPass(s))
+			cutouts = 1;
+		else
+			D_Record(j->band, s, r[i].spans, PASS_MAIN, &w);
+	}
+	for(s32 i = 0; cutouts && i < j->n; i++){
+		surf_t *s = &surfaces[r[i].surf];
+		if(D_CutoutPass(s))
+			D_Record(j->band, s, r[i].spans, PASS_CUTOUT, &w);
+	}
+	R_BandPublish(j->band);
+	SDL_AddAtomicInt(&d_jobpolys, d_npolys);
+	d_npolys = 0;
+	d_injob = 0;
+}
+
+// The record walks are done: the blocks they found are used in this frame
+void D_StampBlocks()
+{
+	for(s32 i = 0; i <= R_MAXWORKERS; i++){
+		for(s32 k = 0; k < d_found[i].n; k++)
+			d_found[i].c[k]->frame = r_framecount & 0x7fffffff;
+		d_found[i].n = 0;
+	}
 }
 
 // Translucent surfaces get all of their pixels, so they have to be blended
