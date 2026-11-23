@@ -280,7 +280,7 @@ static struct {
 
 // The plane of a face as 1/z on the screen. Once, for the edge list and for
 // the occlusion fill alike.
-Q_NOINLINE void R_FaceZi(msurface_t *fa, surf_t *s)
+static Q_NOINLINE void R_FaceZi(msurface_t *fa, surf_t *s)
 {
 	mplane_t *pplane = fa->plane;
 	vec3_t p_normal;
@@ -292,15 +292,23 @@ Q_NOINLINE void R_FaceZi(msurface_t *fa, surf_t *s)
 		xcenter * s->d_zistepu - ycenter * s->d_zistepv;
 }
 
+// Is there room for a surface and the edges of a face? One that doesn't fit
+// is counted, the buffers grow by that (V_RenderView).
+Q_SIL bool R_FaceFits(s32 numedges)
+{
+	if(surface_p >= surf_max || edge_p + numedges + 4 >= edge_max){
+		r_outofsurfaces++;
+		return 0;
+	}
+	return 1;
+}
+
 // The edges and the surface of a face that got past the occlusion test, with
 // key, or the next one if that's -1. False if it didn't go in.
 Q_SIL bool R_EmitFace(msurface_t *fa, s32 clipflags, s32 key)
 {
-	// skip out if no more surfs or not enough edges left
-	if(surface_p >= surf_max || edge_p + fa->numedges + 4 >= edge_max){
-		r_outofsurfaces++;
+	if(!R_FaceFits(fa->numedges))
 		return 0;
-	}
 	// the walk's are copies, the job doesn't write the planes it reads
 	clipplane_t *planes = r_q.walking ? r_q.planes[clipflags]
 		: view_clipplanes;
@@ -538,9 +546,9 @@ static bool R_QueuedIn(s32 i)
 	return r_q.in[i & (R_EMITQ - 1)];
 }
 
-// Is there sure to be room for queued face i when the job gets to it? Every
-// face before it takes a surface and numedges + 1 edges at most. Where the
-// job has got is only looked up when that's not enough.
+// Is there sure to be room (R_FaceFits) for queued face i when the job gets
+// to it? Every face before it takes a surface and numedges + 1 edges at most.
+// Where the job has got is only looked up when that's not enough.
 static bool R_QueueRoomAfter(s32 i, const msurface_t *fa)
 {
 	s64 surfs = r_q.seensurfs + (i - r_q.seen);
@@ -679,13 +687,8 @@ void R_RenderFace(msurface_t *fa, s32 clipflags)
 
 void R_RenderBmodelFace(bedge_t *pedges, msurface_t *psurf)
 {
-	if(!R_SurfaceInPass(psurf))
+	if(!R_SurfaceInPass(psurf) || !R_FaceFits(psurf->numedges))
 		return;
-	// skip out if no more surfs or not enough edges left
-	if(surface_p >= surf_max || edge_p + psurf->numedges + 4 >= edge_max){
-		r_outofsurfaces++;
-		return;
-	}
 	c_faceclip++;
 	static medge_t tedge;
 	// this is a dummy to give the caching mechanism someplace to write to

@@ -557,33 +557,30 @@ void V_CalcRefdef()
 	if(chase_active.value) Chase_Update();
 }
 
-// Room for need edges and more, the view may take more next frame. Grown to
-// about what the frame took at once: one that's short drops the faces that
-// come last, the skybox among them. Never shrinks.
-static void V_AllocLedges(s32 need)
+// p with room for need of elem bytes each and more, the view may take more
+// next frame. Grown to about what the frame took at once: one that's short
+// drops the faces that come last, the skybox among them. Never shrinks.
+static void *V_AllocBuffer(void *p, s32 *size, s32 need, s32 more,
+		size_t elem, const c8 *name)
 {
-	s32 size = need * 1.2 + 2400; // numstackedges
-	if(ledges && size <= r_ledges_size)
-		return;
-	r_ledges_size = size;
-	Con_DPrintf("Reallocing ledges %d\n", r_ledges_size);
-	s32 alloc_sz = (r_ledges_size+((CACHE_SIZE-1)/sizeof(edge_t))+1)
-				* sizeof(edge_t);
-	ledges = realloc(ledges, alloc_sz);
-	memset(ledges, 0, alloc_sz);
+	s32 n = need * 1.2 + more;
+	if(p && n <= *size)
+		return p;
+	*size = n;
+	Con_DPrintf("Reallocing %s %d\n", name, n);
+	size_t bytes = (n + (CACHE_SIZE - 1) / elem + 1) * elem;
+	if(!(p = realloc(p, bytes)))
+		Sys_Error("V_AllocBuffer: out of memory for %s", name);
+	memset(p, 0, bytes);
+	return p;
 }
 
-static void V_AllocLsurfs(s32 need)
-{
-	s32 size = need * 1.2 + 800; // numstacksurfaces
-	if(lsurfs && size <= r_lsurfs_size)
-		return;
-	r_lsurfs_size = size;
-	Con_DPrintf("Reallocing lsurfs %d\n", r_lsurfs_size);
-	s32 alloc_sz = (r_lsurfs_size+((CACHE_SIZE-1)/sizeof(surf_t))+1)
-				* sizeof(surf_t);
-	lsurfs = realloc(lsurfs, alloc_sz);
-	memset(lsurfs, 0, alloc_sz);
+static void V_AllocBuffers(s32 edges, s32 surfs)
+{ // the more is WinQuake's numstackedges and numstacksurfaces
+	ledges = V_AllocBuffer(ledges, &r_ledges_size, edges, 2400,
+			sizeof(*ledges), "ledges");
+	lsurfs = V_AllocBuffer(lsurfs, &r_lsurfs_size, surfs, 800,
+			sizeof(*lsurfs), "lsurfs");
 }
 
 void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
@@ -606,10 +603,8 @@ void V_RenderView() // The player's clipping box goes from(-16 -16 -24) to(16
 	if(r_reportedgeout.value && r_neededges > r_ledges_size)
 		Con_Printf("short roughly %d edges\n",
 				r_neededges - r_ledges_size);
-	if(r_outofsurfaces){ // a face didn't fit, a surface or edges short
-		V_AllocLedges(r_neededges);
-		V_AllocLsurfs(r_needsurfs);
-	}
+	if(r_outofsurfaces) // a face didn't fit, a surface or edges short
+		V_AllocBuffers(r_neededges, r_needsurfs);
 	if(!crosshair.value || CL_InCutscene()) return;
 	drawlayer = lyr_crosshair.value;
 	Draw_CharacterScaled(scr_vrect.x + scr_vrect.width / 2 - uiscale*4
@@ -681,6 +676,5 @@ void V_Init()
 	Cvar_SetCallback(&gl_cshiftpercent_damage, V_PaletteCallback);
 	Cvar_SetCallback(&gl_cshiftpercent_bonus, V_PaletteCallback);
 	Cvar_SetCallback(&gl_cshiftpercent_powerup, V_PaletteCallback);
-	V_AllocLedges(0);
-	V_AllocLsurfs(0);
+	V_AllocBuffers(0, 0);
 }

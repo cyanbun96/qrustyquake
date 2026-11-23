@@ -16,6 +16,9 @@ static s64 sc_wrapframe; // when the rover last went back to the start
 static bool D_BlockUsed(const surfcache_t *c)
 { return c->frame == (r_framecount & 0x7fffffff); }
 
+void D_UseBlock(surfcache_t *c)
+{ c->frame = r_framecount & 0x7fffffff; }
+
 s32 D_SurfaceCacheForRes(s32 width, s32 height)
 {
 	s32 size;
@@ -204,7 +207,7 @@ static s32 D_LightAdjMatches(msurface_t *surf, surfcache_t *cache)
 }
 
 // The cached surface if it can be drawn as it is, else NULL and it needs
-// building. With the workers, the caller marks it used (see D_BlockUsed).
+// building. With the workers, the caller marks it used (D_UseBlock).
 surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel, s32 frame)
 {
 	// if the surface is animating or flashing, flush the cache
@@ -228,7 +231,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel, s32 frame)
 	surfcache_t *cache = D_CacheLookup(surface, miplevel, frame);
 	if(cache){
 		if(r_threaded)
-			cache->frame = r_framecount & 0x7fffffff;
+			D_UseBlock(cache);
 		return cache;
 	}
 	cache = surface->cachespots[miplevel];
@@ -250,7 +253,7 @@ surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel, s32 frame)
 		cache->owner = &surface->cachespots[miplevel];
 	}
 	cache->dlight = (surface->dlightframe == r_framecount);
-	cache->frame = r_framecount & 0x7fffffff;
+	D_UseBlock(cache);
 	r_drawsurf.surfdat = (u8 *) cache->data;
 	cache->texture = r_drawsurf.texture;
 	cache->lightadj[0] = r_drawsurf.lightadj[0];

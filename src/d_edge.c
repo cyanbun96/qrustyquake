@@ -311,7 +311,7 @@ static surfcache_t *D_SurfBlock(dsurf_t *d, msurface_t *pface)
 		}
 		f->c[f->n++] = c;
 	}else if(r_threaded)
-		c->frame = r_framecount & 0x7fffffff; // see D_BlockUsed
+		D_UseBlock(c);
 	return c;
 }
 
@@ -850,7 +850,7 @@ void D_StampBlocks()
 {
 	for(s32 i = 0; i <= R_MAXWORKERS; i++){
 		for(s32 k = 0; k < d_found[i].n; k++)
-			d_found[i].c[k]->frame = r_framecount & 0x7fffffff;
+			D_UseBlock(d_found[i].c[k]);
 		d_found[i].n = 0;
 	}
 }

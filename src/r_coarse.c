@@ -161,13 +161,6 @@ void R_CoarseOcclusionBeginFrame()
 		r_coarse_occlusion_words = words;
 		r_coarse_occ_rows_n = r_refdef.vrect.height;
 	}
-	if(cl.worldmodel && r_prepolycap < cl.worldmodel->numsurfaces){
-		free(r_prepoly);
-		r_prepolycap = cl.worldmodel->numsurfaces;
-		r_prepoly = calloc(r_prepolycap, sizeof(*r_prepoly));
-		if(!r_prepoly)
-			r_prepolycap = 0;
-	}
 	r_prestamp++;
 	r_preon = 0;
 	r_coarse_occ_vw = (f32)r_refdef.vrect.width;
@@ -834,9 +827,20 @@ bool R_CoarseOcclusionTestNode(mnode_t *node)
 			r_alphapass);
 }
 
-// Can R_CoarsePreFace build polygons for this frame?
+// Can R_CoarsePreFace build polygons for this frame? Their slots are only
+// there once the run ahead needs them.
 bool R_CoarsePreReady()
-{ return r_coarse_active && r_coarse_occlusion_bits && r_prepoly; }
+{
+	if(!r_coarse_active || !r_coarse_occlusion_bits)
+		return 0;
+	s32 n = cl.worldmodel->numsurfaces;
+	if(r_prepolycap < n){
+		free(r_prepoly);
+		r_prepoly = calloc(n, sizeof(*r_prepoly));
+		r_prepolycap = r_prepoly ? n : 0;
+	}
+	return r_prepoly != NULL;
+}
 
 // The world walk may find polygons built ahead from now on
 void R_CoarsePreOn()

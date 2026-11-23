@@ -61,24 +61,37 @@ static void R_GenerateSpansMarked(bool step);
 static void R_GenerateSpansBackwardMarked(bool step);
 static void R_GenerateSpansAlphaMarked(bool step);
 static s32 cut_surfs; // cutout/skybox surfaces in this frame
+static bool cut_split; // edges that only they have go to cut_edges
 static s32 cut_right0; // reset value of cutspan_t.right
 
 // In the alpha pass every surface but the background is drawn like a cutout
 static bool R_IsCutSurf(const surf_t *s)
 { return r_alphapass ? s != &surfaces[1] : (s->flags & SURF_CUTMASK) != 0; }
 
-// p with room for need of size each, which it keeps
+// What cap grows to for need entries: doubled until they fit, from 256
+static s64 R_GrowCap(s64 cap, s64 need)
+{
+	s64 n = cap ? cap : 256;
+	while(n < need)
+		n *= 2;
+	return n;
+}
+
+// p as n entries of size each, which keeps what it had
+static void *R_Resize(void *p, s64 n, size_t size)
+{
+	if(!(p = realloc(p, n * size)))
+		Sys_Error("R_Resize: out of memory");
+	return p;
+}
+
+// p with room for need of size each
 static void *R_Grow(void *p, s64 *cap, s64 need, size_t size)
 {
 	if(*cap >= need)
 		return p;
-	s64 n = *cap ? *cap : 256;
-	while(n < need)
-		n *= 2;
-	if(!(p = realloc(p, n * size)))
-		Sys_Error("R_Grow: out of memory");
-	*cap = n;
-	return p;
+	*cap = R_GrowCap(*cap, need);
+	return R_Resize(p, *cap, size);
 }
 
 // The surface marks and setups the workers' bands go by, for a scan
@@ -121,6 +134,8 @@ static void R_CutoutBeginFrame(scan_t *sc)
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++)
 		if(R_IsCutSurf(s))
 			cut_surfs++;
+	// r_draworder has no cutouts of its own
+	cut_split = cut_surfs && (r_alphapass || !r_draworder.value);
 	cut_right0 = (s32)r_refdef.vrectright;
 	if(!sc)
 		return;
@@ -130,19 +145,15 @@ static void R_CutoutBeginFrame(scan_t *sc)
 		return;
 	s32 need = r_lsurfs_size + 2;
 	if(sc->cut_cap < need){
-		free(sc->cut_acc);
-		free(sc->cut_list);
-		sc->cut_acc = malloc(need * sizeof(*sc->cut_acc));
-		sc->cut_list = malloc(need * sizeof(*sc->cut_list));
-		if(!sc->cut_acc || !sc->cut_list)
-			Sys_Error("R_CutoutBeginFrame: out of memory");
+		sc->cut_acc = R_Resize(sc->cut_acc, need,
+				sizeof(*sc->cut_acc));
+		sc->cut_list = R_Resize(sc->cut_list, need,
+				sizeof(*sc->cut_list));
 		sc->cut_cap = need;
 	}
 	if(sc->cut_edgecap < r_ledges_size){
-		free(sc->cut_edges);
-		sc->cut_edges = malloc(r_ledges_size * sizeof(*sc->cut_edges));
-		if(!sc->cut_edges)
-			Sys_Error("R_CutoutBeginFrame: out of memory");
+		sc->cut_edges = R_Resize(sc->cut_edges, r_ledges_size,
+				sizeof(*sc->cut_edges));
 		sc->cut_edgecap = r_ledges_size;
 	}
 	for(surf_t *s = &surfaces[1]; s < surface_p; s++){
@@ -158,11 +169,11 @@ static void R_CutoutBeginFrame(scan_t *sc)
 // up and hands over their spans the way the scan from the top would have.
 #define R_MAXSCANBANDS 256
 #define R_EDGEBLOCK 4096 // a band's own edges come this many at a time
-typedef struct { edge_t *e; s64 u0; } carry_t;
 typedef struct { s64 u; edge_t *e; u32 s0, s1; } carrysort_t;
+typedef struct { espan_t *p; s64 size; } spanchunk_t;
 typedef struct {
 	s32 y0, y1, job;
-	carry_t *carry; // the edges from rows above, with u on their first row
+	edge_t **carry; // the edges from rows above
 	s64 ncarry, carrycap;
 	s32 *rowspans; // the spans each row got
 	s64 rowcap;
@@ -172,8 +183,7 @@ typedef struct {
 	s64 nwin, wincap;
 	s32 *left; // surface, spanstate: those still in a span after its rows
 	s64 nleft, leftcap;
-	espan_t **chunks; // the span memory, in use until the frame is drawn
-	s64 *chunksize;
+	spanchunk_t *chunks; // the span memory, used until the frame is drawn
 	s64 nchunks, chunkcap, chunk;
 	espan_t *span_p, *chunk_end;
 	s64 frame; // the frame the chunks are in use for
@@ -225,15 +235,15 @@ static void R_ScanBandsBegin()
 	}
 }
 
-// R_EmitEdge: e goes on into the bands after b0 up to b1
+// R_EmitEdge: e goes on into the bands after b0 up to b1. Its u stays the
+// one on its first row, the bands step copies.
 void R_CarryEdge(edge_t *e, s32 b0, s32 b1)
 {
 	for(s32 i = b0 + 1; i <= b1; i++){
 		scanband_t *b = &r_sbands[i];
 		b->carry = R_Grow(b->carry, &b->carrycap, b->ncarry + 1,
 				sizeof(*b->carry));
-		b->carry[b->ncarry].e = e;
-		b->carry[b->ncarry++].u0 = e->u;
+		b->carry[b->ncarry++] = e;
 	}
 }
 
@@ -310,16 +320,12 @@ static void R_SortKeys(u64 *a, u64 *tmp, s64 n)
 }
 
 static void R_GrowKeys(scan_t *sc, s64 n)
-{
+{ // and as many again to merge them with
 	if(sc->ne_cap >= n)
 		return;
-	s64 cap = sc->ne_cap ? sc->ne_cap : 1024;
-	while(cap < n)
-		cap *= 2;
-	sc->ne_keys = realloc(sc->ne_keys, 2 * cap * sizeof(*sc->ne_keys));
-	if(!sc->ne_keys)
-		Sys_Error("R_SortNewEdges: out of memory");
-	sc->ne_cap = cap;
+	sc->ne_cap = R_GrowCap(sc->ne_cap, n);
+	sc->ne_keys = R_Resize(sc->ne_keys, 2 * sc->ne_cap,
+			sizeof(*sc->ne_keys));
 }
 
 Q_SIL u64 R_NewEdgeKey(const edge_t *e, u64 idx)
@@ -911,20 +917,12 @@ static void R_ScanBeginEdges(scan_t *sc)
 static void R_ScratchGrow(scratch_t *x)
 { // between scanlines, while no surface is on the stack
 	scan_t *sc = &x->sc;
-	s64 cap = x->lscap;
-	x->ls = R_Grow(x->ls, &cap, x->nls + 1, sizeof(*x->ls));
-	cap = x->lscap;
-	x->gid = R_Grow(x->gid, &cap, x->nls + 1, sizeof(*x->gid));
-	cap = x->lscap;
-	sc->cut_acc = R_Grow(sc->cut_acc, &cap, x->nls + 1,
-			sizeof(*sc->cut_acc));
-	cap = x->lscap;
-	sc->cut_list = R_Grow(sc->cut_list, &cap, x->nls + 1,
-			sizeof(*sc->cut_list));
-	cap = x->lscap;
-	sc->touched = R_Grow(sc->touched, &cap, x->nls + 1,
-			sizeof(*sc->touched));
-	x->lscap = cap;
+	s64 n = x->lscap = R_GrowCap(x->lscap, x->nls + 1);
+	x->ls = R_Resize(x->ls, n, sizeof(*x->ls));
+	x->gid = R_Resize(x->gid, n, sizeof(*x->gid));
+	sc->cut_acc = R_Resize(sc->cut_acc, n, sizeof(*sc->cut_acc));
+	sc->cut_list = R_Resize(sc->cut_list, n, sizeof(*sc->cut_list));
+	sc->touched = R_Resize(sc->touched, n, sizeof(*sc->touched));
 	sc->sbase = x->ls;
 }
 
@@ -951,7 +949,7 @@ static u32 R_BandSurf(scratch_t *x, u32 g)
 	s->d_ziorigin = f->d_ziorigin;
 	s->d_zistepu = f->d_zistepu;
 	s->d_zistepv = f->d_zistepv;
-	if(r_alphapass ? g != 1 : (f->flags & SURF_CUTMASK) != 0){
+	if(R_IsCutSurf(f)){
 		x->sc.cut_acc[l].left = CUT_IDLE;
 		x->sc.cut_acc[l].right = cut_right0;
 	}
@@ -1049,17 +1047,17 @@ static s32 R_CarryCmp(const void *pa, const void *pb)
 
 // The band's copies of the edges from above, active as they would be on its
 // first row
-static void R_BandCarry(scratch_t *x, const scanband_t *b, bool split)
+static void R_BandCarry(scratch_t *x, const scanband_t *b)
 {
 	scan_t *sc = &x->sc;
 	x->sort = R_Grow(x->sort, &x->sortcap, b->ncarry, sizeof(*x->sort));
 	s64 n = 0;
 	for(s64 i = 0; i < b->ncarry; i++){
-		edge_t *e = b->carry[i].e;
-		s64 u = b->carry[i].u0 + (s64)(b->y0 - e->vstart) * e->u_step;
+		edge_t *e = b->carry[i];
+		s64 u = e->u + (s64)(b->y0 - e->vstart) * e->u_step;
 		u32 s0 = R_BandSurf(x, e->surfs[0]);
 		u32 s1 = R_BandSurf(x, e->surfs[1]);
-		if(split && R_CutOnly(e)){
+		if(cut_split && R_CutOnly(e)){
 			R_BandCutEdge(x, u, e, s0, s1);
 			continue;
 		}
@@ -1085,7 +1083,7 @@ static void R_BandCarry(scratch_t *x, const scanband_t *b, bool split)
 // A row's new edges for a band: copies in the order R_SortNewEdges would put
 // them, but for the cutout ones, which go to cut_edges. R_EmitEdge puts the
 // newest first, so an edge's place counted from the end goes by its index.
-static edge_t *R_BandRow(scratch_t *x, edge_t *list, bool split)
+static edge_t *R_BandRow(scratch_t *x, edge_t *list)
 {
 	scan_t *sc = &x->sc;
 	s64 n = 0, k = 0, i = 0;
@@ -1096,7 +1094,7 @@ static edge_t *R_BandRow(scratch_t *x, edge_t *list, bool split)
 	for(edge_t *e = list; e; e = e->next, i++){
 		u32 s0 = R_BandSurf(x, e->surfs[0]);
 		u32 s1 = R_BandSurf(x, e->surfs[1]);
-		if(split && R_CutOnly(e)){
+		if(cut_split && R_CutOnly(e)){
 			R_BandCutEdge(x, e->u, e, s0, s1);
 			continue;
 		}
@@ -1152,24 +1150,20 @@ static void R_BandChunk(scanband_t *b, s64 room)
 	}else
 		b->chunk++;
 	if(b->chunk == b->nchunks){
-		s64 cap = b->chunkcap;
-		b->chunks = R_Grow(b->chunks, &cap, b->nchunks + 1,
+		b->chunks = R_Grow(b->chunks, &b->chunkcap, b->nchunks + 1,
 				sizeof(*b->chunks));
-		b->chunksize = R_Grow(b->chunksize, &b->chunkcap,
-				b->nchunks + 1, sizeof(*b->chunksize));
-		b->chunks[b->nchunks] = NULL;
-		b->chunksize[b->nchunks++] = 0;
+		b->chunks[b->nchunks].p = NULL;
+		b->chunks[b->nchunks++].size = 0;
 	}
-	s64 i = b->chunk;
-	if(b->chunksize[i] < room){
-		s64 size = q_max(room * 4, 16384);
-		free(b->chunks[i]);
-		if(!(b->chunks[i] = malloc(size * sizeof(espan_t))))
+	spanchunk_t *c = &b->chunks[b->chunk];
+	if(c->size < room){
+		c->size = q_max(room * 4, 16384);
+		free(c->p);
+		if(!(c->p = malloc(c->size * sizeof(*c->p))))
 			Sys_Error("R_ScanBand: out of memory");
-		b->chunksize[i] = size;
 	}
-	b->span_p = b->chunks[i];
-	b->chunk_end = b->chunks[i] + b->chunksize[i];
+	b->span_p = c->p;
+	b->chunk_end = c->p + c->size;
 }
 
 // Scans the rows of a band, starting with the surfaces in left that a band
@@ -1179,7 +1173,6 @@ static void R_ScanBand(scanband_t *b, const s32 *left, s64 nleft)
 {
 	scratch_t *x = &r_scratch[r_slot];
 	scan_t *sc = &x->sc;
-	bool split = cut_surfs && (r_alphapass || !r_draworder.value);
 	R_ScratchBegin(x);
 	b->nrecs = b->nwin = b->nleft = 0;
 	b->rowspans = R_Grow(b->rowspans, &b->rowcap, b->y1 - b->y0,
@@ -1189,13 +1182,13 @@ static void R_ScanBand(scanband_t *b, const s32 *left, s64 nleft)
 	R_ScanBeginEdges(sc);
 	for(s64 i = 0; i < nleft; i += 2)
 		x->ls[R_BandSurf(x, left[i])].spanstate = left[i + 1];
-	R_BandCarry(x, b, split);
+	R_BandCarry(x, b);
 	for(s32 iv = b->y0; iv < b->y1; iv++){
 		sc->iv = iv;
 		sc->fv = (f32)iv;
 		edge_t *add = newedges[iv];
 		if(add)
-			add = R_BandRow(x, add, split);
+			add = R_BandRow(x, add);
 		// one span per pixel at most, and per cutout surface
 		s64 room = r_refdef.vrect.width + x->nls;
 		if(!b->chunk_end || b->chunk_end - b->span_p < room)
@@ -1226,24 +1219,32 @@ static void R_ScanBand(scanband_t *b, const s32 *left, s64 nleft)
 
 static void R_ScanBandJob(void *arg){ R_ScanBand(arg, NULL, 0); }
 
-// Hands the spans of records r0 to r1 to their surfaces for D_DrawSurfaces:
-// those on rows up to f, or all of them if f < 0
+// Takes the spans of a record on rows up to f, or all of them if f < 0, and
+// marks its surface if there are any
+static espan_t *R_TakeSpans(scanrec_t *r, s32 f, u64 *marks)
+{
+	espan_t *s = r->spans, *prev = NULL;
+	if(f >= 0) // the newest are first
+		for(; s && s->v > f; s = s->pnext)
+			prev = s;
+	if(!s)
+		return NULL;
+	if(prev)
+		prev->pnext = NULL;
+	else
+		r->spans = NULL;
+	marks[r->surf >> 6] |= (u64)1 << (r->surf & 63);
+	return s;
+}
+
+// Hands the spans of records r0 to r1 to their surfaces for D_DrawSurfaces,
+// as R_TakeSpans picks them
 static void R_GiveSpans(scanband_t *b, s32 r0, s32 r1, s32 f)
 {
 	for(s32 i = r0; i < r1; i++){
-		scanrec_t *r = &b->recs[i];
-		espan_t *s = r->spans, *prev = NULL;
-		if(f >= 0) // the newest are first
-			for(; s && s->v > f; s = s->pnext)
-				prev = s;
-		if(!s)
-			continue;
-		if(prev)
-			prev->pnext = NULL;
-		else
-			r->spans = NULL;
-		surfaces[r->surf].spans = s;
-		r_surfmarks[r->surf >> 6] |= (u64)1 << (r->surf & 63);
+		espan_t *s = R_TakeSpans(&b->recs[i], f, r_surfmarks);
+		if(s)
+			surfaces[b->recs[i].surf].spans = s;
 	}
 }
 
@@ -1253,7 +1254,7 @@ static void R_GiveSpans(scanband_t *b, s32 r0, s32 r1, s32 f)
 static s32 *r_recjobs;
 static s64 r_nrecjobs, r_recjobcap;
 
-// The spans of records r0 to r1 as R_GiveSpans picks them, to a job of their
+// The spans of records r0 to r1 as R_TakeSpans picks them, to a job of their
 // band's record walk
 static void R_RecordJob(scanband_t *b, s32 r0, s32 r1, s32 f, s32 band)
 {
@@ -1261,20 +1262,11 @@ static void R_RecordJob(scanband_t *b, s32 r0, s32 r1, s32 f, s32 band)
 	scanrec_t *out = (scanrec_t *)(j + 1);
 	s32 n = 0;
 	for(s32 i = r0; i < r1; i++){
-		scanrec_t *r = &b->recs[i];
-		espan_t *s = r->spans, *prev = NULL;
-		if(f >= 0)
-			for(; s && s->v > f; s = s->pnext)
-				prev = s;
+		espan_t *s = R_TakeSpans(&b->recs[i], f, r_flushmarks);
 		if(!s)
 			continue;
-		if(prev)
-			prev->pnext = NULL;
-		else
-			r->spans = NULL;
-		out[n].surf = r->surf;
+		out[n].surf = b->recs[i].surf;
 		out[n++].spans = s;
-		r_flushmarks[r->surf >> 6] |= (u64)1 << (r->surf & 63);
 	}
 	if(!n)
 		return;
@@ -1353,8 +1345,6 @@ void R_ScanEdges()
 	edge_tail_u_shift20 = r_refdef.vrectright;
 	R_MarksBeginScan();
 	R_CutoutBeginFrame(r_scanbanded ? NULL : sc);
-	// r_draworder has no cutouts of its own
-	bool split = cut_surfs && (r_alphapass || !r_draworder.value);
 	s64 room = r_refdef.vrect.width + cut_surfs;
 	s64 flush = R_SpanBuffer(room);
 	if(r_scanbanded){
@@ -1372,7 +1362,7 @@ void R_ScanEdges()
 		// mark that the head(background start) span is pre-included
 		surfaces[1].spanstate = 1;
 		edge_t *add = newedges[iv];
-		if(add && split)
+		if(add && cut_split)
 			add = R_SplitCutEdges(sc, add);
 		if(add)
 			R_InsertNewEdges(R_SortNewEdges(sc, add),

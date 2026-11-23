@@ -612,6 +612,44 @@ static void R_RunAheadNode(mnode_t *node, s32 clipflags)
 static void R_RunAheadJob(SDL_UNUSED void *arg)
 { R_RunAheadNode(cl.worldmodel->nodes, 15); }
 
+// p with room for n entries of size each, all 0 if it had to grow. NULL
+// without the memory, and the next call tries again.
+static void *R_ZeroedArray(void *p, s32 *cap, s32 n, size_t size)
+{
+	if(*cap >= n)
+		return p;
+	free(p);
+	p = calloc(n, size);
+	*cap = p ? n : 0;
+	return p;
+}
+
+// Starts the run ahead of the world walk if it can, returns its job or -1
+static s32 R_RunAheadBegin(const model_t *m)
+{
+	if(!r_threaded || !R_CoarsePreReady())
+		return -1;
+	r_premark = R_ZeroedArray(r_premark, &r_premarkcap, m->numsurfaces,
+			sizeof(*r_premark));
+	r_prehidden = R_ZeroedArray(r_prehidden, &r_prehiddencap,
+			m->numnodes, sizeof(*r_prehidden));
+	if(!r_premark || !r_prehidden)
+		return -1;
+	SDL_SetAtomicInt(&r_prestop, 0);
+	s32 job = R_JobAdd(R_RunAheadJob, NULL);
+	R_JobsPublish();
+	R_CoarsePreOn();
+	r_runahead = 1;
+	return job;
+}
+
+static void R_RunAheadEnd(s32 job)
+{
+	SDL_SetAtomicInt(&r_prestop, 1);
+	R_JobCancel(job);
+	r_runahead = 0;
+}
+
 // Called by R_RenderFace in the main pass for world faces that belong in the
 // alpha pass. Each gets a key of its own, to be drawn with later.
 void R_RecordAlphaFace(msurface_t *surf, s32 clipflags)
@@ -656,31 +694,9 @@ void R_RenderWorld()
 		r_alphafaces_lost = 0;
 		r_worldpass++;
 		R_WalkBegin(); // a lone worker takes its emit job first
-		s32 job = -1;
-		if(r_threaded && R_CoarsePreReady()){
-			s32 n = clmodel->numsurfaces, nn = clmodel->numnodes;
-			if(r_premarkcap < n){
-				free(r_premark);
-				r_premark = calloc(n, sizeof(*r_premark));
-				r_premarkcap = r_premark ? n : 0;
-			}
-			if(r_prehiddencap < nn){
-				free(r_prehidden);
-				r_prehidden = calloc(nn, sizeof(*r_prehidden));
-				r_prehiddencap = r_prehidden ? nn : 0;
-			}
-			if(r_premark && r_prehidden){
-				SDL_SetAtomicInt(&r_prestop, 0);
-				job = R_JobAdd(R_RunAheadJob, NULL);
-				R_JobsPublish();
-				R_CoarsePreOn();
-				r_runahead = 1;
-			}
-		}
+		s32 job = R_RunAheadBegin(clmodel);
 		R_RecursiveWorldNode(clmodel->nodes, 15);
-		SDL_SetAtomicInt(&r_prestop, 1);
-		R_JobCancel(job);
-		r_runahead = 0;
+		R_RunAheadEnd(job);
 		R_WalkEnd();
 	}
 }

@@ -108,7 +108,6 @@ void R_CoarsePreFace(msurface_t *fa);
 bool R_CoarseOcclusionWillFill(msurface_t *fa);
 bool R_CoarseFaceSure(msurface_t *fa);
 bool R_EmitSure(msurface_t *fa);
-void R_FaceZi(msurface_t *fa, surf_t *s);
 void R_WalkBegin();
 void R_WalkEnd();
 void M_Init();                                                         // menu.h
@@ -368,6 +367,7 @@ void D_DrawSkyScans(espan_t *pspan, msurface_t *pface, const vec3_t *view);
 s32 R_SkyIndexForTexture(texture_t *mt);
 surfcache_t *D_CacheSurface(msurface_t *surface, s32 miplevel, s32 frame);
 surfcache_t *D_CacheLookup(msurface_t *surface, s32 miplevel, s32 frame);
+void D_UseBlock(surfcache_t *c);
 s32 D_DitherLevel(f32 opacity);
 EX s32 default_net_hostport;                                            // net.h
 EX s32 net_hostport;
