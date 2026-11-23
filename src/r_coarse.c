@@ -19,6 +19,9 @@ static u64 *r_coarse_occ_pixels;
 static u64 *r_coarse_occ_bpixels;
 static f32 *r_coarse_occ_bzi;
 static bool r_coarse_occ_bused; // filled in this frame, else to be cleared
+// Per tile column, the pixels of the tile row a fill is at, see
+// R_CoarseOccPolyFill. All 0 between tile rows.
+static u64 *r_coarse_occ_acc;
 static f32 *r_coarse_occ_rows; // 2 arrays of one float per viewport row
 static s32 r_coarse_occlusion_width;
 static s32 r_coarse_occlusion_height;
@@ -107,15 +110,17 @@ static void R_CoarseOccAlloc(s32 width, s32 height, s32 words, s32 vh)
 	static void *block;
 	size_t tiles = (size_t)width * height;
 	free(block);
-	block = malloc(((size_t)words * height + 2 * tiles) * sizeof(u64) +
-		(2 * tiles + 4 * (size_t)(height + 2) + 2 * (size_t)vh) *
-		sizeof(f32));
+	block = malloc(((size_t)words * height + 2 * tiles + width) *
+		sizeof(u64) + (2 * tiles + 4 * (size_t)(height + 2) +
+		2 * (size_t)vh) * sizeof(f32));
 	r_coarse_occlusion_bits = block;
 	if(!block)
 		return;
 	r_coarse_occ_pixels = r_coarse_occlusion_bits + (size_t)words * height;
 	r_coarse_occ_bpixels = r_coarse_occ_pixels + tiles;
-	r_coarse_occlusion_zi = (f32 *)(r_coarse_occ_bpixels + tiles);
+	r_coarse_occ_acc = r_coarse_occ_bpixels + tiles;
+	memset(r_coarse_occ_acc, 0, width * sizeof(u64));
+	r_coarse_occlusion_zi = (f32 *)(r_coarse_occ_acc + width);
 	r_coarse_occ_bzi = r_coarse_occlusion_zi + tiles;
 	r_coarse_occ_scratch = r_coarse_occ_bzi + tiles;
 	r_coarse_occ_rows = r_coarse_occ_scratch + 4 * (size_t)(height + 2);
@@ -199,21 +204,36 @@ static inline bool R_CoarseOccRunFull(const u64 *row, s32 a, s32 b)
 	return (row[wb] & mb) == mb;
 }
 
-// Covers pixels x0..x1 (inclusive) of viewport row y. Tiles that get new pixels
-// from it take the lowest 1/z that the face (zi plane of surf, in screen
-// pixels, and minzi or more everywhere) has in them, if it's the lowest yet.
-// brush picks the layer of brush entity faces, which has no FULL bits.
-static inline void R_CoarseOccRowFill(s32 y, s32 x0, s32 x1,
+// Adds pixels x0..x1 (inclusive) of viewport row y to r_coarse_occ_acc
+Q_SIL void R_CoarseOccRowMask(s32 y, s32 x0, s32 x1)
+{
+	u64 *acc = r_coarse_occ_acc;
+	const u32 shift = (u32)(y & 7) * 8;
+	s32 t0 = x0 >> 3, t1 = x1 >> 3;
+	u64 one = -(u64)(t0 == t1); // both ends in one tile
+	u64 lm = (u64)((0xffu << (x0 & 7)) & 0xffu) << shift;
+	u64 rm = (u64)(0xffu >> (7 - (x1 & 7))) << shift;
+	acc[t0] |= lm & (rm | ~one);
+	acc[t1] |= rm & ~one;
+	for(s32 t = t0 + 1; t < t1; t++)
+		acc[t] |= (u64)0xff << shift;
+}
+
+// Covers the pixels r_coarse_occ_acc has for tiles t0..t1 of tile row ty, and
+// clears them there. Tiles that get new pixels take the lowest 1/z that the
+// face (zi plane of surf, in screen pixels, and minzi or more everywhere) has
+// in them, if it's the lowest yet. brush picks the layer of brush entity
+// faces, which has no FULL bits.
+static inline void R_CoarseOccTileFill(s32 ty, s32 t0, s32 t1,
 		const surf_t *surf, f32 minzi, bool brush)
 {
 	const s32 tw = r_coarse_occlusion_width;
-	const s32 ty = y >> 3;
+	u64 *acc = r_coarse_occ_acc;
 	u64 *pix = (brush ? r_coarse_occ_bpixels : r_coarse_occ_pixels)
 		+ (size_t)ty * tw;
 	f32 *zirow = (brush ? r_coarse_occ_bzi : r_coarse_occlusion_zi)
 		+ (size_t)ty * tw;
 	u64 *bits = r_coarse_occlusion_bits+(size_t)ty*r_coarse_occlusion_words;
-	const u32 shift = (u32)(y & 7) * 8;
 	// 1/z is linear across the screen, so its minimum over the pixels of a
 	// tile is at one of the corner pixels, the u and v parts can be taken
 	// separately
@@ -221,22 +241,18 @@ static inline void R_CoarseOccRowFill(s32 y, s32 x0, s32 x1,
 	f32 zv0 = surf->d_zistepv * sy, zv1 = surf->d_zistepv * (sy + 7.0f);
 	f32 zv = surf->d_ziorigin + (zv0 < zv1 ? zv0 : zv1);
 	f32 du = surf->d_zistepu * 7.0f;
-	s32 t0 = x0 >> 3, t1 = x1 >> 3;
 	for(s32 t = t0; t <= t1; t++){
-		u32 lo = t == t0 ? (u32)(x0 & 7) : 0;
-		u32 hi = t == t1 ? (u32)(x1 & 7) : 7;
-		u64 row = (u64)((0xffu >> (7 - hi)) & (0xffu << lo)) << shift;
-		u64 fresh = row & ~pix[t];
+		u64 fresh = acc[t] & ~pix[t];
+		acc[t] = 0;
 		if(!fresh)
 			continue; // nearer faces got there first
-		pix[t] |= fresh;
+		u64 p = pix[t] |= fresh;
 		f32 zu = surf->d_zistepu * (f32)(r_refdef.vrect.x + (t << 3));
 		f32 zi = zv + (du < 0 ? zu + du : zu);
 		if(zi < minzi) zi = minzi;
-		if(zi < zirow[t])
-			zirow[t] = zi;
-		if(!brush && pix[t] == ~(u64)0)
-			bits[t >> 6] |= (u64)1 << (t & 63);
+		zirow[t] = zi < zirow[t] ? zi : zirow[t];
+		if(!brush)
+			bits[t >> 6] |= (u64)(p == ~(u64)0) << (t & 63);
 	}
 }
 
@@ -323,56 +339,57 @@ static bool R_CoarseOccPolyCovered(const coarse_occ_vertex_t *p, s32 n,
 		if(!R_CoarseOccRunCovered(ty, tx, tx, depth, zi))
 			return false;
 	}
-	f32 ymin = p[0].y, ymax = p[0].y;
+	f32 ymin = p[0].y, ymax = p[0].y, xmin = p[0].x, xmax = p[0].x;
 	for(s32 i = 1; i < n; i++){
-		if(p[i].y < ymin) ymin = p[i].y;
-		if(p[i].y > ymax) ymax = p[i].y;
+		ymin = p[i].y < ymin ? p[i].y : ymin;
+		ymax = p[i].y > ymax ? p[i].y : ymax;
+		xmin = p[i].x < xmin ? p[i].x : xmin;
+		xmax = p[i].x > xmax ? p[i].x : xmax;
 	}
 	s32 r0 = (s32)((ymin - m) * invt); // truncation == floor, as it's >= -m
 	s32 r1 = (s32)((ymax + m) * invt);
 	if(r1 >= th) r1 = th - 1;
+	if(r0 == r1){ // every edge is in the strip end to end, so the loops
+		// below would come to the vertices' x range
+		s32 a = (s32)((xmin - m) * invt), b = (s32)((xmax + m) * invt);
+		if(b >= tw) b = tw - 1;
+		return a <= b && R_CoarseOccRunCovered(r0, a, b, depth, zi);
+	}
 	for(s32 r = r0; r <= r1; r++){
 		sl[r] = FLT_MAX;
 		sr[r] = -FLT_MAX;
 	}
 	for(s32 i = 0; i < n; i++){
 		coarse_occ_vertex_t a = p[i], b = p[i + 1 == n ? 0 : i + 1];
-		if(a.y > b.y){
-			coarse_occ_vertex_t t = a;
-			a = b;
-			b = t;
-		}
-		s32 ra = (s32)((a.y - m) * invt);
-		s32 rb = (s32)((b.y + m) * invt);
+		// from the upper end, as in R_CoarseOccPolyFill
+		f32 top = a.y < b.y ? a.y : b.y, bot = a.y < b.y ? b.y : a.y;
+		f32 topx = a.y > b.y ? b.x : a.x, botx = a.y > b.y ? a.x : b.x;
+		s32 ra = (s32)((top - m) * invt);
+		s32 rb = (s32)((bot + m) * invt);
 		if(ra < r0) ra = r0;
 		if(rb > r1) rb = r1;
-		f32 dy = b.y - a.y;
-		if(dy < 1e-5f){ // horizontal: both end points count
+		if(bot - top < 1e-5f){ // horizontal: both end points count
 			f32 xa = a.x < b.x ? a.x : b.x;
 			f32 xb = a.x < b.x ? b.x : a.x;
 			for(s32 r = ra; r <= rb; r++){
-				if(xa < sl[r]) sl[r] = xa;
-				if(xb > sr[r]) sr[r] = xb;
+				sl[r] = xa < sl[r] ? xa : sl[r];
+				sr[r] = xb > sr[r] ? xb : sr[r];
 			}
 			continue;
 		}
-		f32 slope = (b.x - a.x) / dy;
+		f32 slope = (b.x - a.x) / (b.y - a.y);
 		for(s32 r = ra; r <= rb; r++){
 			//piece of the edge inside this strip, slightly enlarged
 			f32 ylo = (f32)r * tsz - m, yhi = (f32)(r+1) * tsz + m;
-			f32 y0 = ylo > a.y ? ylo : a.y;
-			f32 y1 = yhi < b.y ? yhi : b.y;
+			f32 y0 = ylo > top ? ylo : top;
+			f32 y1 = yhi < bot ? yhi : bot;
 			if(y0 > y1)
 				continue;
-			f32 x0 = y0 == a.y ? a.x : a.x + (y0 - a.y) * slope;
-			f32 x1 = y1 == b.y ? b.x : a.x + (y1 - a.y) * slope;
-			if(x0 > x1){
-				f32 t = x0;
-				x0 = x1;
-				x1 = t;
-			}
-			if(x0 < sl[r]) sl[r] = x0;
-			if(x1 > sr[r]) sr[r] = x1;
+			f32 x0 = y0 == top ? topx : topx + (y0 - top) * slope;
+			f32 x1 = y1 == bot ? botx : topx + (y1 - top) * slope;
+			f32 lo = x0 > x1 ? x1 : x0, hi = x0 > x1 ? x0 : x1;
+			sl[r] = lo < sl[r] ? lo : sl[r];
+			sr[r] = hi > sr[r] ? hi : sr[r];
 		}
 	}
 	bool touched = false;
@@ -411,38 +428,52 @@ static void R_CoarseOccPolyFill(const coarse_occ_vertex_t *p, s32 n,
 	}
 	for(s32 i = 0; i < n; i++){
 		coarse_occ_vertex_t a = p[i], b = p[i + 1 == n ? 0 : i + 1];
-		if(a.y > b.y){
-			coarse_occ_vertex_t t = a;
-			a = b;
-			b = t;
-		}
-		f32 dy = b.y - a.y;
+		// from the upper end, without a branch on which end that is:
+		// the rounding is symmetric, so either way round gives the
+		// same slope
+		f32 top = a.y < b.y ? a.y : b.y, bot = a.y < b.y ? b.y : a.y;
+		f32 topx = a.y > b.y ? b.x : a.x;
+		f32 dy = bot - top;
 		if(dy < 1e-5f)
 			continue; // the edges next to it reach both its ends
-		f32 slope = (b.x - a.x) / dy;
+		f32 slope = (b.x - a.x) / (b.y - a.y);
 		f32 xmin = a.x < b.x ? a.x : b.x;
 		f32 xmax = a.x < b.x ? b.x : a.x;
-		s32 ya = R_CoarseOccCeil(a.y), yb = R_CoarseOccFloor(b.y);
+		s32 ya = R_CoarseOccCeil(top), yb = R_CoarseOccFloor(bot);
 		if(ya < y0) ya = y0;
 		if(yb > y1) yb = y1;
-		for(s32 y = ya; y <= yb; y++){
-			f32 x = a.x + ((f32)y - a.y) * slope;
+		f32 fy = (f32)ya; // whole numbers, exact
+		for(s32 y = ya; y <= yb; y++, fy += 1.0f){
+			f32 x = topx + (fy - top) * slope;
 			if(x < xmin) x = xmin;
 			if(x > xmax) x = xmax;
-			if(x < xl[y]) xl[y] = x;
-			if(x > xr[y]) xr[y] = x;
+			xl[y] = x < xl[y] ? x : xl[y];
+			xr[y] = x > xr[y] ? x : xr[y];
 		}
 	}
-	for(s32 y = y0; y <= y1; y++){
-		if(xl[y] > xr[y])
-			continue;
-		// columns from ceil(left) to ceil(right) - 1
-		s32 x0 = xl[y] <= 0.0f ? 0 : R_CoarseOccCeil(xl[y] + m);
-		s32 x1 = R_CoarseOccCeil(xr[y] - m) - 1;
-		if(xr[y] >= (f32)vw) x1 = vw - 1;
-		if(x1 >= vw) x1 = vw - 1;
-		if(x0 <= x1)
-			R_CoarseOccRowFill(y, x0, x1, surf, minzi, brush);
+	// The rows of a tile row go in together, the same 1/z goes with all of
+	// them
+	for(s32 y = y0; y <= y1;){
+		s32 ye = (y | 7) < y1 ? y | 7 : y1;
+		s32 t0 = r_coarse_occlusion_width, t1 = -1;
+		for(; y <= ye; y++){
+			if(xl[y] > xr[y])
+				continue;
+			// columns from ceil(left) to ceil(right) - 1
+			s32 x0 = xl[y] <= 0.0f ? 0 :
+				R_CoarseOccCeil(xl[y] + m);
+			s32 x1 = R_CoarseOccCeil(xr[y] - m) - 1;
+			if(xr[y] >= (f32)vw) x1 = vw - 1;
+			if(x1 >= vw) x1 = vw - 1;
+			if(x0 > x1)
+				continue;
+			R_CoarseOccRowMask(y, x0, x1);
+			t0 = x0 >> 3 < t0 ? x0 >> 3 : t0;
+			t1 = x1 >> 3 > t1 ? x1 >> 3 : t1;
+		}
+		if(t0 <= t1)
+			R_CoarseOccTileFill(ye >> 3, t0, t1, surf, minzi,
+					brush);
 	}
 }
 
