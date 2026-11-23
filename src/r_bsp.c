@@ -375,7 +375,7 @@ typedef void (*bmodelface_f)(model_t *pmodel, msurface_t *psurf,
 static void R_BmodelFaceNode(model_t *pmodel, mnode_t *node, s32 clipflags,
 		bool occlusion, mnode_t *wnode, bmodelface_f face)
 {
-	const f32 *b = node->facebounds;
+	const f32 *b = pmodel->facebounds[node - pmodel->nodes];
 	for(s32 i = 0; i < 4; i++){
 		if(!(clipflags & (1 << i)))
 			continue;

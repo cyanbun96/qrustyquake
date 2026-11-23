@@ -303,7 +303,6 @@ typedef struct mnode_s {
 	struct mnode_s *children[2];
 	u32 firstsurface;
 	u32 numsurfaces;
-	f32 facebounds[6]; // of the faces on it and below, brush models only
 } mnode_t;
 typedef struct mleaf_s {
 	s32 contents; // common with node. Will be a negative contents number
@@ -433,6 +432,7 @@ typedef struct model_s {
 	medge_t *edges;
 	s32 numnodes;
 	mnode_t *nodes;
+	f32 (*facebounds)[6]; // by node, of the faces on it and below
 	s32 numtexinfo;
 	mtexinfo_t *texinfo;
 	s32 numsurfaces;

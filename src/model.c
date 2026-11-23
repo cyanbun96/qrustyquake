@@ -1408,9 +1408,10 @@ static void Mod_SetParent(mnode_t *node, mnode_t *parent)
 // them isn't one of the model's own or is on more than one node.
 static bool Mod_FaceTreeBounds(model_t *mod, mnode_t *node, u8 *seen)
 {
+	f32 *fb = mod->facebounds[node - mod->nodes];
 	for(s32 k = 0; k < 3; k++){
-		node->facebounds[k] = FLT_MAX;
-		node->facebounds[3 + k] = -FLT_MAX;
+		fb[k] = FLT_MAX;
+		fb[3 + k] = -FLT_MAX;
 	}
 	for(u32 i = 0; i < node->numsurfaces; i++){
 		s32 f = (s32)(node->firstsurface + i) - mod->firstmodelsurface;
@@ -1424,10 +1425,10 @@ static bool Mod_FaceTreeBounds(model_t *mod, mnode_t *node, u8 *seen)
 			s32 vi = edge->v[e > 0 ? 0 : 1];
 			f32 *v = mod->vertexes[vi].position;
 			for(s32 k = 0; k < 3; k++){
-				if(v[k] < node->facebounds[k])
-					node->facebounds[k] = v[k];
-				if(v[k] > node->facebounds[3 + k])
-					node->facebounds[3 + k] = v[k];
+				if(v[k] < fb[k])
+					fb[k] = v[k];
+				if(v[k] > fb[3 + k])
+					fb[3 + k] = v[k];
 			}
 		}
 	}
@@ -1437,11 +1438,12 @@ static bool Mod_FaceTreeBounds(model_t *mod, mnode_t *node, u8 *seen)
 			continue;
 		if(!Mod_FaceTreeBounds(mod, child, seen))
 			return false;
+		f32 *cb = mod->facebounds[child - mod->nodes];
 		for(s32 k = 0; k < 3; k++){
-			if(child->facebounds[k] < node->facebounds[k])
-				node->facebounds[k] = child->facebounds[k];
-			if(child->facebounds[3+k] > node->facebounds[3+k])
-				node->facebounds[3+k] = child->facebounds[3+k];
+			if(cb[k] < fb[k])
+				fb[k] = cb[k];
+			if(cb[3+k] > fb[3+k])
+				fb[3+k] = cb[3+k];
 		}
 	}
 	return true;
@@ -1522,6 +1524,10 @@ static void Mod_LoadNodes(lump_t *l, s32 bsp2)
 	else if(bsp2) Mod_LoadNodes_L1(l);
 	else Mod_LoadNodes_S(l);
 	Mod_SetParent(loadmodel->nodes, NULL); // sets nodes and leafs
+	// Only the brush entities' face trees use these. Out of the nodes, the
+	// world walk reads fewer cache lines for each node it goes through.
+	loadmodel->facebounds = Hunk_AllocName(loadmodel->numnodes
+			* sizeof(*loadmodel->facebounds), loadname);
 }
 
 #define MOD_PROCESSLEAFS(NAME, DTYPE, LIMITED) \
