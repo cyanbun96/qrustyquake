@@ -244,11 +244,11 @@ Build requirements (v1.0.1):
 | **OpenBSD** | x86_64 | Hardware | 1.0.1 | Seemingly perfect |
 | **HaikuOS** | x86_64 | Hardware | 1.0.1 | Seemingly perfect. SDL3_mixer has no Haiku package, so build it from source |
 | **macOS** | x86_64 | Hardware | 0.6.2 | 14.6.1: CMake build with SDL3 from Homebrew, without SDL3_mixer. 15.7.2: Makefile build with SDL3 from Homebrew, mixer not tested |
-| **Windows** | x86_64 | Hardware, VirtualBox | 1.0.1 | Also runs under Wine |
+| **Windows** | x86_64 | Hardware, VirtualBox | 1.0.1 | Also runs under Wine, and on Android through Winlator: set "DX Wrapper" to "CNC DDraw" if you get a "No outputs found" error |
 | **Windows XP** | i686 | VirtualBox | 1.0.1 | Ran with 64 MB of RAM. Cross-built with MinGW, see [`cmake/README-winxp.md`](cmake/README-winxp.md) |
 | **DOS** | x86 | FreeDOS (QEMU), DOSBox | 1.0.1 | Built with DJGPP by [`dos/build-dos.sh`](dos/build-dos.sh). `timedemo` against QUAKE.EXE 1.06: 920 vs 680 fps in FreeDOS, 95 vs 112 in DOSBox. In DOSBox, sound stutters below about 25 fps and 1024 or 1280 wide modes stay black |
-| **Android APK** | AArch64 | Redmi 9 (LineageOS 20) | 1.0.1 | No touch controls, play with a keyboard (Bluetooth works). The game data goes in `qrustyquake/id1` in the phone's storage. `timedemo demo1` gets 233 fps at 320x240 |
-| **Android Termux** | AArch64 | Hardware | 1.0.1 | Ran through X11 with touch controls. *Unpleasant*. The Windows build runs through Winlator: set "DX Wrapper" to "CNC DDraw" if you get a "No outputs found" error |
+| **Android APK** | AArch64 | Redmi 9 (LineageOS 20) | 1.0.1 | No built-in touch controls, an external input device is required. Tested with GKME in its "Local (Shizuku)" mode (a virtual on-screen controller). The game data goes in `qrustyquake/id1` in the phone's storage. `timedemo demo1` gets 233 fps at 320x240 |
+| **Android Termux** | AArch64 | Hardware | 1.0.1 | Ran through X11 with touch controls. *Unpleasant*. |
 | **Web (Emscripten)** | WebAssembly | Browsers | 1.0.1 | Dark magic performed by Erysdren, please don't ask me about it. CMakeLists updated by Pup Luka (since commit 5b68511) |
 
 GitHub Actions builds Windows, both Linux AppImages, DOS and the Android APK on every push.
