@@ -617,11 +617,16 @@ static u16 pop[] = {
 	     0,     0,     0,     0,0x6400,     0,     0,     0
 };
 // Looks for the pop.txt file and verifies it.
-// Sets the "registered" cvar.
+// Sets the "registered" cvar, and "cmdline" for stuffcmds in either version.
 // Immediately exits out if an alternate game was attempted to be started
 // without being registered.
 static void COM_CheckRegistered()
 {
+	s32 i;
+	for(i = 0; com_cmdline[i]; i++)
+		if(com_cmdline[i]!= ' ')
+			break;
+	Cvar_SetROM("cmdline", &com_cmdline[i]);
 	s32 h;
 	COM_OpenFile("gfx/pop.lmp", &h, NULL);
 	if(h == -1){
@@ -636,16 +641,12 @@ Sys_Error("You must have the registered version to use modified games.\n\n"
 		return;
 	}
 	u16 check[128];
-	s32 i = Sys_FileRead(h, check, sizeof(check));
+	i = Sys_FileRead(h, check, sizeof(check));
 	COM_CloseFile(h);
 	if(i != (s32)sizeof(check)) Sys_Error("Corrupted data file.");
 	for(i = 0; i < 128; i++)
 		if(pop[i] != (u16)s16swap(check[i]))
 			Sys_Error("Corrupted data file.");
-	for(i = 0; com_cmdline[i]; i++)
-		if(com_cmdline[i]!= ' ')
-			break;
-	Cvar_SetROM("cmdline", &com_cmdline[i]);
 	Cvar_Set("registered", "1");
 	Con_Printf("Playing registered version.\n");
 }
