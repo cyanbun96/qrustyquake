@@ -102,7 +102,11 @@ static f64 Sys_WaitUntil(f64 endtime)
 	endtime -= 1e-6; // allow finishing 1 microsecond earlier than requested
 	while(now + estimate < endtime){
 		before = now;
+#ifdef __EMSCRIPTEN__ // SDL_Delay spins without SDL's sleeps, see main
+		emscripten_sleep(1);
+#else
 		SDL_Delay(1);
+#endif
 		now = Sys_DoubleTime();
 	// Determine Sleep(1) mean duration & variance using Welford's algorithm
 	// https://blog.bearcats.nl/accurate-sleep-function/
@@ -173,15 +177,18 @@ s32 Sys_FileType(const c8* path)
 
 #ifdef __EMSCRIPTEN__
 static void main_loop()
-{
+{ // the browser calls it once a refresh, a timedemo runs most of one
 	static f64 oldtime = 0;
-	if(oldtime == 0) oldtime = Sys_DoubleTime() - 0.1;
-	f64 newtime = Sys_Throttle(oldtime);
-	f64 deltatime = newtime - oldtime;
-	if(cls.state == ca_dedicated) deltatime = sys_ticrate.value;
-	if(deltatime > sys_ticrate.value * 2) oldtime = newtime;
-	else oldtime += deltatime;
-	Host_Frame(deltatime);
+	f64 start = Sys_DoubleTime();
+	do{
+		if(oldtime == 0) oldtime = Sys_DoubleTime() - 0.1;
+		f64 newtime = Sys_Throttle(oldtime);
+		f64 deltatime = newtime - oldtime;
+		if(cls.state == ca_dedicated) deltatime = sys_ticrate.value;
+		if(deltatime > sys_ticrate.value * 2) oldtime = newtime;
+		else oldtime += deltatime;
+		Host_Frame(deltatime);
+	}while(cls.timedemo && Sys_DoubleTime() - start < 0.012);
 }
 #endif
 
@@ -199,6 +206,11 @@ int main(int c, char **v)
 	snprintf(version, sizeof(version), "%.2f", VERSION);
 	SDL_SetAppMetadata("QrustyQuake", version, "qrustyquake");
 	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game");
+#ifdef __EMSCRIPTEN__ // SDL would also sleep at every present, but main_loop
+	// already hands each frame back to the browser. Asyncify stays for the
+	// sleeps that have to wait in place (SCR_ModalMessage, Sys_WaitUntil)
+	SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+#endif
 	if(!SDL_Init(SDL_INIT_VIDEO))
 		Sys_Error("SDL_Init failed: %s", SDL_GetError());
 	host_parms.argc = c;

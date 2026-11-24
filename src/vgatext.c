@@ -102,7 +102,11 @@ s32 vgatext_main(SDL_Window *window, u16 *screen)
 				windowsurface = &windowsurface0;
 			next += BLINK_HZ;
 		}
+#ifdef __EMSCRIPTEN__ // the browser shows the screen and passes keys only
+		emscripten_sleep(1000/30); // in a sleep, SDL_Delay spins there
+#else
 		SDL_Delay(1000/30); // CyanBun96: FPS limit
+#endif
 		SDL_UpdateTexture(texture, NULL,
 			(*windowsurface)->pixels, (*windowsurface)->pitch);
 		SDL_RenderClear(renderer);

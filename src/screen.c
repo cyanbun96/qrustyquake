@@ -393,6 +393,9 @@ void SCR_BeginLoadingPlaque()
 	scr_drawloading = 1;
 	Sbar_Changed();
 	SCR_UpdateScreen();
+#ifdef __EMSCRIPTEN__ // let the browser show it before the loading
+	emscripten_sleep(0);
+#endif
 	scr_drawloading = 0;
 	scr_disabled_for_loading = 1;
 	scr_disabled_time = realtime;
