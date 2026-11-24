@@ -2434,6 +2434,14 @@ void M_Display_Draw()
 			modes = SDL_GetFullscreenDisplayModes(display, &moden);
 			modes_display = display;
 			display_sel_moden = 0;
+#ifdef SDL_PLATFORM_DOS // a size for each bit depth, all at 0 Hz, and
+			s32 n = 0; // VID_DOSMode picks the mode for a size
+			for(s32 i = 0; i < moden; ++i)
+				if(!n || modes[i]->w != modes[n-1]->w
+					|| modes[i]->h != modes[n-1]->h)
+					modes[n++] = modes[i];
+			moden = n;
+#endif
 		}
 		if(moden <= 0){
 			M_Print(xoffset + 204, 128, "No Fullscreen");
@@ -2442,8 +2450,12 @@ void M_Display_Draw()
 		}
 		mode = modes[display_sel_moden];
 		M_Print(xoffset, 128, "                  Mode");
+#ifdef SDL_PLATFORM_DOS
+		snprintf(temp, 16, "%dx%d", mode->w, mode->h);
+#else
 		snprintf(temp, 16, "%dx%d@%d", mode->w, mode->h,
 				(s32)(mode->refresh_rate+0.5));
+#endif
 		M_Print(xoffset + 204, 128, temp);
 	}else{
 		M_Print(xoffset, 132, "          Custom Width");

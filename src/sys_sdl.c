@@ -20,6 +20,9 @@ void Sys_Printf(const c8 *fmt, ...)
 	va_list argptr;
 	c8 qtext[MAXPRINTMSG];
 	c8 u8text[MAXPRINTMSG*4];
+#ifdef SDL_PLATFORM_DOS // the screen is stdout, and the BIOS draws it into
+	if(window) return; // the video mode, slowly, as DOS Quake never did
+#endif
 	va_start(argptr, fmt);
 	vsnprintf(qtext, sizeof(qtext), fmt, argptr);
 	va_end(argptr);
@@ -38,6 +41,15 @@ void Sys_Quit()
 #ifdef SDL_PLATFORM_ANDROID // in the background or being closed, unseen
 	if(SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) endscreen = 0;
 #endif
+#ifdef SDL_PLATFORM_DOS // as DOS Quake did, into the text mode that SDL
+	u8 text[80*25*2], *end = 0; // goes back to at the shutdown
+	if(endscreen) end = COM_LoadHunkFile(registered.value ? "end2.bin"
+			: "end1.bin", 0);
+	if(end && com_filesize >= (s32)sizeof(text))
+		memcpy(text, end, sizeof(text));
+	else end = 0;
+	endscreen = 0;
+#endif
 	if(endscreen){
 		u16 *screen; // erysdren(it/its)
 		if(registered.value)screen=(u16*)COM_LoadHunkFile("end2.bin",0);
@@ -46,6 +58,15 @@ void Sys_Quit()
 		if(screen) vgatext_main(window, screen);
 	}
 	Host_Shutdown();
+#ifdef SDL_PLATFORM_DOS
+	if(end){
+		fflush(stdout);
+		fflush(stderr);
+		dosmemput(text, sizeof(text), 0xb8000);
+		__dpmi_regs r = {.x.ax = 0x0200, .x.dx = 22 << 8};
+		__dpmi_int(0x10, &r); // the cursor to row 22, like DOS Quake
+	}
+#endif
 #ifdef __EMSCRIPTEN__
 	emscripten_cancel_main_loop();
 #else

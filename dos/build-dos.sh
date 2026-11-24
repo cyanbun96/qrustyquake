@@ -1,15 +1,19 @@
 #!/bin/sh
 # Reproducible MS-DOS build of Qrusty Quake
 #
-# usage: sh build-dos.sh [commit, default HEAD] [work directory, default
-#        build next to this script]
+# usage: sh build-dos.sh [commit, default the working tree] [work
+#        directory, default build next to this script]
+#        ("" as the commit gives the working tree a work directory)
 #
-# Builds a commit of the git checkout this script is in; commits from
-# before the DOS support stop with an error. Fetches the rest at pinned
-# versions and checks them, and leaves the game in <work>/dist, where it
-# replaces only its own files, so an ID1 put there stays. Rerunning reuses
-# the downloads in <work>/downloads, and two runs for the same commit give
-# a byte-identical QRUSTYQ.EXE.
+# Builds the working tree of the git checkout this script is in: its
+# tracked files as they are, changes included, and new files once they
+# are git added; untracked ones are left out. Or a commit of it; commits
+# from before the DOS support stop with an error. Fetches the rest at
+# pinned versions and checks them, and leaves the game in <work>/dist,
+# where it replaces only its own files, so an ID1 put there stays.
+# Rerunning reuses the downloads in <work>/downloads. Two runs for the
+# same commit, or an unchanged working tree, give a byte-identical
+# QRUSTYQ.EXE; a changed working tree builds with the time of the build.
 #
 # Host: Linux x86_64 (the DJGPP below is a Linux build) with git, curl,
 # tar, bzip2, unzip, cmake 3.22 or newer, make and sha256sum, and flex's
@@ -29,16 +33,24 @@
 #    to tell users they have the right to the source and where it is,
 #    which CWSDPMI.TXT does:
 #    https://www.delorie.com/pub/djgpp/current/v2misc/csdpmi7s.zip
-# 3. The Qrusty Quake source at that commit (git archive). Its DOS code is
-#    all behind SDL_PLATFORM_DOS: it turns off the render threads (SDL's
-#    DOS threads are cooperative) and networking (DJGPP has no sockets, so
-#    single player only), stands in for fenv.h, fmin and fmax with the x87
-#    control word and inline functions, makes the first hunk segment 24 MB
-#    (DOSBox crashed when CWSDPMI swapped the usual 384 MB request),
-#    includes SDL_main.h, whose DOS main locks memory for SDL's interrupt
-#    handlers and enables the near pointers its video driver needs, and
-#    prints a fatal error a second time, after SDL's switch back to text
-#    mode has cleared the screen.
+# 3. The Qrusty Quake source at that commit (git archive), or of the working
+#    tree (git archive of what git stash create gives, a commit of the
+#    tracked files that leaves them and the stash alone). Its DOS code is all
+#    behind SDL_PLATFORM_DOS: it turns off the render threads (SDL's DOS
+#    threads are cooperative) and networking (DJGPP has no sockets, so single
+#    player only), stands in for fenv.h, fmin and fmax with the x87 control
+#    word and inline functions, makes the first hunk segment 24 MB (DOSBox
+#    crashed when CWSDPMI swapped the usual 384 MB request), includes
+#    SDL_main.h, whose DOS main locks memory for SDL's interrupt handlers and
+#    enables the near pointers its video driver needs, and prints a fatal
+#    error a second time, after SDL's switch back to text mode has cleared
+#    the screen. It also reads the mouse driver's motion counters (SDL's DOS
+#    mouse has no relative mode), sets a VESA mode of the game's size for
+#    every window mode, 8-bit where the card has one (video memory took about
+#    45 MB/s on real cards, so 32 bits capped 640x480 at 37 fps), fills it,
+#    adds vid_vsync (0 sets SDL_DOS_ALLOW_DIRECT_FRAMEBUFFER at the next
+#    start), writes the end screen into text mode and keeps console messages
+#    off stdout, which the BIOS would draw into the video mode.
 # 4. SDL at commit fff6448f523f01e705d771a9f0ae782982b71482 of main (no
 #    release had the DOS port yet), and the SDL_mixer release the commit's
 #    CMakeLists.txt names in QRUSTYQUAKE_SDL3_MIXER_VERSION, tag
@@ -58,8 +70,9 @@
 #    position independent code for every target by default; DJGPP warns
 #    that it ignores -fPIC, yet SDL_mixer.c still compiles differently, so
 #    the script has it off. For identical builds the script also sets
-#    SOURCE_DATE_EPOCH to the commit time (the exe prints its build time)
-#    and maps the work directory out of file names with -ffile-prefix-map.
+#    SOURCE_DATE_EPOCH to the commit time (the exe prints its build time;
+#    git stash create's commit has the current time) and maps the work
+#    directory out of file names with -ffile-prefix-map.
 # 6. Rename build/qrustyquake.exe to QRUSTYQ.EXE, since plain DOS has 8.3
 #    file names, and put CWSDPMI.EXE next to it. The script also adds
 #    CWSDPMI.DOC, CWSDPMI.TXT and LICENSE.TXT.
@@ -70,12 +83,13 @@
 # under QEMU with KVM (JEMMEX, 128 MB, Sound Blaster 16), Quake ran at
 # 680 fps and this build at 920. Sound and music worked in both.
 #
-# Known problems in DOSBox, which will not be fixed:
+# Known problems, which will not be fixed:
 # - Sound and music get choppy below about 22 fps. SDL's DOS Sound Blaster
 #   driver queues only about 45 ms of audio and refills it when the game
 #   yields to it, once a frame, so a real machine that slow has it too.
-# - Modes 1024 and 1280 pixels wide give a black screen while the game
-#   runs on; 640 and 800 wide work. The cause is unknown.
+# - vid_vsync 0 under QEMU with KVM ran demo1 at 30 fps instead of 825:
+#   SDL's direct path writes through the VGA window at A0000, which QEMU
+#   emulates write by write. Real cards are faster through it.
 set -eu
 
 SDL_URL=https://github.com/libsdl-org/SDL.git
@@ -97,9 +111,24 @@ done
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel 2>/dev/null) ||
 	die "$here is not in a git checkout"
-ref=${1:-HEAD}
-commit=$(git -C "$repo" rev-parse -q --verify "$ref^{commit}") ||
-	die "no commit $ref in $repo"
+ref=${1-}
+if [ -n "$ref" ]; then
+	commit=$(git -C "$repo" rev-parse -q --verify "$ref^{commit}") ||
+		die "no commit $ref in $repo"
+	what="commit $commit"
+else # nothing when it's unchanged; the identity is for CI's checkouts
+	commit=$(git -C "$repo" -c user.name=build-dos.sh \
+		-c user.email=build-dos.sh@localhost stash create) ||
+		die "couldn't take the working tree of $repo"
+	head=$(git -C "$repo" rev-parse HEAD)
+	if [ -n "$commit" ]; then
+		what="working tree: commit $head plus changes"
+	else
+		commit=$head
+		what="working tree: commit $commit, unchanged"
+	fi
+	ref="the working tree"
+fi
 git -C "$repo" show "$commit:src/sys_sdl.c" | grep -q SDL_PLATFORM_DOS ||
 	die "$ref has no DOS support"
 mixver=$(git -C "$repo" show "$commit:CMakeLists.txt" | sed -n \
@@ -137,7 +166,7 @@ tar -xjf "$dl/$DJGPP_TAR" -C "$work"
 	die "DJGPP's ar does not run, is libfl.so.2 (flex) missing?"
 unzip -q "$dl/csdpmi7b.zip" bin/CWSDPMI.EXE bin/cwsdpmi.doc \
 	-d "$work/cwsdpmi"
-echo "taking $commit from $repo"
+echo "taking from $repo the $what"
 mkdir "$work/qrustyquake"
 git -C "$repo" archive "$commit" | tar -x -C "$work/qrustyquake"
 checkout $SDL_URL $SDL_COMMIT "$work/SDL" $SDL_COMMIT
@@ -173,5 +202,5 @@ EOF
 sed 's/\r*$/\r/' "$work/qrustyquake/LICENSE" > "$d/LICENSE.TXT"
 echo
 echo "done: $d"
-echo "commit $commit"
+echo "$what"
 (cd "$d" && sha256sum QRUSTYQ.EXE)

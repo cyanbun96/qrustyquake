@@ -44,6 +44,8 @@ typedef unsigned int fenv_t;
 // nor C99 fmin and fmax (model.c)
 static inline double fmin(double a, double b){return b!=b || a<b ? a : b;}
 static inline double fmax(double a, double b){return b!=b || a>b ? a : b;}
+#include <dpmi.h> // the mouse driver (in_sdl.c) and the BIOS (sys_sdl.c)
+#include <sys/movedata.h> // the text mode end screen (sys_sdl.c)
 #endif
 #include <SDL3/SDL.h>
 #ifdef AVAIL_SDL3MIXER

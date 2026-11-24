@@ -103,8 +103,65 @@ void VID_SetPalette(u8 *palette, SDL_Surface *dest)
 	}
 }
 
+#ifdef SDL_PLATFORM_DOS
+// SDL's page flips wait for the retrace on real cards (VBE 4F07h BL=80h),
+// its direct framebuffer path draws to the shown page, no flips, no waits
+static cvar_t vid_vsync = {.name = "vid_vsync", .string = "1", .flags = 1};
+static s32 vsyncstart; // the hint is read once, as the mode is set
+
+static void VID_VSync_f(SDL_UNUSED cvar_t *cvar)
+{ // a +vid_vsync on the command line decides every start, see VID_Init
+	if((vid_vsync.value != 0) != vsyncstart
+			&& !COM_CheckParm("+vid_vsync"))
+		Con_Printf("vid_vsync takes effect at the next start\n");
+}
+
+static bool VID_DOSMode(s32 w, s32 h, bool set)
+{ // every window is a VESA mode, there's no desktop: the smallest that the
+  // picture fits in, the closest shape first, then the fewest bits, as video
+  // memory takes only some 45 MB/s on real cards (8 bits, like DOS Quake)
+	s32 n = 0;
+	SDL_DisplayMode **m = SDL_GetFullscreenDisplayModes(
+			SDL_GetPrimaryDisplay(), &n), *best = 0;
+	f32 bestd = 0;
+	for(s32 i = 0; i < n; ++i){ // a size's last mode has the fewest bits
+		f32 d = fabsf((f32)m[i]->w / m[i]->h - (f32)w / h);
+		if(m[i]->w < w || m[i]->h < h
+		|| SDL_BITSPERPIXEL(m[i]->format) < 8
+		|| (best && (d > bestd || (d == bestd
+			&& m[i]->w * m[i]->h > best->w * best->h))))
+			continue;
+		best = m[i];
+		bestd = d;
+	}
+	bool found = best;
+	if(best && set){
+		SDL_SetWindowFullscreenMode(window, best);
+		SDL_SetWindowFullscreen(window, 1);
+	}else if(set) Con_Printf("No video mode for %dx%d\n", w, h);
+	SDL_free(m);
+	return found;
+}
+
+static void VID_DOSPalette()
+{ // 8-bit modes show the world palette: the frame maps the overlays to it,
+  // the texture and window surface share it, so SDL copies indices as they
+  // are, and its DOS driver loads the DAC from the window surface's. That's
+  // new at each mode change, whose size event makes the renderer get it too
+	if(!SDL_ISPIXELFORMAT_INDEXED(window_format)) return;
+	SDL_SetSurfacePalette(argbbuffer, sdlpals[0]);
+	SDL_SetTexturePalette(texture, sdlpals[0]);
+	SDL_Surface *s = SDL_GetWindowSurface(window);
+	if(s) SDL_SetSurfacePalette(s, sdlpals[0]);
+}
+#endif
+
 void VID_SetWindowed()
 {
+#ifdef SDL_PLATFORM_DOS
+	VID_DOSMode(vid.width * renderscale, vid.height * renderscale, 1);
+	return;
+#endif
 #ifdef SDL_PLATFORM_ANDROID // the window is the whole screen either way,
 	SDL_SetWindowFullscreenMode(window, 0); // but this hides the bars
 	SDL_SetWindowFullscreen(window, 1);
@@ -120,6 +177,10 @@ void VID_SetWindowed()
 
 void VID_SetFullscreen(s32 w, s32 h)
 {
+#ifdef SDL_PLATFORM_DOS
+	VID_DOSMode(w, h, 1);
+	return;
+#endif
 	s32 moden = -1;
 	SDL_DisplayMode *mode = 0;
 	SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(
@@ -138,6 +199,10 @@ void VID_SetFullscreen(s32 w, s32 h)
 
 void VID_SetBorderless()
 {
+#ifdef SDL_PLATFORM_DOS // the desktop mode is just SDL's 640x480 default
+	VID_DOSMode(vid.width * renderscale, vid.height * renderscale, 1);
+	return;
+#endif
 	SDL_SetWindowFullscreenMode(window, 0);
 	SDL_SetWindowFullscreen(window, 1);
 }
@@ -263,6 +328,16 @@ void VID_Init()
 	s32 confheight = VID_GetConfigCvar(cfg, "vid_cheight");
 	s32 confwmode = VID_GetConfigCvar(cfg, "vid_cwmode");
 	renderscale = VID_GetConfigCvar(cfg, "r_renderscale");
+#ifdef SDL_PLATFORM_DOS
+	Cvar_RegisterVariable(&vid_vsync);
+	Cvar_SetCallback(&vid_vsync, VID_VSync_f);
+	vsyncstart = VID_GetConfigCvar(cfg, "vid_vsync") != 0;
+	s32 vsyncarg = COM_CheckParm("+vid_vsync"); // this start, not the next
+	if(vsyncarg && vsyncarg < com_argc - 1)
+		vsyncstart = atoi(com_argv[vsyncarg + 1]) != 0;
+	if(!vsyncstart)
+		SDL_SetHint(SDL_HINT_DOS_ALLOW_DIRECT_FRAMEBUFFER, "1");
+#endif
 	if(cfg) fclose(cfg);
 	if(renderscale < 1) renderscale = 1;
 	if(VID_SizeOK(confwidth, confheight)){
@@ -304,12 +379,11 @@ void VID_Init()
 	aspectr.value = 1.333333;
 	realwidth.value = vid.width*renderscale;
 	realheight.value = (s32)(vid.width / aspectr.value + 0.5) * renderscale;
-#ifdef SDL_PLATFORM_DOS // the window is a VESA mode, and a config from another
-	SDL_DisplayMode m; // machine can ask for more than the card has
-	if(!SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(),
-			realwidth.value, realheight.value, 0, 0, &m)){
+#ifdef SDL_PLATFORM_DOS // a config from another machine can ask for more
+	if(!VID_DOSMode(vid.width * renderscale, // than the card has
+			vid.height * renderscale, 0)){
 		Con_Printf("No video mode for %dx%d, using 320x240\n",
-			(s32)realwidth.value, (s32)realheight.value);
+			vid.width * renderscale, vid.height * renderscale);
 		realwidth.value = vid.width = 320;
 		realheight.value = vid.height = 240;
 		renderscale = 1;
@@ -323,6 +397,11 @@ void VID_Init()
 	if(!window) Sys_Error("Couldn't create window: %s", SDL_GetError());
 	window_format = SDL_GetWindowPixelFormat(window); // for VID_SetPalette
 	SDL_SetWindowMinimumSize(window, 320, 200);
+#ifdef SDL_PLATFORM_DOS // the minimum size sets SDL's mode for the size the
+	VID_DOSMode(vid.width * renderscale, // window was made with again
+			vid.height * renderscale, 1);
+	window_format = SDL_GetWindowPixelFormat(window);
+#endif
 	VID_CreateSurfaces();
 	screen->pixels = screenpixels;
 	screenui->pixels = uipixels;
@@ -407,6 +486,9 @@ void VID_CalcScreenDimensions(SDL_UNUSED cvar_t *cvar)
 	else
 		bufAspect = aspectr.value;
 	Cvar_SetValue("aspectr", bufAspect);
+#ifdef SDL_PLATFORM_DOS // the monitor shows any mode 4:3, as vid.aspect
+	bufAspect = (f32)winW / winH; // assumes, so the picture fills it
+#endif
 	s32 destW, destH;
 	if((f32)winW / winH > bufAspect){
 		// Window is wider than buffer, black bars on sides
@@ -581,6 +663,9 @@ static void VID_UploadOverlay(s32 l, const u8 *pixels, const u8 *drawn,
 
 void VID_Update()
 {
+#ifdef SDL_PLATFORM_DOS
+	VID_DOSPalette();
+#endif
 	bool blitscreentop = false;
 	bool blitscreenui = false;
 	bool blitscreensbar = false;
@@ -756,6 +841,10 @@ void VID_SetMode(s32 modenum, s32 custw, s32 custh, s32 custwinm)
 		vid.height = oldmodes[modenum * 2 + 1];
 	}
 	vid_modenum = modenum;
+#ifdef SDL_PLATFORM_DOS // before the texture, which takes the mode's format
+	VID_DOSMode(vid.width * renderscale, vid.height * renderscale, 1);
+	window_format = SDL_GetWindowPixelFormat(window); // modes differ in it
+#endif
 	SDL_DestroySurface(screen);
 	SDL_DestroySurface(screentop);
 	SDL_DestroySurface(screenui);

@@ -104,6 +104,9 @@ void S_Shutdown()
 {
 	if(!sound_started) return;
 	sound_started = 0;
+#ifdef SDL_PLATFORM_DOS
+	SNDDMA_Shutdown();
+#endif
 	shm = NULL;
 }
 

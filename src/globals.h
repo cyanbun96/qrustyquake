@@ -483,6 +483,7 @@ bool SNDDMA_Init(dma_t *dma);
 s32 SNDDMA_GetDMAPos();
 void SNDDMA_LockBuffer();
 void SNDDMA_UnlockBuffer();
+void SNDDMA_Shutdown(); // DOS only
 EX channel_t snd_channels[MAX_CHANNELS];
 EX dma_t *shm;
 EX s32 total_channels;

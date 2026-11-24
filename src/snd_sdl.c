@@ -117,3 +117,12 @@ s32 SNDDMA_GetDMAPos()
 	SNDDMA_UnlockBuffer();
 	return pos;
 }
+
+#ifdef SDL_PLATFORM_DOS // the Sound Blaster plays its DMA buffer round and
+void SNDDMA_Shutdown() // round after the exit unless SDL stops it, and the
+{ // next start plays whatever lands in that memory, a screech
+	SDL_DestroyAudioStream(audiostream);
+	audiostream = 0;
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+}
+#endif

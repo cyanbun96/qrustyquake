@@ -256,8 +256,10 @@ void Sys_SendKeyEvents()
 		// Fullscreen grabs the mouse unconditionally
 		case SDL_EVENT_MOUSE_MOTION:
 			if(key_dest == key_game){
+#ifndef SDL_PLATFORM_DOS // see the motion counters below
 				mouse_x += event.motion.xrel;
 				mouse_y += event.motion.yrel;
+#endif
 			}else if(key_dest == key_menu && ui_mouse.value){
 				// in points, destRect in pixels
 				f32 d = SDL_GetWindowPixelDensity(window);
@@ -339,6 +341,14 @@ void Sys_SendKeyEvents()
 			break;
 		}
 	}
+#ifdef SDL_PLATFORM_DOS // SDL's DOS mouse has no relative mode, its motion
+	__dpmi_regs r = {.x.ax = 0x0b}; // stops at the screen's edges, so the
+	__dpmi_int(0x33, &r); // driver's motion counters, in mickeys like DOS
+	if(key_dest == key_game){ // Quake, read and reset in menus too
+		mouse_x += (s16)r.x.cx;
+		mouse_y += (s16)r.x.dx;
+	}
+#endif
 }
 
 void IN_Init()
