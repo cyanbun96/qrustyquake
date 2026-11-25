@@ -525,6 +525,12 @@ void V_CalcRefdef()
 		else if(scr_viewsize.value == 90) view->origin[2] += 1;
 		else if(scr_viewsize.value == 80) view->origin[2] += 0.5;
 	}
+	// the weapon frames advance with the player's think, so they last as
+	// long as its interval when the server sends one, not always 0.1 s
+	if(ent->lerpflags & LERP_FINISH){
+		view->lerpflags |= LERP_FINISH;
+		view->lerpfinish = ent->lerpfinish;
+	}else view->lerpflags &= ~LERP_FINISH;
 	view->model = cl.model_precache[cl.stats[STAT_WEAPON]];
 	view->frame = cl.stats[STAT_WEAPONFRAME];
 	view->scale = ENTSCALE_DEFAULT;

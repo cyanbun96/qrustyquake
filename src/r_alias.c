@@ -422,6 +422,9 @@ void R_SetupAliasFrame(aliashdr_t *paliashdr, s32 frame, lerpdata_t *lerpdata)
 		lerpdata->blend = CLAMP(0, (cl.time - e->lerpstart) / 
 			((e->lerpflags&LERP_FINISH && numposes==1) ?
 			 (e->lerpfinish - e->lerpstart) : e->lerptime), 1);
+		// a finished lerp stays finished: the next lerpfinish, further
+		// out, would ease it back toward the old pose
+		if(lerpdata->blend == 1) e->previouspose = e->currentpose;
 		lerpdata->pose1 = e->previouspose;
 		lerpdata->pose2 = e->currentpose;
 	}else{ //don't lerp
