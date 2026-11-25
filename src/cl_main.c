@@ -237,6 +237,22 @@ f32 CL_LerpPoint() // Determines the fraction between the last two messages
 	return frac;
 }
 
+static void CL_ResetTrail(entity_t *ent)
+{
+	ent->traildelay = 1.0 / 72;
+	VectorCopy(ent->origin, ent->trailorg);
+}
+
+static void CL_RocketTrail(entity_t *ent, s32 type)
+{ // at most WinQuake's 72 a second: every trail leaves at least a particle,
+  // one a frame at high fps filled the pool. The margin keeps all of them
+  // at 72 fps, where the f32 server time makes frames a bit short or long
+	ent->traildelay -= cl.time - cl.oldtime;
+	if(ent->traildelay > 0.001) return;
+	R_RocketTrail(ent->trailorg, ent->origin, type);
+	CL_ResetTrail(ent);
+}
+
 void CL_RelinkEntities()
 {
 	f32 frac = CL_LerpPoint(); // determine partial update time
@@ -267,8 +283,7 @@ void CL_RelinkEntities()
 			ent->lerpflags |= LERP_RESETMOVE|LERP_RESETANIM;
 			continue;
 		}
-		vec3_t oldorg;
-		VectorCopy(ent->origin, oldorg);
+		bool newtrail = ent->forcelink;
 		if(ent->forcelink){ // the entity was not updated in the last
 					// message so move to the final spot
 			VectorCopy(ent->msg_origins[0], ent->origin);
@@ -283,6 +298,7 @@ void CL_RelinkEntities()
 					f = 1;//assume teleportation, not motion
 					//johnfitz -- don't lerp teleports
 					ent->lerpflags |= LERP_RESETMOVE;
+					newtrail = 1;
 				}
 			}
 			//johnfitz- don't cl_lerp entities that will be r_lerped
@@ -301,6 +317,7 @@ void CL_RelinkEntities()
 				ent->angles[j] = ent->msg_angles[1][j] + f * d;
 			}
 		}
+		if(newtrail) CL_ResetTrail(ent);
 		if(ent->model->flags & EF_ROTATE) // rotate bin objects locally
 			ent->angles[1] = bobjrotate;
 		if(ent->effects & EF_BRIGHTFIELD)
@@ -359,23 +376,24 @@ void CL_RelinkEntities()
 			dl->color[2] = 0.25f;
 		}
 		if(ent->model->flags & EF_GIB)
-			R_RocketTrail(oldorg, ent->origin, 2);
+			CL_RocketTrail(ent, 2);
 		else if(ent->model->flags & EF_ZOMGIB)
-			R_RocketTrail(oldorg, ent->origin, 4);
+			CL_RocketTrail(ent, 4);
 		else if(ent->model->flags & EF_TRACER)
-			R_RocketTrail(oldorg, ent->origin, 3);
+			CL_RocketTrail(ent, 3);
 		else if(ent->model->flags & EF_TRACER2)
-			R_RocketTrail(oldorg, ent->origin, 5);
+			CL_RocketTrail(ent, 5);
 		else if(ent->model->flags & EF_ROCKET){
-			R_RocketTrail(oldorg, ent->origin, 0);
+			CL_RocketTrail(ent, 0);
 			dl = CL_AllocDlight(i);
 			VectorCopy(ent->origin, dl->origin);
 			dl->radius = 200;
 			dl->die = cl.time + 0.01;
 		}else if(ent->model->flags & EF_GRENADE)
-			R_RocketTrail(oldorg, ent->origin, 1);
+			CL_RocketTrail(ent, 1);
 		else if(ent->model->flags & EF_TRACER3)
-			R_RocketTrail(oldorg, ent->origin, 6);
+			CL_RocketTrail(ent, 6);
+		else CL_ResetTrail(ent);
 		ent->forcelink = 0;
 		if(i == cl.viewentity && !chase_active.value)
 			continue;

@@ -242,6 +242,8 @@ typedef struct entity_s {                                            // render.h
 	vec3_t currentorigin; //johnfitz -- transform lerping
 	vec3_t previousangles; //johnfitz -- transform lerping
 	vec3_t currentangles;  //johnfitz -- transform lerping
+	vec3_t trailorg; // where the next particle trail starts
+	f32 traildelay; // time left until it's drawn
 } entity_t;
 typedef struct {//johnfitz -- for passing lerp information to drawing functions
         s32 pose1;
