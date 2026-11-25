@@ -501,7 +501,7 @@ typedef struct {                                                    // d_iface.h
 } emitpoint_t;
 typedef enum {
 	pt_static, pt_grav, pt_slowgrav, pt_fire,
-	pt_explode, pt_explode2, pt_blob, pt_blob2
+	pt_explode, pt_explode2, pt_blob, pt_blob2, pt_oneframe
 } ptype_t;
 typedef struct particle_s {
 	// driver-usable fields

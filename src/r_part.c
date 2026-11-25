@@ -50,7 +50,11 @@ void R_EntityParticles(entity_t *ent)
 		active_particles = p;
 		p->die = cl.time + 0.01;
 		p->color = 0x6f;
-		p->type = pt_explode;
+		// drawn once, as at WinQuake's 72 fps, where 0.01 s is less
+		// than a frame: above 100 fps the sets of every frame in it
+		// piled up, 1,782 particles at 1000 fps, and a pause, which
+		// stops the clock, filled the pool
+		p->type = pt_oneframe;
 		static f32 beamlength = 16;
 		p->org[0] = ent->origin[0] + r_avertexnormals[i][0] * dist
 			+ forward[0] * beamlength;
@@ -383,6 +387,9 @@ void R_DrawParticles()
 			{ 0x6f, 0x6e, 0x6d, 0x6c, 0x6b, 0x6a, 0x68, 0x66 };
 		switch(p->type){
 		case pt_static:
+			break;
+		case pt_oneframe: // see R_EntityParticles
+			p->die = -1;
 			break;
 		case pt_fire:
 			p->ramp += time1;
