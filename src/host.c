@@ -487,9 +487,11 @@ void _Host_Frame(f32 time)
 		return;	// something bad happened, or the server disconnected
 	bool ranserver = 0;
 	rand(); // keep the random time dependent
-	// for renderer/server isolation
-	accumtime += host_netinterval?CLAMP(0.0, (f64)time, 0.2):0.0;
 	Host_AdvanceTime(time);
+	// for renderer/server isolation, in game time so host_timescale and
+	// host_framerate apply
+	if(host_netinterval)
+		accumtime = CLAMP(0.0, accumtime + host_frametime, 0.2);
 	Sys_SendKeyEvents(); // get new key events
 	Cbuf_Execute(); // process console commands
 	NET_Poll();
@@ -505,16 +507,15 @@ void _Host_Frame(f32 time)
 	// rate from everything else
 	if(accumtime >= host_netinterval){
 		f32 realframetime = host_frametime;
+		// whole 1/72 s ticks, the rest carried over, so the server
+		// runs at WinQuake's rate whatever the frame rate: taking all
+		// of accumtime gave 62.5 Hz at 250 fps, 55 at 165, 50 at 100.
+		// Frames longer than a tick merge their ticks into one
 		if(host_netinterval){
-			host_frametime = q_max(accumtime,(f64)host_netinterval);
+			host_frametime = host_netinterval
+				* (s32)(accumtime / host_netinterval);
 			accumtime -= host_frametime;
-			if(host_timescale.value > 0)
-				host_frametime *= host_timescale.value;
-			else if(host_framerate.value)
-				host_frametime = host_framerate.value;
 		}
-		else
-			accumtime -= host_netinterval;
 		CL_SendCmd();
 		if(sv.active){
 			PR_SwitchQCVM(&sv.qcvm);
