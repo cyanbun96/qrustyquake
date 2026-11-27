@@ -182,6 +182,9 @@ void Cvar_SetQuick(cvar_t *var, const c8 *value)
 	}
 	if(var->callback) var->callback(var);
 	if(var->flags & CVAR_AUTOCVAR) PR_AutoCvarChanged(var);
+	if((var->flags & CVAR_NOTIFY) && sv.active)
+		SV_BroadcastPrintf("\"%s\" changed to \"%s\"\n",
+				var->name, var->string);
 }
 
 void Cvar_Set(const c8 *var_name, const c8 *value)
