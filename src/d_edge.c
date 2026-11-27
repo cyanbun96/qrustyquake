@@ -452,13 +452,13 @@ static dsurf_t *D_SetupSurf(surf_t *s, s32 pass)
 		if(s->flags & SURF_DRAWTURB){
 			f32 opacity = 1;
 			if(s->entity->alpha && r_entalpha.value)
-				opacity -= (f32)s->entity->alpha / 255;
+				opacity -= ENTALPHA_DECODE(s->entity->alpha);
 			else if(s->flags & SURF_WINQUAKE_DRAWTRANSLUCENT)
 				opacity -= R_LiquidAlphaForFlags(s->flags);
 			D_SetupTurb(d, s, pface, opacity);
 		}else if(s->entity->alpha && r_entalpha.value == 1)
 			D_SetupCached(d, s, pface, SPAN_TRANS,
-					1 - (f32)s->entity->alpha / 255);
+				1 - ENTALPHA_DECODE(s->entity->alpha));
 	}else if(!D_BrokenSurf(s, pface)){
 		D_SetZGradients(s);
 		D_SwitchEntity(s);

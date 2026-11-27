@@ -664,7 +664,12 @@ static void R_SetEntityModelOrg(entity_t *ent)
 }
  
 static f32 R_EntityAlpha(entity_t *ent)
-{ return ent->alpha ? (f32)ent->alpha/255 : 1; }
+{ return r_entalpha.value == 1 ? ENTALPHA_DECODE(ent->alpha) : 1; }
+
+// At the lowest step it's invisible and not drawn, as in Ironwail. With
+// r_entalpha off it's drawn opaque like the rest
+static bool R_EntityHidden(entity_t *ent)
+{ return ent->alpha == ENTALPHA_ZERO && r_entalpha.value == 1; }
  
 static void R_ClampAliasLighting(alight_t *light)
 {
@@ -733,6 +738,8 @@ static void R_DrawAliasEntity()
 	// a lerp from wherever the entity was when it was turned off
 	if(!(cls.demoplayback && (cl.paused & 2)))
 		R_SetupEntityTransform(currententity); // move lerp
+	if(R_EntityHidden(currententity))
+		return;
 	R_SetEntityModelOrg(currententity);
 	R_AliasValidateFrame();
 	// see if the bounding box lets us trivially reject
@@ -750,7 +757,7 @@ static void R_DrawAliasEntity()
 	}
 	alight_t lighting;
 	R_SetupAliasEntityLighting(&lighting);
-	cur_ent_alpha = r_entalpha.value == 1 ? R_EntityAlpha(currententity):1;
+	cur_ent_alpha = R_EntityAlpha(currententity);
 	if(colored_aliaslight &&
 		nameInList(r_fullbright_list.string,currententity->model->name))
 		colored_aliaslight = 0;
@@ -769,7 +776,9 @@ static void R_DrawEntitiesOnList()
 			R_DebugDrawBBox(currententity->origin,currententity->
 					model->mins,currententity->model->maxs);
 		switch(currententity->model->type){
-		case mod_sprite:
+		case mod_sprite: // drawn opaque whatever its alpha
+			if(R_EntityHidden(currententity))
+				break;
 			R_SetEntityModelOrg(currententity);
 			R_DrawSprite();
 			break;
@@ -801,7 +810,8 @@ static void R_DrawViewModel()
 {
 	if(!r_drawviewmodel.value || cl.items & IT_INVISIBILITY
 		|| cl.stats[STAT_HEALTH] <= 0 || !cl.viewent.model
-		|| cl.viewent.model->type != mod_alias || chase_active.value)
+		|| cl.viewent.model->type != mod_alias || chase_active.value
+		|| R_EntityHidden(&cl.viewent))
                 return;
 	currententity = &cl.viewent;
 	R_SetEntityModelOrg(currententity);
@@ -809,7 +819,10 @@ static void R_DrawViewModel()
 	VectorCopy(vup, viewlightvec);
 	VectorInverse(viewlightvec);
 	R_SetupViewModelLighting();
+	// the player's own alpha, sent with the player's state (SU_WEAPONALPHA)
+	cur_ent_alpha = R_EntityAlpha(currententity);
 	R_AliasDrawModel(&r_viewlighting, 0);
+	cur_ent_alpha = 1;
 }
  
 static f64 R_ClipPlaneDist(vec3_t point, s32 i)
@@ -863,6 +876,8 @@ static s32 R_BmodelCheckBBox(model_t *clmodel, f32 *minmaxs)
  
 static s32 R_SetupBmodelAlpha(entity_t *ent)
 {
+	if(R_EntityHidden(ent))
+		return 0; // in neither pass
 	if(r_entalpha.value != 1){
 		cur_ent_alpha = 1;
 		return 1;

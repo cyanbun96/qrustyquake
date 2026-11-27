@@ -210,6 +210,8 @@
 // server convert to u8 to send to client
 #define ENTALPHA_ENCODE(a) \
 (((a)==0)?ENTALPHA_DEFAULT:Q_rint(CLAMP(1.0f,(a)*254.0f+1,255.0f)))
+// client convert to f32 for rendering
+#define ENTALPHA_DECODE(a) (((a)==ENTALPHA_DEFAULT)?1.0f:((f32)(a)-1)/254)
 // server convert to f32 for savegame
 #define ENTALPHA_TOSAVE(a) \
 (((a)==ENTALPHA_DEFAULT)?0.0f:(((a)==ENTALPHA_ZERO)?-1.0f:((f32)(a)-1)/(254)))
