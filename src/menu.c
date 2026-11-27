@@ -2531,13 +2531,13 @@ static void M_Graphics_Step(s32 dir)
 	case 806: M_CLAMP(lyr_crosshair, dir, 3); break;
 	case 807:
 		if(dir < 0) break;
-		Cvar_SetValue("lyr_main", 0);
-		Cvar_SetValue("lyr_sbar", 3);
-		Cvar_SetValue("lyr_menu", 2);
-		Cvar_SetValue("lyr_centerprint", 1);
-		Cvar_SetValue("lyr_console", 2);
-		Cvar_SetValue("lyr_notify", 2);
-		Cvar_SetValue("lyr_crosshair", 2);
+		Cvar_Reset("lyr_main");
+		Cvar_Reset("lyr_sbar");
+		Cvar_Reset("lyr_menu");
+		Cvar_Reset("lyr_centerprint");
+		Cvar_Reset("lyr_console");
+		Cvar_Reset("lyr_notify");
+		Cvar_Reset("lyr_crosshair");
 		break;
 	case 900: M_TOGGLE(r_lerpmodels); break;
 	case 901: M_TOGGLE(r_lerpmove); break;
