@@ -15,11 +15,10 @@ DEPLOYBIN_PLUGIN_ARCH=$ARCH
 case $ARCH in
 
     x86_64)
-        # determine packaging' system arch if deb or rpm, or UNAME_ARCH as fallback
-        # Debian: i386 or x86_64 
+        # i386 or x86_64
         ARCH=$(dpkg --print-architecture)
         
-        if [ "$ARCH" = "i386" -o "$ARCH" = "i586" ]; then
+        if [ "$ARCH" = "i386" ]; then
             GAME_ARCH=x86
             DEPLOYBIN_ARCH=i386
             # you'd think it is the same than DEPLOYBIN_ARCH but nope
