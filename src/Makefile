@@ -82,11 +82,19 @@ release:
 clean:
 	rm -f $(OBJS) $(OBJS_DEPS) $(TARGET)
 
-appimage:
-	(cd ../AppImage && ./build.sh)
+appimage: appimage-x86_64
+
+appimage-x86_64:
+	(cd ../AppImage && ./build.sh linux/amd64)
 
 appimage-aarch64:
 	(cd ../AppImage && ./build.sh linux/arm64)
+
+appimage-x86:
+	(cd ../AppImage && ./build.sh linux/i386)
+
+appimage-armhf:
+	(cd ../AppImage && ./build.sh linux/arm/v7)
 
 appimage-clean:
 	(cd ../AppImage && ./build.sh clean)
